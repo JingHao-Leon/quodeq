@@ -116,7 +116,8 @@ def compute_run_change(job: ChangeJob) -> dict[str, Any]:
     """One run's change data: diff counts against its baseline and its throughput."""
     out: dict[str, Any] = dict(_NO_COUNTS)
     if job.baseline_id is not None:
-        out.update(summarise_diff(diff_runs(job.reports_root, job.project, job.run_id, job.baseline_id)))
+        diff = diff_runs(job.reports_root, job.project, job.run_id, job.baseline_id, since_baseline=False)
+        out.update(summarise_diff(diff))
     try:
         progress = build_scan_progress(job.run_id, job.reports_root / job.project / job.run_id)
     except (OSError, ValueError):

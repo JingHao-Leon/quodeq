@@ -156,7 +156,8 @@ def _baseline_scope(
     if not base:
         return (None, None), None
     base_state = _commit_state(_run_dir(project_dir, base))
-    files = changed_files(repo_root, base_state[0], head[0]) if _comparable(base_state, head) else None
+    bounded = repo_root is not None and _comparable(base_state, head)
+    files = changed_files(repo_root, base_state[0], head[0]) if bounded else None
     return base_state, files
 
 
@@ -175,6 +176,7 @@ class _DiffContext:
     suppressed: tuple[set, set]  # (dismissed keys, deleted keys)
     repo_root: Path | None
     head: _CommitState
+    since_baseline: bool  # build the changed-files view (one git diff per baseline)
 
 
 def _locate_runs(
@@ -189,14 +191,17 @@ def _locate_runs(
     return project_dir, current_dir, older
 
 
-def _diff_context(reports_root: Path, project: str, run_id: str, against: str | None) -> _DiffContext:
+def _diff_context(
+    reports_root: Path, project: str, run_id: str, against: str | None, since_baseline: bool,
+) -> _DiffContext:
     project_dir, current_dir, older = _locate_runs(reports_root, project, run_id, against)
     # Dismissals and deletions are project-wide; a dismissed finding is neither
     # new on every run nor resolved when it stops being reported.
     suppressed = (dismissed_keys(project_dir), deleted_keys(project_dir))
     return _DiffContext(
         project_dir, current_dir, older, suppressed,
-        local_repo_root(reports_root, project), _commit_state(current_dir),
+        local_repo_root(reports_root, project) if since_baseline else None, _commit_state(current_dir),
+        since_baseline,
     )
 
 
@@ -219,15 +224,20 @@ def _dimension_entry(
     entry = _payload(diff_findings(prev_active, curr_active, current_files=seen))
     entry["againstRunId"] = base
     entry["againstCommitSha"], entry["againstCommitDirty"] = base_state
-    entry["sinceBaseline"] = _since_baseline(prev_active, curr_active, files, seen)
+    if ctx.since_baseline:
+        entry["sinceBaseline"] = _since_baseline(prev_active, curr_active, files, seen)
     return entry
 
 
-def diff_runs(reports_root: Path, project: str, run_id: str, against: str | None) -> dict[str, Any]:
+def diff_runs(
+    reports_root: Path, project: str, run_id: str, against: str | None, *, since_baseline: bool = True,
+) -> dict[str, Any]:
     """Per-dimension diff of *run_id*. With *against* every dimension uses that
     run; without it each dimension picks its own baseline (see ``_baseline_for``)
-    and reports it as ``againstRunId``."""
-    ctx = _diff_context(reports_root, project, run_id, against)
+    and reports it as ``againstRunId``. ``since_baseline=False`` leaves out the
+    changed-files view and the git diff it needs, for callers that read only
+    the counts."""
+    ctx = _diff_context(reports_root, project, run_id, against, since_baseline)
     # Several dimensions share one baseline run (always, with *against*);
     # its commit state and the git diff against head are resolved once.
     scopes: dict[str | None, _Scope] = {}
