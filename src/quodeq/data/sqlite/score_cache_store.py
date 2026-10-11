@@ -215,6 +215,18 @@ def load_run_changes(conn: sqlite3.Connection, project: str, keys: dict[str, str
     return out
 
 
+def prune_run_changes(conn: sqlite3.Connection, project: str, keep_run_ids: set[str]) -> None:
+    """Drop *project*'s change rows for runs outside *keep_run_ids* (best-effort)."""
+    try:
+        rows = conn.execute("SELECT run_id FROM run_change WHERE project=?", (project,)).fetchall()
+        gone = [(project, run_id) for (run_id,) in rows if run_id not in keep_run_ids]
+        if gone:
+            conn.executemany("DELETE FROM run_change WHERE project=? AND run_id=?", gone)
+            conn.commit()
+    except sqlite3.Error:
+        _logger.warning("run_change prune failed for %s", project, exc_info=True)
+
+
 def read_all_cached_rows(
     conn: sqlite3.Connection, project: str,
 ) -> dict[tuple[str, str], list[DimensionResult]]:
