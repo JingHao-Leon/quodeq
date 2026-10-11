@@ -41,7 +41,7 @@ const PHRASES = [
   'every finding gets a <b>severity</b>, an explanation, and pointers to the exact code that triggered it',
   'dismiss <b>false positives</b> in one click and they disappear from future runs too',
   'group <b>sub-projects</b> from the same repo to compare quality across services or modules',
-  'the <b>Q&#xB2; formula</b> rewards strong compliance and never lets minor issues swamp critical ones',
+  'the <b>Q² formula</b> rewards strong compliance and never lets minor issues swamp critical ones',
   'write <b>custom standards</b> in JSON when the built-in dimensions are not enough',
   'ask any <b>AI assistant</b> to draft a custom standard for you, then drop the JSON file into Quodeq',
   'enable <b>Clean Architecture</b> and <b>DDD</b> dimensions when you want architectural review, not just quality',

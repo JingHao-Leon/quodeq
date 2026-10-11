@@ -15,16 +15,22 @@
 //   ```figure            -> a registered figure component or image
 //   `tag:critical`       -> a severity badge; `icon:eye` -> an inline icon
 //
+// Two more are derived, not written: a list whose items all open with a
+// term becomes a definition list, and h3s get ids (rehypeHelpStructure.js).
+//
 // The badge and icon labels come from the string catalog at render time, so
 // no English leaks into the markdown for them.
+import { Fragment } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHelpStructure from './rehypeHelpStructure.js';
 import HelpFigure from '../../../components/HelpFigure.jsx';
 import GradeFormulaCurveFigure from './figures/GradeFormulaCurveFigure.jsx';
 import ScoreGroupingFigure from './figures/ScoreGroupingFigure.jsx';
 import { t } from '../../../strings/index.js';
 import { severityLabel } from '../../../strings/labels.js';
 import { FINDING_TYPE } from '../../../vocab/findingType.js';
+import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 
 // `informative: true` means the figure's own svg already carries an
 // accessible name (role="img"/aria-label) that must reach the accessibility
@@ -68,6 +74,32 @@ const MDAST_STRONG = 'strong';
 // rehype/remark code-fence className convention: ```figure / ```text.
 const LANG_CLASS_FIGURE = 'language-figure';
 const LANG_CLASS_TEXT = 'language-text';
+
+// A ```text sample's line may open with the finding's kind as the CLI prints
+// it; that word takes the badge's colour so the sample scans like the app.
+const SAMPLE_KINDS = Object.freeze({
+  ...Object.fromEntries(SEVERITY_ORDER.map((s) => [s.toUpperCase(), s])),
+  COMPLIANT: FINDING_TYPE.COMPLIANCE,
+});
+const SAMPLE_KIND_RE = /^[A-Z]+\b/;
+
+function SampleLine({ line }) {
+  const word = line.match(SAMPLE_KIND_RE)?.[0];
+  const kind = word && Object.hasOwn(SAMPLE_KINDS, word) ? SAMPLE_KINDS[word] : null;
+  if (!kind) return line;
+  return <><span className={`help-pre__sev ${kind}`}>{word}</span>{line.slice(word.length)}</>;
+}
+
+function TextSample({ text }) {
+  const lines = text.replace(/\n$/, '').split('\n');
+  return (
+    <pre className="help-pre">
+      {lines.map((line, i) => (
+        <Fragment key={i}>{i > 0 && '\n'}<SampleLine line={line} /></Fragment>
+      ))}
+    </pre>
+  );
+}
 
 function badgeLabel(kind) {
   return kind === FINDING_TYPE.COMPLIANCE
@@ -154,7 +186,7 @@ const COMPONENTS = {
       return <code>{children}</code>;
     }
     if (className === LANG_CLASS_FIGURE) return <Figure body={text} />;
-    if (className === LANG_CLASS_TEXT) return <pre className="help-pre">{text}</pre>;
+    if (className === LANG_CLASS_TEXT) return <TextSample text={text} />;
     return <code className={className}>{children}</code>;
   },
   pre({ children }) { return children; },        // the code renderer emits its own wrapper
@@ -163,7 +195,7 @@ const COMPONENTS = {
 export default function HelpMarkdown({ source }) {
   return (
     <section className="help-section">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS}>{source}</Markdown>
+      <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHelpStructure]} components={COMPONENTS}>{source}</Markdown>
     </section>
   );
 }

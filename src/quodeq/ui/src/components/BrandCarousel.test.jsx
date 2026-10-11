@@ -11,6 +11,25 @@ describe('BrandCarousel', () => {
     expect(phrase.textContent.length).toBeGreaterThan(0);
   });
 
+  // Phrases render as text (only <b> becomes markup), so an HTML entity such
+  // as `Q&#xB2;` showed up literally instead of as Q².
+  it('shows no raw HTML entity in any phrase', () => {
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<BrandCarousel />);
+      const seen = new Set();
+      for (let i = 0; i < 80; i += 1) {
+        seen.add(container.querySelector('.sa-phrase').textContent);
+        act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); });
+        act(() => { vi.advanceTimersByTime(400); });
+      }
+      expect(seen.size).toBeGreaterThan(20);
+      expect([...seen].filter((p) => /&#?\w+;/.test(p))).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('exposes chevron hit targets for keyboard/click navigation', () => {
     const { container } = render(<BrandCarousel />);
     expect(container.querySelector('.sa-hit--left')).not.toBeNull();

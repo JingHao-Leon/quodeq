@@ -161,8 +161,8 @@ function SidebarFooter({ lastEvalStr, activeTab, handleNav, standardsCount }) {
         )}
       </div>
       <div className="sidebar-nav sidebar-block sidebar-block--flush">
-        <NavButton id={NAV_TAB.SETTINGS} label="settings" icon={ICON_SETTINGS} activeTab={activeTab} onNavTab={handleNav} />
         <NavButton id={NAV_TAB.STANDARDS} label="standards" icon={ICON_STANDARDS} activeTab={activeTab} onNavTab={handleNav} count={standardsCount} />
+        <NavButton id={NAV_TAB.SETTINGS} label="settings" icon={ICON_SETTINGS} activeTab={activeTab} onNavTab={handleNav} />
         <NavButton id={NAV_TAB.HELP} label="help" icon={ICON_HELP} activeTab={activeTab} onNavTab={handleNav} />
       </div>
     </div>

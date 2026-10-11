@@ -91,15 +91,15 @@ describe('HelpPage command line section', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Command Line & CI' })).toBeInTheDocument();
     expect(screen.getAllByText('quodeq review').length).toBeGreaterThan(0);
     expect(screen.getAllByText('quodeq export sarif').length).toBeGreaterThan(0);
-    expect(screen.getByText(/--diff-from/)).toBeInTheDocument();
+    expect(screen.getAllByText(/--diff-from/).length).toBeGreaterThan(0);
   });
 });
 
 describe('HelpPage shared repository section', () => {
-  it('lists Shared Repository in the section nav right after Projects', () => {
+  it('lists Shared Repository in the section nav right after Repositories', () => {
     render(<HelpPage />);
     const nav = screen.getByRole('button', { name: 'Shared Repository' });
-    expect(nav.previousSibling).toHaveTextContent('Projects');
+    expect(nav.previousSibling).toHaveTextContent('Repositories');
   });
 
   it('documents connect, publish, pull, and the cache override', () => {
@@ -111,9 +111,9 @@ describe('HelpPage shared repository section', () => {
     expect(screen.getByText(/QUODEQ_CACHE_ROOT/)).toBeInTheDocument();
   });
 
-  it('cross-references sharing from the Projects section', () => {
+  it('cross-references sharing from the Repositories section', () => {
     render(<HelpPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Projects' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repositories' }));
     expect(screen.getByText('Publish / update')).toBeInTheDocument();
     expect(screen.getByText('Pull local copy')).toBeInTheDocument();
   });
@@ -137,7 +137,7 @@ describe('HelpPage deep link', () => {
 
   it('falls back to philosophy on an unknown section', () => {
     render(<HelpPage initialSection="nope" />);
-    expect(screen.getByRole('button', { name: 'Philosophy' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Philosophy' })).toHaveAttribute('aria-current', 'page');
   });
 });
 
@@ -193,5 +193,27 @@ describe('HelpPage history counts', () => {
   it('describes the report order on the Overview page', () => {
     render(<HelpPage initialSection="overview" />);
     expect(screen.getByText(/report opens with the header's numbers/)).toBeInTheDocument();
+  });
+});
+
+describe('HelpPage reading aids', () => {
+  it('lists the section\'s subheadings under "on this page"', () => {
+    render(<HelpPage initialSection="overview" />);
+    const toc = screen.getByRole('navigation', { name: /on this page/i });
+    expect(toc).toHaveTextContent('Accumulated scores');
+    expect(toc).toHaveTextContent('The report');
+  });
+
+  it('moves to the next section from the pager', () => {
+    render(<HelpPage initialSection="overview" />);
+    fireEvent.click(screen.getByRole('button', { name: /next.*Compare/i }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Compare' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Compare' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('offers no previous link on the first section', () => {
+    render(<HelpPage />);
+    expect(screen.queryByRole('button', { name: /previous/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /next.*Getting Started/i })).toBeInTheDocument();
   });
 });
