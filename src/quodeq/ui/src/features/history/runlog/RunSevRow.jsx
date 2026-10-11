@@ -8,7 +8,7 @@ export const MAJOR_ONLY = [SEVERITY.MAJOR];
 export default function RunSevRow({ counts, deltas, levels = SEVERITY_ORDER }) {
   return (
     <span className="rl-sev">
-      {levels.map((l) => (counts?.[l]
+      {levels.map((l) => (counts?.[l] || deltas?.[l]
         ? <SevBadge key={l} level={l} format="count-abbr" count={counts[l]} delta={deltas?.[l] || null} />
         : null))}
     </span>

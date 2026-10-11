@@ -39,11 +39,11 @@ describe('RunDetail', () => {
 
   it('other-model comparison is labelled; no baseline says nothing to compare', () => {
     renderDetail({ run: { ...run, baselineKind: 'other-model' } });
-    expect(screen.getByText(/different model \(qwen\)/)).toBeInTheDocument();
+    expect(screen.getByText(/different model \(gpt-6-luna\)/)).toBeInTheDocument();
   });
 
   it('a zero tab is disabled', () => {
-    renderDetail({ diff: { ...diff, new: [], newSev: {} } });
+    renderDetail({ run: { ...run, counts: { ...run.counts, new: 0 } }, diff: { ...diff, new: [], newSev: {} } });
     expect(screen.getByRole('tab', { name: /new/ })).toBeDisabled();
     expect(screen.getByRole('tab', { name: /resolved/ })).toBeEnabled();
   });
@@ -54,8 +54,21 @@ describe('RunDetail', () => {
     expect(screen.queryByRole('tab', { name: /resolved/ })).not.toBeInTheDocument();
   });
 
-  it('says how many findings are not listed', () => {
-    renderDetail({ tab: 'new', run: { ...run, counts: { ...run.counts, new: 250 } } });
-    expect(screen.getByText(/\+ 249 more/)).toBeInTheDocument();
+  it('tab numbers are the complete counts, the foot says how many are not listed', () => {
+    const list = Array.from({ length: 200 }, (_, i) => ({ ...diff.new[0], line: i }));
+    renderDetail({ tab: 'new', run: { ...run, counts: { ...run.counts, new: 250 } }, diff: { ...diff, new: list } });
+    expect(screen.getByRole('tab', { name: /\+250/ })).toBeInTheDocument();
+    expect(screen.getByText(/\+ 50 more/)).toBeInTheDocument();
+  });
+
+  it('a critical count that fell to zero still shows, with its change', () => {
+    renderDetail({ baseline: { ...baseline, critical: 2 } });
+    expect(screen.getByText(/0 crit/)).toBeInTheDocument();
+    expect(screen.getByText(/[-−]2/)).toBeInTheDocument();
+  });
+
+  it('files analysed reads count and rate', () => {
+    renderDetail({ throughput: { files: 821, perMin: 3.9 } });
+    expect(screen.getByText('821 · 3.9/min')).toBeInTheDocument();
   });
 });

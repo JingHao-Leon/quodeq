@@ -70,12 +70,15 @@ function Tab({ id, active, count, empty = false, cls, label, sev, onTab }) {
 function Foot({ run, baseline, diff }) {
   if (!baseline) return <span>{t('history.noBaseline')}</span>;
   const origin = originLabel(baseline.origin);
-  const params = { date: stamp(baseline.startedAt), origin: origin ? ` ${origin}` : '', model: run.model || '' };
+  const params = { date: stamp(baseline.startedAt), origin: origin ? ` ${origin}` : '', model: baseline.model || '' };
   const text = run.baselineKind === OTHER_MODEL ? t('history.vsOtherModel', params) : t('history.vsSameModel', params);
   return (
     <span>{text}{diff?.unchecked > 0 && <> · <span className="rl-help" title={t('history.notRecheckedTitle')}>{t('history.notRechecked', { count: diff.unchecked })}</span></>}</span>
   );
 }
+
+/** Complete count from the run; the (capped) list length only when the count is missing. */
+const tabCount = (count, list) => count ?? list?.length ?? 0;
 
 /** Which tab shows, and the findings list (if any) with how many are not in it. */
 function tabView(run, diff, tab) {
@@ -85,8 +88,8 @@ function tabView(run, diff, tab) {
   return {
     active: list ? tab : TAB_DIMS,
     list,
-    nNew: diff?.new.length || 0,
-    nResolved: diff?.resolved.length || 0,
+    nNew: tabCount(run.counts?.new, diff?.new),
+    nResolved: tabCount(run.counts?.resolved, diff?.resolved),
     more: list && total > list.length ? total - list.length : 0,
   };
 }
