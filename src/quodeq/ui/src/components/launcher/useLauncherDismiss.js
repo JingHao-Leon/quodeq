@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { KEY } from '../../../vocab/keyboard.js';
+import { KEY } from '../../vocab/keyboard.js';
 
 /**
  * Dismiss mechanics shared by the duel and dimension launcher popovers: a

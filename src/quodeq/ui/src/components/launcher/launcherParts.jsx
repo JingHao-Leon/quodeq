@@ -1,5 +1,5 @@
 /**
- * The shared shell of the Compare header's launcher popovers.
+ * The shared shell of the launcher popovers (Compare's header, History's filters).
  *
  * The duel trigger and the dimension trigger are the same control — a button
  * that opens a portaled menu anchored to itself, dismissed on outside click
@@ -8,11 +8,9 @@
  */
 import { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { scoreColorClass } from '../../../utils/formatters.js';
 import { launcherMenuPos } from './compareLauncherMenu.js';
 import { useLauncherDismiss } from './useLauncherDismiss.js';
 import { useLauncherFocus } from './useLauncherFocus.js';
-import { score1 } from '../compareFormatters.js';
 
 /**
  * Open/close state, anchor position and dismissal wiring for a launcher.
@@ -71,15 +69,6 @@ export function LauncherMenu({ menuRef, pos, children }) {
       {children}
     </span>,
     document.body,
-  );
-}
-
-/** A score shown beside a menu entry, tinted by its grade band. */
-export function LauncherScore({ score }) {
-  return (
-    <span className={`compare-dueltrigger__itemScore ${scoreColorClass(score)}`}>
-      {score1(score)}
-    </span>
   );
 }
 

@@ -3,9 +3,9 @@ import {
   LauncherButton,
   LauncherMenu,
   LauncherRoot,
-  LauncherScore,
   useLauncherPopover,
-} from './compareLauncherParts.jsx';
+} from '../../../components/launcher/launcherParts.jsx';
+import LauncherScore from './LauncherScore.jsx';
 
 function DimensionTriggerMenu({ menuRef, pos, board, onPick }) {
   return (
