@@ -76,9 +76,11 @@ CREATE TABLE IF NOT EXISTS run_dates (
 );
 """
 
-# Run metadata History lists without re-reading every status.json. Nullable
-# and named explicitly by every writer, so binaries that predate them keep
-# working beside them; their rows simply carry NULL metadata.
+# Run metadata (model, provider, commit, origin, dimensions) kept on the row.
+# Snapshots prefer it and fall back to status.json, which they still read for
+# the deadline and time limit. Nullable and named explicitly by every writer,
+# so binaries that predate the columns keep working beside them; their rows
+# simply carry NULL metadata.
 _META_COLUMNS = (
     ("ai_model", "TEXT"), ("ai_provider", "TEXT"), ("commit_sha", "TEXT"),
     ("origin_json", "TEXT"), ("dimensions_json", "TEXT"),
