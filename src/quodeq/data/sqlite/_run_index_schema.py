@@ -14,7 +14,11 @@ from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 3
+# Shared with every installed quodeq: the index file lives in the state dir all
+# binaries use, so a bump makes older and newer processes rebuild it from
+# under each other. Additive columns are feature-detected instead (see
+# _ensure_meta_columns) and leave the version alone.
+SCHEMA_VERSION = 2
 
 _RUN_INDEX_BUSY_TIMEOUT_MS = 3000  # kept at its historical value; the other sqlite stores use 5000 (SQLITE_BUSY_TIMEOUT_MS)
 
@@ -72,33 +76,55 @@ CREATE TABLE IF NOT EXISTS run_dates (
 );
 """
 
-# v3: run metadata History lists without re-reading every status.json.
-_RUN_META_VERSION = 3
-_SCHEMA_V3_COLUMNS = (
+# Run metadata History lists without re-reading every status.json. Nullable
+# and named explicitly by every writer, so binaries that predate them keep
+# working beside them; their rows simply carry NULL metadata.
+_META_COLUMNS = (
     ("ai_model", "TEXT"), ("ai_provider", "TEXT"), ("commit_sha", "TEXT"),
     ("origin_json", "TEXT"), ("dimensions_json", "TEXT"),
 )
+
+# An unreleased build stamped the metadata columns as schema version 3. Such an
+# index is a version-2 index with the columns already present; it is stamped
+# back to 2 rather than rebuilt, so released binaries stop discarding it.
+_UNRELEASED_META_VERSION = 3
 
 
 _DUPLICATE_COLUMN = "duplicate column name"
 
 
-def add_meta_columns(db: sqlite3.Connection) -> None:
-    """Add the v3 columns an older ``runs`` table lacks.
+def add_meta_columns(db: sqlite3.Connection) -> bool:
+    """Add the metadata columns an older ``runs`` table lacks; True if any was added.
 
     DDL autocommits and ``_open_lock`` only serializes threads, so another
     process may add a column between the PRAGMA read and the ALTER; that
     loser's "duplicate column name" is the desired end state, not an error.
     """
     have = {r[1] for r in db.execute("PRAGMA table_info(runs)")}
-    for name, kind in _SCHEMA_V3_COLUMNS:
+    added = False
+    for name, kind in _META_COLUMNS:
         if name in have:
             continue
         try:
             db.execute(f"ALTER TABLE runs ADD COLUMN {name} {kind}")
+            added = True
         except sqlite3.OperationalError as exc:
             if _DUPLICATE_COLUMN not in str(exc):
                 raise
+    return added
+
+
+def _ensure_meta_columns(db: sqlite3.Connection) -> None:
+    """Feature-detect the metadata columns; mark existing rows for one re-read when added.
+
+    Rows written before the columns existed carry no metadata, and a zero
+    mtime makes the next sync rewrite each of them once. Once the columns are
+    there nothing is reset, so rows a released binary writes later keep their
+    NULL metadata until their status.json changes (readers fall back to it).
+    """
+    with db:
+        if add_meta_columns(db):
+            db.execute("UPDATE runs SET status_mtime = 0")
 
 
 def _apply_schema(db: sqlite3.Connection) -> None:
@@ -116,11 +142,6 @@ def _migrate(db: sqlite3.Connection, version: int) -> None:
     with db:
         if version < _RUN_DATES_VERSION:
             db.executescript(_SCHEMA_V2)
-        if version < _RUN_META_VERSION:
-            add_meta_columns(db)
-            # Existing rows carry no metadata yet; a zero mtime makes the next
-            # sync rewrite each of them once.
-            db.execute("UPDATE runs SET status_mtime = 0")
         db.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
 
 
@@ -252,6 +273,10 @@ def _open_or_rebuild(db_path: Path) -> sqlite3.Connection:
     if version is None:
         _apply_schema(db)
         return db
+    if version == _UNRELEASED_META_VERSION:
+        with db:
+            db.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
+        version = SCHEMA_VERSION
     if version > SCHEMA_VERSION:
         # Downgrade: a newer quodeq migrated the index forward. It's a derived
         # projection, so discard and rebuild rather than crash — mirrors the
@@ -266,4 +291,5 @@ def _open_or_rebuild(db_path: Path) -> sqlite3.Connection:
         return db
     if version < SCHEMA_VERSION:
         _migrate(db, version)
+    _ensure_meta_columns(db)
     return db
