@@ -9,6 +9,7 @@ import { withPending } from '../../../utils/pendingClass.js';
 import { StatStrip, Stat } from '../../../components/terminal/index.js';
 import { scoreColorClass, complianceRatio } from '../../../utils/formatters.js';
 import { t } from '../../../strings/index.js';
+import { scoreToGradeLabel } from '../../../utils/gradeThresholds.js';
 import { HERO_CARD_KIND } from '../dashboardVocab.js';
 
 /**
@@ -129,6 +130,9 @@ export function ScoreStat({ scoreDisplay, grade, extraTrailing = null, hint = nu
  * @param {{grade: string|null|undefined, score: number|string|null}} props
  */
 export function GradeChip({ grade, score }) {
-  if (!grade) return null;
-  return <span className={`chip small ${scoreColorClass(parseFloat(score))}`}>{String(grade).toUpperCase()}</span>;
+  // The word follows the score on show, so the chip can never say a
+  // different grade than the number and colour next to it.
+  const label = scoreToGradeLabel(score) || grade;
+  if (!label) return null;
+  return <span className={`chip small ${scoreColorClass(parseFloat(score))}`}>{String(label).toUpperCase()}</span>;
 }
