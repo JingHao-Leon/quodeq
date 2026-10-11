@@ -1,6 +1,7 @@
 """Run index open/recovery semantics, RunRow and the index DB path setting."""
 from __future__ import annotations
 
+import importlib
 import sqlite3
 from pathlib import Path
 
@@ -208,7 +209,7 @@ class _StalePragma:
 
 def testadd_meta_columns_tolerates_a_peer_having_added_them(tmp_path: Path) -> None:
     """The ALTER loser of a cross-process race ends in the same state, without raising."""
-    from quodeq.data.sqlite._run_index_schema import add_meta_columns
+    add_meta_columns = importlib.import_module("quodeq.data.sqlite._run_index_schema").add_meta_columns
 
     db = open_index(tmp_path / "index.db")  # fresh index already has every column
     try:
