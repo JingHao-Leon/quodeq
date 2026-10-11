@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import HelpMarkdown from './HelpMarkdown.jsx';
+import { PageContents, SectionPager, useSectionHeadings } from './HelpReadingAids.jsx';
 import { TermHeader } from '../../../components/terminal/index.js';
 import BrandCarousel from '../../../components/BrandCarousel.jsx';
 import { t } from '../../../strings/index.js';
@@ -47,19 +48,25 @@ const SECTIONS = [
 
 function SectionNav({ active, onSelect }) {
   return (
-    <nav className="help-section-nav">
+    <nav className="help-section-nav" aria-label={t('help.sectionsLabel')}>
       {SECTIONS.map(s => (
         <button
           key={s.id}
-          className={`help-section-btn${active === s.id ? ' active' : ''}`}
+          type="button"
+          className="help-section-btn"
           onClick={() => onSelect(s.id)}
-          aria-pressed={active === s.id}
+          aria-current={active === s.id ? 'page' : undefined}
         >
           {t(s.labelKey)}
         </button>
       ))}
     </nav>
   );
+}
+
+function neighbour(index) {
+  const s = SECTIONS[index];
+  return s ? { id: s.id, label: t(s.labelKey) } : undefined;
 }
 
 /**
@@ -69,9 +76,19 @@ function SectionNav({ active, onSelect }) {
 export default function HelpPage({ initialSection }) {
   const known = SECTIONS.some((s) => s.id === initialSection);
   const [activeSection, setActiveSection] = useState(known ? initialSection : DEFAULT_SECTION);
+  const pageRef = useRef(null);
+  const contentRef = useRef(null);
+  const headings = useSectionHeadings(contentRef, activeSection);
+  const index = SECTIONS.findIndex((s) => s.id === activeSection);
+
+  // A new section starts at its title, wherever the previous one was read to.
+  const select = (id) => {
+    setActiveSection(id);
+    pageRef.current?.scrollIntoView?.({ block: 'start' });
+  };
 
   return (
-    <div className="help-page help-page--terminal">
+    <div className="help-page help-page--terminal" ref={pageRef}>
       <div className="help-header">
         <TermHeader
           name={t('help.termName')}
@@ -80,10 +97,12 @@ export default function HelpPage({ initialSection }) {
         <BrandCarousel />
       </div>
       <div className="help-layout">
-        <SectionNav active={activeSection} onSelect={setActiveSection} />
-        <div className="help-content">
-          <HelpMarkdown source={sourceFor(activeSection)} />
+        <SectionNav active={activeSection} onSelect={select} />
+        <div className="help-content" ref={contentRef}>
+          <HelpMarkdown key={activeSection} source={sourceFor(activeSection)} />
+          <SectionPager prev={neighbour(index - 1)} next={neighbour(index + 1)} onSelect={select} />
         </div>
+        <PageContents contentRef={contentRef} headings={headings} />
       </div>
     </div>
   );
