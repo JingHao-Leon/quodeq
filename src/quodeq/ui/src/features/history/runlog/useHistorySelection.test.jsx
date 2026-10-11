@@ -56,4 +56,20 @@ describe('useHistorySelection', () => {
     expect(result.current.selected).toBeNull();
     expect(onRunChange).not.toHaveBeenCalled();
   });
+
+  it('with no remembered run it follows the newest run without reporting it', () => {
+    const onRunChange = vi.fn();
+    const { result, rerender } = renderHook(({ r }) => useHistorySelection({ initialRunId: null, onRunChange, rows: r }), { initialProps: { r: rows } });
+    expect(result.current.selected.runId).toBe('a');
+    rerender({ r: [{ runId: 'z' }, ...rows] });
+    expect(result.current.selected.runId).toBe('z');
+    expect(onRunChange).not.toHaveBeenCalled();
+  });
+
+  it('a picked run stays selected when a newer run arrives', () => {
+    const { result, rerender } = renderHook(({ r }) => useHistorySelection({ initialRunId: null, onRunChange: vi.fn(), rows: r }), { initialProps: { r: rows } });
+    act(() => result.current.select('a'));
+    rerender({ r: [{ runId: 'z' }, ...rows] });
+    expect(result.current.selected.runId).toBe('a');
+  });
 });

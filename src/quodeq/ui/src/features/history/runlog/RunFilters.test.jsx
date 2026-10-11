@@ -20,6 +20,13 @@ describe('RunFilters', () => {
     expect(onModel).toHaveBeenCalledWith('m2');
   });
 
+  it('keeps a filter that is on visible even when it has fewer than two options', () => {
+    const one = [{ runId: 'a', model: 'm1', origin: { kind: 'app' } }];
+    render(<RunFilters rows={one} origin="all" model="m2" onOrigin={vi.fn()} onModel={vi.fn()} shown={0} />);
+    expect(screen.getByRole('button', { name: 'filter by model' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'filter by origin' })).toBeNull();
+  });
+
   it('shows how many runs survive once a filter is on', () => {
     render(<RunFilters rows={rows} origin="app" model="all" onOrigin={vi.fn()} onModel={vi.fn()} shown={2} />);
     expect(screen.getByText('2 of 3 runs')).toBeInTheDocument();

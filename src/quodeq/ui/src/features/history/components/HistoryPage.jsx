@@ -113,8 +113,12 @@ export default function HistoryPage({ trend: rawTrend, partialRuns: rawPartialRu
   const shared = selectedSource === PROJECT_SOURCE.SHARED;
   return (
     <RunLogPage
+      // A project switch starts a fresh page: no filter, strip page or
+      // selection carries over from the previous project.
+      key={`${selectedSource}:${selectedProject}`}
       project={selectedProject}
       shared={shared}
+      visibleSet={visibleSet}
       trend={trend}
       partialRuns={partialRuns}
       refreshing={isRefreshing}

@@ -9,11 +9,12 @@ import { useRunDiff, useRunThroughput } from './useRunDetail.js';
 import { useHistorySelection } from './useHistorySelection.js';
 import { useKeyboardSelect } from './useKeyboardSelect.js';
 import { findingParams, dimensionParams, runStamp } from './runLogNavigation.js';
-import { countBy, originLabel } from './runLogModel.js';
-import RunFilters, { FILTER_ALL } from './RunFilters.jsx';
+import { countBy } from './runLogModel.js';
+import { runsForVisibleStandards } from './runVisibility.js';
+import { useRunFilters } from './useRunFilters.js';
+import RunFilters from './RunFilters.jsx';
 import RunningLine from './RunningLine.jsx';
-import ChangeStrip from './ChangeStrip.jsx';
-import RunList from './RunList.jsx';
+import RunLogBody from './RunLogBody.jsx';
 import RunDetail from './RunDetail.jsx';
 import RunLogSkeleton from './RunLogSkeleton.jsx';
 
@@ -31,28 +32,17 @@ function headerSub(runs) {
   ].filter(Boolean).join(' · ');
 }
 
-/** Origin and model filters over the full log; `rows` is what survives them. */
-function useRunFilters(runs) {
-  const [origin, setOrigin] = useState(FILTER_ALL);
-  const [model, setModel] = useState(FILTER_ALL);
-  const rows = useMemo(() => runs.filter((r) => (
-    (origin === FILTER_ALL || originLabel(r.origin) === origin) && (model === FILTER_ALL || r.model === model)
-  )), [runs, origin, model]);
-  return { rows, origin, model, setOrigin, setModel };
-}
-
 /** Selection, strip window and small-screen scroll: one place picks a run. */
 function useRunPicker({ rows, initialRunId, onRunChange, pageRef }) {
   const { selected, select, tab, setTab } = useHistorySelection({ initialRunId, onRunChange, rows });
   const [stripStart, setStripStart] = useState(null); // null = follow the selection
-  const [hoverId, setHoverId] = useState(null);
   const pick = useCallback((id) => { select(id); setStripStart(null); }, [select]);
   // On a small screen the run panel sits above the list: bring it into view.
   const pickFromList = useCallback((id) => {
     pick(id);
     if (isSmallScreen()) pageRef.current?.querySelector('.rl-detail')?.scrollIntoView({ block: 'start' });
   }, [pick, pageRef]);
-  return { selected, tab, setTab, pick, pickFromList, stripStart, setStripStart, hoverId, setHoverId };
+  return { selected, tab, setTab, pick, pickFromList, stripStart, setStripStart };
 }
 
 function useRunActions({ selected, runsById, callbacks, refetch }) {
@@ -68,11 +58,16 @@ function useRunActions({ selected, runsById, callbacks, refetch }) {
   return { openRun, openFinding, openDimension, deleteRun, baseline };
 }
 
-/** A remote project has no run log endpoint: its log comes from the trend. */
-function usePageLog({ project, shared, trend, partialRuns }) {
+/**
+ * A remote project has no run log endpoint: its log comes from the trend,
+ * which arrives already narrowed to the visible standards. The local log is
+ * narrowed here.
+ */
+function usePageLog({ project, shared, trend, partialRuns, visibleSet }) {
   const localLog = useRunLog(shared ? null : project);
   const sharedLog = useSharedRunLog(shared ? trend : null, partialRuns);
-  return shared ? sharedLog : localLog;
+  const localRuns = useMemo(() => runsForVisibleStandards(localLog.runs, visibleSet), [localLog.runs, visibleSet]);
+  return shared ? sharedLog : { ...localLog, runs: localRuns };
 }
 
 function NoRunsYet({ loading, error, onRetry }) {
@@ -96,11 +91,11 @@ function RunLogFrame({ runs, shared, refreshing, filters, pageRef, children }) {
  * History as a run log: the runs newest first, what changed in each against
  * its comparison run, and the selected run beside the list.
  */
-export default function RunLogPage({ project, shared = false, trend, partialRuns, refreshing = false, initialRunId, onRunChange, ...callbacks }) {
+export default function RunLogPage({ project, shared = false, trend, partialRuns, visibleSet = null, refreshing = false, initialRunId, onRunChange, ...callbacks }) {
   const pageRef = useRef(null);
-  const { runs, running, loading, error, refetch } = usePageLog({ project, shared, trend, partialRuns });
+  const { runs, running, loading, error, refetch } = usePageLog({ project, shared, trend, partialRuns, visibleSet });
   const runsById = useMemo(() => new Map(runs.map((r) => [r.runId, r])), [runs]);
-  const filters = useRunFilters(runs);
+  const filters = useRunFilters(runs, project);
   const { rows } = filters;
   const picker = useRunPicker({ rows, initialRunId, onRunChange, pageRef });
   const { selected } = picker;
@@ -116,20 +111,18 @@ export default function RunLogPage({ project, shared = false, trend, partialRuns
   const filterBar = (
     <RunFilters rows={runs} origin={filters.origin} model={filters.model} onOrigin={filters.setOrigin} onModel={filters.setModel} shown={rows.length} />
   );
+  // Built here, so a hover (state inside RunLogBody) does not re-render it.
+  const detail = selected && (
+    <RunDetail run={selected} baseline={actions.baseline} diff={diff} throughput={throughput}
+      tab={picker.tab} onTab={picker.setTab} onOpenRun={actions.openRun} onOpenFinding={actions.openFinding}
+      onOpenDimension={actions.openDimension} onDelete={actions.deleteRun} />
+  );
   return (
     <RunLogFrame {...frame} filters={filterBar}>
       <RunningLine job={running} onNavigate={callbacks.onNavigate} />
-      <ChangeStrip rows={rows} selectedId={selected?.runId} onSelect={picker.pick} hoverId={picker.hoverId}
-        onHover={picker.setHoverId} start={picker.stripStart} onPage={picker.setStripStart} />
-      <div className="rl-split">
-        <RunList rows={rows} runsById={runsById} selectedId={selected?.runId} onSelect={picker.pickFromList}
-          hoverId={picker.hoverId} onHover={picker.setHoverId} />
-        {selected && (
-          <RunDetail run={selected} baseline={actions.baseline} diff={diff} throughput={throughput}
-            tab={picker.tab} onTab={picker.setTab} onOpenRun={actions.openRun} onOpenFinding={actions.openFinding}
-            onOpenDimension={actions.openDimension} onDelete={actions.deleteRun} />
-        )}
-      </div>
+      <RunLogBody project={project} shared={shared} rows={rows} runsById={runsById} selectedId={selected?.runId}
+        onPick={picker.pick} onPickFromList={picker.pickFromList} stripStart={picker.stripStart} onPage={picker.setStripStart}
+        onClearFilters={filters.active ? filters.clear : undefined} detail={detail} />
     </RunLogFrame>
   );
 }

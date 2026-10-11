@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
@@ -23,6 +23,9 @@ function renderPage(props = {}) {
 }
 
 describe('RunLogPage', () => {
+  // Filters are kept per project for the session; each test starts clean.
+  beforeEach(() => sessionStorage.clear());
+
   it('down selects the next run, Enter on the page opens it, keys in a field are ignored', async () => {
     const cb = renderPage();
     await screen.findByText(/comparison|vs /);

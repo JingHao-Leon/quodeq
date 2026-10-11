@@ -59,8 +59,22 @@ function RunRow({ run, same, selected, hovered, onSelect, onHover }) {
   );
 }
 
-/** The runs, newest first, grouped under day labels. `runsById` resolves baselines hidden by a filter. */
-export default function RunList({ rows, runsById, selectedId, onSelect, hoverId, onHover }) {
+/** No runs to list: none finished yet, or none left by the filters (which it offers to clear). */
+function NoRuns({ onClearFilters }) {
+  if (!onClearFilters) return <div className="rl-empty">{t('history.noRuns')}</div>;
+  return (
+    <div className="rl-empty">
+      {t('history.noRunsFiltered')}{' '}
+      <button type="button" className="eval-pill-btn" onClick={onClearFilters}>{t('history.clearFilters')}</button>
+    </div>
+  );
+}
+
+/**
+ * The runs, newest first, grouped under day labels. `runsById` resolves
+ * baselines hidden by a filter; `onClearFilters` is set when filters are on.
+ */
+export default function RunList({ rows, runsById, selectedId, onSelect, hoverId, onHover, onClearFilters }) {
   const ref = useKeepSelectedInView(selectedId);
   const byId = useMemo(() => runsById || new Map(rows.map((r) => [r.runId, r])), [runsById, rows]);
   const oldest = rows.at(-1);
@@ -69,6 +83,7 @@ export default function RunList({ rows, runsById, selectedId, onSelect, hoverId,
     <RunLogPanel label={t('history.runsLabel', { count: rows.length })} className="rl-listpanel" stats={t('history.runsColumns')}
       foot={oldest ? <span>{t('history.runsSince', { date: dayLabel(oldest.startedAt) })}</span> : null}>
       <div className="rl-list" ref={ref} aria-label={t('history.runsAria')}>
+        {!rows.length && <NoRuns onClearFilters={onClearFilters} />}
         {rows.map((run) => {
           const d = dayLabel(run.startedAt);
           const head = d !== lastDay ? <div className="rl-day">{d}</div> : null;

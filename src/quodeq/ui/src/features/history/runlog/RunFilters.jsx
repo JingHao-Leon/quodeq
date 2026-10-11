@@ -1,13 +1,15 @@
 import { t } from '../../../strings/index.js';
 import { LauncherButton, LauncherMenu, LauncherRoot, useLauncherPopover } from '../../../components/launcher/launcherParts.jsx';
 import { countBy, originLabel } from './runLogModel.js';
+import { FILTER_ALL } from './useRunFilters.js';
 
-export const FILTER_ALL = 'all';
 const MIN_OPTIONS = 2;
 
 function FilterSelect({ label, options, value, onChange }) {
   const { open, pos, btnRef, menuRef, close, toggle } = useLauncherPopover();
-  if (options.length < MIN_OPTIONS) return null;
+  // A filter that is on stays reachable, even when the runs left give it
+  // fewer than two options: otherwise it could never be turned off.
+  if (options.length < MIN_OPTIONS && value === FILTER_ALL) return null;
   const total = options.reduce((n, [, c]) => n + c, 0);
   const pick = (v) => { close(); onChange(v); };
   const item = (v, text, n) => (

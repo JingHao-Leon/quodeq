@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import HistoryPage from './HistoryPage.jsx';
@@ -235,5 +235,27 @@ describe('HistoryPage: error state + retry feedback', () => {
   it('a local project has no read-only chip', () => {
     renderHistory();
     expect(screen.queryByText('remote · read-only')).toBeNull();
+  });
+});
+
+describe('HistoryPage: project switch', () => {
+  beforeEach(() => sessionStorage.clear());
+
+  it('a project switch drops the filter and lands on the new project\'s newest run', async () => {
+    const P2_NEW = { ...RUN_B, runId: 'n', jobId: 'ext-n', startedAt: '2026-10-12T01:00:00+00:00', model: 'qwen' };
+    const P2_OLD = { ...RUN_A, runId: 'o', jobId: 'ext-o', startedAt: '2026-10-09T01:00:00+00:00', model: 'gpt', baselineRunId: 'x' };
+    const getRunLog = vi.fn(async (p) => ({ runs: p === 'proj2' ? [P2_NEW, P2_OLD] : [RUN_A, { ...RUN_B, model: 'gpt' }], running: null }));
+    const api = { ...makeFakeApi(null, getRunLog) };
+    const QC = withQueryClient();
+    const props = { trend, availableRuns, selection: { selectedRunId: null }, callbacks: makeCallbacks(), projectsLoaded: true, loading: false, isFetching: false,
+      projects: [{ id: 'proj1', name: 'proj1' }, { id: 'proj2', name: 'proj2' }], selectedProject: 'proj1' };
+    const ui = (over) => <QC><ApiProvider value={api}><HistoryPage {...props} {...over} /></ApiProvider></QC>;
+    const { rerender } = render(ui({}));
+    fireEvent.click(await screen.findByRole('button', { name: 'filter by model' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /gpt/ }));
+    expect(await screen.findByText('1 of 2 runs')).toBeInTheDocument();
+    rerender(ui({ selectedProject: 'proj2' }));
+    expect(await screen.findByText(/nothing to compare with/)).toBeInTheDocument();
+    expect(screen.queryByText(/of 2 runs/)).toBeNull();
   });
 });
