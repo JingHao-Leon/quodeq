@@ -1,6 +1,6 @@
 ## Terminal
 
-A real shell inside the dashboard: your login shell, on your machine, with your tools. Quodeq only hosts the window.
+A real shell inside the dashboard: your login shell, on your machine, with your tools. quodeq only hosts the window.
 
 ### Turning it on
 
@@ -14,4 +14,4 @@ On by default; turn it off under **Settings → Enable terminal**. Toggle it wit
 
 ### Safety
 
-The terminal only works when the dashboard is bound to localhost, and it is disabled entirely in remote mode (when `QUODEQ_API_KEY` is set). Quodeq strips its own secrets from the shell environment. Beyond that it is exactly as powerful, and as dangerous, as your normal terminal.
+The terminal only works when the dashboard is bound to localhost, and it is disabled entirely in remote mode (when `QUODEQ_API_KEY` is set). quodeq strips its own secrets from the shell environment. Beyond that it is exactly as powerful, and as dangerous, as your normal terminal.

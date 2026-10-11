@@ -1,10 +1,10 @@
 ## Custom Standards
 
-The **Standards** tab is where you decide what quality means for your project. Browse, edit, import, and create the rules Quodeq evaluates against.
+The **Standards** tab is where you decide what quality means for your project. Browse, edit, import, and create the rules quodeq evaluates against.
 
 ### Built-in standards
 
-Quodeq ships with managed standards for the six ISO 25010 dimensions plus Clean Architecture, DDD Design and WCAG 2.2 Accessibility. Their structure is **read-only** and marked as *Managed*, but their numeric thresholds are editable (see below). To turn one off, hide it with the `icon:eye` visibility toggle.
+quodeq ships with managed standards for the six ISO 25010 dimensions plus Clean Architecture, DDD Design and WCAG 2.2 Accessibility. Their structure is **read-only** and marked as *Managed*, but their numeric thresholds are editable (see below). To turn one off, hide it with the `icon:eye` visibility toggle.
 
 ### Customizing thresholds
 
@@ -32,7 +32,7 @@ Custom standards are fully editable and can be duplicated, exported, or deleted 
 
 ### Importing
 
-Click **Import** to load a JSON file you wrote yourself or got from elsewhere. Quodeq validates the shape and tells you what is wrong if it does not parse.
+Click **Import** to load a JSON file you wrote yourself or got from elsewhere. quodeq validates the shape and tells you what is wrong if it does not parse.
 
 ### Standard schema
 
@@ -69,7 +69,7 @@ Click **Import** to load a JSON file you wrote yourself or got from elsewhere. Q
 Any chat AI (Claude, ChatGPT, Gemini) can write a standard for you. Paste the schema above, describe what you want evaluated, and ask for a JSON file. Save the result and import it. A starter prompt:
 
 ```text
-Generate a Quodeq standard JSON file for evaluating React
+Generate a quodeq standard JSON file for evaluating React
 component best practices. Cover accessibility, performance,
 state management, and error boundaries. Use this schema:
 { ...paste schema above... }
