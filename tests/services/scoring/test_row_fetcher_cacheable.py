@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from quodeq.services.scoring import ProjectRows
@@ -17,6 +18,9 @@ def _run(root: Path, run_id: str, state: str) -> None:
     }), encoding="utf-8")
     (run_dir / "status.json").write_text(
         json.dumps({"state": state, "started_at": "2026-09-20T00:00:00Z"}), encoding="utf-8")
+    if state == "running":
+        # A run only reads as running while its .pid names a live process.
+        (run_dir / ".pid").write_text(str(os.getpid()), encoding="utf-8")
 
 
 def test_only_done_runs_are_cacheable(tmp_path, monkeypatch) -> None:
