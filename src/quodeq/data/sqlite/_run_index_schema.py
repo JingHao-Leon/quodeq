@@ -14,7 +14,7 @@ from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _RUN_INDEX_BUSY_TIMEOUT_MS = 3000  # kept at its historical value; the other sqlite stores use 5000 (SQLITE_BUSY_TIMEOUT_MS)
 
@@ -67,11 +67,26 @@ CREATE TABLE IF NOT EXISTS run_dates (
 );
 """
 
+# v3: run metadata History lists without re-reading every status.json.
+_RUN_META_VERSION = 3
+_SCHEMA_V3_COLUMNS = (
+    ("ai_model", "TEXT"), ("ai_provider", "TEXT"), ("commit_sha", "TEXT"),
+    ("origin_json", "TEXT"), ("dimensions_json", "TEXT"),
+)
+
+
+def _add_meta_columns(db: sqlite3.Connection) -> None:
+    have = {r[1] for r in db.execute("PRAGMA table_info(runs)")}
+    for name, kind in _SCHEMA_V3_COLUMNS:
+        if name not in have:
+            db.execute(f"ALTER TABLE runs ADD COLUMN {name} {kind}")
+
 
 def _apply_schema(db: sqlite3.Connection) -> None:
     """Create the full current schema on a fresh (or wiped) index."""
     with db:
         db.executescript(_SCHEMA_V1 + _SCHEMA_V2)
+        _add_meta_columns(db)
         have_version = db.execute("SELECT COUNT(*) FROM schema_version").fetchone()[0]
         if have_version == 0:
             db.execute("INSERT INTO schema_version(version) VALUES (?)", (SCHEMA_VERSION,))
@@ -82,6 +97,11 @@ def _migrate(db: sqlite3.Connection, version: int) -> None:
     with db:
         if version < _RUN_DATES_VERSION:
             db.executescript(_SCHEMA_V2)
+        if version < _RUN_META_VERSION:
+            _add_meta_columns(db)
+            # Existing rows carry no metadata yet; a zero mtime makes the next
+            # sync rewrite each of them once.
+            db.execute("UPDATE runs SET status_mtime = 0")
         db.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
 
 

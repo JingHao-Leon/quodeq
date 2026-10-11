@@ -7,6 +7,7 @@ cancelled based on heartbeat mtime + PID liveness.
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import sqlite3
 import time
@@ -39,8 +40,9 @@ _DEFAULT_STALE_SECONDS = 30  # check_stale_and_promote's heartbeat-staleness thr
 _UPSERT_SQL = """
 INSERT INTO runs (
     job_id, project_uuid, run_id, run_dir, state, phase, current_dimension,
-    started_at, updated_at, finalized_at, heartbeat_at, pid, exit_reason, status_mtime
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    started_at, updated_at, finalized_at, heartbeat_at, pid, exit_reason, status_mtime,
+    ai_model, ai_provider, commit_sha, origin_json, dimensions_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(job_id) DO UPDATE SET
     project_uuid=excluded.project_uuid,
     run_id=excluded.run_id,
@@ -54,7 +56,12 @@ ON CONFLICT(job_id) DO UPDATE SET
     heartbeat_at=excluded.heartbeat_at,
     pid=excluded.pid,
     exit_reason=excluded.exit_reason,
-    status_mtime=excluded.status_mtime
+    status_mtime=excluded.status_mtime,
+    ai_model=excluded.ai_model,
+    ai_provider=excluded.ai_provider,
+    commit_sha=excluded.commit_sha,
+    origin_json=excluded.origin_json,
+    dimensions_json=excluded.dimensions_json
 """
 
 
@@ -79,6 +86,19 @@ def status_mtime_ns(run_dir: Path) -> int:
         return (run_dir / STATUS_FILENAME).stat().st_mtime_ns
     except OSError:
         return 0
+
+
+def _meta_params(status: dict) -> tuple[str | None, ...]:
+    """The run metadata columns, in ``_UPSERT_SQL`` order."""
+    origin = status.get("origin")
+    dims = status.get("dimensions")
+    return (
+        status.get("ai_model"),
+        status.get("ai_provider"),
+        status.get("commit_sha"),
+        json.dumps(origin) if isinstance(origin, dict) else None,
+        json.dumps(sorted(dims)) if isinstance(dims, list) and dims else None,
+    )
 
 
 def upsert_from_status(
@@ -110,6 +130,7 @@ def upsert_from_status(
             status.get("pid"),
             status.get("exit_reason"),
             status_mtime_ns(run_dir),
+            *_meta_params(status),
         ),
     )
 
@@ -157,6 +178,7 @@ def sync_legacy_run(
             started_iso, started_iso, started_iso if state in TERMINAL_STATES else None,
             None, None, exit_reason,
             0,
+            None, None, None, None, None,
         ),
     )
 

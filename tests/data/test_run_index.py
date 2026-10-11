@@ -28,7 +28,7 @@ def test_open_creates_schema_on_fresh_path(tmp_path: Path) -> None:
         assert "idx_runs_state" in idx
         assert "idx_runs_started_at" in idx
         v = db.execute("SELECT version FROM schema_version").fetchone()[0]
-        assert v == SCHEMA_VERSION == 2
+        assert v == SCHEMA_VERSION == 3
     finally:
         db.close()
 
@@ -88,7 +88,7 @@ def test_open_recovers_from_newer_schema(tmp_path: Path) -> None:
     db = open_index(db_path)
     try:
         v = db.execute("SELECT version FROM schema_version").fetchone()[0]
-        assert v == SCHEMA_VERSION == 2
+        assert v == SCHEMA_VERSION == 3
         # Full current schema recreated, not just the version table.
         cols = {row[1] for row in db.execute("PRAGMA table_info(runs)").fetchall()}
         assert "job_id" in cols
@@ -169,5 +169,26 @@ def test_run_dates_round_trip_is_per_project_and_replaces(tmp_path: Path) -> Non
         assert read_run_dates(db, "a") == {"r1": ("2024-01-09", "Jan 9"), "r2": ("2024-01-02", "Jan 2")}
         assert read_run_dates(db, "b") == {"r1": ("2023-01-01", "Jan 1, 2023")}
         assert read_run_dates(db, "c") == {}
+    finally:
+        db.close()
+
+
+def test_open_migrates_v2_index_and_marks_rows_for_resync(tmp_path: Path) -> None:
+    """A v2 index gains the run metadata columns; rows are re-read on the next sync."""
+    db_path = tmp_path / "index.db"
+    db = open_index(db_path)
+    db.execute("INSERT INTO runs (job_id, project_uuid, run_id, run_dir, state, started_at, updated_at, status_mtime) "
+               "VALUES ('p/r1','p','r1','/x','done','2024-01-01T00:00:00Z','2024-01-01T00:00:00Z', 5)")
+    db.execute("UPDATE schema_version SET version = 2")
+    for col in ("ai_model", "ai_provider", "commit_sha", "origin_json", "dimensions_json"):
+        db.execute(f"ALTER TABLE runs DROP COLUMN {col}")
+    db.commit()
+    db.close()
+    db = open_index(db_path)
+    try:
+        cols = {r[1] for r in db.execute("PRAGMA table_info(runs)")}
+        assert {"ai_model", "commit_sha", "origin_json", "dimensions_json"} <= cols
+        assert db.execute("SELECT status_mtime FROM runs").fetchone()[0] == 0
+        assert db.execute("SELECT version FROM schema_version").fetchone()[0] == 3
     finally:
         db.close()

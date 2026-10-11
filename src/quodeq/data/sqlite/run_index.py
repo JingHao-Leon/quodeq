@@ -51,6 +51,11 @@ class RunRow:
     pid: int | None
     exit_reason: str | None
     status_mtime: int
+    ai_model: str | None = None
+    ai_provider: str | None = None
+    commit_sha: str | None = None
+    origin_json: str | None = None
+    dimensions_json: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +165,8 @@ def sync_project_dates(db: sqlite3.Connection, project_dir: Path, project_uuid: 
 
 _LIST_COLS = (
     "job_id, project_uuid, run_id, run_dir, state, phase, current_dimension, "
-    "started_at, updated_at, finalized_at, heartbeat_at, pid, exit_reason, status_mtime"
+    "started_at, updated_at, finalized_at, heartbeat_at, pid, exit_reason, status_mtime, "
+    "ai_model, ai_provider, commit_sha, origin_json, dimensions_json"
 )
 
 
