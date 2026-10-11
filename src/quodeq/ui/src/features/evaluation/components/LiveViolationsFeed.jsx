@@ -219,7 +219,7 @@ function diffReviewOf(progress, orderedDims) {
   return { passed: checksPassed(progress), cleanDims };
 }
 
-export default function LiveViolationsFeed({ liveViolations, job = null, hiddenCarriedCount = 0, newCount = null, onOpenDimension }) {
+export default function LiveViolationsFeed({ liveViolations, job = null, hiddenCarriedCount = 0, newCount = null, onOpenDimension, projectName }) {
   // Per-dim activity timestamps power "latest active dimension on top".
   const lastActivity = useDimensionActivity(liveViolations);
 
@@ -240,7 +240,7 @@ export default function LiveViolationsFeed({ liveViolations, job = null, hiddenC
 
   const totalCount = orderedDims.reduce((sum, d) => sum + d.violations.length, 0);
   const review = diffReviewOf(progress, orderedDims);
-  const { resultOf, openResults, doneWithout } = useFinishedDimensions({ job, progress, orderedDims, review, onOpenDimension });
+  const { resultOf, openResults, doneWithout } = useFinishedDimensions({ job, progress, orderedDims, review, onOpenDimension, projectName });
   // The list shows while there is something in it, while the run is live (the
   // latest header says so before the first finding), and for a clean diff
   // review (the checks that passed are its result).

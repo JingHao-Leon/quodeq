@@ -232,7 +232,7 @@ export default function EvaluationStatus({ job, jobProjectInfo, startedProjectIn
       <ReviewEndLine job={job} progress={progress} />
       <JobStatStrip job={job} liveViolations={fresh} hiddenCarriedCount={hiddenCarriedCount} />
       <ScanProgress job={job} />
-      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} onOpenDimension={onOpenDimension} />
+      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} onOpenDimension={onOpenDimension} projectName={projectLabel} />
     </div>
   );
 }

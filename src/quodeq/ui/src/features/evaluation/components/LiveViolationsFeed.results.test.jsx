@@ -14,7 +14,7 @@ vi.mock('./liveDimensionRows.jsx', async (orig) => {
   return { ...mod, DimensionResult: (props) => { renderCounter(props.result?.score); return mod.DimensionResult(props); } };
 });
 
-const job = { jobId: 'job-1', status: 'running', outputRunId: 'run-9', outputProject: 'proj-1' };
+const job = { jobId: 'job-1', startedAt: '2026-10-10T09:30:00',  status: 'running', outputRunId: 'run-9', outputProject: 'proj-1' };
 const v = (dim) => ({ dimension: dim, severity: 'major', title: 't', file: 'a.py', line: 1, principle: 'P' });
 const progress = { dimensions: [
   { id: 'security', state: 'done', files: { taken: 3, total: 3 } },
@@ -27,7 +27,7 @@ function renderFeed({ seed, onOpen = vi.fn(), j = job }) {
   client.setQueryData(evaluationKeys.dimensions('job-1'), seed);
   render(
     <QueryClientProvider client={client}>
-      <LiveViolationsFeed job={j} liveViolations={{ security: [v('security')], performance: [v('performance')] }} onOpenDimension={onOpen} />
+      <LiveViolationsFeed job={j} liveViolations={{ security: [v('security')], performance: [v('performance')] }} onOpenDimension={onOpen} projectName="My Proj" />
     </QueryClientProvider>,
   );
   return onOpen;
@@ -40,7 +40,7 @@ describe('finished dimensions in the live list', () => {
     const onOpen = renderFeed({ seed: { security: { overallScore: '8.4/10', overallGrade: 'Good' } } });
     expect(await screen.findByText('8.4')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'open security results' }));
-    expect(onOpen).toHaveBeenCalledWith({ dimension: 'security', runId: 'run-9', fromProject: 'proj-1' });
+    expect(onOpen).toHaveBeenCalledWith({ dimension: 'security', runId: 'run-9', fromProject: 'proj-1', dateLabel: '10 October 2026 09:30', fromProjectName: 'My Proj' });
   });
 
   it('a done dimension without new findings still gets a row with its score', async () => {
@@ -60,6 +60,21 @@ describe('finished dimensions in the live list', () => {
     renderFeed({ seed: { security: { overallScore: '8.4/10' } }, j: { ...job, outputRunId: null } });
     expect(await screen.findByText('8.4')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'open security results' })).toBeNull();
+  });
+});
+
+describe('a diff review keeps its plain look', () => {
+  it('shows no score, no results link and no done rows even with frames and a run id', async () => {
+    getEvaluationProgress.mockResolvedValue({ dimensions: [
+      { id: 'security', state: 'done', estimateReason: 'diff', files: { taken: 3, total: 3 }, compliance: 4 },
+      { id: 'reliability', state: 'done', estimateReason: 'diff', files: { taken: 3, total: 3 }, compliance: 2 },
+    ] });
+    renderFeed({ seed: { security: { overallScore: 8.4 }, reliability: { overallScore: 7.4 } }, j: { ...job, source: 'external' } });
+    await screen.findByText('2 passed');
+    expect(screen.queryByText('8.4')).toBeNull();
+    expect(screen.queryByText('7.4')).toBeNull();
+    expect(screen.queryByRole('button', { name: /results$/ })).toBeNull();
+    expect(screen.getAllByText('reliability')).toHaveLength(1);
   });
 });
 

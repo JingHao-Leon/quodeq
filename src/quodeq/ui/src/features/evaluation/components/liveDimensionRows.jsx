@@ -4,6 +4,8 @@ import { sameDim } from './liveViolationsOrdering.js';
 import { useCallback } from 'react';
 import { t } from '../../../strings/index.js';
 import { gradeLabel, scoreColorClass } from '../../../utils/formatters.js';
+import { scoreTierLabel } from '../../../utils/gradeFormatting.js';
+import { formatRunDateTime } from '../../../utils/dateFormatting.js';
 
 // A finished dimension's grade and score, then its results link. The link is
 // a sibling of the accordion button (never nested), and only when the run's
@@ -12,7 +14,7 @@ export function DimensionResult({ result }) {
   if (!result) return null;
   return (
     <span className="vlive-dimension-result">
-      <span className={`chip small ${scoreColorClass(result.score)}`}>{gradeLabel(result.grade) || '—'}</span>
+      <span className={`chip small ${scoreColorClass(result.score)}`}>{scoreTierLabel(result.score) || gradeLabel(result.grade) || '?'}</span>
       <span className={`vlive-dimension-score ${scoreColorClass(result.score)}`}>{result.score.toFixed(1)}</span>
     </span>
   );
@@ -47,16 +49,20 @@ export function DoneDimensionRow({ dim, result, onOpenResults }) {
 // Finished dimensions' results, the links that open them, and the finished
 // dimensions that have no findings row of their own. A diff review gets no
 // links and no extra rows: its run folder goes with the job.
-export function useFinishedDimensions({ job, progress, orderedDims, review, onOpenDimension }) {
-  const resultOf = useLiveDimensionResults(job?.jobId);
-  const canOpen = onOpenDimension && job?.outputRunId && review.passed == null;
+export function useFinishedDimensions({ job, progress, orderedDims, review, onOpenDimension, projectName }) {
+  const liveResultOf = useLiveDimensionResults(job?.jobId);
+  const isReview = review.passed != null;
+  // A diff review keeps its plain look: no grade or score anywhere.
+  const resultOf = useCallback((id) => (isReview ? null : liveResultOf(id)), [isReview, liveResultOf]);
+  const canOpen = onOpenDimension && job?.outputRunId && !isReview;
   const runId = job?.outputRunId;
   const fromProject = job?.outputProject;
   // One stable callback taking the dimension: memoised groups keep their props.
-  const open = useCallback((dimension) => onOpenDimension?.({ dimension, runId, fromProject }),
-    [onOpenDimension, runId, fromProject]);
+  const dateLabel = formatRunDateTime(job?.startedAt, '', 'useFinishedDimensions') || undefined;
+  const open = useCallback((dimension) => onOpenDimension?.({ dimension, runId, fromProject, dateLabel, fromProjectName: projectName || undefined }),
+    [onOpenDimension, runId, fromProject, dateLabel, projectName]);
   const openResults = canOpen ? open : null;
-  const doneWithout = review.passed != null ? [] : (progress?.dimensions || []).filter(
+  const doneWithout = isReview ? [] : (progress?.dimensions || []).filter(
     (d) => d.state === DIM_STATE.DONE && resultOf(d.id) && !orderedDims.some((o) => sameDim(o.dim, d.id)),
   );
   return { resultOf, openResults, doneWithout };
