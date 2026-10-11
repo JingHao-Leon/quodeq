@@ -230,9 +230,9 @@ export default function EvaluationStatus({ job, jobProjectInfo, startedProjectIn
       <JobHeader job={job} progress={progress} onDismiss={onDismiss} onCancel={onCancel} />
       <JobIdentityStrip job={job} progress={progress} projectLabel={projectLabel} onGoToProjects={onGoToProjects} />
       <ReviewEndLine job={job} progress={progress} />
-      <JobStatStrip job={job} liveViolations={fresh} hiddenCarriedCount={hiddenCarriedCount} onOpenDimension={onOpenDimension} />
+      <JobStatStrip job={job} liveViolations={fresh} hiddenCarriedCount={hiddenCarriedCount} />
       <ScanProgress job={job} />
-      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} />
+      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} onOpenDimension={onOpenDimension} />
     </div>
   );
 }
