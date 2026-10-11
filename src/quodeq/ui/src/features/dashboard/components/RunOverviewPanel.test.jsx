@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { RunHeroSection } from './RunOverviewPanel.jsx';
 
 const baseSummary = {
-  overallGrade: 'Fair',
+  overallGrade: 'Adequate',
   numericAverage: '6.0',
   totalViolations: 131,
   totalCompliance: 175,
@@ -72,20 +73,22 @@ describe('RunHeroSection primary tiles', () => {
   it('shows SCORE, VIOLATIONS, COMPLIANCE and RATIO with the grade in the hint', () => {
     render(<RunHeroSection dashboard={dashboard} selectedRunId="r1" runSummary={baseSummary} />);
     expect(screen.getAllByText(/^(SCORE|VIOLATIONS|COMPLIANCE|RATIO)$/).map((n) => n.textContent)).toEqual(['SCORE', 'VIOLATIONS', 'COMPLIANCE', 'RATIO']);
-    expect(screen.getByText('FAIR').className).toContain('chip');
-    expect(screen.getByText('FAIR').closest('.term-stat__hint')).not.toBeNull();
-    expect(screen.getByText('FAIR').closest('.term-stat__value-row')).toBeNull();
+    expect(screen.getByText('ADEQUATE').className).toContain('chip');
+    expect(screen.getByText('ADEQUATE').closest('.term-stat__hint')).not.toBeNull();
+    expect(screen.getByText('ADEQUATE').closest('.term-stat__value-row')).toBeNull();
     expect(screen.queryByText(/^grade /)).toBeNull();
     expect(screen.queryByText('MAJORS')).toBeNull();
   });
 });
 
 describe('RunHeroSection formula note', () => {
-  const note = /recomputed with the current grade formula/;
+  const note = /rescored · current formula/;
 
-  it('says the scores were recomputed when the run was scanned with an older formula', () => {
+  it('marks a run scanned with an older formula with one muted line and a tooltip', () => {
     render(<RunHeroSection dashboard={dashboard} selectedRunId="r1" runSummary={baseSummary} formulaUpdated />);
-    expect(screen.getByText(note)).toBeTruthy();
+    const el = screen.getByText(note);
+    expect(el).toHaveClass('term-stat__suppressed-note');
+    expect(el.getAttribute('title')).toMatch(/older grade formula/);
   });
 
   it('stays silent when the run was scanned with the current formula', () => {

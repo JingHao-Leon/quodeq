@@ -82,7 +82,7 @@ describe('ExplorerStatsPanel severity badges', () => {
   });
 
   it('shows the grade as a chip on the score tile', () => {
-    render(<ExplorerStatsPanel {...baseProps} overallGrade={{ grade: 'Exemplary', score: '9.6' }} />);
+    render(<ExplorerStatsPanel {...baseProps} overallScoreNum={9.6} overallGrade={{ grade: 'Exemplary', score: '9.6' }} />);
     expect(screen.getByText('EXEMPLARY').className).toContain('chip');
   });
 });
