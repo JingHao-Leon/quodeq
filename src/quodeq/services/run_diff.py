@@ -139,10 +139,7 @@ def _since_baseline(
         "changedFiles": None if files is None else len(files),
         "majorsDelta": scoped.majors_delta,
         "criticalDelta": scoped.critical_delta,
-        "counts": {
-            "new": len(scoped.new), "resolved": len(scoped.resolved),
-            NEW_SEV: severity_tally(scoped.new), RESOLVED_SEV: severity_tally(scoped.resolved),
-        },
+        "counts": {"new": len(scoped.new), "resolved": len(scoped.resolved)},
         "types": {"closed": scoped.types_closed, "opened": scoped.types_opened},
         "new": scoped.new[:LIST_CAP], "resolved": scoped.resolved[:LIST_CAP],
     }
