@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.13.1] - 2026-10-11
+
+### Improvements
+- **Help**: the Help page is restyled for reading. The text sits in a reading column, the section list is a hairline list with the current section marked, rows that open with a term render as definition lists, wide screens get an "On this page" list that follows your scrolling, and each section ends with previous and next links. Below 900px the section list becomes a tab strip.
+- **Sidebar**: the footer lists Standards first, then Settings, then Help: what quodeq measures, then how the app behaves, then the docs.
+
+### Fixes
+- **Tips carousel**: the Q² tip shows the superscript instead of the raw HTML entity.
+
 ### Docs
 - **The in-app help reads as documentation**: the pages are edited for readers who do not have the app open, and the website's docs are generated from them. Philosophy no longer describes the pre-1.13 grade formula and points to Why This Grade; AI Providers opens with the three ways to supply a model and all nine providers, says what to expect from local models, and folds the Copilot policy text into a note; Command Line & CI documents the environment variables a headless run reads, a minimal GitHub Actions job with `quodeq ci report` and its real flags, and that pull request reviews are GitHub only while cloning and SARIF work with any git host; Getting Started no longer repeats Quickstart; the Projects page and nav entry are named Repositories, like the tab; GitHub Access is Git Access; severity descriptions no longer set deadlines; and the name is written `quodeq` throughout. The URL validation error no longer implies GitHub is the only host.
 
