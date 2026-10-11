@@ -12,6 +12,7 @@ that a circular import.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -174,6 +175,21 @@ def _read_enriched_status_fields(run_dir: Path, *, with_logs: bool = True) -> St
     )
 
 
+def _origin_from_row(origin_json: str) -> RunOrigin | None:
+    try:
+        return RunOrigin.from_dict(json.loads(origin_json))
+    except ValueError:
+        return None
+
+
+def _dimensions_from_row(dimensions_json: str | None) -> list[str] | None:
+    try:
+        dims = json.loads(dimensions_json) if dimensions_json else None
+    except ValueError:
+        return None
+    return dims if isinstance(dims, list) else None
+
+
 def build_job_snapshot(row: "_run_index.RunRow", *, with_logs: bool = True) -> JobSnapshot:
     """Assemble a ``JobSnapshot`` from an index row, enriched from status.json.
 
@@ -183,6 +199,7 @@ def build_job_snapshot(row: "_run_index.RunRow", *, with_logs: bool = True) -> J
     """
     run_dir = Path(row.run_dir) if row.run_dir else None
     fields = _read_enriched_status_fields(run_dir, with_logs=with_logs) if run_dir else StatusFields()
+    origin = _origin_from_row(row.origin_json) if row.origin_json else fields.origin
     return JobSnapshot(
         job_id=row.job_id,
         status=row.state,
@@ -196,14 +213,14 @@ def build_job_snapshot(row: "_run_index.RunRow", *, with_logs: bool = True) -> J
         phase=row.phase,
         deadline_at=fields.deadline_at,
         current_dimension=row.current_dimension,
-        dimensions=fields.dimensions,
+        dimensions=_dimensions_from_row(row.dimensions_json) or fields.dimensions,
         error=row.exit_reason,
         source="external" if is_external_job_id(row.job_id) else "internal",
         exit_reason=row.exit_reason,
-        ai_provider=fields.ai_provider,
-        ai_model=fields.ai_model,
+        ai_provider=row.ai_provider or fields.ai_provider,
+        ai_model=row.ai_model or fields.ai_model,
         time_limit_s=fields.time_limit_s,
-        commit_sha=fields.commit_sha,
+        commit_sha=row.commit_sha or fields.commit_sha,
         origin_url=read_origin_url(run_dir) if run_dir else None,
-        origin=fields.origin,
+        origin=origin,
     )

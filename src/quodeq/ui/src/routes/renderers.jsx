@@ -161,6 +161,7 @@ export const ROUTE_RENDERERS = {
         preselectDims={params.preselectDims}
         onGoToProjects={() => props.navigation.navTab(NAV_TAB.PROJECTS)}
         onGoToSettings={() => props.navigation.navTab(NAV_TAB.SETTINGS)}
+        onOpenDimension={(target) => props.navigation.handleNavigate(NAV_TAB.EXPLORER, { ...target, sourceTab: NAV_TAB.EVALUATE })}
       />
     );
   },

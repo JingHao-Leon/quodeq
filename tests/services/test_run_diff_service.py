@@ -38,7 +38,8 @@ def test_diff_runs_per_dimension(tmp_path: Path) -> None:
     dim = out["dimensions"][_DIM]
     assert out["againstRunId"] == _PREV
     assert dim["counts"] == {"carried": 0, "same": 0, "moved": 0, "new": 1,
-                             "resolved": 1, "notReevaluated": 0}
+                             "resolved": 1, "notReevaluated": 0,
+                             "newSev": {"minor": 1}, "resolvedSev": {"minor": 1}}
     assert dim["types"] == {"closed": ["M-REU-1"], "opened": ["M-ANA-9"],
                             "perReq": {"M-ANA-9": [0, 1], "M-REU-1": [1, 0]}}
     assert [f["req"] for f in dim["new"]] == ["M-ANA-9"]
@@ -68,5 +69,5 @@ def test_dismissed_findings_are_left_out_of_both_sides(tmp_path: Path) -> None:
     dim = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]
 
     assert dim["counts"] == {"carried": 0, "same": 0, "moved": 0, "new": 0,
-                             "resolved": 0, "notReevaluated": 0}
+                             "resolved": 0, "notReevaluated": 0, "newSev": {}, "resolvedSev": {}}
     assert dim["types"]["perReq"] == {}

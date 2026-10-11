@@ -34,4 +34,14 @@ describe('RatioDensityStat', () => {
     expect(hint.querySelector('.trend-badge')).toHaveTextContent('-0.1');
     expect(container.querySelector('.term-stat__trailing')).toBeNull();
   });
+
+  it('the grade word follows the score on show, not the stored grade', () => {
+    const { container } = render(<ScoreStat scoreDisplay="8.5" grade="Exemplary" />);
+    expect(container.querySelector('.chip')).toHaveTextContent('GOOD');
+  });
+
+  it('falls back to the stored grade when the score does not parse', () => {
+    const { container } = render(<ScoreStat scoreDisplay="—" grade="Adequate" />);
+    expect(container.querySelector('.chip')).toHaveTextContent('ADEQUATE');
+  });
 });

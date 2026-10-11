@@ -98,6 +98,10 @@ class TestBuildEvalEnv:
         env = m._build_eval_env(EvaluationOptions(), env={})
         assert env["PYTHONUNBUFFERED"] == "1"
 
+    def test_app_runs_are_marked_as_app(self):
+        env = self._mixin()._build_eval_env(EvaluationOptions(), env={})
+        assert env["QUODEQ_RUN_ORIGIN"] == "app"
+
     @patch("quodeq.services.evaluation_mixin.get_ai_cmd", return_value="claude")
     @patch("quodeq.services.evaluation_mixin.get_ai_model", return_value="sonnet")
     def test_ai_cmd_and_model(self, mock_model, mock_cmd):

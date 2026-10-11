@@ -40,6 +40,9 @@ SCHEMA = (
     " project TEXT NOT NULL, run_id TEXT NOT NULL,"
     " dismiss_keys TEXT NOT NULL, class_keys TEXT NOT NULL,"
     " PRIMARY KEY (project, run_id));"
+    "CREATE TABLE IF NOT EXISTS run_change ("
+    " project TEXT NOT NULL, run_id TEXT NOT NULL, key TEXT NOT NULL, payload TEXT NOT NULL,"
+    " PRIMARY KEY (project, run_id));"
     "CREATE TABLE IF NOT EXISTS cache_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
 )
 

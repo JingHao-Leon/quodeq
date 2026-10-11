@@ -121,3 +121,22 @@ def test_against_run_resolves_scope_once_for_all_dimensions(tmp_path: Path, monk
     assert set(out["dimensions"]) == {_DIM, "security"}
     assert all(d["sinceBaseline"]["changedFiles"] == 1 for d in out["dimensions"].values())
     assert calls == [(_SHA_A, _SHA_B)]
+
+
+def test_the_run_log_change_path_never_asks_git_for_changed_files(tmp_path: Path, monkeypatch) -> None:
+    """The run log only needs counts; the changed-files view (a git call per baseline) is skipped."""
+    from quodeq.services.run_log import ChangeJob, compute_run_change
+
+    calls: list[tuple] = []
+    monkeypatch.setattr(run_diff_module, "local_repo_root", lambda reports_root, project: Path("/repo"))
+    monkeypatch.setattr(run_diff_module, "changed_files", lambda *a: calls.append(a) or {"a.py"})
+    _run(tmp_path, _PREV, "2026-09-20T00:00:00Z", _SHA_A, [_v("M-REU-1", "a.py")])
+    _run(tmp_path, _CURR, "2026-09-26T00:00:00Z", _SHA_B, [_v("M-ANA-9", "a.py")])
+
+    assert "sinceBaseline" in diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]
+    calls.clear()
+    out = compute_run_change(ChangeJob(tmp_path, _PROJECT, _CURR, _PREV, "k"))
+
+    assert calls == [] and out["counts"]["new"] == 1
+    lean = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, since_baseline=False)["dimensions"][_DIM]
+    assert "sinceBaseline" not in lean and calls == []

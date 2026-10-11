@@ -10,7 +10,15 @@ function RunStatStrip({ scoreDisplay, grade, formulaUpdated, violations, complia
     <>
       {/* A grade formula change recomputes every score, so a run scanned under
           the old one says its numbers moved without a new scan. */}
-      <ScoreStat scoreDisplay={scoreDisplay} grade={grade} hint={formulaUpdated ? t('overview.formulaUpdatedNote') : null} />
+      <ScoreStat
+        scoreDisplay={scoreDisplay}
+        grade={grade}
+        hint={formulaUpdated ? (
+          <span className="term-stat__suppressed-note" title={t('overview.formulaUpdatedTitle')}>
+            {t('overview.formulaUpdatedNote')}
+          </span>
+        ) : null}
+      />
       <Stat
         label={t('overview.statViolations')}
         value={violations}

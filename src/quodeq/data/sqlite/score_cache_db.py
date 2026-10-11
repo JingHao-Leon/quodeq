@@ -199,3 +199,18 @@ def score_cache_session() -> Iterator[None]:
             yield
         finally:
             _SESSION_CONN.reset(token)
+
+
+@contextmanager
+def score_cache_detached() -> Iterator[None]:
+    """No session connection inside the block.
+
+    For work that outlives the request but runs in a copy of its context
+    (a background worker): the session's connection is closed once the
+    request ends, so every open in the block gets its own connection.
+    """
+    token = _SESSION_CONN.set(None)
+    try:
+        yield
+    finally:
+        _SESSION_CONN.reset(token)

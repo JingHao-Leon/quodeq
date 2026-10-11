@@ -14,6 +14,10 @@ from typing import Any
 
 ORIGIN_CI = "ci"
 ORIGIN_CLI = "cli"
+ORIGIN_APP = "app"
+_KNOWN_KINDS = (ORIGIN_CI, ORIGIN_CLI, ORIGIN_APP)
+# Set by the app on the evaluation subprocess it spawns; GitHub Actions wins.
+RUN_ORIGIN_ENV = "QUODEQ_RUN_ORIGIN"
 
 _ENV_ACTIONS = "GITHUB_ACTIONS"
 _ACTIONS_ON = "true"
@@ -21,7 +25,7 @@ _ACTIONS_ON = "true"
 
 @dataclass(frozen=True, slots=True)
 class RunOrigin:
-    """Where a run came from. ``kind`` is ``"ci"`` or ``"cli"``; the rest is CI-only."""
+    """Where a run came from. ``kind`` is ``"ci"``, ``"cli"`` or ``"app"``; the rest is CI-only."""
 
     kind: str
     event: str | None = None
@@ -38,7 +42,7 @@ class RunOrigin:
     @classmethod
     def from_dict(cls, data: object) -> RunOrigin | None:
         """Rebuild from status.json; None for anything that is not an origin."""
-        if not isinstance(data, Mapping) or data.get("kind") not in (ORIGIN_CI, ORIGIN_CLI):
+        if not isinstance(data, Mapping) or data.get("kind") not in _KNOWN_KINDS:
             return None
         pr = data.get("pr")
         return cls(
@@ -82,7 +86,7 @@ def _pr_number(event: object) -> int | None:
 def origin_from_env(env: Mapping[str, str], event: object) -> RunOrigin:
     """The origin of a run started in *env*, with *event* the parsed GITHUB_EVENT_PATH payload."""
     if env.get(_ENV_ACTIONS) != _ACTIONS_ON:
-        return RunOrigin(kind=ORIGIN_CLI)
+        return RunOrigin(kind=ORIGIN_APP if env.get(RUN_ORIGIN_ENV) == ORIGIN_APP else ORIGIN_CLI)
     server, repo = env.get("GITHUB_SERVER_URL"), env.get("GITHUB_REPOSITORY")
     base = f"{server}/{repo}" if server and repo else None
     pr = _pr_number(event)

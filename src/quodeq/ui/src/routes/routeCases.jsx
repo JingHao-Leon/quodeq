@@ -29,10 +29,11 @@ const PrincipleDetailPage = lazy(() => import('../features/explorer/components/P
  * @param {() => void} props.onGoToProjects - escape hatch from an empty state.
  * @param {() => void} props.onGoToSettings - escape hatch when no provider is
  *   configured yet.
+ * @param {(t: {dimension: string, runId: string, fromProject: string}) => void} [props.onOpenDimension]
  * @param {Array} [props.preselectDims] - dimensions to tick on entry.
  * @returns {JSX.Element}
  */
-export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoToSettings, preselectDims }) {
+export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoToSettings, preselectDims, onOpenDimension }) {
   const job = useLiveJob();
   const jobError = useLiveJobError();
   const liveViolations = useLiveFindings();
@@ -54,7 +55,7 @@ export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoTo
     <EvaluateScreen
       evaluation={{ job, jobError, liveViolations }}
       context={{ selectedProject, projectInfo, jobProjectInfo, startedProjectInfo, preselectDims }}
-      actions={{ onStart: startEvaluation, onDismiss: dismissEvaluation, onCancel: cancelEvaluation, onGoToProjects, onGoToSettings }}
+      actions={{ onStart: startEvaluation, onDismiss: dismissEvaluation, onCancel: cancelEvaluation, onGoToProjects, onGoToSettings, onOpenDimension }}
     />
   );
 }

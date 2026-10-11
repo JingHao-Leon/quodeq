@@ -190,7 +190,7 @@ function countAll(byDim) {
   return Object.values(byDim).reduce((n, vs) => n + vs.length, 0);
 }
 
-export default function EvaluationStatus({ job, jobProjectInfo, startedProjectInfo, liveViolations = {}, onDismiss, onCancel, onGoToProjects }) {
+export default function EvaluationStatus({ job, jobProjectInfo, startedProjectInfo, liveViolations = {}, onDismiss, onCancel, onGoToProjects, onOpenDimension }) {
   const { newOnly } = useLiveFeedSettings();
   // Shares the strip/progress query cache entry: no extra polling.
   const { data: progress } = useEvaluationProgress(job?.jobId, !job || JOB_TERMINAL.has(job.status));
@@ -232,7 +232,7 @@ export default function EvaluationStatus({ job, jobProjectInfo, startedProjectIn
       <ReviewEndLine job={job} progress={progress} />
       <JobStatStrip job={job} liveViolations={fresh} hiddenCarriedCount={hiddenCarriedCount} />
       <ScanProgress job={job} />
-      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} />
+      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} onOpenDimension={onOpenDimension} projectName={projectLabel} />
     </div>
   );
 }
