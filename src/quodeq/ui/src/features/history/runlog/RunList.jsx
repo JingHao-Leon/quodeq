@@ -2,12 +2,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import { t } from '../../../strings/index.js';
 import { scoreColorClass } from '../../../utils/formatters.js';
 import RunLogPanel from './RunLogPanel.jsx';
-import { dayLabel, timeLabel, scoreText } from './runFormat.js';
+import { dayLabel, timeLabel, scoreText, PLUS, MINUS } from './runFormat.js';
 import { originLabel, scopeLabel, isSameScore } from './runLogModel.js';
 
 const OTHER_MODEL = 'other-model';
-const PLUS = '+';
-const MINUS = '−';
 const PENDING_DOTS = '··';
 const SCROLL_PAD = 28;
 const SCROLL_TOP_ROOM = 36;
