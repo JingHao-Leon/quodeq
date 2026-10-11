@@ -3926,3 +3926,12 @@ button.eval-provider-badge--clickable:focus-visible {
 .eval-identity__value,
 .eval-identity__value--action { line-height: 18px; }
 .eval-identity__code { display: inline-block; line-height: 18px; vertical-align: top; }
+
+/* A finished dimension's result on its header, and its results link. */
+.vlive-dimension-row { display: flex; align-items: center; gap: 8px; }
+.vlive-dimension-row > .vlive-dimension-label { flex: 1; min-width: 0; }
+.vlive-dimension-result { display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; }
+.vlive-dimension-score { font-family: var(--term-font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.vlive-dimension-open { flex: none; background: none; border: 0; padding: 2px 4px; cursor: pointer;
+  font-family: var(--term-font-mono); font-size: 11px; color: var(--color-text-muted); }
+.vlive-dimension-open:hover, .vlive-dimension-open:focus-visible { color: var(--color-accent); }
