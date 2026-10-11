@@ -16,7 +16,6 @@ from typing import Any
 
 from quodeq.core.run.state import RunState
 from quodeq.services.dashboard_trend import build_partial_run_entries
-from quodeq.services.score_cache import score_cache_version
 from quodeq.services.scoring import ProjectRows
 
 # Projects whose partial entries are remembered; the least recently used one is dropped.
@@ -36,12 +35,15 @@ def _report_stamps(run_dir: Path) -> tuple[tuple[str, int], ...]:
         return ()
 
 
-def partial_entries(rows: ProjectRows, cancelled: list) -> list[dict[str, Any]]:
-    """Entries for *cancelled* runs that scored a dimension, rebuilt only when their inputs changed."""
+def partial_entries(rows: ProjectRows, cancelled: list, version: str) -> list[dict[str, Any]]:
+    """Entries for *cancelled* runs that scored a dimension, rebuilt only when their inputs changed.
+
+    *version* is the project's score cache version, read once per request by the caller.
+    """
     project_dir = rows.reports_root / rows.project
     key: _Key = (
         str(rows.reports_root),
-        score_cache_version(project_dir, rows.params),
+        version,
         tuple((r.run_id, _report_stamps(project_dir / r.run_id)) for r in cancelled if r.status is RunState.CANCELLED),
     )
     with _lock:

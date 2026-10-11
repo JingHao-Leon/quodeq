@@ -76,11 +76,11 @@ def _status(value: object) -> str:
     return value.value if isinstance(value, RunState) else str(value)
 
 
-def _scored_runs(rows: ProjectRows, meta: dict[str, JobSnapshot]) -> list[_Scored]:
+def _scored_runs(rows: ProjectRows, meta: dict[str, JobSnapshot], version: str) -> list[_Scored]:
     """Trend entries plus scored cancelled runs, newest first, capped at the history size."""
     cap = max_history_runs()
     cancelled = [r for r in rows.runs if r.status is RunState.CANCELLED][:cap]
-    partials = partial_entries(rows, cancelled)
+    partials = partial_entries(rows, cancelled, version)
     scored = [(e, False) for e in rows.trend()] + [(e, True) for e in partials]
     out = []
     for entry, partial in scored:
@@ -135,10 +135,9 @@ def _cache_key(version: str, baseline: tuple[str, str] | None, scored: _Scored) 
 
 def _changes(
     rows: ProjectRows, scored: list[_Scored],
-    baselines: dict[str, tuple[str, str] | None], filler: RunChangeFiller,
+    baselines: dict[str, tuple[str, str] | None], filler: RunChangeFiller, version: str,
 ) -> dict[str, dict[str, Any]]:
     """Every run's change data found in the cache or computed now, by run id."""
-    version = score_cache_version(rows.reports_root / rows.project, rows.params)
     keys = {s.run_id: _cache_key(version, baselines[s.run_id], s) for s in scored}
     try:
         with open_score_cache() as conn:
@@ -213,11 +212,12 @@ def build_run_log(
         return {"runs": [], "running": None}
     snapshots = _project_snapshots(provider, reports_root, project)
     meta = {s.output_run_id: s for s in snapshots if s.output_run_id}
-    scored = _scored_runs(rows, meta)
+    version = score_cache_version(rows.reports_root / rows.project, rows.params)
+    scored = _scored_runs(rows, meta, version)
     baselines = choose_baselines([
         LogRun(s.run_id, s.started_at, getattr(meta.get(s.run_id), "ai_model", None), s.dims) for s in scored
     ])
-    changes = _changes(rows, scored, baselines, filler)
+    changes = _changes(rows, scored, baselines, filler, version)
     return {
         "runs": [_entry(s, meta.get(s.run_id), baselines[s.run_id], changes.get(s.run_id)) for s in scored],
         "running": _running(snapshots),
