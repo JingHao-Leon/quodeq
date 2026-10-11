@@ -22,7 +22,7 @@ function useRunHover(project, shared) {
  * the strip while React reuses the run panel as it is.
  */
 export default function RunLogBody({
-  project, shared, rows, runsById, selectedId, onPick, onPickFromList, stripStart, onPage, onClearFilters, detail,
+  project, shared, rows, selectedId, onPick, onPickFromList, stripStart, onPage, onClearFilters, detail,
 }) {
   const { hoverId, onHover } = useRunHover(project, shared);
   return (
@@ -32,7 +32,7 @@ export default function RunLogBody({
           onHover={onHover} start={stripStart} onPage={onPage} />
       )}
       <div className="rl-split">
-        <RunList rows={rows} runsById={runsById} selectedId={selectedId} onSelect={onPickFromList}
+        <RunList rows={rows} selectedId={selectedId} onSelect={onPickFromList}
           hoverId={hoverId} onHover={onHover} onClearFilters={onClearFilters} />
         {detail}
       </div>

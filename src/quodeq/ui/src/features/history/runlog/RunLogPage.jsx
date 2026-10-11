@@ -120,7 +120,7 @@ export default function RunLogPage({ project, shared = false, trend, partialRuns
   return (
     <RunLogFrame {...frame} filters={filterBar}>
       <RunningLine job={running} onNavigate={callbacks.onNavigate} />
-      <RunLogBody project={project} shared={shared} rows={rows} runsById={runsById} selectedId={selected?.runId}
+      <RunLogBody project={project} shared={shared} rows={rows} selectedId={selected?.runId}
         onPick={picker.pick} onPickFromList={picker.pickFromList} stripStart={picker.stripStart} onPage={picker.setStripStart}
         onClearFilters={filters.active ? filters.clear : undefined} detail={detail} />
     </RunLogFrame>

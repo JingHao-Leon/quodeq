@@ -6,7 +6,6 @@ const SEV_UNKNOWN = 3; // sorts after every known severity
 
 export const STRIP_RUNS = 20;
 export const STRIP_PAGE = 10;
-const SAME_SCORE_EPSILON = 0.05;
 
 // Outliers: everything above the first big gap in the values (a value more
 // than OUTLIER_GAP x the next one down) is clipped with a break mark, so one
@@ -28,12 +27,6 @@ export function originLabel(origin) {
 
 export function originUrl(origin) {
   return origin?.prUrl || origin?.runUrl || null;
-}
-
-/** A score equal to its baseline run's: shown muted, so changes stand out. */
-export function isSameScore(run, runsById) {
-  const base = run.baselineRunId ? runsById.get(run.baselineRunId) : null;
-  return Boolean(base) && Number.isFinite(run.score) && Math.abs(run.score - base.score) < SAME_SCORE_EPSILON;
 }
 
 /** `6 dims` for a full run, the dimension short names for a partial one. */

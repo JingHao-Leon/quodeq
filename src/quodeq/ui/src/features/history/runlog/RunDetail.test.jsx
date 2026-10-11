@@ -30,11 +30,10 @@ describe('RunDetail', () => {
     expect(screen.getByText(/same dimensions, same model/)).toBeInTheDocument();
   });
 
-  it('identity strip has commit and took, and no scope cell', () => {
+  it('identity line has commit and took, and no scope', () => {
     renderDetail();
-    expect(screen.getByText('6d62f65')).toBeInTheDocument();
-    expect(screen.getByText('3h 30m')).toBeInTheDocument();
-    expect(screen.queryByText('scope')).not.toBeInTheDocument();
+    expect(screen.getByText('6d62f65 · took 3h 30m')).toBeInTheDocument();
+    expect(screen.queryByText(/scope/)).not.toBeInTheDocument();
   });
 
   it('other-model comparison is labelled; no baseline says nothing to compare', () => {
@@ -69,7 +68,7 @@ describe('RunDetail', () => {
 
   it('files analysed reads count and rate', () => {
     renderDetail({ throughput: { files: 821, perMin: 3.9 } });
-    expect(screen.getByText('821 · 3.9/min')).toBeInTheDocument();
+    expect(screen.getByText(/821 files · 3\.9\/min/)).toBeInTheDocument();
   });
 
   it('dimension rows carry the letter chip, the hero keeps the word', () => {

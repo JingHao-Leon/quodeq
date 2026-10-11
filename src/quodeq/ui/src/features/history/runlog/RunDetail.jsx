@@ -2,9 +2,9 @@ import { t } from '../../../strings/index.js';
 import { scoreColorClass } from '../../../utils/formatters.js';
 import { formatDurationCoarse } from '../../../utils/dateFormatting.js';
 import { GradeChip } from '../../dashboard/components/heroSectionParts.jsx';
-import { IdentityStrip, IdentityCell } from '../../evaluation/components/IdentityStrip.jsx';
 import RunLogPanel from './RunLogPanel.jsx';
 import RunSevRow, { CRIT_MAJ, MAJOR_ONLY } from './RunSevRow.jsx';
+import RunSevText from './RunSevText.jsx';
 import RunMoreMenu from './RunMoreMenu.jsx';
 import RunFindings from './RunFindings.jsx';
 import RunDimensions from './RunDimensions.jsx';
@@ -28,7 +28,7 @@ function severityDeltas(run, baseline) {
 function filesCell(throughput) {
   if (!(throughput?.files > 0)) return null;
   const rate = throughput.perMin != null ? ` · ${t('history.perMin', { rate: rateText(throughput.perMin) })}` : '';
-  return `${numberText(throughput.files)}${rate}`;
+  return `${t('history.idFilesValue', { count: numberText(throughput.files) })}${rate}`;
 }
 
 function Hero({ run, baseline, onOpenRun, onDelete }) {
@@ -40,7 +40,7 @@ function Hero({ run, baseline, onOpenRun, onDelete }) {
       <span className="rl-hero__open">{t('history.openCount', { count: numberText(run.open) })}</span>
       <RunSevRow counts={{ critical: run.critical, major: run.majors }} deltas={severityDeltas(run, baseline)} levels={CRIT_MAJ} />
       <span className="rl-hero__actions">
-        <button type="button" className="eval-scan-pill" onClick={() => onOpenRun(run)}><span className="eval-scan-pill__glyph" aria-hidden="true">▶</span>{t('history.openRun')}</button>
+        <button type="button" className="eval-pill-btn" onClick={() => onOpenRun(run)}>{t('history.openRun')}</button>
         {url && <a className="eval-pill-btn" href={url} target="_blank" rel="noreferrer" title={t('history.openGitHubTitle')}>{t('history.openGitHub')}</a>}
         {onDelete && <RunMoreMenu onDelete={() => onDelete(run.runId, stamp(run.startedAt))} />}
       </span>
@@ -48,21 +48,22 @@ function Hero({ run, baseline, onOpenRun, onDelete }) {
   );
 }
 
+// One quiet line under the hero: commit · took · files · rate.
 function Identity({ run, throughput }) {
-  const cells = [
-    [t('history.idCommit'), run.commit],
-    [t('history.idTook'), run.activeSeconds > 0 ? formatDurationCoarse(run.activeSeconds) : null],
-    [t('history.idFiles'), filesCell(throughput)],
-  ].filter(([, v]) => v);
-  if (!cells.length) return null;
-  return <IdentityStrip>{cells.map(([k, v]) => <IdentityCell key={k} label={k}>{v}</IdentityCell>)}</IdentityStrip>;
+  const parts = [
+    run.commit,
+    run.activeSeconds > 0 ? t('history.idTookValue', { value: formatDurationCoarse(run.activeSeconds) }) : null,
+    filesCell(throughput),
+  ].filter(Boolean);
+  if (!parts.length) return null;
+  return <div className="rl-idline">{parts.join(' · ')}</div>;
 }
 
 function Tab({ id, active, count, empty = false, cls, label, sev, onTab }) {
   return (
     <button type="button" role="tab" aria-selected={active} className="rl-tab" disabled={empty} onClick={() => onTab(id)}>
       <span className="rl-tab__big"><span className={empty ? 'rl-zero' : cls}>{count}</span> <span className="rl-tab__lbl">{label}</span></span>
-      {sev && <RunSevRow counts={sev} levels={MAJOR_ONLY} />}
+      {sev && <RunSevText counts={sev} levels={MAJOR_ONLY} />}
     </button>
   );
 }

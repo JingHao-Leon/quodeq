@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { t } from '../../../strings/index.js';
-import { scoreColorClass } from '../../../utils/formatters.js';
 import RunLogPanel from './RunLogPanel.jsx';
 import { dayLabel, timeLabel, scoreText, PLUS, MINUS } from './runFormat.js';
-import { originLabel, scopeLabel, isSameScore } from './runLogModel.js';
+import { originLabel, scopeLabel } from './runLogModel.js';
 
 const OTHER_MODEL = 'other-model';
 const PENDING_DOTS = '··';
@@ -19,9 +18,19 @@ export function Moves({ run }) {
   if (!run.counts) return <span className="rl-moves rl-moves--none" title={t('history.noComparisonTitle')}>—</span>;
   const other = run.baselineKind === OTHER_MODEL;
   return (
-    <span className={`rl-moves${other ? ' rl-moves--other' : ''}`} title={other ? t('history.otherModelTitle') : undefined}>
+    <span className="rl-moves" title={other ? t('history.otherModelTitle') : undefined}>
       <span className={run.counts.new ? 'rl-new' : 'rl-zero'}>{PLUS}{run.counts.new}</span>
       <span className={run.counts.resolved ? 'rl-fixed' : 'rl-zero'}>{MINUS}{run.counts.resolved}</span>
+    </span>
+  );
+}
+
+/** Column headings over the row's moves pair and score, in the moves' own colours. */
+function ColumnHeads() {
+  return (
+    <span className="rl-cols">
+      <span className="rl-cols__moves"><span className="rl-new">{t('history.colNew')}</span> · <span className="rl-fixed">{t('history.colResolved')}</span></span>
+      <span className="rl-cols__score">{t('history.colScore')}</span>
     </span>
   );
 }
@@ -41,7 +50,7 @@ function useKeepSelectedInView(selectedId) {
   return ref;
 }
 
-function RunRow({ run, same, selected, hovered, onSelect, onHover }) {
+function RunRow({ run, selected, hovered, onSelect, onHover }) {
   const origin = originLabel(run.origin);
   const cls = `rl-row${selected ? ' is-sel' : ''}${hovered ? ' is-hover' : ''}`;
   return (
@@ -53,8 +62,7 @@ function RunRow({ run, same, selected, hovered, onSelect, onHover }) {
         {run.partial && <span className="rl-row__scope rl-row__scope--partial">{scopeLabel(run, t)}</span>}
       </span>
       <Moves run={run} />
-      <span className={`rl-row__score ${scoreColorClass(run.score)}${same ? ' rl-row__score--same' : ''}`}
-        title={same ? t('history.sameScoreTitle') : undefined}>{scoreText(run.score)}</span>
+      <span className="rl-row__score">{scoreText(run.score)}</span>
     </button>
   );
 }
@@ -71,16 +79,15 @@ function NoRuns({ onClearFilters }) {
 }
 
 /**
- * The runs, newest first, grouped under day labels. `runsById` resolves
- * baselines hidden by a filter; `onClearFilters` is set when filters are on.
+ * The runs, newest first, grouped under day labels. `onClearFilters` is
+ * set when filters are on.
  */
-export default function RunList({ rows, runsById, selectedId, onSelect, hoverId, onHover, onClearFilters }) {
+export default function RunList({ rows, selectedId, onSelect, hoverId, onHover, onClearFilters }) {
   const ref = useKeepSelectedInView(selectedId);
-  const byId = useMemo(() => runsById || new Map(rows.map((r) => [r.runId, r])), [runsById, rows]);
   const oldest = rows.at(-1);
   let lastDay = '';
   return (
-    <RunLogPanel label={t('history.runsLabel', { count: rows.length })} className="rl-listpanel" stats={t('history.runsColumns')}
+    <RunLogPanel label={t('history.runsLabel', { count: rows.length })} className="rl-listpanel" stats={<ColumnHeads />}
       foot={oldest ? <span>{t('history.runsSince', { date: dayLabel(oldest.startedAt) })}</span> : null}>
       <div className="rl-list" ref={ref} aria-label={t('history.runsAria')}>
         {!rows.length && <NoRuns onClearFilters={onClearFilters} />}
@@ -91,7 +98,7 @@ export default function RunList({ rows, runsById, selectedId, onSelect, hoverId,
           return (
             <div key={run.runId}>
               {head}
-              <RunRow run={run} same={isSameScore(run, byId)} selected={run.runId === selectedId}
+              <RunRow run={run} selected={run.runId === selectedId}
                 hovered={run.runId === hoverId} onSelect={onSelect} onHover={onHover} />
             </div>
           );
