@@ -137,7 +137,7 @@ describe('HelpPage deep link', () => {
 
   it('falls back to philosophy on an unknown section', () => {
     render(<HelpPage initialSection="nope" />);
-    expect(screen.getByRole('button', { name: 'Philosophy' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Philosophy' })).toHaveAttribute('aria-current', 'page');
   });
 });
 
@@ -193,5 +193,27 @@ describe('HelpPage history counts', () => {
   it('describes the report order on the Overview page', () => {
     render(<HelpPage initialSection="overview" />);
     expect(screen.getByText(/report opens with the header's numbers/)).toBeInTheDocument();
+  });
+});
+
+describe('HelpPage reading aids', () => {
+  it('lists the section\'s subheadings under "on this page"', () => {
+    render(<HelpPage initialSection="overview" />);
+    const toc = screen.getByRole('navigation', { name: /on this page/i });
+    expect(toc).toHaveTextContent('Accumulated scores');
+    expect(toc).toHaveTextContent('The report');
+  });
+
+  it('moves to the next section from the pager', () => {
+    render(<HelpPage initialSection="overview" />);
+    fireEvent.click(screen.getByRole('button', { name: /next.*Compare/i }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Compare' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Compare' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('offers no previous link on the first section', () => {
+    render(<HelpPage />);
+    expect(screen.queryByRole('button', { name: /previous/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /next.*Getting Started/i })).toBeInTheDocument();
   });
 });

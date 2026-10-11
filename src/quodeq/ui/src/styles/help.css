@@ -1,4 +1,7 @@
 /* ── Help page ────────────────────────────────────────── */
+/* Three columns: a hairline section list, a reading column capped near 68
+   characters, and the "on this page" list. The outer two stick while the
+   section scrolls. */
 
 .help-page {
   padding: var(--space-6);
@@ -11,55 +14,58 @@
 }
 
 .help-layout {
-  display: flex;
-  gap: var(--space-6);
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr) 176px;
+  gap: var(--space-8) 48px;
+  align-items: start;
+  max-width: 1240px;
   margin-top: var(--space-5);
 }
 
 /* ── Section navigation ──────────────────────────────── */
+/* Hairline list, no box. Hover is an ink tint; the current section carries
+   the accent bar. */
 
 .help-section-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 180px;
   position: sticky;
   top: var(--space-4);
-  align-self: flex-start;
-  padding: var(--space-2);
-  background: var(--color-surface-alt);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+  max-height: calc(100vh - var(--space-8));
+  overflow-y: auto;
+  border-left: 1px solid var(--color-border);
 }
 
 .help-section-btn {
   background: none;
   border: none;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
+  border-left: 2px solid transparent;
+  margin-left: -1px;
+  padding: 5px var(--space-3);
+  border-radius: 0 6px 6px 0;
   color: var(--color-text-muted);
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: 13px;
+  line-height: 1.45;
   text-align: left;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  line-height: var(--leading-normal);
 }
 .help-section-btn:hover {
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
   color: var(--color-text);
 }
-.help-section-btn.active {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  color: var(--color-accent);
+.help-section-btn[aria-current="page"] {
+  color: var(--color-text);
   font-weight: var(--weight-semibold);
+  border-left-color: var(--color-accent);
 }
 
 /* ── Content area ────────────────────────────────────── */
 
 .help-content {
-  flex: 1;
   min-width: 0;
+  max-width: 68ch;
 }
 
 /* ── Page header (title + tips) ──────────────────────── */
@@ -72,116 +78,171 @@
 }
 
 .help-section {
-  animation: help-fade-in 250ms ease;
+  animation: help-fade-in 200ms ease;
 }
 
 @keyframes help-fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-section { animation: none; }
 }
 
 .help-section h2 {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-bold);
-  margin: 0 0 var(--space-2);
+  font-size: var(--text-2xl);
+  /* 700, not var(--weight-bold): that token is not defined in tokens.css, so
+     it resolves to the inherited 400. */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 14px;
   color: var(--color-text);
-  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-.help-section > p:first-of-type {
-  font-size: var(--text-base);
-  color: var(--color-text-muted);
-  line-height: 1.7;
-  margin: 0 0 var(--space-5);
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+/* The opening paragraph is the section's summary: a step up, in full ink. */
+.help-section > h2 + p {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--color-text);
+  margin: 0 0 36px;
 }
 
 .help-section h3 {
-  font-size: var(--text-base);
+  font-size: 1.0625rem;
   font-weight: var(--weight-semibold);
-  margin: var(--space-6) 0 var(--space-2);
+  letter-spacing: -0.01em;
+  margin: 40px 0 var(--space-3);
   color: var(--color-text);
-}
-
-.help-section h3:first-of-type {
-  margin-top: 0;
+  scroll-margin-top: var(--space-4);
 }
 
 .help-section p {
   color: var(--color-text-muted);
   line-height: 1.7;
-  margin: 0 0 var(--space-3);
-  font-size: clamp(0.875rem, 0.4vw + 0.75rem, 1.05rem);
+  margin: 0 0 14px;
+  font-size: 0.9375rem;
 }
 
 .help-section ul, .help-section ol {
   color: var(--color-text-muted);
   line-height: 1.7;
-  padding-left: var(--space-5);
+  padding-left: 18px;
   margin: 0 0 var(--space-4);
-  font-size: clamp(0.875rem, 0.4vw + 0.75rem, 1.05rem);
+  font-size: 0.9375rem;
 }
 
 .help-section li {
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+.help-section li::marker {
+  color: var(--color-text-subtle);
 }
 
-.help-section li strong {
+.help-section strong {
   color: var(--color-text);
   font-weight: var(--weight-semibold);
+}
+
+.help-section em {
+  color: var(--color-text);
 }
 
 .help-section code {
   font-family: var(--font-mono);
-  font-size: 0.82em;
+  font-size: 0.84em;
   background: var(--color-surface-alt);
-  padding: 2px 7px;
+  padding: 1px 5px;
   border-radius: 4px;
-  color: var(--color-accent);
-  border: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
-/* ── Terminal-style code container (for <pre> blocks in help) ─ */
+/* ── Definition rows (lists whose items open with a term) ─ */
+
+.help-defs {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
+  margin: var(--space-1) 0 var(--space-5);
+}
+
+.help-defs dt,
+.help-defs dd {
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.help-defs dt:first-of-type,
+.help-defs dt:first-of-type + dd {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.help-defs dt {
+  padding-right: var(--space-6);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.help-defs dd {
+  color: var(--color-text-muted);
+}
+
+.help-defs dd p:last-child,
+.help-defs dd ul:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Text samples (```text) ──────────────────────────── */
 
 .help-pre {
   background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  border-radius: 6px;
+  padding: 14px var(--space-4);
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 12.5px;
   line-height: 1.6;
   overflow-x: auto;
   color: var(--color-text);
-  margin: var(--space-4) 0;
+  margin: 18px 0 22px;
   white-space: pre;
 }
 
+.help-pre__sev.critical { color: var(--color-sev-critical-text); }
+.help-pre__sev.major { color: var(--color-sev-major-text); }
+.help-pre__sev.minor { color: var(--color-sev-minor-text); }
+.help-pre__sev.compliance { color: var(--color-compliance); }
+
 /* ── Tip callout ─────────────────────────────────────── */
+/* A quiet surface with a mono title; no border, no coloured rail. */
 
 .help-tip {
-  display: flex;
-  gap: var(--space-3);
-  margin: var(--space-4) 0;
-  padding: var(--space-3) var(--space-4);
-  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
-  border-left: 2px solid var(--color-accent);
-  border-radius: var(--radius-md);
+  margin: 26px 0;
+  padding: var(--space-4) 18px;
+  background: var(--color-surface-alt);
+  border-radius: 6px;
 }
 
 .help-tip__title {
+  display: flex;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+.help-tip__title::before {
+  content: "▸";
   color: var(--color-accent);
-  margin-bottom: var(--space-1);
 }
 
 .help-tip__body {
-  font-size: clamp(0.85rem, 0.4vw + 0.7rem, 1rem);
+  font-size: 0.9375rem;
   color: var(--color-text);
   line-height: 1.65;
 }
@@ -192,20 +253,15 @@
 }
 .help-tip__body p:last-child { margin-bottom: 0; }
 
-.help-tip__body code {
-  font-size: 0.85em;
-}
-
 /* ── Key/value table for "what each thing does" ──────── */
+/* Hairline rows, the key in mono; no fill. */
 
 .help-keytable {
   display: grid;
   grid-template-columns: minmax(140px, 0.4fr) 1fr;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin: var(--space-3) 0 var(--space-5);
-  background: var(--color-surface-alt);
+  column-gap: var(--space-6);
+  margin: 6px 0 22px;
+  border-top: 1px solid var(--color-border);
 }
 
 .help-keytable__row {
@@ -214,21 +270,17 @@
 
 .help-keytable__k,
 .help-keytable__v {
-  padding: var(--space-2) var(--space-3);
-  font-size: clamp(0.8rem, 0.4vw + 0.7rem, 0.95rem);
+  padding: 10px 0;
+  font-size: 0.9375rem;
   line-height: 1.6;
-  border-top: 1px solid var(--color-border);
-}
-
-.help-keytable__row:first-child .help-keytable__k,
-.help-keytable__row:first-child .help-keytable__v {
-  border-top: none;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .help-keytable__k {
-  font-weight: var(--weight-semibold);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding-top: 12px;
   color: var(--color-text);
-  background: color-mix(in srgb, var(--color-bg) 35%, transparent);
 }
 
 .help-keytable__v {
@@ -246,7 +298,101 @@
   vertical-align: baseline;
 }
 
+.help-defs dt .severity-tag {
+  margin-right: 0;
+}
+
+/* ── Previous / next ─────────────────────────────────── */
+
+.help-pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-top: 56px;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.help-pager__link {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: var(--space-3) 14px;
+  cursor: pointer;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+.help-pager__link:hover {
+  background: color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+.help-pager__link--next {
+  text-align: right;
+}
+
+.help-pager__dir {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.help-pager__link:not(.help-pager__link--next) .help-pager__dir::before { content: "← "; }
+.help-pager__link--next .help-pager__dir::after { content: " →"; }
+
+.help-pager__name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── On this page ────────────────────────────────────── */
+
+.help-toc {
+  position: sticky;
+  top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+}
+
+.help-toc__title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.help-toc__link {
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  padding: var(--space-1) 0 var(--space-1) 10px;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.help-toc__link:hover {
+  color: var(--color-text);
+}
+.help-toc__link[aria-current="location"] {
+  color: var(--color-text);
+  border-left-color: var(--color-accent);
+}
+
 /* ── Responsive ──────────────────────────────────────── */
+
+@media (max-width: 1180px) {
+  .help-layout {
+    grid-template-columns: 180px minmax(0, 1fr);
+    column-gap: 36px;
+  }
+
+  .help-toc {
+    display: none;
+  }
+}
 
 @media (max-width: 900px) {
   .help-header {
@@ -258,23 +404,53 @@
   }
 
   .help-layout {
-    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
   }
 
+  /* The section list becomes a tab strip that scrolls sideways. */
   .help-section-nav {
     position: static;
     flex-direction: row;
-    flex-wrap: wrap;
-    min-width: auto;
+    max-height: none;
+    overflow-x: auto;
+    border-left: none;
+    border-bottom: 1px solid var(--color-border);
   }
 
+  .help-section-btn {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    margin: 0 0 -1px;
+    border-radius: 6px 6px 0 0;
+    white-space: nowrap;
+  }
+  .help-section-btn[aria-current="page"] {
+    border-bottom-color: var(--color-accent);
+  }
+
+  .help-defs,
   .help-keytable {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .help-keytable__v {
+  /* Stacked: the term sits on its text, the hairline closes the pair. */
+  .help-defs dt {
+    padding-right: 0;
+    padding-bottom: 2px;
+  }
+
+  .help-defs dd {
     border-top: none;
     padding-top: 0;
+  }
+
+  .help-keytable__k {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .help-pager {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
