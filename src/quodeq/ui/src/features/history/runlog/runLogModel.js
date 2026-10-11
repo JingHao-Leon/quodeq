@@ -82,3 +82,20 @@ export function summariseDiff(payload) {
   out.resolvedSev = sev(out.resolved);
   return out;
 }
+
+const SECONDS_PER_MINUTE = 60;
+
+/** Files analysed (not cached) and active minutes, per dimension and in total. */
+export function summariseThroughput(progress) {
+  const perDim = {};
+  let files = 0;
+  let seconds = 0;
+  (progress?.dimensions || []).forEach((d) => {
+    const f = d.files?.taken || 0;
+    const s = d.elapsedS || 0;
+    perDim[d.id] = { files: f, cached: d.filesCached || 0, seconds: s, perMin: s > 0 ? f / (s / SECONDS_PER_MINUTE) : null };
+    files += f;
+    seconds += s;
+  });
+  return { files, seconds, perMin: seconds > 0 ? files / (seconds / SECONDS_PER_MINUTE) : null, perDim };
+}

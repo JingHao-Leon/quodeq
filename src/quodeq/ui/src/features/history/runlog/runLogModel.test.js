@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { originLabel, originUrl, isSameScore, stripStart, scaleMax, countBy, summariseDiff } from './runLogModel.js';
+import { originLabel, originUrl, isSameScore, stripStart, scaleMax, countBy, summariseDiff, summariseThroughput } from './runLogModel.js';
 
 test('origin labels: nightly, PR, app, cli, none', () => {
   assert.equal(originLabel({ kind: 'ci', workflow: 'Quodeq Nightly' }), 'nightly');
@@ -45,4 +45,17 @@ test('summariseDiff folds dimensions, majors first', () => {
   assert.equal(s.unchecked, 3);
   assert.deepEqual(s.perDim.security, { new: 2, resolved: 1, unchecked: 3 });
   assert.deepEqual(s.newSev, { major: 1, minor: 1 });
+});
+
+test('throughput: files per active minute, per dimension and in total', () => {
+  const t = summariseThroughput({ dimensions: [
+    { id: 'security', files: { taken: 30 }, filesCached: 5, elapsedS: 60 },
+    { id: 'usability', files: { taken: 0 }, elapsedS: 0 },
+  ] });
+  assert.equal(t.files, 30);
+  assert.equal(t.seconds, 60);
+  assert.equal(t.perMin, 30);
+  assert.equal(t.perDim.security.cached, 5);
+  assert.equal(t.perDim.usability.perMin, null);
+  assert.equal(summariseThroughput(null).perMin, null);
 });
