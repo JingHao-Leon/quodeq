@@ -31,4 +31,10 @@ describe('RunDetail resolved and actions', () => {
     expect(p.onOpenRun).toHaveBeenCalledWith(run);
     expect(screen.getByText('GitHub ↗')).toHaveAttribute('href', 'https://x');
   });
+
+  it('tab badges use the complete severity counts, not the capped lists', () => {
+    renderDetail({ run: { ...run, counts: { ...run.counts, new: 250, resolved: 140 }, newSev: { major: 130 }, resolvedSev: { major: 70 } } });
+    expect(screen.getByRole('tab', { name: /new/ })).toHaveTextContent('130 maj');
+    expect(screen.getByRole('tab', { name: /resolved/ })).toHaveTextContent('70 maj');
+  });
 });

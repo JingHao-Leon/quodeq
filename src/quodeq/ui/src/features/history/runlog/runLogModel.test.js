@@ -77,3 +77,11 @@ test('runsFromTrend: newest first, run values, partial runs flagged, no comparis
   assert.equal(rows[0].score, 8.2);
   assert.equal(rows[0].grade, 'Good');
 });
+
+test('runsFromTrend: per-dimension majors exclude criticals, like the run level', () => {
+  const trend = [{ runId: 'r', dateISO: '2026-10-01T10:00:00Z', critical: 2, majors: 7,
+    dimensionDetails: [{ dimension: 'security', score: 7, critical: 2, majors: 5 }, { dimension: 'usability', score: 8, critical: 0, majors: 2 }] }];
+  const [row] = runsFromTrend(trend, []);
+  assert.deepEqual(row.dimensionDetails.map((d) => d.majors), [3, 2]);
+  assert.equal(row.majors, 5);
+});

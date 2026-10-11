@@ -94,12 +94,14 @@ function tabView(run, diff, tab) {
   };
 }
 
+// Badges from the run's complete severity counts; the diff's lists stop at
+// 200 findings, so they are the fallback only.
 function Tabs({ run, diff, view, onTab }) {
   return (
     <div className="rl-tabs" role="tablist">
       <Tab id={TAB_DIMS} active={view.active === TAB_DIMS} count={run.dims.length} label={t('history.tabDimensions')} onTab={onTab} />
-      {diff && <Tab id={TAB_NEW} active={view.active === TAB_NEW} count={`+${view.nNew}`} empty={!view.nNew} cls="rl-new" label={t('history.tabNew')} sev={diff.newSev} onTab={onTab} />}
-      {diff && <Tab id={TAB_RESOLVED} active={view.active === TAB_RESOLVED} count={`−${view.nResolved}`} empty={!view.nResolved} cls="rl-fixed" label={t('history.tabResolved')} sev={diff.resolvedSev} onTab={onTab} />}
+      {diff && <Tab id={TAB_NEW} active={view.active === TAB_NEW} count={`+${view.nNew}`} empty={!view.nNew} cls="rl-new" label={t('history.tabNew')} sev={run.newSev ?? diff.newSev} onTab={onTab} />}
+      {diff && <Tab id={TAB_RESOLVED} active={view.active === TAB_RESOLVED} count={`−${view.nResolved}`} empty={!view.nResolved} cls="rl-fixed" label={t('history.tabResolved')} sev={run.resolvedSev ?? diff.resolvedSev} onTab={onTab} />}
     </div>
   );
 }

@@ -81,7 +81,9 @@ function PageButton({ side, disabled, onClick }) {
 
 /** New and resolved findings per run, a window of STRIP_RUNS that follows the selection. */
 export default function ChangeStrip({ rows, selectedId, onSelect, hoverId, onHover, start, onPage }) {
-  const first = start ?? stripStart(rows, selectedId, STRIP_RUNS);
+  // A paged window kept from before a filter narrowed the rows is pulled
+  // back into range.
+  const first = start == null ? stripStart(rows, selectedId, STRIP_RUNS) : Math.max(0, Math.min(start, rows.length - STRIP_RUNS));
   const pts = rows.slice(first, first + STRIP_RUNS).reverse();
   const step = W / Math.max(pts.length, 1);
   const bar = Math.min(step * BAR_SHARE, BAR_MAX);

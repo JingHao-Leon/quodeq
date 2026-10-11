@@ -29,4 +29,10 @@ describe('ChangeStrip', () => {
     fireEvent.click(items[0]);
     expect(onSelect).toHaveBeenCalled();
   });
+
+  it('a paged window larger than the filtered rows is pulled back into range', () => {
+    render(<ChangeStrip {...props} rows={rows.slice(0, 5)} start={20} onPage={vi.fn()} />);
+    expect(screen.getByText(/1–5 of 5/)).toBeInTheDocument();
+    expect(screen.queryByText(/21–20/)).toBeNull();
+  });
 });

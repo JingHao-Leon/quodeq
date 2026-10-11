@@ -102,8 +102,11 @@ export function summariseThroughput(progress) {
 
 const RUN_DONE = 'done';
 
+// Per dimension too, the trend's `majors` includes the criticals.
+const majorOnly = (d) => (Number.isFinite(d.majors) ? { ...d, majors: Math.max(0, d.majors - (d.critical || 0)) } : d);
+
 function trendRow(entry, partial) {
-  const details = entry.dimensionDetails || [];
+  const details = (entry.dimensionDetails || []).map(majorOnly);
   const critical = Number.isFinite(entry.critical) ? entry.critical : 0;
   return {
     runId: entry.runId, jobId: null, startedAt: entry.dateISO, status: RUN_DONE,
