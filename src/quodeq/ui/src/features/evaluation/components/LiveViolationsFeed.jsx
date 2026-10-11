@@ -193,12 +193,12 @@ function LiveViolationsCard({ liveViolations, orderedDims, open, currentDimensio
           open={openGroup === dim}
           scanning={isRunning && sameDim(dim, currentDimension)}
           result={resultOf(dim)}
-          onOpenResults={openResults(dim)}
+          onOpenResults={openResults}
           onToggle={toggleDim}
         />
       ))}
       {review.cleanDims.map((d) => <CleanDimensionRow key={d.id} dim={d} />)}
-      {doneWithout.map((d) => <DoneDimensionRow key={d.id} dim={d} result={resultOf(d.id)} onOpenResults={openResults(d.id)} />)}
+      {doneWithout.map((d) => <DoneDimensionRow key={d.id} dim={d} result={resultOf(d.id)} onOpenResults={openResults} />)}
       {isRunning && (
         <div className="vlive-footer">
           <span className="vlive-footer__dot" aria-hidden="true" />

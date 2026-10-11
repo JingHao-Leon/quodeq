@@ -7,6 +7,12 @@ import { evaluationKeys } from '../../../api/queryKeys.js';
 import { getEvaluationProgress } from '../../../api/index.js';
 
 vi.mock('../../../api/index.js', () => ({ getEvaluationProgress: vi.fn() }));
+// Counts renders per score: DimensionResult sits inside the memoised group.
+const renderCounter = vi.fn();
+vi.mock('./liveDimensionRows.jsx', async (orig) => {
+  const mod = await orig();
+  return { ...mod, DimensionResult: (props) => { renderCounter(props.result?.score); return mod.DimensionResult(props); } };
+});
 
 const job = { jobId: 'job-1', status: 'running', outputRunId: 'run-9', outputProject: 'proj-1' };
 const v = (dim) => ({ dimension: dim, severity: 'major', title: 't', file: 'a.py', line: 1, principle: 'P' });
@@ -54,5 +60,26 @@ describe('finished dimensions in the live list', () => {
     renderFeed({ seed: { security: { overallScore: '8.4/10' } }, j: { ...job, outputRunId: null } });
     expect(await screen.findByText('8.4')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'open security results' })).toBeNull();
+  });
+});
+
+describe('memoised dimension groups', () => {
+  it('a finding landing in one dimension does not re-render a finished one', async () => {
+    getEvaluationProgress.mockResolvedValue(progress);
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    client.setQueryData(evaluationKeys.dimensions('job-1'), { security: { overallScore: 8.4 } });
+    const onOpen = vi.fn();
+    const feed = (live) => (
+      <QueryClientProvider client={client}>
+        <LiveViolationsFeed job={job} liveViolations={live} onOpenDimension={onOpen} />
+      </QueryClientProvider>
+    );
+    const security = [v('security')];
+    const { rerender } = render(feed({ security, performance: [v('performance')] }));
+    await screen.findByText('8.4');
+    const before = vi.mocked(renderCounter).mock.calls.filter(([score]) => score === 8.4).length;
+    rerender(feed({ security, performance: [v('performance'), { ...v('performance'), line: 2 }] }));
+    const after = vi.mocked(renderCounter).mock.calls.filter(([score]) => score === 8.4).length;
+    expect(after).toBe(before);
   });
 });

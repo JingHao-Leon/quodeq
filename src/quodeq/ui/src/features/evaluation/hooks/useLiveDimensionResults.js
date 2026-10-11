@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { NO_JOB_ID, evaluationKeys } from '../../../api/queryKeys.js';
 import { sameDim } from '../components/liveViolationsOrdering.js';
@@ -20,8 +20,13 @@ export function useLiveDimensionResults(jobId) {
     enabled: false,
     staleTime: Infinity,
   });
+  // Parsed once per payload, so a dimension's result keeps its identity
+  // until its own frame changes (memoised rows depend on it).
+  const parsed = useMemo(() => Object.fromEntries(
+    Object.entries(data).map(([k, frame]) => [k, parseDimensionResult(frame)]),
+  ), [data]);
   return useCallback((dimId) => {
-    const key = Object.keys(data).find((k) => sameDim(k, dimId));
-    return key ? parseDimensionResult(data[key]) : null;
-  }, [data]);
+    const key = Object.keys(parsed).find((k) => sameDim(k, dimId));
+    return key ? parsed[key] : null;
+  }, [parsed]);
 }

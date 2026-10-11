@@ -1,6 +1,7 @@
 import { useLiveDimensionResults } from '../hooks/useLiveDimensionResults.js';
 import { DIM_STATE } from '../../../vocab/dimState.js';
 import { sameDim } from './liveViolationsOrdering.js';
+import { useCallback } from 'react';
 import { t } from '../../../strings/index.js';
 import { gradeLabel, scoreColorClass } from '../../../utils/formatters.js';
 
@@ -20,7 +21,7 @@ export function DimensionResult({ result }) {
 export function ResultsLink({ dim, onOpen }) {
   if (!onOpen) return null;
   return (
-    <button type="button" className="vlive-dimension-open" onClick={onOpen} aria-label={t('evaluate.dimResultsAria', { dim })}>
+    <button type="button" className="vlive-dimension-open" onClick={() => onOpen(dim)} aria-label={t('evaluate.dimResultsAria', { dim })}>
       {t('evaluate.dimResults')}
     </button>
   );
@@ -49,9 +50,12 @@ export function DoneDimensionRow({ dim, result, onOpenResults }) {
 export function useFinishedDimensions({ job, progress, orderedDims, review, onOpenDimension }) {
   const resultOf = useLiveDimensionResults(job?.jobId);
   const canOpen = onOpenDimension && job?.outputRunId && review.passed == null;
-  const openResults = (dim) => (canOpen
-    ? () => onOpenDimension({ dimension: dim, runId: job.outputRunId, fromProject: job.outputProject })
-    : null);
+  const runId = job?.outputRunId;
+  const fromProject = job?.outputProject;
+  // One stable callback taking the dimension: memoised groups keep their props.
+  const open = useCallback((dimension) => onOpenDimension?.({ dimension, runId, fromProject }),
+    [onOpenDimension, runId, fromProject]);
+  const openResults = canOpen ? open : null;
   const doneWithout = review.passed != null ? [] : (progress?.dimensions || []).filter(
     (d) => d.state === DIM_STATE.DONE && resultOf(d.id) && !orderedDims.some((o) => sameDim(o.dim, d.id)),
   );
