@@ -47,3 +47,12 @@ def test_diff_summary_counts_and_severities() -> None:
 def test_progress_summary_adds_files_and_seconds() -> None:
     progress = {"dimensions": [{"files": {"taken": 422}, "elapsedS": 5548.0}, {"files": {"taken": 83}, "elapsedS": 1357.0}]}
     assert summarise_progress(progress) == {"filesAnalysed": 505, "activeSeconds": 6905}
+
+
+def test_diff_summary_prefers_full_severity_tallies_over_capped_lists() -> None:
+    payload = {"dimensions": {"security": {
+        "counts": {"new": 3, "resolved": 0, "notReevaluated": 0,
+                   "newSev": {"major": 2, "minor": 1}, "resolvedSev": {}},
+        "new": [{"severity": "major"}], "resolved": []}}}
+    s = summarise_diff(payload)
+    assert s["newSev"] == {"major": 2, "minor": 1} and s["resolvedSev"] == {}

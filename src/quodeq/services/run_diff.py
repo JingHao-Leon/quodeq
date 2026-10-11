@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from quodeq.core.run.run_log import NEW_SEV, RESOLVED_SEV, severity_tally
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.core.run_diff import RunDiff, diff_findings
 from quodeq.core.utils.io import resolve_child_dir
@@ -109,6 +110,7 @@ def _payload(diff: RunDiff) -> dict[str, Any]:
             "carried": len(diff.carried), "same": len(diff.same), "moved": len(diff.moved),
             "new": len(diff.new), "resolved": len(diff.resolved),
             "notReevaluated": len(diff.not_reevaluated),
+            NEW_SEV: severity_tally(diff.new), RESOLVED_SEV: severity_tally(diff.resolved),
         },
         "majorsDelta": diff.majors_delta,
         "criticalDelta": diff.critical_delta,
@@ -137,7 +139,10 @@ def _since_baseline(
         "changedFiles": None if files is None else len(files),
         "majorsDelta": scoped.majors_delta,
         "criticalDelta": scoped.critical_delta,
-        "counts": {"new": len(scoped.new), "resolved": len(scoped.resolved)},
+        "counts": {
+            "new": len(scoped.new), "resolved": len(scoped.resolved),
+            NEW_SEV: severity_tally(scoped.new), RESOLVED_SEV: severity_tally(scoped.resolved),
+        },
         "types": {"closed": scoped.types_closed, "opened": scoped.types_opened},
         "new": scoped.new[:LIST_CAP], "resolved": scoped.resolved[:LIST_CAP],
     }

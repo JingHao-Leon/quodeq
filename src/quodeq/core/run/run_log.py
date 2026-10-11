@@ -13,6 +13,12 @@ BASELINE_OTHER_MODEL = "other-model"
 _COUNT_KEYS = ("new", "resolved", "notReevaluated")
 # Severity assumed for a finding that carries none.
 _DEFAULT_SEVERITY = "minor"
+# Severity tallies over a dimension's full new/resolved lists, kept in its
+# "counts" block because the lists themselves are capped; each pairs with the
+# list key it tallies.
+NEW_SEV = "newSev"
+RESOLVED_SEV = "resolvedSev"
+_SEV_OF_LIST = ((NEW_SEV, "new"), (RESOLVED_SEV, "resolved"))
 
 
 @dataclass(frozen=True)
@@ -48,22 +54,28 @@ def choose_baselines(runs: list[LogRun]) -> dict[str, tuple[str, str] | None]:
     return out
 
 
-def _severities(findings: list[dict[str, Any]]) -> dict[str, int]:
+def severity_tally(findings: list[dict[str, Any]]) -> dict[str, int]:
+    """Findings per severity; one without a severity counts as minor."""
     return dict(Counter(str(f.get("severity") or _DEFAULT_SEVERITY) for f in findings))
+
+
+def _entry_tally(entry: dict[str, Any], sev_key: str, list_key: str) -> Counter:
+    """The entry's full tally when the diff carries one, else its (possibly capped) list's."""
+    tally = (entry.get("counts") or {}).get(sev_key)
+    return Counter(tally if isinstance(tally, dict) else severity_tally(entry.get(list_key) or []))
 
 
 def summarise_diff(payload: dict[str, Any]) -> dict[str, Any]:
     """Counts and severity splits of a run diff payload, over all dimensions."""
     counts = dict.fromkeys(_COUNT_KEYS, 0)
-    new: list[dict[str, Any]] = []
-    resolved: list[dict[str, Any]] = []
+    tallies = {sev_key: Counter() for sev_key, _ in _SEV_OF_LIST}
     for entry in (payload.get("dimensions") or {}).values():
         c = entry.get("counts") or {}
         for k in counts:
             counts[k] += int(c.get(k) or 0)
-        new.extend(entry.get("new") or [])
-        resolved.extend(entry.get("resolved") or [])
-    return {"counts": counts, "newSev": _severities(new), "resolvedSev": _severities(resolved)}
+        for sev_key, list_key in _SEV_OF_LIST:
+            tallies[sev_key] += _entry_tally(entry, sev_key, list_key)
+    return {"counts": counts, **{k: dict(v) for k, v in tallies.items()}}
 
 
 def summarise_progress(progress: dict[str, Any]) -> dict[str, int]:

@@ -53,7 +53,7 @@ def test_since_baseline_counts_only_findings_in_changed_files(tmp_path: Path, sc
     since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]["sinceBaseline"]
 
     assert since["scope"] == "changed-files" and since["changedFiles"] == 1
-    assert since["counts"] == {"new": 1, "resolved": 1}
+    assert since["counts"] == {"new": 1, "resolved": 1, "newSev": {"major": 1}, "resolvedSev": {"minor": 1}}
     assert [f["req"] for f in since["new"]] == ["M-MDF-1"]
     assert [f["req"] for f in since["resolved"]] == ["M-ANA-9"]
     assert since["majorsDelta"] == 1
@@ -81,7 +81,7 @@ def test_since_baseline_same_sha_is_empty(tmp_path: Path, scoped) -> None:
     since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]["sinceBaseline"]
 
     assert (since["scope"], since["changedFiles"], since["counts"]) == (
-        "changed-files", 0, {"new": 0, "resolved": 0})
+        "changed-files", 0, {"new": 0, "resolved": 0, "newSev": {}, "resolvedSev": {}})
 
 
 def test_since_baseline_without_sha_uses_all_files(tmp_path: Path, scoped) -> None:
@@ -92,7 +92,7 @@ def test_since_baseline_without_sha_uses_all_files(tmp_path: Path, scoped) -> No
     since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]["sinceBaseline"]
 
     assert since["scope"] == "all" and since["changedFiles"] is None
-    assert since["counts"] == {"new": 2, "resolved": 1}
+    assert since["counts"] == {"new": 2, "resolved": 1, "newSev": {"minor": 2}, "resolvedSev": {"minor": 1}}
 
 
 def test_against_run_resolves_scope_once_for_all_dimensions(tmp_path: Path, monkeypatch) -> None:
