@@ -311,11 +311,7 @@ _.set_verdict  # data/ports/findings.py: FindingsRepository port method; adapter
 _.from_wire  # core/admission/facts.py: FindingFacts entry point, read by the writers once they admit findings.
 _.mapping_stamp  # core/admission/index.py: StandardIndex stamp, recorded per run once projection admits findings.
 _.load_standard_catalog  # data/fs/standard_index_loader.py: admission catalog loader, called by the writers once they admit findings.
-_.store_run_change  # data/sqlite/score_cache_store.py: History change cache write, called by the run-log service once it lands.
-_.load_run_changes  # data/sqlite/score_cache_store.py: History change cache read, called by the run-log service once it lands.
-_.choose_baselines  # core/run/run_log.py: History comparison rules, called by the run-log service once it lands.
-_.summarise_diff  # core/run/run_log.py: History comparison rules, called by the run-log service once it lands.
-_.summarise_progress  # core/run/run_log.py: History comparison rules, called by the run-log service once it lands.
+_.build_run_log  # services/run_log.py: History run log, served by the run-log route once it lands.
 
 # pywebview window event. The toolkit fires it; we only subscribe.
 _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, fired by the toolkit.
