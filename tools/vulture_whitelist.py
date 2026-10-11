@@ -311,6 +311,7 @@ _.set_verdict  # data/ports/findings.py: FindingsRepository port method; adapter
 _.from_wire  # core/admission/facts.py: FindingFacts entry point, read by the writers once they admit findings.
 _.mapping_stamp  # core/admission/index.py: StandardIndex stamp, recorded per run once projection admits findings.
 _.load_standard_catalog  # data/fs/standard_index_loader.py: admission catalog loader, called by the writers once they admit findings.
+_.clear_partial_memo  # services/_run_log_partials.py: test reset hook for the in-process partial-entry memo.
 
 # pywebview window event. The toolkit fires it; we only subscribe.
 _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, fired by the toolkit.

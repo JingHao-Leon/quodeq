@@ -22,12 +22,12 @@ from quodeq.core.run.run_log import LogRun, choose_baselines, summarise_diff, su
 from quodeq.core.run.origin import RunOrigin
 from quodeq.core.run.state import RunState
 from quodeq.core.types.job import JobSnapshot
+from quodeq.services._run_log_partials import clear_partial_memo, partial_entries  # noqa: F401 - clear_partial_memo is the tests' reset
 from quodeq.services._run_log_fill import (  # noqa: F401 - FAILED_CHANGE re-exported for callers and tests
     FAILED_CHANGE,
     ChangeJob,
     RunChangeFiller,
 )
-from quodeq.services.dashboard_trend import build_partial_run_entries
 from quodeq.services.run_diff import diff_runs
 from quodeq.services.scan_progress import ScanProgress, build_scan_progress
 from quodeq.services.score_cache import score_cache_version
@@ -80,7 +80,7 @@ def _scored_runs(rows: ProjectRows, meta: dict[str, JobSnapshot]) -> list[_Score
     """Trend entries plus scored cancelled runs, newest first, capped at the history size."""
     cap = max_history_runs()
     cancelled = [r for r in rows.runs if r.status is RunState.CANCELLED][:cap]
-    partials = build_partial_run_entries(cancelled, rows.cancelled_fetcher(), params=rows.params)
+    partials = partial_entries(rows, cancelled)
     scored = [(e, False) for e in rows.trend()] + [(e, True) for e in partials]
     out = []
     for entry, partial in scored:

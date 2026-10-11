@@ -10,7 +10,7 @@ import pytest
 from quodeq.core.run.origin import RunOrigin
 from quodeq.core.types.job import JobSnapshot
 from quodeq.services.dismissed import dismiss_finding
-from quodeq.services.run_log import RunChangeFiller, build_run_log
+from quodeq.services.run_log import RunChangeFiller, build_run_log, clear_partial_memo
 
 PROJECT = "proj"
 PREV = "run-prev"
@@ -62,6 +62,13 @@ def evals(tmp_path, monkeypatch) -> Path:
     monkeypatch.setenv("QUODEQ_INDEX_DB_PATH", str(tmp_path / "index.db"))
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
     return root
+
+
+@pytest.fixture(autouse=True)
+def _fresh_partial_memo():
+    clear_partial_memo()
+    yield
+    clear_partial_memo()
 
 
 @pytest.fixture
@@ -259,3 +266,21 @@ def test_a_cancelled_run_scored_later_is_not_served_stale(evals, filler_sync) ->
     report = run_dir / "evaluation" / "reliability.json"
     report.write_text(json.dumps(later), encoding="utf-8")
     assert sorted(dims()) == sorted(["reliability", DIM])
+
+
+def test_dismissing_a_cancelled_runs_finding_changes_the_next_log(evals, filler_sync) -> None:
+    cancelled = "run-cancelled-dismiss"
+    STARTED[cancelled] = "2026-09-25T00:00:00Z"
+    run_dir = evals / PROJECT / cancelled
+    _report(run_dir, [GONE_FINDING], [], STARTED[cancelled])
+    (run_dir / "status.json").write_text(
+        json.dumps({"state": "cancelled", "started_at": STARTED[cancelled]}), encoding="utf-8")
+    provider = _Provider([_snapshot(CURR), _snapshot(cancelled, status="cancelled"), _snapshot(PREV)])
+
+    def open_count() -> int:
+        runs = build_run_log(evals, PROJECT, provider=provider, filler=filler_sync)["runs"]
+        return next(r for r in runs if r["runId"] == cancelled)["open"]
+
+    assert open_count() == 1
+    dismiss_one(evals / PROJECT, GONE_FINDING)
+    assert open_count() == 0

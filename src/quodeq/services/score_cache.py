@@ -272,10 +272,9 @@ def _fill_versions(
 def persisted_run_key_sets(project: str, run_id: str) -> tuple[set[tuple], set[tuple]] | None:
     """Open the cache, read one run's key sets, close; None when absent or on any sqlite3 error.
 
-    Done and cancelled runs are persisted (a cancelled run's rows are keyed
-    also by its evaluation reports, see ``trend_fetcher``); an in-flight run
-    answers None cheaply instead of paying for a decode of every other run's
-    blobs, as the old whole-project load did.
+    Only terminal runs are ever persisted (see :func:`per_run_versions`), so a
+    cancelled or in-flight run answers None cheaply instead of paying for a
+    decode of every other run's blobs, as the old whole-project load did.
     """
     try:
         with open_score_cache() as conn:
