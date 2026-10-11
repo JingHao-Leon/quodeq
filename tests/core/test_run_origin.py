@@ -43,3 +43,16 @@ def test_round_trips_through_status_json() -> None:
     origin = origin_from_env({**_GH, "GITHUB_EVENT_NAME": "pull_request"}, {"pull_request": {"number": 5}})
     assert RunOrigin.from_dict(origin.to_dict()) == origin
     assert RunOrigin.from_dict("nonsense") is None
+
+
+def test_a_run_the_app_started_says_so() -> None:
+    assert origin_from_env({"QUODEQ_RUN_ORIGIN": "app"}, None) == RunOrigin(kind="app")
+
+
+def test_the_app_marker_does_not_override_github_actions() -> None:
+    env = {"GITHUB_ACTIONS": "true", "QUODEQ_RUN_ORIGIN": "app", "GITHUB_WORKFLOW": "Quodeq Nightly"}
+    assert origin_from_env(env, None).kind == "ci"
+
+
+def test_an_app_origin_round_trips_through_status_json() -> None:
+    assert RunOrigin.from_dict({"kind": "app"}) == RunOrigin(kind="app")
