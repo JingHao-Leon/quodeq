@@ -1,6 +1,6 @@
 {
+  "src/components/launcher/launcherParts.jsx": 2,
   "src/features/assistant/MessageList.jsx": 1,
-  "src/features/compare/components/compareLauncherParts.jsx": 2,
   "src/features/dashboard/components/DimensionGaugeCard.jsx": 1,
   "src/features/dashboard/components/projectsTable/ProjectRow.jsx": 8,
   "src/features/dashboard/components/projectsTable/RowActions.jsx": 2,
