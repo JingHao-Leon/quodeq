@@ -77,3 +77,28 @@ def test_each_older_run_state_is_read_once_across_dimensions(tmp_path: Path, mon
 
     assert {d["againstRunId"] for d in out["dimensions"].values()} == {"r-mid"}
     assert sorted(reads) == ["r-mid", "r-old"]
+
+
+def _replayed_run(root: Path, run_id: str, started_at: str, violations: list[dict], compliance: list[dict]) -> None:
+    """A run whose every file came from the analysis cache: violations carry the
+    replay stamp, compliance entries carry none (the report path drops it)."""
+    _run(root, run_id, started_at, "done", {_DIM: [{**v, "carried_forward": True} for v in violations]})
+    report = root / _PROJECT / run_id / "evaluation" / f"{_DIM}.json"
+    data = json.loads(report.read_text(encoding="utf-8"))
+    data["compliance"] = compliance
+    report.write_text(json.dumps(data), encoding="utf-8")
+
+
+def test_a_file_named_only_by_replayed_compliance_counts_as_re_evaluated(tmp_path: Path) -> None:
+    # A run that re-read no file can still resolve: the analysis cache is keyed
+    # by file content (not by model), so a changed file evaluated by an earlier
+    # run of another model is replayed with that verdict. Its compliance entry
+    # names the file, so a violation gone from it is resolved, not unchecked.
+    _replayed_run(tmp_path, "r-base", "2026-10-09T01:53:00+00:00",
+                  [_v("R-FT-2"), {**_v("R-FT-4"), "file": "b.py"}], [])
+    _replayed_run(tmp_path, "r-curr", "2026-10-10T01:36:36+00:00",
+                  [], [{"req": "R-FT-2", "file": "a.py", "line": 161, "snippet": "ok"}])
+
+    counts = diff_runs(tmp_path, _PROJECT, "r-curr", "r-base")["dimensions"][_DIM]["counts"]
+
+    assert (counts["resolved"], counts["notReevaluated"]) == (1, 1)
