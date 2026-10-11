@@ -1,6 +1,6 @@
-## Projects
+## Repositories
 
-The **Projects** tab is your home base. Every codebase you evaluate becomes a project with its own grade, score, and run history.
+The **Repositories** tab is your home base. Every codebase you evaluate becomes a project with its own grade, score, and run history.
 
 ### What each row tells you
 
@@ -30,8 +30,8 @@ The header offers **add project** and a **more ▾** menu with *add evaluations 
 
 ### Sub-projects and monorepos
 
-You can evaluate a subdirectory of a repository as its own project by setting **Scope** in the wizard or in *Evaluate*. Each scoped run becomes a distinct project; Quodeq detects the parent-child relationship and groups them in the list so you can compare quality across packages.
+You can evaluate a subdirectory of a repository as its own project by setting **Scope** in the wizard or in *Evaluate*. Each scoped run becomes a distinct project; quodeq detects the parent-child relationship and groups them in the list so you can compare quality across packages.
 
 > **Wiping the slate**
 >
-> Projects, runs, and findings live under `~/.quodeq`. Delete that directory and Quodeq starts fresh, including the welcome wizard.
+> Projects, runs, and findings live under `~/.quodeq`. Delete that directory and quodeq starts fresh, including the welcome wizard.

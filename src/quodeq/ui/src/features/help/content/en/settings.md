@@ -6,7 +6,7 @@ Provider configuration, model overrides, server status, and appearance live in *
 
 - **Cloud** hosted APIs (OpenRouter or a custom OpenAI-compatible endpoint). API key, base URL, model id, and a *Test connection* button.
 - **CLI** local AI CLIs you have authenticated (Claude Code, Codex, Gemini). Pick the binary, then a model id.
-- **Ollama** models on your local Ollama server. Quodeq lists whatever you have pulled.
+- **Ollama** models on your local Ollama server. quodeq lists whatever you have pulled.
 - **Omlx** an MLX-native local server. The tab appears only on Apple Silicon Macs.
 - **llama.cpp** a local llama-server instance. Shows the GGUF currently loaded.
 
@@ -30,7 +30,7 @@ Light or dark mode plus a theme family selector. Themes change accent colors and
 
 ### Updates
 
-Quodeq checks PyPI and GitHub once a day for a newer version. When one exists, a banner appears at the top of the dashboard and the *Updates* section shows the version jump plus the exact upgrade command for your install (pipx, uv, or Homebrew). Dismissing the banner silences that version; the next release brings it back.
+quodeq checks PyPI and GitHub once a day for a newer version. When one exists, a banner appears at the top of the dashboard and the *Updates* section shows the version jump plus the exact upgrade command for your install (pipx, uv, or Homebrew). Dismissing the banner silences that version; the next release brings it back.
 
 - **check now** asks immediately, ignoring the daily throttle.
 - **Automatic checks** turns the daily background check on or off.
@@ -38,7 +38,7 @@ Quodeq checks PyPI and GitHub once a day for a newer version. When one exists, a
 
 ### After an update
 
-The first start after an update can invalidate Quodeq's score caches. The dashboard opens right away and rebuilds them in the background, newest projects first: project cards show a pulsing placeholder while their grade recomputes, and a *Refreshing scores* progress bar on the loading and Overview screens counts through the projects being prepared. Anything you open jumps the queue. If the very first request still times out, the screen offers **Retry**; retrying is safe and never duplicates work.
+The first start after an update can invalidate quodeq's score caches. The dashboard opens right away and rebuilds them in the background, newest projects first: project cards show a pulsing placeholder while their grade recomputes, and a *Refreshing scores* progress bar on the loading and Overview screens counts through the projects being prepared. Anything you open jumps the queue. If the very first request still times out, the screen offers **Retry**; retrying is safe and never duplicates work.
 
 The same background rebuild runs whenever score caches need re-deriving for other reasons, for example after relocating a repository or clearing `~/.quodeq`.
 

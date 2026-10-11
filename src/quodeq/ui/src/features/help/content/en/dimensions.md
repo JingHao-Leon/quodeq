@@ -1,6 +1,6 @@
 ## Quality Dimensions
 
-Quodeq evaluates code across six dimensions derived from the ISO/IEC 25010 software-quality standard, plus two architecture dimensions you can opt into.
+quodeq evaluates code across six dimensions derived from the ISO/IEC 25010 software-quality standard, plus two architecture dimensions you can opt into.
 
 ### The six ISO dimensions
 
@@ -28,4 +28,4 @@ The `icon:eye` **visibility toggle** on each standard card controls whether a di
 
 ### Scoring summary
 
-Each dimension is scored 0 to 10 with a letter grade. The project grade averages enabled dimensions. Dimension weights apply only when enabled in Settings, Grade formula. See *Philosophy* for the full Q² formula.
+Each dimension is scored 0 to 10 with a letter grade. The project grade averages enabled dimensions. Dimension weights apply only when enabled in Settings, Grade formula. *Why This Grade* explains how a principle is scored, and *Grade Formula* shows every parameter.

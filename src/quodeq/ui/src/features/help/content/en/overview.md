@@ -23,4 +23,4 @@ Overview shows the latest scored result for each dimension, even when those resu
 
 ### The report
 
-The **Report** button in the top bar renders the whole overview as a Markdown report in the side pane, ready to download and share outside Quodeq. The report opens with the header's numbers (score, violations, compliance, ratio, then criticals, majors, open types, density) and one since-baseline section with counts only. The raw violations total also appears in its summary at the end.
+The **Report** button in the top bar renders the whole overview as a Markdown report in the side pane, ready to download and share outside quodeq. The report opens with the header's numbers (score, violations, compliance, ratio, then criticals, majors, open types, density) and one since-baseline section with counts only. The raw violations total also appears in its summary at the end.

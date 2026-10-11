@@ -91,15 +91,15 @@ describe('HelpPage command line section', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Command Line & CI' })).toBeInTheDocument();
     expect(screen.getAllByText('quodeq review').length).toBeGreaterThan(0);
     expect(screen.getAllByText('quodeq export sarif').length).toBeGreaterThan(0);
-    expect(screen.getByText(/--diff-from/)).toBeInTheDocument();
+    expect(screen.getAllByText(/--diff-from/).length).toBeGreaterThan(0);
   });
 });
 
 describe('HelpPage shared repository section', () => {
-  it('lists Shared Repository in the section nav right after Projects', () => {
+  it('lists Shared Repository in the section nav right after Repositories', () => {
     render(<HelpPage />);
     const nav = screen.getByRole('button', { name: 'Shared Repository' });
-    expect(nav.previousSibling).toHaveTextContent('Projects');
+    expect(nav.previousSibling).toHaveTextContent('Repositories');
   });
 
   it('documents connect, publish, pull, and the cache override', () => {
@@ -111,9 +111,9 @@ describe('HelpPage shared repository section', () => {
     expect(screen.getByText(/QUODEQ_CACHE_ROOT/)).toBeInTheDocument();
   });
 
-  it('cross-references sharing from the Projects section', () => {
+  it('cross-references sharing from the Repositories section', () => {
     render(<HelpPage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Projects' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Repositories' }));
     expect(screen.getByText('Publish / update')).toBeInTheDocument();
     expect(screen.getByText('Pull local copy')).toBeInTheDocument();
   });

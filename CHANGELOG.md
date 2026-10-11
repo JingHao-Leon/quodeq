@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Docs
+- **The in-app help reads as documentation**: the pages are edited for readers who do not have the app open, and the website's docs are generated from them. Philosophy no longer describes the pre-1.13 grade formula and points to Why This Grade; AI Providers opens with the three ways to supply a model and all nine providers, says what to expect from local models, and folds the Copilot policy text into a note; Command Line & CI documents the environment variables a headless run reads, a minimal GitHub Actions job with `quodeq ci report` and its real flags, and that pull request reviews are GitHub only while cloning and SARIF work with any git host; Getting Started no longer repeats Quickstart; the Projects page and nav entry are named Repositories, like the tab; GitHub Access is Git Access; severity descriptions no longer set deadlines; and the name is written `quodeq` throughout. The URL validation error no longer implies GitHub is the only host.
+
 ## [1.13.0] - 2026-10-10
 
 ### Features

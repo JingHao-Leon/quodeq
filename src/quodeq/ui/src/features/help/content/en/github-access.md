@@ -1,6 +1,8 @@
-# GitHub access
+# Git access
 
-quodeq clones repositories with git. Before every clone it checks, in a few seconds, whether git can reach the address. When it can't, the app shows why and offers ways forward. Users whose git already works never see any of this.
+quodeq clones repositories with git. Before every clone it checks, in a few seconds, whether git can reach the address. When it can't, the app shows why and offers ways forward. If your git already works, you never see any of this.
+
+Any git host works for cloning: GitHub, GitLab, Bitbucket or your own server. Of the three ways below, the first covers every host; the second and third are GitHub only. Pull request reviews (`quodeq review`, `quodeq ci report`) are GitHub only too; SARIF export works with GitHub and GitLab.
 
 ## How quodeq looks for access
 

@@ -24,7 +24,7 @@ Add a `.quodeqignore` file at the scan root to keep fixture, vendored, or genera
 
 ### Incremental and clean scans
 
-By default, Quodeq carries findings for unchanged files forward and re-evaluates only files that have changed since the last run. This keeps subsequent scans fast without losing coverage.
+By default, quodeq carries findings for unchanged files forward and re-evaluates only files that have changed since the last run. This keeps subsequent scans fast without losing coverage.
 
 The **Clean scan** toggle forces a full re-analysis of every file. Use it after a big refactor, when you change standards, or whenever you want a fresh start. The toggle has three states:
 
@@ -49,7 +49,7 @@ Not every run ends with a clean *done*, and the run names its exit reason:
 - **Done** every requested dimension completed. A run that skipped dimensions is not reported as done.
 - **Time limit reached** the budget expired. Completed work is scored and the remaining files carry over to the next run.
 - **Cancelled** you stopped it. Kept partials are scored; discarded ones are dropped.
-- **Failed** the provider died mid-run. Findings collected before the failure are kept, and Quodeq stops instead of retrying into the same error.
+- **Failed** the provider died mid-run. Findings collected before the failure are kept, and quodeq stops instead of retrying into the same error.
 
 ### When it finishes
 

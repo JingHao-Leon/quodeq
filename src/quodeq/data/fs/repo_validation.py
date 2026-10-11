@@ -119,7 +119,7 @@ def validate_remote_url(repo_input: str) -> None:
         validate_local_git_repo(repo_input)
         return
     if not _REPO_URL_RE.match(repo_input):
-        raise ValueError(f"Invalid repository URL format: {repo_input}. Expected: https://github.com/user/repo, ssh://git@github.com/user/repo.git or git@github.com:user/repo.git")
+        raise ValueError(f"Invalid repository URL format: {repo_input}. Expected a git URL such as https://host/user/repo, ssh://git@host/user/repo.git or git@host:user/repo.git")
     if _PRIVATE_HOST_RE.match(repo_input):
         raise ValueError("Repository URLs pointing to private/internal addresses are not allowed")
     hostname = _remote_host(repo_input)

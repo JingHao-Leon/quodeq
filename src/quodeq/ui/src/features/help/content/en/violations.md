@@ -1,15 +1,15 @@
 ## Violations & Fix Plans
 
-The **Violations** tab is where you triage findings, drill into evidence, and ship fixes. Active and dismissed findings live in their own sub-tabs.
+The **Violations** tab is where you triage findings, read the evidence, and plan fixes. Active and dismissed findings live in their own sub-tabs.
 
 ### Severity levels
 
-- `tag:critical` immediate security or reliability risk. Fix now.
-- `tag:major` significant quality issue. Fix before the next release.
-- `tag:minor` improvement opportunity. Fix when convenient.
+- `tag:critical` an immediate security or reliability risk.
+- `tag:major` a significant quality issue.
+- `tag:minor` an improvement opportunity.
 - `tag:compliance` not a violation: code that follows the standard correctly. Lifts the score.
 
-Each finding includes a file and line, a short reason, the offending code, and a CWE classification. Compliant findings cite the CWE the code is correctly defending against.
+Each finding includes a file and line, a short reason, the code, and a CWE classification. Compliant findings cite the CWE the code is correctly defending against.
 
 A *downgraded from critical* tag means the provenance gate stepped in: the finding named no reachable external input source, so it was de-escalated to major.
 
