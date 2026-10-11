@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import HistoryPage from './HistoryPage.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
@@ -9,6 +9,10 @@ import { ApiProvider } from '../../../api/ApiContext.jsx';
 // tests never reach a failure, so a bare stub keeps them provider-free.
 vi.mock('../../side-pane/SidePaneContext.jsx', () => ({
   useSidePane: () => ({ showToast: vi.fn() }),
+}));
+
+vi.mock('../../../utils/confirmDialog.js', () => ({
+  confirmDialog: vi.fn().mockResolvedValue(true),
 }));
 
 // The dashboard trend only gates the empty states; the page itself reads the
@@ -39,10 +43,10 @@ const DIFF = {
   },
 };
 
-function makeFakeApi(running = null) {
+function makeFakeApi(running = null, getRunLog = null) {
   return {
     deleteEvaluation: vi.fn(async () => ({ ok: true })),
-    getRunLog: vi.fn(async () => ({ runs: [RUN_A, RUN_B], running })),
+    getRunLog: getRunLog || vi.fn(async () => ({ runs: [RUN_A, RUN_B], running })),
     getRunDiff: vi.fn(async () => DIFF),
     getEvaluationProgress: vi.fn(async () => ({ dimensions: [] })),
   };
@@ -52,9 +56,9 @@ function makeCallbacks(onNavigate = vi.fn()) {
   return { onRunClick: vi.fn(), onDimensionClick: vi.fn(), onNavigate, onRunChange: vi.fn(), onRunDeleted: vi.fn() };
 }
 
-function renderWithProps(props, running = null) {
+function renderWithProps(props, running = null, getRunLog = null) {
   const QC = withQueryClient();
-  const fakeApi = makeFakeApi(running);
+  const fakeApi = makeFakeApi(running, getRunLog);
   render(
     <QC>
       <ApiProvider value={fakeApi}>
@@ -66,7 +70,7 @@ function renderWithProps(props, running = null) {
 }
 
 /** A local project with two runs in its log: `a` (compared with `b`) and `b`. */
-function renderHistory({ onNavigate = vi.fn(), running = null, selectedSource = 'local', ...over } = {}) {
+function renderHistory({ onNavigate = vi.fn(), running = null, selectedSource = 'local', getRunLog = null, ...over } = {}) {
   return renderWithProps({
     trend, availableRuns,
     selection: { selectedRunId: null },
@@ -76,7 +80,7 @@ function renderHistory({ onNavigate = vi.fn(), running = null, selectedSource = 
     selectedProject: 'proj1',
     selectedSource,
     ...over,
-  }, running);
+  }, running, getRunLog);
 }
 
 describe('HistoryPage: the run log', () => {
@@ -112,11 +116,31 @@ describe('HistoryPage: delete-run source gating', () => {
     expect(await screen.findByRole('button', { name: 'more actions' })).toBeInTheDocument();
   });
 
-  it('a shared project shows the run log without delete', async () => {
-    renderHistory({ selectedSource: 'shared' });
+  it('a shared project builds its run log from the trend: no run log call, no delete', async () => {
+    const api = renderHistory({ selectedSource: 'shared' });
     expect(await screen.findByRole('tab', { name: /dimensions/ })).toBeInTheDocument();
+    expect(screen.getByText('runs · 1')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'more actions' })).toBeNull();
     expect(screen.getByText('remote · read-only')).toBeInTheDocument();
+    expect(api.getRunLog).not.toHaveBeenCalled();
+    expect(api.getRunDiff).not.toHaveBeenCalled();
+    expect(api.getEvaluationProgress).not.toHaveBeenCalled();
+  });
+
+  it('deleting the selected run refetches the log and selects the run now at that index', async () => {
+    const RUN_C = { ...RUN_B, runId: 'c', jobId: 'ext-c', startedAt: '2026-10-09T01:36:00+00:00' };
+    const mid = { ...RUN_B, baselineRunId: 'c', baselineKind: 'same-model', counts: { new: 0, resolved: 0 } };
+    const getRunLog = vi.fn()
+      .mockResolvedValueOnce({ runs: [RUN_A, mid, RUN_C], running: null })
+      .mockResolvedValue({ runs: [RUN_A, RUN_C], running: null });
+    const callbacks = makeCallbacks();
+    const api = renderHistory({ getRunLog, callbacks, selection: { selectedRunId: 'b' } });
+    fireEvent.click(await screen.findByRole('button', { name: 'more actions' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'delete this run' }));
+    await waitFor(() => expect(api.deleteEvaluation).toHaveBeenCalledWith('ext-b'));
+    await waitFor(() => expect(getRunLog).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(callbacks.onRunChange).toHaveBeenLastCalledWith('c'));
+    expect(await screen.findByText(/nothing to compare with/)).toBeInTheDocument();
   });
 });
 

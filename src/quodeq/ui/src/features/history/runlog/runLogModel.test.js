@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { originLabel, originUrl, isSameScore, stripStart, scaleMax, countBy, summariseDiff, summariseThroughput } from './runLogModel.js';
+import { originLabel, originUrl, isSameScore, stripStart, scaleMax, countBy, summariseDiff, summariseThroughput, runsFromTrend } from './runLogModel.js';
 
 test('origin labels: nightly, PR, app, cli, none', () => {
   assert.equal(originLabel({ kind: 'ci', workflow: 'Quodeq Nightly' }), 'nightly');
@@ -58,4 +58,22 @@ test('throughput: files per active minute, per dimension and in total', () => {
   assert.equal(t.perDim.security.cached, 5);
   assert.equal(t.perDim.usability.perMin, null);
   assert.equal(summariseThroughput(null).perMin, null);
+});
+
+test('runsFromTrend: newest first, run values, partial runs flagged, no comparison', () => {
+  const trend = [
+    { runId: 'old', dateISO: '2026-10-01T10:00:00Z', runNumericAverage: 7.5, runOverallGrade: 'Adequate', numericAverage: 8, critical: 1, majors: 5, violations: 40,
+      dimensionDetails: [{ dimension: 'security', score: 7 }, { dimension: 'reliability', score: 8 }] },
+    { runId: 'new', dateISO: '2026-10-03T10:00:00Z', numericAverage: 8.2, overallGrade: 'Good', dimensionDetails: [{ dimension: 'security', score: 8.2 }] },
+  ];
+  const partialRuns = [{ runId: 'mid', dateISO: '2026-10-02T10:00:00Z', runNumericAverage: 6.5, runOverallGrade: 'Poor', dimensionDetails: [{ dimension: 'usability', score: 6.5 }] }];
+  const rows = runsFromTrend(trend, partialRuns);
+  assert.deepEqual(rows.map((r) => [r.runId, r.partial]), [['new', false], ['mid', true], ['old', false]]);
+  assert.deepEqual(rows[2], {
+    runId: 'old', jobId: null, startedAt: '2026-10-01T10:00:00Z', status: 'done', model: null, provider: null, commit: null, origin: null,
+    dims: ['reliability', 'security'], partial: false, score: 7.5, grade: 'Adequate', open: 40, critical: 1, majors: 4,
+    dimensionDetails: trend[0].dimensionDetails, baselineRunId: null, baselineKind: null, counts: null, newSev: null, resolvedSev: null, pending: false,
+  });
+  assert.equal(rows[0].score, 8.2);
+  assert.equal(rows[0].grade, 'Good');
 });

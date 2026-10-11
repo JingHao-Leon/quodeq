@@ -4,7 +4,7 @@ import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
 import { LoadProjectFailedEmptyState } from '../../../components/ProjectEmptyStates.jsx';
 import { t } from '../../../strings/index.js';
 import { pluralKey } from '../../../utils/plural.js';
-import { useRunLog } from './useRunLog.js';
+import { useRunLog, useSharedRunLog } from './useRunLog.js';
 import { useRunDiff, useRunThroughput } from './useRunDetail.js';
 import { useHistorySelection } from './useHistorySelection.js';
 import { useKeyboardSelect } from './useKeyboardSelect.js';
@@ -24,10 +24,11 @@ const isSmallScreen = () => typeof window !== 'undefined' && Boolean(window.matc
 
 function headerSub(runs) {
   const models = countBy(runs, 'model').length;
+  // A remote project's log (built from the trend) knows no models.
   return [
     t(pluralKey(runs.length, 'history.runsCountOne', 'history.runsCountMany'), { count: runs.length }),
-    t(pluralKey(models, 'history.modelsCountOne', 'history.modelsCountMany'), { count: models }),
-  ].join(' · ');
+    models > 0 ? t(pluralKey(models, 'history.modelsCountOne', 'history.modelsCountMany'), { count: models }) : null,
+  ].filter(Boolean).join(' · ');
 }
 
 /** Origin and model filters over the full log; `rows` is what survives them. */
@@ -67,6 +68,18 @@ function useRunActions({ selected, runsById, callbacks, refetch }) {
   return { openRun, openFinding, openDimension, deleteRun, baseline };
 }
 
+/** A remote project has no run log endpoint: its log comes from the trend. */
+function usePageLog({ project, shared, trend, partialRuns }) {
+  const localLog = useRunLog(shared ? null : project);
+  const sharedLog = useSharedRunLog(shared ? trend : null, partialRuns);
+  return shared ? sharedLog : localLog;
+}
+
+function NoRunsYet({ loading, error, onRetry }) {
+  if (loading) return <RunLogSkeleton />;
+  return <LoadProjectFailedEmptyState error={error?.message || String(error)} onRetry={onRetry} />;
+}
+
 function RunLogFrame({ runs, shared, refreshing, filters, pageRef, children }) {
   return (
     <div ref={pageRef} className={`history-page history-page--terminal rl${refreshing ? ' section-pending' : ''}`}>
@@ -83,9 +96,9 @@ function RunLogFrame({ runs, shared, refreshing, filters, pageRef, children }) {
  * History as a run log: the runs newest first, what changed in each against
  * its comparison run, and the selected run beside the list.
  */
-export default function RunLogPage({ project, shared = false, refreshing = false, initialRunId, onRunChange, ...callbacks }) {
+export default function RunLogPage({ project, shared = false, trend, partialRuns, refreshing = false, initialRunId, onRunChange, ...callbacks }) {
   const pageRef = useRef(null);
-  const { runs, running, loading, error, refetch } = useRunLog(project);
+  const { runs, running, loading, error, refetch } = usePageLog({ project, shared, trend, partialRuns });
   const runsById = useMemo(() => new Map(runs.map((r) => [r.runId, r])), [runs]);
   const filters = useRunFilters(runs);
   const { rows } = filters;
@@ -98,11 +111,7 @@ export default function RunLogPage({ project, shared = false, refreshing = false
 
   const frame = { runs, shared, refreshing, pageRef };
   if (!runs.length && (loading || error)) {
-    return (
-      <RunLogFrame {...frame}>
-        {loading ? <RunLogSkeleton /> : <LoadProjectFailedEmptyState error={error?.message || String(error)} onRetry={refetch} />}
-      </RunLogFrame>
-    );
+    return <RunLogFrame {...frame}><NoRunsYet loading={loading} error={error} onRetry={refetch} /></RunLogFrame>;
   }
   const filterBar = (
     <RunFilters rows={runs} origin={filters.origin} model={filters.model} onOrigin={filters.setOrigin} onModel={filters.setModel} shown={rows.length} />

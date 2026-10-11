@@ -99,3 +99,35 @@ export function summariseThroughput(progress) {
   });
   return { files, seconds, perMin: seconds > 0 ? files / (seconds / SECONDS_PER_MINUTE) : null, perDim };
 }
+
+const RUN_DONE = 'done';
+
+function trendRow(entry, partial) {
+  const details = entry.dimensionDetails || [];
+  const critical = Number.isFinite(entry.critical) ? entry.critical : 0;
+  return {
+    runId: entry.runId, jobId: null, startedAt: entry.dateISO, status: RUN_DONE,
+    model: null, provider: null, commit: null, origin: null,
+    dims: details.map((d) => d.dimension).sort(), partial,
+    score: entry.runNumericAverage ?? entry.numericAverage ?? null,
+    grade: entry.runOverallGrade ?? entry.overallGrade ?? null,
+    // The trend's `majors` counts critical + major; the log's is major only.
+    open: entry.violations ?? null, critical, majors: Number.isFinite(entry.majors) ? entry.majors - critical : 0,
+    dimensionDetails: details,
+    baselineRunId: null, baselineKind: null, counts: null, newSev: null, resolvedSev: null, pending: false,
+  };
+}
+
+/**
+ * A remote project's run log, built from the dashboard trend and partial runs
+ * (remote projects have no run log endpoint): no comparison, no model or
+ * origin, newest first.
+ */
+export function runsFromTrend(trend, partialRuns) {
+  const ids = new Set((trend || []).map((e) => e.runId));
+  const rows = [
+    ...(trend || []).map((e) => trendRow(e, false)),
+    ...(partialRuns || []).filter((e) => !ids.has(e.runId)).map((e) => trendRow(e, true)),
+  ];
+  return rows.sort((a, b) => (b.startedAt || '').localeCompare(a.startedAt || ''));
+}

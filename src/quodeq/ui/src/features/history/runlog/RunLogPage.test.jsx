@@ -55,4 +55,23 @@ describe('RunLogPage', () => {
     expect(await screen.findByText('1 of 2 runs')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /dimensions/ })).toBeInTheDocument();
   });
+
+  it('arrows with a modifier held, or inside a dialog, do not move the selection', async () => {
+    const cb = renderPage();
+    await screen.findByText(/vs /);
+    const calls = cb.onRunChange.mock.calls.length;
+    fireEvent.keyDown(document.body, { key: 'ArrowDown', metaKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowDown', ctrlKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowDown', altKey: true });
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    const btn = document.createElement('button');
+    dialog.appendChild(btn);
+    document.body.appendChild(dialog);
+    fireEvent.keyDown(btn, { key: 'ArrowDown' });
+    fireEvent.keyDown(btn, { key: 'Enter' });
+    dialog.remove();
+    expect(cb.onRunChange.mock.calls.length).toBe(calls);
+    expect(cb.onRunClick).not.toHaveBeenCalled();
+  });
 });

@@ -71,4 +71,11 @@ describe('RunDetail', () => {
     renderDetail({ throughput: { files: 821, perMin: 3.9 } });
     expect(screen.getByText('821 · 3.9/min')).toBeInTheDocument();
   });
+
+  it('dimension rows carry the letter chip, the hero keeps the word', () => {
+    renderDetail();
+    const row = screen.getByText('security').closest('.term-grid__row');
+    expect(row.querySelector('.chip').textContent).toBe('B');
+    expect(document.querySelector('.rl-hero .chip').textContent).toBe('GOOD');
+  });
 });

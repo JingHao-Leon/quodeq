@@ -1,10 +1,10 @@
 import { GridTable, GridRow, GridCell } from '../../../components/terminal/index.js';
 import { scoreColorClass } from '../../../utils/formatters.js';
-import { GradeChip } from '../../dashboard/components/heroSectionParts.jsx';
+import { scoreTierLabel } from '../../../utils/gradeFormatting.js';
 import RunSevRow, { CRIT_MAJ } from './RunSevRow.jsx';
 import { scoreText, DASH, PLUS, MINUS } from './runFormat.js';
 
-const COLUMNS = 'minmax(140px, 1fr) 90px 44px 1fr 96px';
+const COLUMNS = 'minmax(140px, 1fr) 28px 44px 1fr 96px';
 
 function DimMoves({ change }) {
   if (!change) return <span className="rl-moves rl-moves--none">{DASH}</span>;
@@ -26,7 +26,7 @@ export default function RunDimensions({ run, diff, onOpen }) {
         return (
           <GridRow key={d.dimension} onClick={() => onOpen(d)}>
             <GridCell><span className="rl-mono">{d.dimension}</span></GridCell>
-            <GridCell><GradeChip score={score} grade={d.grade} /></GridCell>
+            <GridCell><span className={`chip small ${scoreColorClass(score)}`}>{scoreTierLabel(score) || DASH}</span></GridCell>
             <GridCell><span className={`rl-num ${scoreColorClass(score)}`}>{scoreText(score)}</span></GridCell>
             <GridCell><RunSevRow counts={{ critical: d.critical, major: d.majors }} levels={CRIT_MAJ} /></GridCell>
             <GridCell><DimMoves change={diff?.perDim?.[d.dimension]} /></GridCell>

@@ -115,6 +115,8 @@ export default function HistoryPage({ trend: rawTrend, partialRuns: rawPartialRu
     <RunLogPage
       project={selectedProject}
       shared={shared}
+      trend={trend}
+      partialRuns={partialRuns}
       refreshing={isRefreshing}
       initialRunId={selectedRunId && selectedRunId !== LATEST_RUN_ID ? selectedRunId : null}
       onRunChange={onRunChange}
