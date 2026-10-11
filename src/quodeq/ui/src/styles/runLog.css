@@ -128,3 +128,16 @@
   .rl .qd-cards-panel > .rl-detail__body { flex: none; }
   .rl-body { max-height: none; overflow: visible; }
 }
+
+/* loading skeleton: the strip, then the list beside the run panel. House
+   idiom: static dimmed blocks, no shimmer. */
+.history-skeleton { display: flex; flex-direction: column; gap: var(--term-space-2); }
+.history-skeleton__block, .history-skeleton__row { display: block; border-radius: 4px; background: var(--color-surface-alt); opacity: .6; }
+.history-skeleton__strip { height: 118px; }
+.history-skeleton__split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: var(--term-space-2); height: max(460px, calc(100vh - 310px)); }
+.history-skeleton__list { display: flex; flex-direction: column; gap: 4px; }
+.history-skeleton__row { height: 28px; }
+@media (max-width: 900px) {
+  .history-skeleton__split { grid-template-columns: 1fr; height: auto; }
+  .history-skeleton__panel { height: 360px; }
+}

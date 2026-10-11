@@ -17,7 +17,26 @@ import { SEVERITY } from '../../../vocab/severity.js';
 // Short severity code shown in the header ("CRIT", "MAJO", "MINO").
 const SEVERITY_ABBREV_LENGTH = 4;
 
-export default function FindingDetailPage({ finding, principle, dimension, onDismiss }) {
+function Breadcrumb({ crumbs, dimension, principle }) {
+  // A caller-given trail (History: history ▸ run ▸ dimension ▸ principle)
+  // is the whole trail; otherwise the Overview one.
+  if (crumbs?.length) {
+    return (
+      <span className="finding-detail-breadcrumb">
+        {crumbs.map((c, i) => <span key={`${i}:${c}`}>{i > 0 && <> <span className="finding-detail-sep">▸</span> </>}{c}</span>)}
+      </span>
+    );
+  }
+  return (
+    <span className="finding-detail-breadcrumb">
+      <span>{t('explorer.overviewCrumb')}</span>
+      {dimension && <> <span className="finding-detail-sep">▸</span> <span>{String(dimension).toLowerCase()}</span></>}
+      {principle && <> <span className="finding-detail-sep">▸</span> <span>{String(principle).toLowerCase()}</span></>}
+    </span>
+  );
+}
+
+export default function FindingDetailPage({ finding, principle, dimension, onDismiss, crumbs = null, note = null }) {
   if (!finding) {
     return (
       <section className="empty-state">
@@ -33,15 +52,10 @@ export default function FindingDetailPage({ finding, principle, dimension, onDis
     <section className="finding-detail-page">
       <TermHeader
         name={`${principle || dimension || t('explorer.findingFallback')}.detail`}
-        sub={
-          <span className="finding-detail-breadcrumb">
-            <span>{t('explorer.overviewCrumb')}</span>
-            {dimension && <> <span className="finding-detail-sep">▸</span> <span>{String(dimension).toLowerCase()}</span></>}
-            {principle && <> <span className="finding-detail-sep">▸</span> <span>{String(principle).toLowerCase()}</span></>}
-          </span>
-        }
+        sub={<Breadcrumb crumbs={crumbs} dimension={dimension} principle={principle} />}
       />
 
+      {note && <p className="finding-detail-note">{note}</p>}
       <SectionLabel>{t('explorer.sevCount', { severity: shortSev, count: 1 })}</SectionLabel>
 
       <div className="vlive-violations-group">

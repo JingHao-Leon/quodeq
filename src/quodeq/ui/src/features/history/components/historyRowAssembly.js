@@ -1,10 +1,6 @@
-// Row-assembly helpers shared by HistoryPage.jsx (which re-exports
-// assembleHistoryRows/visibleHistoryRows -- see HistoryPage.stubs.test.jsx)
-// and HistoryContent.jsx/EvaluationsTable.jsx. Extracted verbatim from
-// HistoryPage.jsx; split into its own module (rather than left inline) so
-// HistoryContent.jsx can read HIDDEN_STATUSES without importing back from
-// HistoryPage.jsx (which would create a circular import, since HistoryPage
-// imports HistoryContent).
+// Row-assembly helpers for HistoryPage.jsx (which re-exports
+// assembleHistoryRows/visibleHistoryRows -- see HistoryPage.stubs.test.jsx):
+// the page's empty-state gate counts the rows the dashboard data would list.
 
 import { RUN_STATE } from '../../../vocab/runState.js';
 

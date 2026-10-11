@@ -1,15 +1,12 @@
 import { useMemo } from 'react';
 import { useApi } from '../../../api/ApiContext.jsx';
-import { useRunNavigator } from '../../../hooks/useRunNavigator.js';
-import { usePrefetchRun } from '../../dashboard/hooks/usePrefetchRun.js';
 import { readVisibleStandardIds } from '../../../utils/visibleStandards.js';
 import { filterRunsByVisibleStandards, filterTrendByVisibleStandards } from '../../../utils/scoreFiltering.js';
 import { t } from '../../../strings/index.js';
-import { formatRunDateTime } from '../../../utils/formatters.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { LATEST_RUN_ID } from '../../../constants.js';
 import { useHistoryDeleteRun } from '../hooks/useHistoryDeleteRun.js';
-import { HistoryContent } from './HistoryContent.jsx';
+import RunLogPage from '../runlog/RunLogPage.jsx';
 import {
   HistoryEmptyShell, NoProjectSelectedEmptyContent, LoadingEmptyContent,
 } from './HistoryEmptyStates.jsx';
@@ -19,27 +16,6 @@ import {
 import { assembleHistoryRows, visibleHistoryRows } from './historyRowAssembly.js';
 
 export { assembleHistoryRows, visibleHistoryRows };
-
-function useHistoryRunNavLabel(trend, currentOverviewRun) {
-  return useMemo(() => {
-    const entry = (trend || []).find((r) => r.runId === currentOverviewRun);
-    if (!entry?.dateISO) return entry?.dateLabel || currentOverviewRun;
-    return formatRunDateTime(entry.dateISO, entry.dateISO, 'HistoryPage');
-  }, [trend, currentOverviewRun]);
-}
-
-// How many top languages the subtitle shows before the rest are dropped.
-const HISTORY_MAX_LANGUAGES_SHOWN = 5;
-
-function useHistoryLanguageSub(projectInfo) {
-  return useMemo(() => {
-    const stats = projectInfo?.languageStats;
-    if (!stats) return null;
-    const sorted = Object.entries(stats).sort(([, a], [, b]) => b - a).slice(0, HISTORY_MAX_LANGUAGES_SHOWN);
-    if (sorted.length === 0) return null;
-    return sorted.map(([lang, count]) => `${count} ${lang.toLowerCase()}`).join('  ');
-  }, [projectInfo]);
-}
 
 // The "no rows to show" branch of the empty-state dispatch (loading / error /
 // shared-no-evals / generic-no-evals).
@@ -119,25 +95,13 @@ function renderHistoryEmptyState({
 
 export default function HistoryPage({ trend: rawTrend, partialRuns: rawPartialRuns = [], selection, availableRuns, callbacks, projectInfo, projects = [], projectsLoaded, selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, loading, isFetching, error, onRetry }) {
   const { selectedRunId } = selection;
-  const { onRunClick, onNavigate, onRunChange, onRunDeleted } = callbacks;
+  const { onRunClick, onDimensionClick, onNavigate, onRunChange, onRunDeleted } = callbacks;
   const { deleteEvaluation } = useApi();
-  // Warm the run-detail cache on row hover so clicking through is instant.
-  const { prefetchRun, cancelPrefetch } = usePrefetchRun(selectedProject, selectedSource);
   const visibleSet = useMemo(() => new Set(readVisibleStandardIds()), []);
   const trend = useMemo(() => filterTrendByVisibleStandards(rawTrend || [], visibleSet), [rawTrend, visibleSet]);
   const partialRuns = useMemo(() => filterRunsByVisibleStandards(rawPartialRuns, visibleSet), [rawPartialRuns, visibleSet]);
 
-  const { handleDeleteRun, deletingRunIds } = useHistoryDeleteRun({ selectedSource, deleteEvaluation, onRunDeleted });
-
-  const { overviewRunIndex, currentOverviewRun, handleRunPrev, handleRunNext, handleRunLatest } = useRunNavigator({
-    selectedRun: selectedRunId || LATEST_RUN_ID,
-    availableRuns: availableRuns || [],
-    onRunChange: onRunChange || (() => {}),
-    onNavigate: onNavigate || (() => {}),
-  });
-
-  const runNavLabel = useHistoryRunNavLabel(trend, currentOverviewRun);
-  const languageSub = useHistoryLanguageSub(projectInfo);
+  const { handleDeleteRun } = useHistoryDeleteRun({ selectedSource, deleteEvaluation, onRunDeleted });
 
   const isRefreshing = isFetching && !loading;
   const emptyState = renderHistoryEmptyState({
@@ -146,22 +110,20 @@ export default function HistoryPage({ trend: rawTrend, partialRuns: rawPartialRu
   });
   if (emptyState) return emptyState;
 
+  const shared = selectedSource === PROJECT_SOURCE.SHARED;
   return (
-    <HistoryContent
-      data={{ trend, partialRuns, selectedRunId, availableRuns }}
-      isRefreshing={isRefreshing}
-      callbacks={{
-        onRunClick, onRunHover: prefetchRun, onRunHoverEnd: cancelPrefetch, onRunChange,
-        // Shared-repo runs have no delete route on the backend (mutation is
-        // local-only by design). Passing undefined here — rather than always
-        // handleDeleteRun — is what makes the row's delete button vanish,
-        // since HistoryRow already gates on `{onDelete && ...}`.
-        onDeleteRun: selectedSource === PROJECT_SOURCE.LOCAL ? handleDeleteRun : undefined,
-        deletingRunIds,
-      }}
-      runNav={{ runNavLabel, overviewRunIndex, currentOverviewRun, handleRunPrev, handleRunNext, handleRunLatest }}
-      languageSub={languageSub}
-      selectedSource={selectedSource}
+    <RunLogPage
+      project={selectedProject}
+      shared={shared}
+      refreshing={isRefreshing}
+      initialRunId={selectedRunId && selectedRunId !== LATEST_RUN_ID ? selectedRunId : null}
+      onRunChange={onRunChange}
+      onRunClick={onRunClick}
+      onDimensionClick={onDimensionClick}
+      onNavigate={onNavigate}
+      // Shared-repo runs have no delete route on the backend (mutation is
+      // local-only by design): no handler, so the run panel has no delete.
+      onDeleteRun={selectedSource === PROJECT_SOURCE.LOCAL ? handleDeleteRun : undefined}
     />
   );
 }

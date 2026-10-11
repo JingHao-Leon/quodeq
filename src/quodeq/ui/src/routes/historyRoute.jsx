@@ -8,9 +8,10 @@ import { findProject } from '../utils/projectIdentity.js';
 
 const HistoryPage = lazy(() => import('../features/history/components/HistoryPage.jsx'));
 
-function resolveHistorySelectedRunId(selectedRun, trend) {
-  if (selectedRun && selectedRun !== LATEST_RUN_ID && trend.some((t) => t.runId === selectedRun)) return selectedRun;
-  return trend.length > 0 ? trend[0].runId : null;
+// The run log holds runs the trend does not (partial ones), so any remembered
+// run is passed through; the log falls back to its newest run when it is gone.
+function resolveHistorySelectedRunId(selectedRun) {
+  return selectedRun && selectedRun !== LATEST_RUN_ID ? selectedRun : null;
 }
 
 export function historyRoute(params, props) {
@@ -21,7 +22,7 @@ export function historyRoute(params, props) {
       trend={trend}
       partialRuns={props.dashboardData.dashboard?.partialRuns || []}
       selection={{
-        selectedRunId: resolveHistorySelectedRunId(props.navigation.historySelectedRun, trend),
+        selectedRunId: resolveHistorySelectedRunId(props.navigation.historySelectedRun),
         selectedRunScore: props.dashboardData.accumulated?.summary?.numericAverage,
       }}
       availableRuns={runs}

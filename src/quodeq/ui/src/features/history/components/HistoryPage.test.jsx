@@ -5,112 +5,118 @@ import HistoryPage from './HistoryPage.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 
-// The chart panel is lazy-loaded and pulls in recharts; stub it so these
-// tests exercise only the table (the part with the delete-button gating).
-vi.mock('./HistoryChartPanel.jsx', () => ({
-  default: () => null,
-}));
-
 // The delete handler reports failures through the side pane's toast; these
 // tests never reach a failure, so a bare stub keeps them provider-free.
 vi.mock('../../side-pane/SidePaneContext.jsx', () => ({
   useSidePane: () => ({ showToast: vi.fn() }),
 }));
 
-// Shared-repo runs have no delete route on the backend (mutation is
-// local-only by design, same as dismiss/restore/verify). HistoryPage must
-// only wire onDeleteRun into the table when selectedSource is 'local' —
-// HistoryRow already gates its delete button on `{onDelete && ...}`, so
-// passing undefined is what makes the button vanish for shared.
+// The dashboard trend only gates the empty states; the page itself reads the
+// run log.
 const trend = [
-  {
-    runId: 'r1',
-    status: 'done',
-    dateISO: '2026-07-01T10:00:00Z',
-    dateLabel: '1 Jul 2026',
-    numericAverage: 8.2,
-    overallGrade: 'B',
-    dimensionDetails: [{ dimension: 'security', score: 8.2 }],
-  },
+  { runId: 'a', status: 'done', dateISO: '2026-10-11T00:45:04Z', dateLabel: '11 Oct 2026', numericAverage: 8.5, overallGrade: 'Good', dimensionDetails: [{ dimension: 'security', score: 8.4 }] },
 ];
-const availableRuns = [
-  { runId: 'r1', status: 'done', dateISO: '2026-07-01T10:00:00Z', dateLabel: '1 Jul 2026' },
-];
+const availableRuns = [{ runId: 'a', status: 'done', dateISO: '2026-10-11T00:45:04Z', dateLabel: '11 Oct 2026' }];
 
-function makeFakeApi(overrides = {}) {
+const RUN_A = {
+  runId: 'a', jobId: 'ext-a', startedAt: '2026-10-11T00:45:04+00:00', status: 'done', model: 'qwen', commit: '6d62f65',
+  origin: { kind: 'ci', workflow: 'Quodeq Nightly' }, dims: ['security'], partial: false, score: 8.5, grade: 'Good',
+  open: 398, critical: 0, majors: 26, dimensionDetails: [{ dimension: 'security', score: 8.4, grade: 'Good', majors: 26, critical: 0 }],
+  activeSeconds: 600, baselineRunId: 'b', baselineKind: 'same-model', counts: { new: 1, resolved: 0, notReevaluated: 0 },
+  newSev: { major: 1 }, resolvedSev: {}, pending: false,
+};
+const RUN_B = {
+  ...RUN_A, runId: 'b', jobId: 'ext-b', startedAt: '2026-10-10T01:36:00+00:00', score: 8.3, majors: 25,
+  baselineRunId: null, baselineKind: null, counts: null, newSev: null, resolvedSev: null,
+};
+const DIFF = {
+  dimensions: {
+    security: {
+      counts: { new: 1, resolved: 0, notReevaluated: 0 },
+      new: [{ severity: 'major', title: 'Uncaught exception', principle: 'Fault Tolerance', file: 'a.py', line: 3 }],
+      resolved: [],
+    },
+  },
+};
+
+function makeFakeApi(running = null) {
   return {
     deleteEvaluation: vi.fn(async () => ({ ok: true })),
-    getDashboard: vi.fn(async () => ({})),
-    sharedGetDashboard: vi.fn(async () => ({})),
-    getProjectScores: vi.fn(async () => ({})),
-    sharedGetProjectScores: vi.fn(async () => ({})),
-    ...overrides,
+    getRunLog: vi.fn(async () => ({ runs: [RUN_A, RUN_B], running })),
+    getRunDiff: vi.fn(async () => DIFF),
+    getEvaluationProgress: vi.fn(async () => ({ dimensions: [] })),
   };
 }
 
-function makeCallbacks() {
-  return {
-    onRunClick: vi.fn(),
-    onDimensionClick: vi.fn(),
-    onNavigate: vi.fn(),
-    onRunChange: vi.fn(),
-    onRunDeleted: vi.fn(),
-  };
+function makeCallbacks(onNavigate = vi.fn()) {
+  return { onRunClick: vi.fn(), onDimensionClick: vi.fn(), onNavigate, onRunChange: vi.fn(), onRunDeleted: vi.fn() };
 }
 
-function renderWithProps(props) {
+function renderWithProps(props, running = null) {
   const QC = withQueryClient();
-  const fakeApi = makeFakeApi();
+  const fakeApi = makeFakeApi(running);
   render(
     <QC>
       <ApiProvider value={fakeApi}>
-        <HistoryPage
-          dimensions={{}}
-          callbacks={makeCallbacks()}
-          projectsLoaded
-          loading={false}
-          isFetching={false}
-          {...props}
-        />
+        <HistoryPage callbacks={makeCallbacks()} projectsLoaded loading={false} isFetching={false} {...props} />
       </ApiProvider>
     </QC>,
   );
   return fakeApi;
 }
 
-function renderHistoryPage(selectedSource, overrides = {}) {
+/** A local project with two runs in its log: `a` (compared with `b`) and `b`. */
+function renderHistory({ onNavigate = vi.fn(), running = null, selectedSource = 'local', ...over } = {}) {
   return renderWithProps({
-    trend,
-    selection: { selectedRunId: 'r1' },
-    availableRuns,
+    trend, availableRuns,
+    selection: { selectedRunId: null },
+    callbacks: makeCallbacks(onNavigate),
     projectInfo: { displayName: 'Test Project' },
     projects: [{ id: 'proj1', name: 'proj1' }],
     selectedProject: 'proj1',
     selectedSource,
-    ...overrides,
-  });
+    ...over,
+  }, running);
 }
 
-describe('HistoryPage — delete-run source gating', () => {
-  it('shows the delete button on a row when source is local', () => {
-    renderHistoryPage('local');
-    // The delete button lives inside an aria-hidden chevron column (a
-    // pre-existing decorative wrapper), so it must be queried with
-    // hidden:true rather than treated as a real accessibility-tree gap.
-    expect(screen.getByRole('button', { name: 'Delete run', hidden: true })).toBeInTheDocument();
+describe('HistoryPage: the run log', () => {
+  it('opens a finding from History with a History trail and the History tab lit', async () => {
+    const onNavigate = vi.fn();
+    renderHistory({ onNavigate });
+    fireEvent.click(await screen.findByRole('tab', { name: /new/ }));
+    fireEvent.click(await screen.findByText('Uncaught exception'));
+    expect(onNavigate).toHaveBeenCalledWith('finding', expect.objectContaining({
+      sourceTab: 'history',
+      runId: 'a',
+      crumbs: expect.arrayContaining(['history']),
+    }));
   });
 
-  it('hides the delete button on every row when source is shared', () => {
-    renderHistoryPage('shared');
-    expect(screen.queryByRole('button', { name: 'Delete run', hidden: true })).toBeNull();
-    // The row itself (and its chevron) must still render — only the delete
-    // affordance is gone.
-    //
-    // Was 'Jul 1, 2026', which passed only because this machine's browser
-    // locale is en-US: the row formatted dates with `undefined` as the locale,
-    // so the assertion (and the product) followed the OS rather than the app.
-    // Dates now come from strings/index.js LOCALE, so this is deterministic.
-    expect(screen.getByText('1 Jul 2026')).toBeInTheDocument();
+  it('a running evaluation shows one line that opens Evaluate, no live row', async () => {
+    const onNavigate = vi.fn();
+    renderHistory({ onNavigate, running: { jobId: 'j', startedAt: '2026-10-11T00:45:04+00:00', model: 'qwen', currentDimension: 'performance' } });
+    fireEvent.click(await screen.findByRole('button', { name: /open in evaluate/ }));
+    expect(onNavigate).toHaveBeenCalledWith('evaluate');
+    expect(screen.queryByText(/performing an evaluation/)).toBeNull();
+  });
+
+  it('lands on the remembered run', async () => {
+    renderHistory({ selection: { selectedRunId: 'b' } });
+    expect(await screen.findByText(/nothing to compare with/)).toBeInTheDocument();
+  });
+});
+
+describe('HistoryPage: delete-run source gating', () => {
+  it('a local run can be deleted from the more menu', async () => {
+    renderHistory();
+    expect(await screen.findByRole('button', { name: 'more actions' })).toBeInTheDocument();
+  });
+
+  it('a shared project shows the run log without delete', async () => {
+    renderHistory({ selectedSource: 'shared' });
+    expect(await screen.findByRole('tab', { name: /dimensions/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'more actions' })).toBeNull();
+    expect(screen.getByText('remote · read-only')).toBeInTheDocument();
   });
 });
 
@@ -129,7 +135,7 @@ function renderHistoryPageWithData(overrides = {}) {
   });
 }
 
-describe('HistoryPage — evaluate CTA gating for shared (Critical 1)', () => {
+describe('HistoryPage: evaluate CTA gating for shared', () => {
   it('shared source, no evaluations yet: no Start evaluation CTA, shared-specific copy', () => {
     renderHistoryPageWithData();
     expect(screen.getByText('No completed evaluation yet')).toBeInTheDocument();
@@ -137,28 +143,26 @@ describe('HistoryPage — evaluate CTA gating for shared (Critical 1)', () => {
     expect(screen.queryByRole('button', { name: 'Start evaluation' })).toBeNull();
   });
 
-  it('local source, no evaluations yet: Start evaluation CTA present (existing behavior)', () => {
-    renderHistoryPageWithData({
-      selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }],
-    });
+  it('local source, no evaluations yet: Start evaluation CTA present', () => {
+    renderHistoryPageWithData({ selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }] });
     expect(screen.getByRole('button', { name: 'Start evaluation' })).toBeInTheDocument();
   });
 });
 
-describe('HistoryPage — teammate persona: shared selection + zero local projects (Finding 3)', () => {
+describe('HistoryPage: teammate persona, shared selection + zero local projects', () => {
   it('shared source with an empty LOCAL projects list renders the shared content path, not the Add-a-project wall', () => {
-    renderHistoryPageWithData({ trend, availableRuns, selection: { selectedRunId: 'r1' } });
+    renderHistoryPageWithData({ trend, availableRuns });
     expect(screen.queryByText('No projects yet')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Add a project' })).toBeNull();
   });
 
-  it('local source with an empty local projects list still shows the Add-a-project wall (unchanged)', () => {
+  it('local source with an empty local projects list still shows the Add-a-project wall', () => {
     renderHistoryPageWithData({ selectedSource: 'local', selectedProject: '', projects: [] });
     expect(screen.getByText('No projects yet')).toBeInTheDocument();
   });
 });
 
-describe('HistoryPage — scenario 9: loader gate, containment, refresh dim', () => {
+describe('HistoryPage: loader gate, containment, refresh dim', () => {
   it('background refetch over an empty project keeps the empty state, no loader', () => {
     renderHistoryPageWithData({ loading: false, isFetching: true });
     expect(document.querySelector('.loading-screen')).toBeNull();
@@ -170,9 +174,7 @@ describe('HistoryPage — scenario 9: loader gate, containment, refresh dim', ()
     expect(document.querySelector('.loading-screen')).toBeNull();
     const skeleton = document.querySelector('.history-skeleton');
     expect(skeleton).not.toBeNull();
-    const frame = document.querySelector('.history-page--terminal');
-    expect(frame).not.toBeNull();
-    expect(frame.contains(skeleton)).toBe(true);
+    expect(document.querySelector('.history-page--terminal').contains(skeleton)).toBe(true);
   });
 
   it('applies the refresh dim class to the empty state during a background refetch', () => {
@@ -180,58 +182,34 @@ describe('HistoryPage — scenario 9: loader gate, containment, refresh dim', ()
     expect(document.querySelector('.history-page--terminal').className).toContain('section-pending');
   });
 
-  it('applies the refresh dim class to real content during a background refetch', () => {
-    renderHistoryPageWithData({
-      trend, availableRuns, selection: { selectedRunId: 'r1' },
-      loading: false, isFetching: true,
-    });
+  it('applies the refresh dim class to the run log during a background refetch', () => {
+    renderHistory({ isFetching: true });
     expect(document.querySelector('.history-page--terminal').className).toContain('section-pending');
   });
 });
 
-describe('HistoryPage — error state + retry feedback (P4-T2)', () => {
+describe('HistoryPage: error state + retry feedback', () => {
   it('error + no data renders the framed error state with a working Retry', () => {
     const onRetry = vi.fn();
-    renderHistoryPageWithData({
-      selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }],
-      error: 'Failed to load', onRetry,
-    });
+    renderHistoryPageWithData({ selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }], error: 'Failed to load', onRetry });
     expect(screen.getByText("Couldn't load this project")).toBeInTheDocument();
     fireEvent.click(screen.getByText('Retry'));
     expect(onRetry).toHaveBeenCalled();
   });
 
   it('error + isFetching renders the skeleton instead of the error state', () => {
-    renderHistoryPageWithData({
-      selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }],
-      error: 'Failed to load', isFetching: true,
-    });
+    renderHistoryPageWithData({ selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }], error: 'Failed to load', isFetching: true });
     expect(screen.queryByText("Couldn't load this project")).toBeNull();
     expect(document.querySelector('.history-skeleton')).toBeTruthy();
-    expect(document.querySelector('.loading-screen')).toBeNull();
   });
 
   it('data present with a stale error still renders the data, not the error screen', () => {
-    renderHistoryPageWithData({
-      trend, availableRuns, selection: { selectedRunId: 'r1' },
-      selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }],
-      error: 'Failed to load',
-    });
+    renderHistory({ error: 'Failed to load' });
     expect(screen.queryByText("Couldn't load this project")).toBeNull();
   });
-});
 
-describe('HistoryPage — shared read-only chip (Finding 6)', () => {
-  it('shows the chip for a shared project with data', () => {
-    renderHistoryPageWithData({ trend, availableRuns, selection: { selectedRunId: 'r1' } });
-    expect(screen.getByText('remote · read-only')).toBeInTheDocument();
-  });
-
-  it('omits the chip for a local project', () => {
-    renderHistoryPageWithData({
-      trend, availableRuns, selection: { selectedRunId: 'r1' },
-      selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }],
-    });
+  it('a local project has no read-only chip', () => {
+    renderHistory();
     expect(screen.queryByText('remote · read-only')).toBeNull();
   });
 });

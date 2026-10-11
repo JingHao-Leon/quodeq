@@ -1,5 +1,5 @@
 import EmptyState from '../../../components/EmptyState.jsx';
-import HistorySkeleton from './HistorySkeleton.jsx';
+import RunLogSkeleton from '../runlog/RunLogSkeleton.jsx';
 import { TermHeader } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
@@ -29,5 +29,5 @@ export function NoProjectSelectedEmptyContent({ onNavigate }) {
 }
 
 export function LoadingEmptyContent() {
-  return <HistorySkeleton />;
+  return <RunLogSkeleton />;
 }

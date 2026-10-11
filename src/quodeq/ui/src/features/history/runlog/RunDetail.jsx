@@ -42,7 +42,7 @@ function Hero({ run, baseline, onOpenRun, onDelete }) {
       <span className="rl-hero__actions">
         <button type="button" className="eval-scan-pill" onClick={() => onOpenRun(run)}><span className="eval-scan-pill__glyph" aria-hidden="true">▶</span>{t('history.openRun')}</button>
         {url && <a className="eval-pill-btn" href={url} target="_blank" rel="noreferrer" title={t('history.openGitHubTitle')}>{t('history.openGitHub')}</a>}
-        <RunMoreMenu onDelete={() => onDelete(run.runId, stamp(run.startedAt))} />
+        {onDelete && <RunMoreMenu onDelete={() => onDelete(run.runId, stamp(run.startedAt))} />}
       </span>
     </div>
   );

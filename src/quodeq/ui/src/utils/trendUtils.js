@@ -1,4 +1,4 @@
-/** Shared trend-direction thresholds used by TrendBadge and HistoryChartPanel. */
+/** Shared trend-direction thresholds used by TrendBadge. */
 export const IMPROVING_THRESHOLD = 1;
 export const DECLINING_THRESHOLD = -1;
 export const SOFT_UP_THRESHOLD = 0.1;

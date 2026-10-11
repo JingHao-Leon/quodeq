@@ -56,8 +56,7 @@ function keepUnchangedDimensions(next, prev) {
 }
 
 // The slot is never fetched (enabled: false below): the stream fills it with
-// setQueryData and useQuery is here for its subscription only, the same way
-// useHistoryRunLive reads it. A fetch that resolved to [] after the first
+// setQueryData and useQuery is here for its subscription only. A fetch that resolved to [] after the first
 // frame landed would wipe that frame.
 const NEVER_QUERIED = () => {
   throw new Error("findings slot is stream-fed; queryFn must not run");
