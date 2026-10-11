@@ -496,6 +496,8 @@
   "evaluate.dimScanning": "scanning",
   "evaluate.dimPassed": "{count} passed",
   "evaluate.dimQueued": "queued",
+  "evaluate.dimResults": "results ›",
+  "evaluate.dimResultsAria": "open {dim} results",
   "evaluate.dimSingular": "{count} dimension",
   "evaluate.dimensionsLabel": "dimensions",
   "evaluate.dimensionsLabelCap": "Dimensions",

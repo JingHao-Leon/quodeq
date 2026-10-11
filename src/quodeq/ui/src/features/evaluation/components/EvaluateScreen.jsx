@@ -90,7 +90,7 @@ function NoProjectSelected({ onGoToProjects }) {
 export default function EvaluateScreen({ evaluation, context, actions }) {
   const { job, jobError, liveViolations } = evaluation;
   const { selectedProject, projectInfo, jobProjectInfo, startedProjectInfo, preselectDims } = context;
-  const { onStart: onStartEvaluation, onDismiss, onCancel, onGoToProjects, onGoToSettings } = actions;
+  const { onStart: onStartEvaluation, onDismiss, onCancel, onGoToProjects, onGoToSettings, onOpenDimension } = actions;
   const [toastKey, setToastKey] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
   // Stable identity: ErrorToast's timer effect depends on onDismiss, and a
@@ -131,6 +131,7 @@ export default function EvaluateScreen({ evaluation, context, actions }) {
           onDismiss={onDismiss}
           onCancel={onCancel}
           onGoToProjects={onGoToProjects}
+          onOpenDimension={onOpenDimension}
         />
       </div>
 
