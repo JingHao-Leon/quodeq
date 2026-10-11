@@ -26,6 +26,7 @@ from quodeq.services._run_index_fs import (
     external_job_is_complete, indexed_run_dir, merge_internal_jobs, remove_run_directory,
     scan_reports_root_for_run,
 )
+from quodeq.services._project_runs import project_snapshots
 from quodeq.services._run_status_readers import build_job_snapshot
 from quodeq.services._run_status_readers import (  # noqa: F401 — re-export
     read_deadline_from_status, read_dimensions_from_status, read_provider_model_from_status,
@@ -68,16 +69,9 @@ class EvaluationsIndex:
         """
         reports_dir = self._coerce_reports_dir(reports_dir)
         internal_jobs = self._internal_jobs()
-        # limit>0: over-fetch by len(internal_jobs) so that even if every
-        # in-memory job dedupes against (and removes) a fetched DB row, the
-        # fetch still leaves >= limit usable DB rows to fill the merge.
-        # limit<=0 means "fetch all".
-        # A *states* filter is pushed straight into the SQL query
-        # (JobSnapshot.status is exactly RunRow.state for indexed rows), so
-        # it narrows the same bounded fetch instead of requiring a fetch-all
-        # that gets filtered in Python afterwards. It is re-applied in
-        # Python only to drop in-memory jobs that have no row and therefore
-        # can't be filtered in SQL.
+        # limit>0 over-fetches by len(internal_jobs): every in-memory job may
+        # dedupe away a DB row and the merge must still fill *limit*. *states*
+        # goes into the SQL; it is re-applied below only for in-memory jobs.
         db_limit = limit + len(internal_jobs) if limit and limit > 0 else None
         snapshots = self._indexed_snapshots(reports_dir, db_limit, states)
         merged = merge_internal_jobs(snapshots, internal_jobs)
@@ -85,6 +79,11 @@ class EvaluationsIndex:
             merged = [s for s in merged if s.status in states]  # keep: in-memory jobs have no row
         merged.sort(key=lambda s: s.started_at or "", reverse=True)
         return merged[:limit] if limit and limit > 0 else merged
+
+    def list_project(self, project: str, reports_dir: Path | None = None) -> list[JobSnapshot]:
+        """One project's runs, newest first: only its run dirs are synced and read."""
+        return project_snapshots(
+            self._open_index(), self._coerce_reports_dir(reports_dir), project, self._internal_jobs())
 
     def _internal_jobs(self) -> list[JobSnapshot]:
         """In-memory jobs from the ``JobManager``; empty when it cannot list them."""

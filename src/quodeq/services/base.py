@@ -205,6 +205,10 @@ class EvaluationActions(Protocol):
         ...
     # jscpd:ignore-end
 
+    def list_project_evaluations(self, project: str, reports_dir: str | None = None) -> list[JobSnapshot]:
+        """One project's runs, newest first, reading only that project's run dirs."""
+        ...
+
     def delete_evaluation(self, job_id: str, reports_dir: str | None = None) -> bool:
         """Delete a finished evaluation's on-disk artifacts and index row.
         Refuses to delete a running job (returns False). Returns True on success."""

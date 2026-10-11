@@ -128,6 +128,10 @@ class FilesystemActionProvider(ActionProvider):
         """Return runs from the SQLite index merged with JobManager's in-memory jobs."""
         return self._evaluations.list(limit=limit, reports_dir=reports_dir, states=states)
 
+    def list_project_evaluations(self, project: str, reports_dir: Path | None = None) -> list[JobSnapshot]:
+        """One project's runs, syncing and reading only that project's run dirs."""
+        return self._evaluations.list_project(project, reports_dir=reports_dir)
+
     def delete_evaluation(self, job_id: str, reports_dir: Path | None = None) -> bool:
         """Drop the run directory and its index row, and the projects-list cache with them."""
         deleted = self._evaluations.delete(job_id, reports_dir=reports_dir)

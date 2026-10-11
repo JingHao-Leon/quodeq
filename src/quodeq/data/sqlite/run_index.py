@@ -111,6 +111,26 @@ def sync_index(db: sqlite3.Connection, evaluations_root: Path) -> None:
         delete_orphan_non_terminal_rows(db)
 
 
+def sync_project(db: sqlite3.Connection, project_dir: Path, project_uuid: str) -> None:
+    """:func:`sync_index` for one project's runs: same mtime gate, stale
+    promotion and per-run isolation, without walking the other projects."""
+    if not project_dir.is_dir():
+        return
+    with db:
+        cached_mtimes = dict(db.execute(
+            "SELECT job_id, status_mtime FROM runs WHERE project_uuid=?", (project_uuid,)))
+        for run_dir in _visible_subdirs(project_dir):
+            run_isolated(
+                lambda: sync_one_run_isolated(
+                    db, run_dir, project_uuid=project_uuid, run_id=run_dir.name,
+                    cached_mtimes=cached_mtimes,
+                ),
+                label=f"index sync {run_dir.name}",
+                log=_logger,
+            )
+        delete_orphan_non_terminal_rows(db)
+
+
 def sync_index_for_run(db: sqlite3.Connection, run_dir: Path) -> None:
     """Sync only the given run_dir (used by /api/evaluations/<id>)."""
     if not run_dir.is_dir():

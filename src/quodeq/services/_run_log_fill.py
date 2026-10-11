@@ -26,6 +26,7 @@ from typing import Any, Callable
 
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.services.wiring import open_score_cache, store_run_change
+from quodeq.services.wiring_sync import score_cache_detached
 from quodeq.shared.fault_isolation import run_isolated
 
 WORKER_THREAD_NAME = "run-change-fill"
@@ -116,7 +117,7 @@ class RunChangeFiller:
         try:
             with open_score_cache() as conn:
                 store_run_change(conn, job.project, job.run_id, job.key, entry)
-        except sqlite3.Error as exc:
+        except (sqlite3.Error, OSError) as exc:
             self._log.warning(f"run change cache unavailable for {job.project}/{job.run_id}: {exc}")
         return entry
 
@@ -144,23 +145,55 @@ class RunChangeFiller:
             # No thread: drop the queue so its runs are not pending forever;
             # the next request queues them again.
             with self._cond:
-                self._worker_alive = False
-                self._queue.clear()
-                self._in_flight.clear()
-                self._cond.notify_all()
+                self._stop_locked()
             self._log.warning(f"run change worker failed to start: {exc}")
 
+    def _stop_locked(self) -> None:
+        """Mark the worker gone and release every queued run. Caller holds the lock."""
+        for _context, job, _compute in self._queue:
+            self._in_flight.discard((job.project, job.run_id))
+        self._queue.clear()
+        self._worker_alive = False
+        self._cond.notify_all()
+
+    def _next(self) -> _Queued | None:
+        """The next queued run; None (and the worker marked gone, atomically) when empty."""
+        with self._cond:
+            if not self._queue:
+                self._stop_locked()
+                return None
+            return self._queue.popleft()
+
+    def _release(self, job: ChangeJob) -> None:
+        with self._cond:
+            self._in_flight.discard((job.project, job.run_id))
+            self._cond.notify_all()
+
+    def _detached(self, job: ChangeJob, compute: Compute) -> None:
+        """Compute and store off the request: never on the request's session connection."""
+        with score_cache_detached():
+            self._compute_and_store(job, compute)
+
     def _work(self) -> None:
-        while True:
-            with self._cond:
-                if not self._queue:
-                    self._worker_alive = False
-                    self._cond.notify_all()
-                    return
-                context, job, compute = self._queue.popleft()
-            try:
-                context.run(self._compute_and_store, job, compute)
-            finally:
+        # A run's failure is isolated and logged; anything that still ends
+        # the loop early marks the worker gone and releases the current and
+        # queued runs, so nothing stays pending and the next request can
+        # start a worker again.
+        job: ChangeJob | None = None
+        drained = False
+        try:
+            while (item := self._next()) is not None:
+                context, job, compute = item
+                run_isolated(
+                    lambda: context.run(self._detached, job, compute),
+                    label=f"run change worker {job.project}/{job.run_id}", log=self._log,
+                )
+                self._release(job)
+                job = None
+            drained = True
+        finally:
+            if not drained:
                 with self._cond:
-                    self._in_flight.discard((job.project, job.run_id))
-                    self._cond.notify_all()
+                    if job is not None:
+                        self._in_flight.discard((job.project, job.run_id))
+                    self._stop_locked()

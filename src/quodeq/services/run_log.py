@@ -45,10 +45,10 @@ _DETAIL_KEYS = ("dimension", "score", "grade", "majors", "critical")
 
 
 class RunLister(Protocol):
-    """The provider's run listing (index rows merged with in-memory jobs)."""
+    """The provider's per-project run listing (index rows merged with in-memory jobs)."""
 
-    def list_evaluations(self, **kwargs: Any) -> list[JobSnapshot]:
-        """Every known run, as snapshots."""
+    def list_project_evaluations(self, project: str, reports_dir: str | None = None) -> list[JobSnapshot]:
+        """*project*'s runs, as snapshots."""
         ...
 
 
@@ -85,7 +85,8 @@ def _scored_runs(rows: ProjectRows, meta: dict[str, JobSnapshot]) -> list[_Score
 
 
 def _project_snapshots(provider: RunLister, reports_root: Path, project: str) -> list[JobSnapshot]:
-    return [s for s in provider.list_evaluations(reports_dir=str(reports_root)) if s.output_project == project]
+    snapshots = provider.list_project_evaluations(project, reports_dir=str(reports_root))
+    return [s for s in snapshots if s.output_project == project]
 
 
 def _origin(origin: RunOrigin | None) -> dict[str, Any] | None:
@@ -133,7 +134,9 @@ def _changes(
         with open_score_cache() as conn:
             cached = load_run_changes(conn, rows.project, keys)
             prune_run_changes(conn, rows.project, set(keys))
-    except sqlite3.Error:
+    except (sqlite3.Error, OSError):
+        # Disposable cache: an unopenable one (locked, unwritable dir) means
+        # everything is recomputed, never a failed request.
         cached = {}
     todo = [
         ChangeJob(rows.reports_root, rows.project, run_id, (baselines[run_id] or (None,))[0], key)

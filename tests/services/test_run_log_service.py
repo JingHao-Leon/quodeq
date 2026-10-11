@@ -45,8 +45,8 @@ class _Provider:
     def __init__(self, snapshots: list[JobSnapshot]) -> None:
         self.snapshots = snapshots
 
-    def list_evaluations(self, **_kw) -> list[JobSnapshot]:
-        return list(self.snapshots)
+    def list_project_evaluations(self, project: str, reports_dir: str | None = None) -> list[JobSnapshot]:
+        return [s for s in self.snapshots if s.output_project == project]
 
 
 PROVIDER = _Provider([_snapshot(CURR), _snapshot(PREV)])
@@ -187,3 +187,13 @@ def test_a_deleted_baseline_is_replaced_not_served_from_cache(evals, filler_sync
     provider = _Provider([_snapshot(CURR), old_snap])
     second = build_run_log(evals, PROJECT, provider=provider, filler=filler_sync)["runs"][0]
     assert (second["baselineRunId"], second["counts"]["new"]) == (old, 0)
+
+
+def test_an_unusable_score_cache_still_answers(evals, filler_sync, monkeypatch) -> None:
+    def broken_open():
+        raise OSError("cache dir not creatable")
+
+    monkeypatch.setattr("quodeq.services.run_log.open_score_cache", broken_open)
+    monkeypatch.setattr("quodeq.services._run_log_fill.open_score_cache", broken_open)
+    newest = build_run_log(evals, PROJECT, provider=PROVIDER, filler=filler_sync)["runs"][0]
+    assert newest["pending"] is False and newest["counts"]["new"] == 1
