@@ -193,8 +193,7 @@ export const ROUTE_RENDERERS = {
     <FindingDetailPage
       finding={params.finding}
       principle={params.principle}
-      dimension={params.dimension}
-      crumbs={params.crumbs} note={params.note}
+      dimension={params.dimension} crumbs={params.crumbs} note={params.note}
       // Same identity rule as the file and evalprinciple routes.
       onDismiss={makeDismissHandler({
         selectedSource: props.navigation.selectedSource,
