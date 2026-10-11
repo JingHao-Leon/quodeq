@@ -124,6 +124,7 @@ class RunChangeFiller:
     def _enqueue(self, jobs: list[ChangeJob], compute: Compute) -> None:
         if not jobs:
             return
+        # The copy also holds the request's Flask context; the worker reads only the score-cache override.
         context = contextvars.copy_context()
         start = False
         with self._cond:
