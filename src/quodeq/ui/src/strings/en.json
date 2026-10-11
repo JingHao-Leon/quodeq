@@ -865,6 +865,7 @@
   "history.scoreHistoryHeader": "SCORE_HISTORY",
   "history.selectedSuffix": "(selected)",
   "history.termName": "history",
+  "history.scopeDims": "{count} dims",
   "history.unknownError": "unknown error",
   "loading.tipLabel": "Did you know",
   "loading.tips.architecture": "Want architecture checks too? Turn on **Clean Architecture** and **DDD** with the eye icon in Standards.",
