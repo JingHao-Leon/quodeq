@@ -32,12 +32,13 @@ def _ordered(runs: list[LogRun]) -> list[LogRun]:
 
 def choose_baselines(runs: list[LogRun]) -> dict[str, tuple[str, str] | None]:
     """Each run's baseline: the newest older run with the same dimensions and
-    model, else the newest older run with the same dimensions, else none."""
+    model (an unknown model matches nothing), else the newest older run with the
+    same dimensions, else none."""
     ordered = _ordered(runs)
     out: dict[str, tuple[str, str] | None] = {}
     for i, run in enumerate(ordered):
         older = [o for o in ordered[i + 1:] if o.dims == run.dims]
-        same = next((o for o in older if o.model == run.model), None)
+        same = next((o for o in older if run.model is not None and o.model == run.model), None)
         if same is not None:
             out[run.run_id] = (same.run_id, BASELINE_SAME_MODEL)
         elif older:

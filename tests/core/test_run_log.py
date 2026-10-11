@@ -23,7 +23,16 @@ def test_different_dimensions_never_compare() -> None:
 def test_equal_start_times_are_ordered_by_run_id() -> None:
     a = LogRun("ra", "2026-10-10T00:00:00Z", "qwen", ("security",))
     b = LogRun("rb", "2026-10-10T00:00:00Z", "qwen", ("security",))
-    assert choose_baselines([b, a])["rb"] == ("ra", "same-model")
+    for order in ([a, b], [b, a]):
+        result = choose_baselines(order)
+        assert result["rb"] == ("ra", "same-model")
+        assert result["ra"] is None
+
+
+def test_unknown_model_is_not_the_same_model() -> None:
+    older = LogRun("r1", "2026-10-11T00:00:00Z", None, ("security",))
+    newer = LogRun("r2", "2026-10-12T00:00:00Z", None, ("security",))
+    assert choose_baselines([newer, older])["r2"] == ("r1", "other-model")
 
 
 def test_diff_summary_counts_and_severities() -> None:
