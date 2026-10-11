@@ -200,3 +200,35 @@ def test_sync_fills_model_commit_origin_and_dimensions(tmp_path: Path) -> None:
         assert json.loads(row.dimensions_json) == ["security"]
     finally:
         db.close()
+
+
+def test_malformed_metadata_still_lists_the_run_with_null_fields(tmp_path: Path) -> None:
+    d = _seed_plan_a_run(tmp_path / "evals", "proj", "r1", RunState.DONE)
+    status_path = d / "status.json"
+    raw = json.loads(status_path.read_text(encoding="utf-8"))
+    raw.update(ai_model={"name": "qwen"}, ai_provider=["ollama"], commit_sha=1234567,
+               origin="app", dimensions=["security", 3, None, "maintainability"])
+    status_path.write_text(json.dumps(raw), encoding="utf-8")
+    db = open_index(tmp_path / "index.db")
+    try:
+        sync_index(db, tmp_path / "evals")
+        row = get_run(db, "ext-r1")
+        assert row is not None
+        assert (row.ai_model, row.ai_provider, row.commit_sha, row.origin_json) == (None, None, None, None)
+        assert json.loads(row.dimensions_json) == ["maintainability", "security"]
+    finally:
+        db.close()
+
+
+def test_dimensions_with_no_string_entries_store_null(tmp_path: Path) -> None:
+    d = _seed_plan_a_run(tmp_path / "evals", "proj", "r1", RunState.DONE)
+    status_path = d / "status.json"
+    raw = json.loads(status_path.read_text(encoding="utf-8"))
+    raw["dimensions"] = [1, {"x": 2}]
+    status_path.write_text(json.dumps(raw), encoding="utf-8")
+    db = open_index(tmp_path / "index.db")
+    try:
+        sync_index(db, tmp_path / "evals")
+        assert get_run(db, "ext-r1").dimensions_json is None
+    finally:
+        db.close()

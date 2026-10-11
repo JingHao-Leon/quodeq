@@ -88,16 +88,26 @@ def status_mtime_ns(run_dir: Path) -> int:
         return 0
 
 
+def _str_or_none(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
 def _meta_params(status: dict) -> tuple[str | None, ...]:
-    """The run metadata columns, in ``_UPSERT_SQL`` order."""
+    """The run metadata columns, in ``_UPSERT_SQL`` order.
+
+    A hand-edited or foreign status.json may hold any JSON type here; a value
+    of the wrong type becomes NULL rather than failing the upsert, which would
+    drop the whole run from the index.
+    """
     origin = status.get("origin")
     dims = status.get("dimensions")
+    names = sorted(d for d in dims if isinstance(d, str)) if isinstance(dims, list) else []
     return (
-        status.get("ai_model"),
-        status.get("ai_provider"),
-        status.get("commit_sha"),
+        _str_or_none(status.get("ai_model")),
+        _str_or_none(status.get("ai_provider")),
+        _str_or_none(status.get("commit_sha")),
         json.dumps(origin) if isinstance(origin, dict) else None,
-        json.dumps(sorted(dims)) if isinstance(dims, list) and dims else None,
+        json.dumps(names) if names else None,
     )
 
 
