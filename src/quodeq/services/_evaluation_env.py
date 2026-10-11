@@ -8,6 +8,7 @@ for its existing callers/tests) is a thin static-method delegate to it. The
 """
 from __future__ import annotations
 
+from quodeq.core.run.origin import ORIGIN_APP, RUN_ORIGIN_ENV
 from quodeq.services.base import EvaluationOptions
 from quodeq.shared.constants import ENV_TRUTHY
 from quodeq.shared.env_resolve import resolve_env
@@ -40,6 +41,7 @@ def build_eval_env(
     """
     base = resolve_env(env)
     built_env = {**base, "PYTHONUNBUFFERED": ENV_TRUTHY}
+    built_env[RUN_ORIGIN_ENV] = ORIGIN_APP
     built_env["AI_CMD"] = ai_cmd
     # Validated at the API boundary (validate_ai_cmd_path); the scan
     # subprocess spawns it as argv[0] while AI_CMD keeps keying the
