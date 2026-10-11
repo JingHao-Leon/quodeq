@@ -63,6 +63,15 @@ class _Scored:
     dims: tuple[str, ...]
 
 
+def _majors_only(row: dict[str, Any]) -> int:
+    """The trend counts critical and major together; the run log's ``majors`` is majors alone."""
+    return max(0, (row.get("majors") or 0) - (row.get("critical") or 0))
+
+
+def _detail(row: dict[str, Any]) -> dict[str, Any]:
+    return {**{k: row.get(k) for k in _DETAIL_KEYS}, "majors": _majors_only(row)}
+
+
 def _status(value: object) -> str:
     return value.value if isinstance(value, RunState) else str(value)
 
@@ -71,7 +80,7 @@ def _scored_runs(rows: ProjectRows, meta: dict[str, JobSnapshot]) -> list[_Score
     """Trend entries plus scored cancelled runs, newest first, capped at the history size."""
     cap = max_history_runs()
     cancelled = [r for r in rows.runs if r.status is RunState.CANCELLED][:cap]
-    partials = build_partial_run_entries(cancelled, rows.fetcher, params=rows.params)
+    partials = build_partial_run_entries(cancelled, rows.cancelled_fetcher(), params=rows.params)
     scored = [(e, False) for e in rows.trend()] + [(e, True) for e in partials]
     out = []
     for entry, partial in scored:
@@ -170,8 +179,8 @@ def _entry(
         "dims": list(scored.dims),
         "partial": scored.partial,
         "score": e.get("runNumericAverage"), "grade": e.get("runOverallGrade"),
-        "open": e.get("violations"), "critical": e.get("critical"), "majors": e.get("majors"),
-        "dimensionDetails": [{k: d.get(k) for k in _DETAIL_KEYS} for d in e.get("dimensionDetails") or []],
+        "open": e.get("violations"), "critical": e.get("critical"), "majors": _majors_only(e),
+        "dimensionDetails": [_detail(d) for d in e.get("dimensionDetails") or []],
         "filesAnalysed": data.get("filesAnalysed"), "activeSeconds": data.get("activeSeconds"),
         "baselineRunId": baseline[0] if baseline else None,
         "baselineKind": baseline[1] if baseline else None,

@@ -60,3 +60,15 @@ def test_run_log_route_rejects_a_bad_segment(client) -> None:
 
 def test_run_log_route_unknown_project_is_an_empty_log(client) -> None:
     assert client.get("/api/projects/nope/runs/log").get_json() == {"runs": [], "running": None}
+
+
+def test_run_log_route_maps_a_database_error_to_500(client, monkeypatch) -> None:
+    import sqlite3
+
+    def boom(*_a, **_k):
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr("quodeq.api.routes_run_log.build_run_log", boom)
+    resp = client.get(f"/api/projects/{_PROJECT}/runs/log")
+    assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert resp.get_json()["code"] == "INTERNAL_ERROR"

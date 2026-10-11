@@ -197,3 +197,45 @@ def test_an_unusable_score_cache_still_answers(evals, filler_sync, monkeypatch) 
     monkeypatch.setattr("quodeq.services._run_log_fill.open_score_cache", broken_open)
     newest = build_run_log(evals, PROJECT, provider=PROVIDER, filler=filler_sync)["runs"][0]
     assert newest["pending"] is False and newest["counts"]["new"] == 1
+
+
+def test_a_second_request_does_not_rescore_cancelled_runs(evals, filler_sync, monkeypatch) -> None:
+    from quodeq.services import trend_fetcher
+
+    cancelled = "run-cancelled"
+    STARTED[cancelled] = "2026-09-25T00:00:00Z"
+    _report(evals / PROJECT / cancelled, [GONE_FINDING], [], STARTED[cancelled])
+    status = evals / PROJECT / cancelled / "status.json"
+    status.write_text(json.dumps({"state": "cancelled", "started_at": STARTED[cancelled]}), encoding="utf-8")
+    dismiss_one(evals / PROJECT, GONE_FINDING)
+    provider = _Provider([_snapshot(CURR), _snapshot(cancelled, status="cancelled"), _snapshot(PREV)])
+    calls: list[str] = []
+    real = trend_fetcher.rescore_dimension
+    monkeypatch.setattr(trend_fetcher, "rescore_dimension",
+                        lambda *a, **k: (calls.append(k["run_dir"].name), real(*a, **k))[1])
+    first = build_run_log(evals, PROJECT, provider=provider, filler=filler_sync)
+    after_first = len(calls)
+    second = build_run_log(evals, PROJECT, provider=provider, filler=filler_sync)
+    assert [r["runId"] for r in first["runs"]] == [CURR, cancelled, PREV]
+    assert next(r for r in second["runs"] if r["runId"] == cancelled)["partial"] is True
+    assert cancelled in calls
+    assert calls[after_first:].count(cancelled) == 0
+
+
+def test_majors_exclude_critical_findings(evals, filler_sync, monkeypatch) -> None:
+    from quodeq.services import run_log
+
+    real = run_log.ProjectRows.trend
+
+    def trend(self):
+        out = real(self)
+        for entry in out:
+            entry["critical"], entry["majors"] = 1, 97
+            for detail in entry["dimensionDetails"]:
+                detail["critical"], detail["majors"] = 1, 97
+        return out
+
+    monkeypatch.setattr(run_log.ProjectRows, "trend", trend)
+    newest = build_run_log(evals, PROJECT, provider=PROVIDER, filler=filler_sync)["runs"][0]
+    assert (newest["critical"], newest["majors"]) == (1, 96)
+    assert newest["dimensionDetails"][0]["majors"] == 96

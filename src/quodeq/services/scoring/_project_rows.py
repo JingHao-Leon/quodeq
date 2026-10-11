@@ -41,9 +41,12 @@ _Fetcher = Callable[[str], list[DimensionResult]]
 
 def make_row_fetcher(
     reports_root: Path, project: str, params: ScoringParams, all_runs: list[RunInfo],
-    deps: ScoringDeps | None = None,
+    deps: ScoringDeps | None = None, *, cache_cancelled: bool = False,
 ) -> _Fetcher:
     """The row-backed fetcher the trend and the accumulated block share.
+
+    *cache_cancelled* also persists cancelled runs: they are terminal, so
+    their scalar sets are as stable as a done run's (History lists them).
 
     Only completed runs may be persisted to the score cache: an in-progress
     run's scalar set is still growing, and the cache version can't see that,
@@ -51,7 +54,8 @@ def make_row_fetcher(
     served forever after the run finishes. Every completed run is eligible:
     the accumulated walk may reach past the history window.
     """
-    cacheable_run_ids = {r.run_id for r in all_runs if r.status is RunState.DONE}
+    cached_states = (RunState.DONE, RunState.CANCELLED) if cache_cancelled else (RunState.DONE,)
+    cacheable_run_ids = {r.run_id for r in all_runs if r.status in cached_states}
     return _fetchers.make_scoring_trend_fetcher(
         reports_root, project, params=params, cacheable_run_ids=cacheable_run_ids, deps=deps,
     )
@@ -88,6 +92,11 @@ class ProjectRows:
         keys = SuppressionKeys(dismissed_keys(project_dir), deleted_keys(project_dir))
         return cls(reports_root, project, params, keys, runs, make_row_fetcher(
             reports_root, project, params, runs, deps))
+
+    def cancelled_fetcher(self) -> _Fetcher:
+        """A fetcher like ``fetcher`` that also persists cancelled runs' rows to the score cache."""
+        return make_row_fetcher(
+            self.reports_root, self.project, self.params, self.runs, cache_cancelled=True)
 
     def dated_rows(self, run_id: str) -> list[DimensionResult]:
         """The run's rows with ``evidence_date`` filled from the run listing.

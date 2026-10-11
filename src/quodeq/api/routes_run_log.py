@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from http import HTTPStatus
 from pathlib import Path
 
@@ -29,7 +30,7 @@ def register_run_log_routes(app: Flask, provider: RunLister) -> None:
             return err
         try:
             payload = build_run_log(Path(reports_dir()), project, provider=provider, filler=filler)
-        except (OSError, ValueError):
+        except (OSError, ValueError, sqlite3.Error):
             _logger.exception("Failed to build the run log for %s", project)
             return json_error("Failed to build the run log", HTTPStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR")
         return conditional_json(payload, max_age=0)
