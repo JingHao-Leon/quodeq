@@ -25,7 +25,19 @@ const KEY_NEW = 'new';
 const KEY_RESOLVED = 'resolved';
 const SIDE_OLDER = 'older';
 
-const countOf = (r, k) => r.counts?.[k] || 0;
+const SAME_MODEL = 'same-model';
+const OTHER_MODEL = 'other-model';
+
+// Only a same-model comparison is plotted: another model words its findings
+// differently, so its churn is huge and says little about the code.
+const plotted = (r) => Boolean(r.counts) && !r.pending && r.baselineKind === SAME_MODEL;
+const countOf = (r, k) => (plotted(r) ? r.counts[k] || 0 : 0);
+
+function barTitle(run, n, r) {
+  const when = `${dayLabel(run.startedAt)} ${timeLabel(run.startedAt)}`;
+  if (plotted(run)) return `${when} · ${t('history.stripTitleCounts', { new: n, resolved: r })}`;
+  return `${when} · ${t(run.baselineKind === OTHER_MODEL ? 'history.otherModelTitle' : 'history.noComparisonTitle')}`;
+}
 
 function BreakMark({ x, w, y }) {
   return <path d={`M${x - 1} ${y + BREAK_STEP} L${x + w + 1} ${y} M${x - 1} ${y + 2 * BREAK_STEP} L${x + w + 1} ${y + BREAK_STEP}`} className="rl-strip__break" />;
@@ -36,8 +48,8 @@ function RunBars({ run, i, step, bar, h, cap, selected, hovered, onSelect, onHov
   const x = i * step + (step - w) / 2;
   const n = countOf(run, KEY_NEW);
   const r = countOf(run, KEY_RESOLVED);
-  const has = Boolean(run.counts) && !run.pending;
-  const title = `${dayLabel(run.startedAt)} ${timeLabel(run.startedAt)}${has ? ` · ${t('history.stripTitleCounts', { new: n, resolved: r })}` : ` · ${t('history.noComparisonTitle')}`}`;
+  const has = plotted(run);
+  const title = barTitle(run, n, r);
   return (
     <g onClick={() => onSelect(run.runId)} onMouseEnter={() => onHover(run.runId)} onMouseLeave={() => onHover(null)}
       className={`rl-strip__run${selected ? ' is-sel' : ''}${hovered ? ' is-hover' : ''}`}>
@@ -58,7 +70,7 @@ function RunBars({ run, i, step, bar, h, cap, selected, hovered, onSelect, onHov
 
 function CountLabels({ pts, h }) {
   return pts.map((run, i) => {
-    if (!run.counts || run.pending) return null;
+    if (!plotted(run)) return null;
     const left = `${((i + HALF) / pts.length) * PERCENT}%`;
     const n = countOf(run, KEY_NEW);
     const r = countOf(run, KEY_RESOLVED);
@@ -91,7 +103,10 @@ export default function ChangeStrip({ rows, selectedId, onSelect, hoverId, onHov
   const h = (v) => (Math.min(v, max) / max) * (MID - LABEL_ROOM);
   const kbdItems = pts.map((r) => ({
     key: r.runId,
-    text: t('history.stripKbdItem', { date: `${dayLabel(r.startedAt)} ${timeLabel(r.startedAt)}`, new: countOf(r, KEY_NEW), resolved: countOf(r, KEY_RESOLVED) }),
+    // A run without a plotted comparison says why instead of "0 new".
+    text: plotted(r)
+      ? t('history.stripKbdItem', { date: `${dayLabel(r.startedAt)} ${timeLabel(r.startedAt)}`, new: countOf(r, KEY_NEW), resolved: countOf(r, KEY_RESOLVED) })
+      : barTitle(r, 0, 0),
     onActivate: () => onSelect(r.runId),
   }));
   const label = t('history.stripLabel', { from: first + 1, to: first + pts.length, total: rows.length });

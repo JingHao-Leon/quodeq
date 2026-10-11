@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ChangeStrip from './ChangeStrip.jsx';
 
-const rows = Array.from({ length: 25 }, (_, i) => ({ runId: `r${i}`, startedAt: '2026-10-11T00:45:04+00:00', counts: { new: i === 3 ? 1132 : 10, resolved: 2 }, pending: false }));
+const rows = Array.from({ length: 25 }, (_, i) => ({ runId: `r${i}`, startedAt: '2026-10-11T00:45:04+00:00', counts: { new: i === 3 ? 1132 : 10, resolved: 2 }, baselineKind: 'same-model', pending: false }));
 const props = { rows, selectedId: 'r0', onSelect: vi.fn(), hoverId: null, onHover: vi.fn(), start: null };
 
 describe('ChangeStrip', () => {
@@ -34,5 +34,15 @@ describe('ChangeStrip', () => {
     render(<ChangeStrip {...props} rows={rows.slice(0, 5)} start={20} onPage={vi.fn()} />);
     expect(screen.getByText(/1–5 of 5/)).toBeInTheDocument();
     expect(screen.queryByText(/21–20/)).toBeNull();
+  });
+
+  it('a run compared with another model plots as a dash and stays out of the scale', () => {
+    const mixed = rows.slice(0, 5).map((r, i) => (i === 2 ? { ...r, baselineKind: 'other-model', counts: { new: 1923, resolved: 588 } } : { ...r, counts: { new: 10, resolved: 12 } }));
+    render(<ChangeStrip {...props} rows={mixed} onPage={vi.fn()} />);
+    expect(screen.queryByText('1923')).toBeNull();
+    expect(screen.queryByText('588')).toBeNull();
+    expect(document.querySelectorAll('.rl-strip__break')).toHaveLength(0);
+    expect(document.querySelectorAll('.rl-none-fill')).toHaveLength(1);
+    expect(screen.getByText(/compared with a run of another model/, { selector: 'title' })).toBeInTheDocument();
   });
 });
