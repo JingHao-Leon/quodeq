@@ -192,3 +192,29 @@ def test_open_migrates_v2_index_and_marks_rows_for_resync(tmp_path: Path) -> Non
         assert db.execute("SELECT version FROM schema_version").fetchone()[0] == 3
     finally:
         db.close()
+
+
+class _StalePragma:
+    """Connection proxy whose PRAGMA table_info read predates a peer's ALTER."""
+
+    def __init__(self, conn: sqlite3.Connection) -> None:
+        self._conn = conn
+
+    def execute(self, sql: str, *args):
+        if sql.startswith("PRAGMA table_info"):
+            return iter(())
+        return self._conn.execute(sql, *args)
+
+
+def testadd_meta_columns_tolerates_a_peer_having_added_them(tmp_path: Path) -> None:
+    """The ALTER loser of a cross-process race ends in the same state, without raising."""
+    from quodeq.data.sqlite._run_index_schema import add_meta_columns
+
+    db = open_index(tmp_path / "index.db")  # fresh index already has every column
+    try:
+        add_meta_columns(_StalePragma(db))  # type: ignore[arg-type]
+        cols = {r[1] for r in db.execute("PRAGMA table_info(runs)")}
+        assert {"ai_model", "ai_provider", "commit_sha", "origin_json", "dimensions_json"} <= cols
+        assert db.execute("SELECT version FROM schema_version").fetchone()[0] == 3
+    finally:
+        db.close()

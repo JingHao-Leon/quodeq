@@ -44,7 +44,12 @@ CREATE TABLE IF NOT EXISTS runs (
     heartbeat_at      TEXT,
     pid               INTEGER,
     exit_reason       TEXT,
-    status_mtime      INTEGER NOT NULL
+    status_mtime      INTEGER NOT NULL,
+    ai_model          TEXT,
+    ai_provider       TEXT,
+    commit_sha        TEXT,
+    origin_json       TEXT,
+    dimensions_json   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_runs_state      ON runs(state);
 CREATE INDEX IF NOT EXISTS idx_runs_started_at ON runs(started_at DESC);
@@ -75,18 +80,32 @@ _SCHEMA_V3_COLUMNS = (
 )
 
 
-def _add_meta_columns(db: sqlite3.Connection) -> None:
+_DUPLICATE_COLUMN = "duplicate column name"
+
+
+def add_meta_columns(db: sqlite3.Connection) -> None:
+    """Add the v3 columns an older ``runs`` table lacks.
+
+    DDL autocommits and ``_open_lock`` only serializes threads, so another
+    process may add a column between the PRAGMA read and the ALTER; that
+    loser's "duplicate column name" is the desired end state, not an error.
+    """
     have = {r[1] for r in db.execute("PRAGMA table_info(runs)")}
     for name, kind in _SCHEMA_V3_COLUMNS:
-        if name not in have:
+        if name in have:
+            continue
+        try:
             db.execute(f"ALTER TABLE runs ADD COLUMN {name} {kind}")
+        except sqlite3.OperationalError as exc:
+            if _DUPLICATE_COLUMN not in str(exc):
+                raise
 
 
 def _apply_schema(db: sqlite3.Connection) -> None:
     """Create the full current schema on a fresh (or wiped) index."""
     with db:
         db.executescript(_SCHEMA_V1 + _SCHEMA_V2)
-        _add_meta_columns(db)
+        add_meta_columns(db)
         have_version = db.execute("SELECT COUNT(*) FROM schema_version").fetchone()[0]
         if have_version == 0:
             db.execute("INSERT INTO schema_version(version) VALUES (?)", (SCHEMA_VERSION,))
@@ -98,7 +117,7 @@ def _migrate(db: sqlite3.Connection, version: int) -> None:
         if version < _RUN_DATES_VERSION:
             db.executescript(_SCHEMA_V2)
         if version < _RUN_META_VERSION:
-            _add_meta_columns(db)
+            add_meta_columns(db)
             # Existing rows carry no metadata yet; a zero mtime makes the next
             # sync rewrite each of them once.
             db.execute("UPDATE runs SET status_mtime = 0")
