@@ -1,8 +1,6 @@
 /**
- * Shorter labels for dim summaries so the row's dimensions cell can fit
- * the count and names instead of truncating after the first dim. Used
- * by both the terminal `formatDimSummary` (HistoryPage.jsx) and the
- * live `formatLiveDimSummary` so the truncation rules stay consistent.
+ * Shorter dimension labels: the run log names a partial run's dimensions
+ * with these (runLogModel.js `scopeLabel`).
  */
 export const DIM_ABBREV = {
   flexibility: 'flex',

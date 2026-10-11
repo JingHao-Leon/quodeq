@@ -339,6 +339,11 @@
   --color-trend-down:        var(--primitive-ired-900);
   --color-trend-strong-down: var(--primitive-crimson-600);
 
+  /* History: violations a run added / resolved. Their own names so a theme
+     can tune them without touching the trend palette. */
+  --color-change-new:      var(--color-trend-down);
+  --color-change-resolved: var(--color-trend-strong-up);
+
   /* Console — always dark (terminal convention); text auto-adapts to accent */
   --color-console-bg:   #0d1117;
   --color-console-text: color-mix(in srgb, var(--color-accent) 35%, #dce8f2);

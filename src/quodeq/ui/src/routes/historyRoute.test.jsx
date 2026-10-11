@@ -19,4 +19,12 @@ describe('historyRoute', () => {
     const el = historyRoute({}, props);
     expect(el.props.callbacks.onRunDeleted).toBe(props.handleRunDeleted);
   });
+
+  it('passes a remembered run through even when the trend lacks it (partial runs live in the log)', () => {
+    const props = routeProps();
+    props.navigation.historySelectedRun = 'partial-run';
+    expect(historyRoute({}, props).props.selection.selectedRunId).toBe('partial-run');
+    props.navigation.historySelectedRun = 'latest';
+    expect(historyRoute({}, props).props.selection.selectedRunId).toBeNull();
+  });
 });

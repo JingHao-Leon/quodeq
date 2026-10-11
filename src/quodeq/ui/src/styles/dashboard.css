@@ -2242,45 +2242,6 @@
   min-height: 160px;
 }
 
-.run-history-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.run-history-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  flex: 1;
-}
-
-.dim-panel-run-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.dim-panel-run-date {
-  font-size: 0.68rem;
-  color: var(--color-text-muted);
-  line-height: 1.2;
-}
-
-.dim-panel-run-id {
-  font-size: 0.62rem;
-  color: var(--color-text-subtle);
-  font-family: monospace;
-  line-height: 1.2;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .run-history-tooltip {
   background: color-mix(in srgb, var(--color-surface-alt) 70%, transparent);
   backdrop-filter: blur(8px);
@@ -3529,24 +3490,6 @@
 }
 .violations-skeleton__bar--group-header { width: 30%; height: 20px; }
 .violations-skeleton__bar--card { width: 100%; height: 72px; }
-
-/* ── History loading skeleton ───────────────────────────
-   Chart shell (HistoryChartPanelPlaceholder) + dense evaluations-table
-   rows while the trend data loads. Same idiom as .overview-skeleton. */
-.history-skeleton__table {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: var(--space-6);
-}
-.history-skeleton__row {
-  display: block;
-  width: 100%;
-  height: 25px;
-  border-radius: 4px;
-  background: var(--color-surface-alt);
-  opacity: 0.6;
-}
 
 /* ── Detail-page card-list skeleton ─────────────────────
    DeferredMount fallback for card lists and tables (detail pages,

@@ -1,9 +1,8 @@
 /**
- * The score-history chart itself, shared by the three panels that draw one:
- * Overview's RunHistoryPanel, the History tab's HistoryChartPanel and the
- * Explorer's DimensionScoreHistoryPanel.
+ * The score-history chart itself, shared by the panels that draw one:
+ * Overview's RunHistoryPanel and the Explorer's DimensionScoreHistoryPanel.
  *
- * All three render the same recharts composition — dashed reference lines, a
+ * Both render the same recharts composition — dashed reference lines, a
  * grade-coloured bar per point, an accent trend line over them — and differ
  * only in the tooltip, whether they fill an area under the line, whether the
  * selected point gets a dot, and how tall the chart is. Those are props.

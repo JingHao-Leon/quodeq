@@ -5,8 +5,8 @@ import {
 } from './scoreChartHelpers.js';
 
 // Regression coverage for the theme-invalidation mechanism itself (not just
-// the pure helpers below): RunHistoryPanel/HistoryChartPanel/
-// DimensionScoreHistoryPanel all re-read cssVar() on every render but never
+// the pure helpers below): RunHistoryPanel and
+// DimensionScoreHistoryPanel both re-read cssVar() on every render but never
 // re-render on a theme switch by themselves — the ONLY thing that makes a
 // chart pick up new colors is this module's MutationObserver clearing the
 // cache when documentElement's data-theme attribute changes. No prior test
