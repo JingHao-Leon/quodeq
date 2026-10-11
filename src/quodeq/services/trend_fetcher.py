@@ -30,6 +30,7 @@ and must always be supplied.
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import sqlite3
 from pathlib import Path
@@ -97,6 +98,7 @@ def make_rescoring_fetcher(
 def _make_version_for(
     project_dir: Path, project: str, inputs: VersionInputs,
     load_keys: Callable[[str], tuple | None], cacheable_run_ids: set[str] | None,
+    unsettled_run_ids: frozenset[str] = frozenset(),
 ) -> Callable[[str], str]:
     """Per-run scoped version for the cache-backed trend fetcher.
 
@@ -105,6 +107,10 @@ def _make_version_for(
     persisted) and is consulted only when that run's version is not already
     in ``score_cache.memoized_run_version``: decoding a run's key blobs is
     the expensive part, and a warm process rarely needs it.
+
+    A run in *unsettled_run_ids* (cancelled: scored after its process exits)
+    also hashes its evaluation reports, so rows persisted before a later
+    dimension was scored are never served; its version is not memoized.
     """
     from quodeq.services.run_keys import read_run_key_sets  # noqa: PLC0415
     from quodeq.services.score_cache import (  # noqa: PLC0415
@@ -117,7 +123,8 @@ def _make_version_for(
 
     def version_for(run_id: str) -> str:
         cacheable = cacheable_run_ids is None or run_id in cacheable_run_ids
-        if cacheable:
+        unsettled = run_id in unsettled_run_ids
+        if cacheable and not unsettled:
             memoized = memoized_run_version(project_dir, run_id, state_fp)
             if memoized is not None:
                 return memoized
@@ -137,11 +144,23 @@ def _make_version_for(
         version = run_scoped_version(
             inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted,
             standards=inputs.standards)
+        if unsettled:
+            return _with_report_fingerprint(version, project_dir / run_id)
         if cacheable:
             remember_run_version(project_dir, run_id, state_fp, version)
         return version
 
     return version_for
+
+
+def _with_report_fingerprint(version: str, run_dir: Path) -> str:
+    """*version* combined with the names and mtimes of the run's evaluation reports."""
+    try:
+        stamps = sorted(
+            (p.name, p.stat().st_mtime_ns) for p in (run_dir / "evaluation").glob("*.json"))
+    except OSError:
+        stamps = []
+    return hashlib.sha256(f"{version}|{stamps}".encode()).hexdigest()
 
 
 def _require_trend_deps(deps: ScoringDeps) -> None:
@@ -233,7 +252,7 @@ def _suppression_version_for(
     deleted = (deps.deleted_keys or _default_deleted_keys)(project_dir)
     return _make_version_for(
         project_dir, project, VersionInputs.of(params, dismissed, deleted, project_dir),
-        lambda rid: persisted_run_key_sets(project, rid), cacheable_run_ids,
+        lambda rid: persisted_run_key_sets(project, rid), cacheable_run_ids, deps.unsettled_run_ids,
     )
 
 

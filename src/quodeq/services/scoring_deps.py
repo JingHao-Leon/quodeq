@@ -50,6 +50,9 @@ class ScoringDeps:
     grade_tables_factory: Callable[[Path], GradeTablesReader] | None = None
     is_custom_formula: Callable[[], bool] | None = None
     base_fetcher_factory: Callable[[Path, str], Callable[[str], list[DimensionResult]]] | None = None
+    # Runs whose report set can still grow after the run ends (a cancelled run is scored
+    # later); their cache version also hashes their evaluation reports.
+    unsettled_run_ids: frozenset[str] = frozenset()
 
 
 NO_DEPS = ScoringDeps()

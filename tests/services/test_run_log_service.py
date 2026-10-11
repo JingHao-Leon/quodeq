@@ -239,3 +239,23 @@ def test_majors_exclude_critical_findings(evals, filler_sync, monkeypatch) -> No
     newest = build_run_log(evals, PROJECT, provider=PROVIDER, filler=filler_sync)["runs"][0]
     assert (newest["critical"], newest["majors"]) == (1, 96)
     assert newest["dimensionDetails"][0]["majors"] == 96
+
+
+def test_a_cancelled_run_scored_later_is_not_served_stale(evals, filler_sync) -> None:
+    cancelled = "run-cancelled-late"
+    STARTED[cancelled] = "2026-09-25T00:00:00Z"
+    run_dir = evals / PROJECT / cancelled
+    _report(run_dir, [GONE_FINDING], [], STARTED[cancelled])
+    (run_dir / "status.json").write_text(
+        json.dumps({"state": "cancelled", "started_at": STARTED[cancelled]}), encoding="utf-8")
+    provider = _Provider([_snapshot(CURR), _snapshot(cancelled, status="cancelled"), _snapshot(PREV)])
+
+    def dims() -> list[str]:
+        runs = build_run_log(evals, PROJECT, provider=provider, filler=filler_sync)["runs"]
+        return next(r for r in runs if r["runId"] == cancelled)["dims"]
+
+    assert dims() == [DIM]
+    later = {"dimension": "reliability", "principles": [], "violations": [GONE_FINDING], "compliance": []}
+    report = run_dir / "evaluation" / "reliability.json"
+    report.write_text(json.dumps(later), encoding="utf-8")
+    assert sorted(dims()) == sorted(["reliability", DIM])
