@@ -20,9 +20,8 @@ describe('RunList', () => {
     expect(screen.getByLabelText('loading')).toBeInTheDocument();
   });
 
-  it('an other-model comparison is muted and says so', () => {
+  it('an other-model comparison says so in its tooltip', () => {
     render(<RunList rows={rows} selectedId="a" onSelect={vi.fn()} hoverId={null} onHover={vi.fn()} />);
-    expect(screen.getByText('+4').closest('.rl-moves')).toHaveClass('rl-moves--other');
     expect(screen.getByTitle('compared with a run of another model')).toBeInTheDocument();
   });
 
@@ -34,11 +33,10 @@ describe('RunList', () => {
     expect(onSelect).toHaveBeenCalledWith('c');
   });
 
-  it('shows the scope only for a partial run and mutes a repeated score', () => {
+  it('shows the scope only for a partial run', () => {
     const partial = [{ ...rows[0], partial: true, dims: ['security', 'reliability'] }, rows[1]];
     render(<RunList rows={partial} selectedId="a" onSelect={vi.fn()} hoverId={null} onHover={vi.fn()} />);
     expect(screen.getByText(/sec · rel|rel · sec/)).toBeInTheDocument();
     expect(screen.queryByText(/dims/)).not.toBeInTheDocument();
-    expect(screen.getAllByTitle('same score as the comparison run')).toHaveLength(1);
   });
 });

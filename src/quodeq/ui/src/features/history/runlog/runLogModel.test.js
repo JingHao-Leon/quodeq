@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { originLabel, originUrl, isSameScore, stripStart, scaleMax, countBy, summariseDiff, summariseThroughput, runsFromTrend } from './runLogModel.js';
+import { originLabel, originUrl, stripStart, scaleMax, countBy, summariseDiff, summariseThroughput, runsFromTrend } from './runLogModel.js';
 
 test('origin labels: nightly, PR, app, cli, none', () => {
   assert.equal(originLabel({ kind: 'ci', workflow: 'Quodeq Nightly' }), 'nightly');
@@ -9,13 +9,6 @@ test('origin labels: nightly, PR, app, cli, none', () => {
   assert.equal(originLabel({ kind: 'cli' }), 'cli');
   assert.equal(originLabel(null), null);
   assert.equal(originUrl({ kind: 'ci', prUrl: 'https://p', runUrl: 'https://r' }), 'https://p');
-});
-
-test('same score: within 0.05 of the baseline run', () => {
-  const byId = new Map([['b', { runId: 'b', score: 8.52 }]]);
-  assert.equal(isSameScore({ score: 8.5, baselineRunId: 'b' }, byId), true);
-  assert.equal(isSameScore({ score: 8.6, baselineRunId: 'b' }, byId), false);
-  assert.equal(isSameScore({ score: 8.5, baselineRunId: null }, byId), false);
 });
 
 test('strip window centres the selection and stays in range', () => {
