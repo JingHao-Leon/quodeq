@@ -68,18 +68,25 @@ def _raw(path: str) -> tuple[str, str, bool]:
     return "(root)", LAYER_SHARED, is_test
 
 
+def _longest_name_prefix(stem: str, named: dict[str, str]) -> str | None:
+    """The longest key of *named* that *stem* starts with (keys are at least ``MIN_STEM`` long), or None."""
+    for end in range(len(stem), MIN_STEM - 1, -1):
+        if stem[:end] in named:
+            return stem[:end]
+    return None
+
+
 def assign_areas(paths: Iterable[str]) -> dict[str, AreaAssignment]:
     """Every path's functional area."""
     first = {p: _raw(p) for p in paths}
     named = {_norm(a): a for a, layer, _ in first.values() if layer != LAYER_SHARED and len(_norm(a)) >= MIN_STEM}
-    by_length = sorted(named, key=len, reverse=True)
     out: dict[str, list] = {}
     for path, (area, layer, is_test) in first.items():
         if layer == LAYER_PACKAGE and _norm(area) in named:
             area = named[_norm(area)]
         elif layer in (LAYER_SHARED, LAYER_PACKAGE):
             stem = _norm(os.path.splitext(os.path.basename(path))[0])
-            hit = next((n for n in by_length if stem.startswith(n)), None)
+            hit = _longest_name_prefix(stem, named)
             if hit:
                 area, layer = named[hit], "stem"
         out[path] = [area, layer, is_test]

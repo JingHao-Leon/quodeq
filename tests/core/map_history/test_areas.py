@@ -50,3 +50,14 @@ def test_flat_repo_falls_back_to_folders_and_root():
     got = assign_areas(["main.py", "pkg/util.py"])
     assert got["main.py"].area == "(root)"
     assert got["pkg/util.py"].area == "pkg"
+
+
+def test_a_stem_takes_the_longest_area_name_it_starts_with():
+    got = assign_areas([
+        "app/features/article/A.kt",
+        "app/features/articlelist/B.kt",
+        "shared/util/ArticleListAdapter.kt",
+        "shared/util/ArticleCache.kt",
+    ])
+    assert got["shared/util/ArticleListAdapter.kt"].area == "articlelist"
+    assert got["shared/util/ArticleCache.kt"].area == "article"

@@ -1,4 +1,4 @@
-from quodeq.core.map_history.area_metrics import area_metrics_per_run
+from quodeq.core.map_history.area_metrics import AreaKind, area_metrics_per_run
 from quodeq.core.map_history.areas import AreaAssignment
 from quodeq.core.map_history.snapshot import FileStat, RunSnapshot
 
@@ -52,3 +52,14 @@ def test_clean_majority_is_healthy_and_dirty_one_dormant():
     last = {m.area: m for m in area_metrics_per_run(snaps, assign, [{}] * 6, [{}] * 6)[-1]}
     assert all(last[f"a{a}"].kind == "healthy" for a in range(4))
     assert last["dirty"].kind == "dormant"
+
+
+def test_kinds_keep_their_wire_values():
+    assert [k.value for k in AreaKind] == ["hotspot", "dormant", "watch", "healthy", "small"]
+
+
+def test_a_small_area_is_small_and_ranked_once():
+    files = {f"tiny/f{i}.py": FileStat(major=1, weight=2.0) for i in range(2)}
+    assign = {p: AreaAssignment("tiny", "shared", False) for p in files}
+    (run,) = area_metrics_per_run([RunSnapshot(("sec",), files)], assign, [{}], [{}])
+    assert (run[0].kind, run[0].raw_kind, run[0].need_pct) == (AreaKind.SMALL, AreaKind.SMALL, 0.0)

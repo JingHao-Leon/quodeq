@@ -1,8 +1,10 @@
 """Per-run area metrics and kinds: hotspot (bad and busy), dormant (bad and untouched)."""
 from __future__ import annotations
 
+from bisect import bisect_left, bisect_right
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field
+from enum import StrEnum
 
 from quodeq.core.map_history.areas import AreaAssignment
 from quodeq.core.map_history.snapshot import RunSnapshot
@@ -19,9 +21,19 @@ HEALTHY_NEED_PCT = 0.4
 OLD_ISSUE_DAYS = 42
 
 
+class AreaKind(StrEnum):
+    """What an area's density and activity say about it in one run."""
+
+    HOTSPOT = "hotspot"   # bad and busy
+    DORMANT = "dormant"   # bad and untouched
+    WATCH = "watch"       # denser than most, no clear activity pattern
+    HEALTHY = "healthy"   # less dense than most
+    SMALL = "small"       # too few production files to judge
+
+
 @dataclass(frozen=True)
-class AreaMetrics:
-    """One area in one run: size, finding density, activity and its (hysteresis-smoothed) kind."""
+class AreaStats:
+    """One area in one run, measured: size, finding density and activity."""
 
     area: str
     files: int
@@ -33,15 +45,23 @@ class AreaMetrics:
     touched_share: float
     change_rate: float
     persistent_share: float
-    need_pct: float
-    kind: str
-    raw_kind: str
     has_history: bool
 
 
+@dataclass(frozen=True)
+class AreaMetrics(AreaStats):
+    """An area's stats plus its density rank and (hysteresis-smoothed) kind."""
+
+    need_pct: float
+    kind: AreaKind
+    raw_kind: AreaKind
+
+
 def _midrank(values: list[float], v: float) -> float:
-    """Share below v plus half the ties."""
-    return (sum(1 for x in values if x < v) + 0.5 * sum(1 for x in values if x == v)) / max(1, len(values))
+    """Share of the sorted *values* below *v*, plus half the ties."""
+    below = bisect_left(values, v)
+    ties = bisect_right(values, v) - below
+    return (below + 0.5 * ties) / max(1, len(values))
 
 
 def _need(values: list[float], v: float) -> float:
@@ -49,63 +69,93 @@ def _need(values: list[float], v: float) -> float:
     return 0.0 if v <= 0 else _midrank(values, v)
 
 
-def _classify(m: dict, dens: list[float], rates: list[float]) -> str:
-    need = _need(dens, m["density"])
-    if m["prod_files"] < MIN_PROD_FILES:
-        return "small"
-    if not m["has_history"]:
-        return "healthy" if need < HEALTHY_NEED_PCT else "watch"
-    act = _midrank(rates, m["change_rate"])
-    if need >= HOT_NEED_PCT and act >= HOT_ACT_PCT and m["change_rate"] > 0 and m["density"] >= FLOOR_HOTSPOT:
-        return "hotspot"
-    if need >= DORMANT_NEED_PCT and m["touched_share"] <= DORMANT_MAX_TOUCHED and m["density"] >= FLOOR_DORMANT:
-        return "dormant"
-    return "healthy" if need < HEALTHY_NEED_PCT else "watch"
+def _by_density(need: float) -> AreaKind:
+    """The kind density alone gives: healthy below the watch rank, else watch."""
+    return AreaKind.HEALTHY if need < HEALTHY_NEED_PCT else AreaKind.WATCH
 
 
-def _run_metrics(k: int, snap: RunSnapshot, assignments: dict[str, AreaAssignment],
-                 edits: dict[str, int], ages: dict[str, int]) -> list[dict]:
+def _is_hotspot(stats: AreaStats, need: float, activity: float) -> bool:
+    """Dense, among the most changed, actually changing and above the hotspot floor."""
+    return (need >= HOT_NEED_PCT and activity >= HOT_ACT_PCT and stats.change_rate > 0
+            and stats.density >= FLOOR_HOTSPOT)
+
+
+def _is_dormant(stats: AreaStats, need: float) -> bool:
+    """Dense, barely touched and above the dormant floor."""
+    return need >= DORMANT_NEED_PCT and stats.touched_share <= DORMANT_MAX_TOUCHED and stats.density >= FLOOR_DORMANT
+
+
+def _classify(stats: AreaStats, need: float, rates: list[float]) -> AreaKind:
+    """The raw (unsmoothed) kind of one area, given its density rank *need* and the run's sorted change rates."""
+    if stats.prod_files < MIN_PROD_FILES:
+        return AreaKind.SMALL
+    if not stats.has_history:
+        return _by_density(need)
+    if _is_hotspot(stats, need, _midrank(rates, stats.change_rate)):
+        return AreaKind.HOTSPOT
+    if _is_dormant(stats, need):
+        return AreaKind.DORMANT
+    return _by_density(need)
+
+
+def _area_stats(k: int, area: str, paths: list[str], snap: RunSnapshot, assignments: dict[str, AreaAssignment],
+                activity: tuple[dict[str, int], dict[str, int]]) -> AreaStats:
+    """One area's stats in run *k*; *activity* is ``(edits so far, violation age in days)`` per path."""
+    edits, ages = activity
+    prod = [p for p in paths if not assignments[p].is_test] or paths
+    viol = sum(snap.files[p].violations for p in prod)
+    comp = sum(snap.files[p].compliance for p in prod)
+    weight = sum(snap.files[p].weight for p in prod)
+    old = sum(snap.files[p].violations for p in prod if ages.get(p, 0) >= OLD_ISSUE_DAYS)
+    return AreaStats(
+        area=area, files=len(paths), prod_files=len(prod), violations=viol, weight=round(weight, 2),
+        density=round(weight / max(1, len(prod)), 3), compliance_rate=round(comp / max(1, comp + viol), 3),
+        touched_share=round(sum(1 for p in paths if edits.get(p)) / len(paths), 3),
+        change_rate=round(sum(edits.get(p, 0) for p in paths) / max(1, len(paths) * max(1, k)), 3),
+        persistent_share=round(old / max(1, viol), 3), has_history=k >= MIN_HISTORY_RUNS)
+
+
+def _run_stats(k: int, snap: RunSnapshot, assignments: dict[str, AreaAssignment],
+               edits: dict[str, int], ages: dict[str, int]) -> list[AreaStats]:
+    """Every area's stats in run *k*, areas in first-seen path order; unassigned paths are left out."""
     by: dict[str, list[str]] = defaultdict(list)
     for path in snap.files:
         if path in assignments:
             by[assignments[path].area].append(path)
-    out = []
-    for area, paths in by.items():
-        prod = [p for p in paths if not assignments[p].is_test] or paths
-        viol = sum(snap.files[p].violations for p in prod)
-        comp = sum(snap.files[p].compliance for p in prod)
-        weight = sum(snap.files[p].weight for p in prod)
-        old = sum(snap.files[p].violations for p in prod if ages.get(p, 0) >= OLD_ISSUE_DAYS)
-        out.append({
-            "area": area, "files": len(paths), "prod_files": len(prod), "violations": viol, "weight": round(weight, 2),
-            "density": round(weight / max(1, len(prod)), 3), "compliance_rate": round(comp / max(1, comp + viol), 3),
-            "touched_share": round(sum(1 for p in paths if edits.get(p)) / len(paths), 3),
-            "change_rate": round(sum(edits.get(p, 0) for p in paths) / max(1, len(paths) * max(1, k)), 3),
-            "persistent_share": round(old / max(1, viol), 3), "has_history": k >= MIN_HISTORY_RUNS,
-        })
-    return out
+    return [_area_stats(k, area, paths, snap, assignments, (edits, ages)) for area, paths in by.items()]
+
+
+@dataclass
+class _Hysteresis:
+    """Per-area kind smoothing across runs: a change needs two runs in a row."""
+
+    settled: dict[str, AreaKind] = field(default_factory=dict)
+    pending: dict[str, AreaKind] = field(default_factory=dict)
+
+    def smooth(self, area: str, raw: AreaKind) -> AreaKind:
+        """The kind *area* shows this run, given its *raw* kind."""
+        if area not in self.settled or raw == self.settled[area] or self.pending.get(area) == raw:
+            self.settled[area] = raw
+            self.pending.pop(area, None)
+        else:
+            self.pending[area] = raw
+        return self.settled[area]
 
 
 def area_metrics_per_run(snapshots: list[RunSnapshot], assignments: dict[str, AreaAssignment],
                          edits: list[dict[str, int]], ages_days: list[dict[str, int]]) -> list[list[AreaMetrics]]:
     """Every run's area metrics; kinds use hysteresis (a change needs two runs in a row)."""
     result: list[list[AreaMetrics]] = []
-    settled: dict[str, str] = {}
-    pending: dict[str, str] = {}
+    smoothing = _Hysteresis()
     for k, snap in enumerate(snapshots):
-        rows = _run_metrics(k, snap, assignments, edits[k], ages_days[k])
-        judged = [r for r in rows if r["prod_files"] >= MIN_PROD_FILES]
-        dens = sorted(r["density"] for r in judged)
-        rates = sorted(r["change_rate"] for r in judged)
+        stats = _run_stats(k, snap, assignments, edits[k], ages_days[k])
+        judged = [s for s in stats if s.prod_files >= MIN_PROD_FILES]
+        dens = sorted(s.density for s in judged)
+        rates = sorted(s.change_rate for s in judged)
         run: list[AreaMetrics] = []
-        for r in rows:
-            raw = _classify(r, dens, rates)
-            name = r["area"]
-            if name not in settled or raw == settled[name] or pending.get(name) == raw:
-                settled[name] = raw
-                pending.pop(name, None)
-            else:
-                pending[name] = raw
-            run.append(AreaMetrics(need_pct=round(_need(dens, r["density"]), 3), kind=settled[name], raw_kind=raw, **r))
+        for s in stats:
+            need = _need(dens, s.density)
+            raw = _classify(s, need, rates)
+            run.append(AreaMetrics(**asdict(s), need_pct=round(need, 3), kind=smoothing.smooth(s.area, raw), raw_kind=raw))
         result.append(run)
     return result
