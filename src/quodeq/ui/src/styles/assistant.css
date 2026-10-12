@@ -28,6 +28,72 @@
 
 .assistant-card-note { color: var(--color-text-muted); font-size: 12px; margin-top: 2px; }
 
+.assistant-outline {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assistant-outline-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.125rem 0;
+  background: transparent;
+  border: 0;
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.assistant-outline-chevron {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.assistant-outline-principle-name {
+  font-weight: 600;
+}
+
+.assistant-outline-count {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.assistant-outline-requirements {
+  list-style: none;
+  margin: 0.125rem 0 0.25rem;
+  padding: 0 0 0 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.assistant-outline-requirement {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.assistant-outline-req-id {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.assistant-outline-req-text {
+  color: var(--color-text);
+}
+
 .assistant-card-actions {
   display: flex;
   gap: 0.5rem;
