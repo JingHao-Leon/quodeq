@@ -79,14 +79,21 @@ def test_a_commit_without_files_is_skipped(tmp_path):
     assert _between(tmp_path, "2026-09-01", "2026-09-05") == {"a.py": 1, "b.py": 1}
 
 
+def _apply_tz() -> None:
+    """Re-read TZ in this process; Windows has no tzset, and git still reads TZ from the environment."""
+    tzset = getattr(time, "tzset", None)
+    if tzset is not None:
+        tzset()
+
+
 @pytest.fixture
 def tokyo_clock(monkeypatch):
     """A local zone nine hours ahead of UTC, so local and UTC days disagree late in the UTC day."""
     monkeypatch.setenv("TZ", "Asia/Tokyo")
-    time.tzset()
+    _apply_tz()
     yield
     monkeypatch.undo()
-    time.tzset()
+    _apply_tz()
 
 
 def test_run_days_are_utc_days(tmp_path, tokyo_clock):
