@@ -329,3 +329,12 @@ _.estimate_edits
 _.first_seen_index
 # services/_map_git.py: consumed by the map-history builder in a later task of this series; only tests call it so far.
 _.git_commits_between
+_.prod_files  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.density  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.compliance_rate  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.touched_share  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.change_rate  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.persistent_share  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.need_pct  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.has_history  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
+_.area_metrics_per_run  # src/quodeq/core/map_history/area_metrics.py: consumed by the map history builder (later task)
