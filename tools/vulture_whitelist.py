@@ -320,4 +320,3 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 _.workflow
 _.run_url
 
-_.build_map_history  # services/map_history.py: called by the map history API route in a later task of this series; only tests call it so far.
