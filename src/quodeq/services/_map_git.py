@@ -20,10 +20,13 @@ def git_commits_between(repo: Path, since_iso: str, until_iso: str) -> Counter[s
     if not (repo / ".git").exists():
         return None
     until = (date.fromisoformat(until_iso[:_ISO_DAY_LEN]) + _ONE_DAY).isoformat()
-    out = git_stdout(
-        ["-C", str(repo), "log", "--all", "--no-merges", "--name-only", "--format=",
-         f"--since={since_iso[:_ISO_DAY_LEN]}T00:00", f"--until={until}T00:00"],
-        timeout=_TIMEOUT_S)
+    try:
+        out = git_stdout(
+            ["-C", str(repo), "log", "--branches", "--remotes", "--no-merges", "--name-only", "-z",
+             "--format=", f"--since={since_iso[:_ISO_DAY_LEN]}T00:00", f"--until={until}T00:00"],
+            timeout=_TIMEOUT_S)
+    except UnicodeDecodeError:
+        return None
     if out is None:
         return None
-    return Counter(line for line in out.splitlines() if line)
+    return Counter(name for name in out.split("\0") if name.strip("\n"))
