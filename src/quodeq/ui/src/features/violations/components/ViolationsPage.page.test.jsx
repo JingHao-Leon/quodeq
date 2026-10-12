@@ -172,9 +172,9 @@ function renderWorkbench(callbacks = {}, extra = {}) {
 }
 
 describe('ViolationsPage — findings workbench', () => {
-  it('the header sub-line counts open findings by severity and the dismissed ones', () => {
+  it('the header sub-line counts open findings by severity and, once loaded, the dismissed ones', async () => {
     renderWorkbench();
-    expect(screen.getByText('2 open · 1 maj · 1 min · 0 dismissed')).toBeInTheDocument();
+    expect(await screen.findByText('2 open · 1 maj · 1 min · 0 dismissed')).toBeInTheDocument();
   });
 
   it('the four view pills are gone', () => {

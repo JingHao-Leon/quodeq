@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import FindingsWorkbench from './FindingsWorkbench.jsx';
 import { LIST_CAP } from './FindingList.jsx';
+import { flattenFindings } from './workbenchModel.js';
 import { makeDims, makeDismissed } from './_workbench.fixtures.js';
 
 vi.mock('./FindingDetail.jsx', () => ({
@@ -13,10 +14,13 @@ vi.mock('./FindingDetail.jsx', () => ({
   ),
 }));
 
-function Harness({ initial = null, dims = makeDims(), actions = {} }) {
+function Harness({ initial = null, dims = makeDims(), dismissed = makeDismissed(), dismissedLoading = false, actions = {} }) {
   const [wb, setWb] = useState(initial);
-  return <FindingsWorkbench dims={dims} dismissed={makeDismissed()} workbench={wb} onWorkbenchChange={setWb} actions={actions} />;
+  return <FindingsWorkbench dims={dims} dismissed={dismissed} dismissedLoading={dismissedLoading} workbench={wb} onWorkbenchChange={setWb} actions={actions} />;
 }
+
+const manyDims = () => [{ dimension: 'reliability', fromRunId: 'r', violations: Array.from({ length: LIST_CAP * 2 + 10 },
+  (_, i) => ({ title: `Finding ${i}`, severity: 'minor', file: `f${i}.py`, line: 1, req: 'R-1' })) }];
 
 describe('FindingsWorkbench', () => {
   it('opens on the open findings, most severe selected', () => {
@@ -80,12 +84,41 @@ describe('FindingsWorkbench', () => {
     expect(onOpenFile).toHaveBeenCalledWith(expect.objectContaining({ file: 'src/a/x.py' }));
   });
 
-  it('the row cap starts over when the filters change', () => {
-    const many = Array.from({ length: LIST_CAP * 2 + 10 }, (_, i) => ({ title: `Finding ${i}`, severity: 'minor', file: `f${i}.py`, line: 1, req: 'R-1' }));
-    render(<Harness dims={[{ dimension: 'reliability', fromRunId: 'r', violations: many }]} />);
+  it('the row cap starts over when a filter changes, not while typing', async () => {
+    render(<Harness dims={manyDims()} />);
     fireEvent.click(screen.getByRole('button', { name: `show ${LIST_CAP} more` }));
-    expect(screen.getByRole('button', { name: 'show 10 more' })).toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox', { name: 'Search findings' }), { target: { value: 'finding' } });
+    expect(screen.getByRole('button', { name: 'show 10 more' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'status' }));
+    await userEvent.click(screen.getByRole('menuitemradio', { name: /all/ }));
     expect(screen.getByRole('button', { name: `show ${LIST_CAP} more` })).toBeInTheDocument();
+  });
+
+  it('a selected finding past the row cap is rendered', () => {
+    const dims = manyDims();
+    const target = flattenFindings(dims, makeDismissed())[LIST_CAP + 5];
+    render(<Harness dims={dims} initial={{ selectedId: target.id }} />);
+    expect(screen.getByRole('button', { current: true })).toHaveTextContent(target.title);
+  });
+
+  it('arrows inside an open filter menu leave the selection alone', async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: 'status' }));
+    fireEvent.keyDown(screen.getAllByRole('menuitemradio')[0], { key: 'ArrowDown' });
+    expect(screen.getByTestId('detail')).toHaveTextContent('Swallowed error');
+  });
+
+  it('an arrow another handler already took leaves the selection alone', () => {
+    render(<Harness />);
+    const e = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+    e.preventDefault();
+    fireEvent(window, e);
+    expect(screen.getByTestId('detail')).toHaveTextContent('Swallowed error');
+  });
+
+  it('while the dismissed list first loads, status dismissed shows the list skeleton', () => {
+    const { container } = render(<Harness initial={{ status: 'dismissed' }} dismissed={[]} dismissedLoading />);
+    expect(container.querySelector('.card-list-skeleton')).not.toBeNull();
+    expect(screen.queryByText('no finding matches these filters')).toBeNull();
   });
 });

@@ -13,14 +13,17 @@ import { sevAbbr } from '../workbench/sevWords.js';
 
 const SUMMARY_SEP = ' · ';
 
-/** `N open · X crit · Y maj · Z min · W dismissed`, leaving out the empty severities. */
+/**
+ * `N open · X crit · Y maj · Z min · W dismissed`, leaving out the empty
+ * severities, and the dismissed count while the dismissed list first loads.
+ */
 function summaryLine(summary, dismissedCount) {
   const sev = summary.severity || {};
   const parts = [t('violations.wbSummaryOpen', { count: summary.totalViolations || 0 })];
   SEVERITY_ORDER.forEach((l) => {
     if (sev[l] > 0) parts.push(t('violations.wbSevCount', { count: sev[l], sev: sevAbbr(l) }));
   });
-  parts.push(t('violations.wbSummaryDismissed', { count: dismissedCount }));
+  if (dismissedCount != null) parts.push(t('violations.wbSummaryDismissed', { count: dismissedCount }));
   return parts.join(SUMMARY_SEP);
 }
 
@@ -49,7 +52,7 @@ export default function ViolationsPage({ data, callbacks, tabKey = 0, workbench 
   const { onNavigate, onReconcile, onRetry } = callbacks;
 
   const pageState = useViolationsPageState({ tabKey, selectedProject, onReconcile, accumulatedDimensions, selectedSource });
-  const { dismissed, restoreError, visibleDimensions, summary } = pageState;
+  const { dismissed, dismissedLoading, restoreError, visibleDimensions, summary } = pageState;
   const { actions, error: dismissError, notice: dismissNotice } = useWorkbenchActions({
     visibleDimensions, selectedProject, selectedSource, callbacks, handlers: pageState,
   });
@@ -64,11 +67,11 @@ export default function ViolationsPage({ data, callbacks, tabKey = 0, workbench 
   return (
     <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
       <Banners restoreError={restoreError} dismissError={dismissError} dismissNotice={dismissNotice} />
-      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={dismissed.length} />
+      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={dismissedLoading && !dismissed.length ? null : dismissed.length} />
       {/* The header paints on the click; the workbench (every finding,
           flattened and filtered) follows in the next commit. */}
       <DeferredMount fallback={<CardListSkeleton />}>
-        <FindingsWorkbench dims={visibleDimensions} dismissed={dismissed} workbench={workbench}
+        <FindingsWorkbench dims={visibleDimensions} dismissed={dismissed} dismissedLoading={dismissedLoading} workbench={workbench}
           onWorkbenchChange={onWorkbenchChange} actions={actions} />
       </DeferredMount>
     </div>

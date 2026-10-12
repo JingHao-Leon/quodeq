@@ -8,11 +8,11 @@ import { KEY } from '../../../vocab/keyboard.js';
 const UP = KEY.ARROW_UP;
 const DOWN = KEY.ARROW_DOWN;
 const SLASH = '/';
-// Fields keep their own keys, and nothing moves while a dialog is open.
-const TYPING = ['input', 'textarea', 'select', '[contenteditable]'].join(',');
+// Fields and open menus keep their own keys, and nothing moves while a dialog is open.
+const TYPING = ['input', 'textarea', 'select', '[contenteditable]', '[role=menu]'].join(',');
 const DIALOG = ['[role=dialog]', '[role=alertdialog]'].join(',');
 
-const leaveAlone = (e) => e.metaKey || e.ctrlKey || e.altKey
+const leaveAlone = (e) => e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey
   || Boolean(e.target?.closest?.(TYPING)) || Boolean(document.querySelector(DIALOG));
 
 /** Binds the workbench keys on window while mounted. */

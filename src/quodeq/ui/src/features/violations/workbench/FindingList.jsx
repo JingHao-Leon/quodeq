@@ -57,8 +57,15 @@ function GroupHeader({ g }) {
   );
 }
 
+/** The row cap, raised in LIST_CAP steps to cover the selected row (↓ can select past it). */
+function capCovering(cap, groups, selectedId) {
+  const index = groups.flatMap((g) => g.items).findIndex((f) => f.id === selectedId);
+  return index < cap ? cap : (Math.floor(index / LIST_CAP) + 1) * LIST_CAP;
+}
+
 export default function FindingList({ groups, browse, selectedId, onSelect, shown, total, lineOnly }) {
-  const [cap, setCap] = useState(LIST_CAP);
+  const [ownCap, setCap] = useState(LIST_CAP);
+  const cap = capCovering(ownCap, groups, selectedId);
   const ref = useSelectedInView(selectedId);
   const rows = groups.reduce((n, g) => n + g.items.length, 0);
   return (

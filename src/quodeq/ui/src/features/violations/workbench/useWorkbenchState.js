@@ -3,7 +3,7 @@
  * selection). It lives in the Violations nav entry (`params.wb`), replaced on
  * every change, so back/forward and a round trip through a file restore it.
  */
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { SEVERITY } from '../../../vocab/severity.js';
 import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
 
@@ -35,7 +35,7 @@ export function useWorkbenchState(param, onChange) {
   // Two changes in one event (pick a path, then clear the search) must
   // compose: each builds on the last one sent, not on the render's state.
   const latest = useRef(state);
-  useEffect(() => { latest.current = state; }, [state]);
+  useLayoutEffect(() => { latest.current = state; }, [state]);
   const set = useCallback((patch) => {
     if (!onChange) return;
     latest.current = { ...latest.current, ...patch };

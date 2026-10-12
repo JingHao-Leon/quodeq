@@ -27,7 +27,7 @@ beforeEach(() => {
   });
 });
 
-function renderDismissed(selectedSource) {
+function renderDismissed(selectedSource, workbench = { status: 'dismissed' }) {
   const QC = withQueryClient();
   const data = {
     accumulatedDimensions: [{ dimension: 'security', violations: [], compliance: [] }],
@@ -36,7 +36,7 @@ function renderDismissed(selectedSource) {
   };
   return render(
     <QC>
-      <ViolationsPage data={data} callbacks={{}} workbench={{ status: 'dismissed' }} onWorkbenchChange={() => {}} />
+      <ViolationsPage data={data} callbacks={{ onFileClick: vi.fn() }} workbench={workbench} onWorkbenchChange={() => {}} />
     </QC>,
   );
 }
@@ -71,9 +71,25 @@ describe('ViolationsPage — dismissed findings in the workbench', () => {
     expect(screen.queryByRole('button', { name: 'delete all 2' })).toBeNull();
   });
 
-  it('a dismissed finding whose file has no open finding offers no open file', async () => {
+  it('open file shows only for a dismissed finding whose file still has an open finding', async () => {
+    pageState.visibleDimensions = [{ dimension: 'security', fromRunId: 'r1', violations: [{ title: 'Still open', file: 'b.py', line: 3, severity: 'minor', req: 'B2' }] }];
     renderDismissed('local');
-    expect(await screen.findByLabelText('Findings')).toHaveTextContent('Old A');
+    expect(await screen.findByRole('button', { name: 'open file ›' })).toBeInTheDocument();
+  });
+
+  it('a dismissed finding whose file has no open finding offers no open file', async () => {
+    renderDismissed('local', { status: 'dismissed', selectedId: 'dismissed|security|a.py|10|A1|Old A' });
+    expect(await screen.findByRole('button', { name: 'Restore' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { current: true })).toHaveTextContent('Old A');
     expect(screen.queryByRole('button', { name: 'open file ›' })).toBeNull();
+  });
+
+  it('while the dismissed list first loads: list skeleton, and no dismissed count in the header', async () => {
+    Object.assign(pageState, { dismissed: [], dismissedLoading: true });
+    const { container } = renderDismissed('local');
+    expect(screen.getByText('0 open')).toBeInTheDocument();
+    await screen.findByRole('textbox', { name: 'Search findings' });
+    expect(container.querySelector('.wb .card-list-skeleton')).not.toBeNull();
+    expect(screen.queryByText('no finding matches these filters')).toBeNull();
   });
 });

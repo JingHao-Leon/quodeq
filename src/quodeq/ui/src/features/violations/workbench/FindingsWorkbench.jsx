@@ -12,6 +12,7 @@ import WorkbenchBar from './WorkbenchBar.jsx';
 import FindingList from './FindingList.jsx';
 import FindingDetail from './FindingDetail.jsx';
 import DismissedBulk from './DismissedBulk.jsx';
+import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 
 const FOLDER_END = '/';
 const KEY_SEP = '|';
@@ -39,10 +40,10 @@ function useView(all, state) {
   return { list, groups, level, dir, unpathed };
 }
 
-/** What the list shows, as a string: a new value starts the row cap over. */
-const listKeyOf = (s) => [s.q, s.severity, s.dimension, s.status, s.group, ...s.paths].join(KEY_SEP);
+/** The list's filters (not the search text, so typing keeps the scroll) as a string: a new value starts the row cap over. */
+const listKeyOf = (s) => [s.severity, s.dimension, s.status, s.group, ...s.paths].join(KEY_SEP);
 
-export default function FindingsWorkbench({ dims, dismissed, workbench, onWorkbenchChange, actions = {} }) {
+export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = false, workbench, onWorkbenchChange, actions = {} }) {
   const searchRef = useRef(null);
   const all = useMemo(() => flattenFindings(dims, dismissed), [dims, dismissed]);
   const wb = useWorkbenchState(workbench, onWorkbenchChange);
@@ -56,6 +57,8 @@ export default function FindingsWorkbench({ dims, dismissed, workbench, onWorkbe
   useWorkbenchKeys({ ids, selectedId, onSelect: select, searchRef });
   const onDir = (d) => wb.setPaths(d ? [collapseSingle(unpathed, d)] : []);
   const lineOnly = state.group === FINDING_GROUP.FILE || state.group === FINDING_GROUP.FOLDERS;
+  // The dismissed list's first fetch: bars, not a "nothing matches" that reads as "nothing dismissed".
+  const waiting = dismissedLoading && state.status === FINDING_STATUS.DISMISSED && !all.some((f) => f.status === FINDING_STATUS.DISMISSED);
   const canOpen = selected && (!actions.canOpenFile || actions.canOpenFile(selected));
   return (
     <div className="wb">
@@ -65,6 +68,7 @@ export default function FindingsWorkbench({ dims, dismissed, workbench, onWorkbe
         <DismissedBulk count={all.filter((f) => f.status === FINDING_STATUS.DISMISSED).length}
           onRestoreAll={actions.onRestoreAll} onDeleteAll={actions.onDeleteAll} />
       )}
+      {waiting ? <CardListSkeleton rows={3} /> : (
       <div className="wb-split">
         <FindingList key={listKeyOf(state)} groups={groups} browse={level ? { dir, folders: level.folders, onDir } : null}
           selectedId={selectedId} onSelect={select} shown={list.length} total={all.length} lineOnly={lineOnly} />
@@ -72,6 +76,7 @@ export default function FindingsWorkbench({ dims, dismissed, workbench, onWorkbe
           onOpenFile={canOpen ? actions.onOpenFile : undefined} onDismiss={actions.onDismiss} onDismissType={actions.onDismissType}
           onRestore={actions.onRestore} onDelete={actions.onDelete} />
       </div>
+      )}
     </div>
   );
 }
