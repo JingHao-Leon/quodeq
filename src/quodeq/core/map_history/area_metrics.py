@@ -20,6 +20,8 @@ FLOOR_HOTSPOT = 0.75        # weighted findings per file
 FLOOR_DORMANT = 0.5
 HEALTHY_NEED_PCT = 0.4
 OLD_ISSUE_DAYS = 42
+WEIGHT_DECIMALS = 2         # decimal places kept of a severity weight
+RATIO_DECIMALS = 3          # decimal places kept of a density, share, rate or rank
 
 
 class AreaKind(StrEnum):
@@ -106,6 +108,11 @@ def _classify(stats: AreaStats, need: float, rates: list[float]) -> AreaKind:
     return _by_density(need)
 
 
+def _ratio(part: float, whole: int) -> float:
+    """*part* over *whole* (at least 1), kept to ``RATIO_DECIMALS``."""
+    return round(part / max(1, whole), RATIO_DECIMALS)
+
+
 def _area_stats(k: int, area: str, paths: list[str], snap: RunSnapshot, assignments: dict[str, AreaAssignment],
                 activity: PathActivity) -> AreaStats:
     """One area's stats in run *k*, given its paths' *activity*."""
@@ -116,11 +123,11 @@ def _area_stats(k: int, area: str, paths: list[str], snap: RunSnapshot, assignme
     weight = sum(snap.files[p].weight for p in prod)
     old = sum(snap.files[p].violations for p in prod if ages.get(p, 0) >= OLD_ISSUE_DAYS)
     return AreaStats(
-        area=area, files=len(paths), prod_files=len(prod), violations=viol, weight=round(weight, 2),
-        density=round(weight / max(1, len(prod)), 3), compliance_rate=round(comp / max(1, comp + viol), 3),
-        touched_share=round(sum(1 for p in paths if edits.get(p)) / len(paths), 3),
-        change_rate=round(sum(edits.get(p, 0) for p in paths) / max(1, len(paths) * max(1, k)), 3),
-        persistent_share=round(old / max(1, viol), 3), has_history=k >= MIN_HISTORY_RUNS)
+        area=area, files=len(paths), prod_files=len(prod), violations=viol, weight=round(weight, WEIGHT_DECIMALS),
+        density=_ratio(weight, len(prod)), compliance_rate=_ratio(comp, comp + viol),
+        touched_share=_ratio(sum(1 for p in paths if edits.get(p)), len(paths)),
+        change_rate=_ratio(sum(edits.get(p, 0) for p in paths), len(paths) * max(1, k)),
+        persistent_share=_ratio(old, viol), has_history=k >= MIN_HISTORY_RUNS)
 
 
 def _run_stats(k: int, snap: RunSnapshot, assignments: dict[str, AreaAssignment],
@@ -164,6 +171,7 @@ def area_metrics_per_run(snapshots: list[RunSnapshot], assignments: dict[str, Ar
         for s in stats:
             need = _need(dens, s.density)
             raw = _classify(s, need, rates)
-            run.append(AreaMetrics(**asdict(s), need_pct=round(need, 3), kind=smoothing.smooth(s.area, raw), raw_kind=raw))
+            run.append(AreaMetrics(**asdict(s), need_pct=round(need, RATIO_DECIMALS), kind=smoothing.smooth(s.area, raw),
+                                   raw_kind=raw))
         result.append(run)
     return result

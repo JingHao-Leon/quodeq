@@ -5,13 +5,10 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import NamedTuple
 
-from quodeq.core.map_history.area_metrics import AreaMetrics, area_metrics_per_run
-from quodeq.core.map_history.areas import assign_areas
+from quodeq.core.map_history.area_metrics import WEIGHT_DECIMALS, AreaMetrics, area_metrics_per_run
+from quodeq.core.map_history.areas import AreaAssignment, assign_areas
 from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import finding_flows, running_edits, violation_ages, violation_ids
-
-# Decimal places kept of a file's severity weight.
-_WEIGHT_DECIMALS = 2
 
 
 class FileRow(NamedTuple):
@@ -62,13 +59,37 @@ class RunActivity:
     per_transition: tuple[Counter[str], ...]
 
 
-def _rows(snap: RunSnapshot, index: dict[str, int], edits: tuple[Counter[str], Counter[str]],
-          ages: dict[str, int]) -> tuple[FileRow, ...]:
-    """One run's file rows; *edits* is ``(running edits, this transition's edits)``."""
-    running, transition = edits
-    return tuple(FileRow(index[p], round(s.weight, _WEIGHT_DECIMALS), s.violations, s.compliance, s.critical, s.major,
+class _RunFacts(NamedTuple):
+    """What every frame draws on, per run (oldest first): edits, violation ages, area metrics, and flows of the asked runs."""
+
+    running: list[Counter[str]]             # edits up to and including each run
+    transitions: tuple[Counter[str], ...]   # edits in the transition into each run
+    ages: list[dict[str, int]]
+    metrics: list[list[AreaMetrics]]
+    flows: dict[int, tuple[int, int]]
+
+
+def _run_facts(days: list[str], snapshots: list[RunSnapshot], activity: RunActivity,
+               assignments: dict[str, AreaAssignment], frame_runs: list[int]) -> _RunFacts:
+    """Every run's timeline facts; flows only for *frame_runs*."""
+    running = running_edits(activity.per_transition)
+    violations = [violation_ids(s) for s in snapshots]
+    ages = violation_ages(snapshots, days, violations)
+    return _RunFacts(running, activity.per_transition, ages, area_metrics_per_run(snapshots, assignments, running, ages),
+                     finding_flows(snapshots, violations, frame_runs))
+
+
+def _rows(k: int, snap: RunSnapshot, index: dict[str, int], facts: _RunFacts) -> tuple[FileRow, ...]:
+    """Run *k*'s file rows."""
+    running, transition, ages = facts.running[k], facts.transitions[k], facts.ages[k]
+    return tuple(FileRow(index[p], round(s.weight, WEIGHT_DECIMALS), s.violations, s.compliance, s.critical, s.major,
                          running.get(p, 0), bool(transition.get(p)), ages[p])
                  for p, s in snap.files.items())
+
+
+def _frame(k: int, day: str, snap: RunSnapshot, index: dict[str, int], facts: _RunFacts) -> MapFrame:
+    """Run *k*'s frame."""
+    return MapFrame(day, *facts.flows[k], _rows(k, snap, index, facts), tuple(facts.metrics[k]))
 
 
 def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: RunActivity,
@@ -81,12 +102,7 @@ def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: Ru
     names = sorted({p for s in snapshots for p in s.files})
     index = {p: i for i, p in enumerate(names)}
     assignments = assign_areas(names)
-    running = running_edits(activity.per_transition)
-    violations = [violation_ids(s) for s in snapshots]
-    ages = violation_ages(snapshots, days, violations)
-    metrics = area_metrics_per_run(snapshots, assignments, running, ages)
-    flows = finding_flows(snapshots, violations, frame_runs)
-    frames = tuple(MapFrame(days[k], *flows[k], _rows(snapshots[k], index, (running[k], activity.per_transition[k]), ages[k]),
-                            tuple(metrics[k])) for k in frame_runs)
+    facts = _run_facts(days, snapshots, activity, assignments, frame_runs)
+    frames = tuple(_frame(k, days[k], snapshots[k], index, facts) for k in frame_runs)
     return MapHistory(activity.source, tuple(days), tuple(names), tuple(assignments[p].area for p in names),
                       tuple(assignments[p].is_test for p in names), frames)

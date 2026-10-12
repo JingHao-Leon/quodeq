@@ -29,8 +29,10 @@ from quodeq.services.wiring import (
     save_map_snapshots,
 )
 
-# The ``frames`` value that asks for every frame (anything else gives the latest only).
-_ALL_FRAMES = "all"
+# The ``frames`` values: the latest frame only (the default), or every frame.
+LATEST_FRAMES = "latest"
+ALL_FRAMES = "all"
+FRAME_CHOICES = (LATEST_FRAMES, ALL_FRAMES)
 # Snapshot payload shape: bump to invalidate every cached snapshot (2: deleted and rule-hidden findings left out).
 SNAPSHOT_SHAPE = "2"
 _SOURCE_GIT = "git"
@@ -187,12 +189,12 @@ def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot]) -> R
     return RunActivity(_SOURCE_GIT, tuple(Counter({p: n for p, n in c.items() if p in snaps[i].files}) for i, c in enumerate(got)))
 
 
-def build_map_history(reports_root: Path, project: str, *, frames: str = "latest") -> MapHistory:
-    """The project's map history: the latest frame, or every frame when *frames* is ``"all"``."""
+def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_FRAMES) -> MapHistory:
+    """The project's map history: the latest frame, or every frame when *frames* is ``ALL_FRAMES``."""
     if not (reports_root / project).is_dir():
         return EMPTY_HISTORY
     days, snaps = _history(ProjectRows.load(reports_root, project, run_limit=0))
     if not days:
         return EMPTY_HISTORY
-    frame_runs = list(range(len(snaps))) if frames == _ALL_FRAMES else [len(snaps) - 1]
+    frame_runs = list(range(len(snaps))) if frames == ALL_FRAMES else [len(snaps) - 1]
     return assemble_history(days, snaps, _activity(reports_root / project, days, snaps), frame_runs)

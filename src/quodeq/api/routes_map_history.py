@@ -10,11 +10,11 @@ from flask import Flask, Response, request
 from quodeq.api.map_history_payload import map_history_payload
 from quodeq.api._report_payload import PayloadFailure, serve_report_payload
 from quodeq.api.helpers import json_error, validate_segment
-from quodeq.services.map_history import build_map_history
+from quodeq.services.map_history import FRAME_CHOICES, LATEST_FRAMES, build_map_history
 
 _logger = logging.getLogger(__name__)
 _ROUTE = "/api/projects/<project>/map/history"
-_FRAMES = ("latest", "all")
+_FRAMES_ERROR = f"frames must be {' or '.join(repr(f) for f in FRAME_CHOICES)}"
 
 
 def register_map_history_routes(app: Flask) -> None:
@@ -24,9 +24,9 @@ def register_map_history_routes(app: Flask) -> None:
         err = validate_segment(project)
         if err is not None:
             return err
-        frames = request.args.get("frames", "latest")
-        if frames not in _FRAMES:
-            return json_error("frames must be 'latest' or 'all'", HTTPStatus.BAD_REQUEST, "BAD_REQUEST")
+        frames = request.args.get("frames", LATEST_FRAMES)
+        if frames not in FRAME_CHOICES:
+            return json_error(_FRAMES_ERROR, HTTPStatus.BAD_REQUEST, "BAD_REQUEST")
         failure = PayloadFailure(
             errors=(OSError, ValueError, sqlite3.Error), message="Failed to build the map history",
             log=lambda: _logger.exception("Failed to build the map history for %s", project))
