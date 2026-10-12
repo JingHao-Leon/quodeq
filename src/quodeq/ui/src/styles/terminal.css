@@ -605,24 +605,6 @@ button.term-sev-badge--clickable:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   Violations (migrated) — terminal-style flag row & sev row
-   ------------------------------------------------------------ */
-.violations-sev-row {
-  display: inline-flex;
-  gap: var(--term-space-1);
-  align-items: center;
-  margin-left: var(--term-space-2);
-}
-
-/* Inline severity badges next to the sub text */
-.violations-sub {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--term-space-2);
-  flex-wrap: wrap;
-}
-
-/* ------------------------------------------------------------
    Map (migrated) — header becomes a stack of TermHeader + controls row
    ------------------------------------------------------------ */
 .map-page--terminal .map-header--terminal {
