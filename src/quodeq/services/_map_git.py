@@ -6,14 +6,13 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from quodeq.core.map_history.git_log import LOG_FORMAT, commits_per_transition, parse_commit_log
+from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.services.wiring import git_stdout
 
 # A run's day is inclusive: commits up to the end of that day count.
 _ONE_DAY = timedelta(days=1)
 # git must answer quickly; a slow repo falls back to the estimate.
 _TIMEOUT_S = 20
-# The leading characters of an ISO timestamp that make up its calendar day.
-_ISO_DAY_LEN = 10
 
 
 def _midnight(day: date) -> int:
@@ -31,7 +30,7 @@ def git_commits_per_transition(repo: Path, days: list[str]) -> list[Counter[str]
     """
     if not days or not (repo / ".git").exists():
         return None
-    parsed = [date.fromisoformat(d[:_ISO_DAY_LEN]) for d in days]
+    parsed = [date.fromisoformat(d[:ISO_DAY_LEN]) for d in days]
     try:
         out = git_stdout(
             ["-C", str(repo), "log", "--branches", "--remotes", "--no-merges", "--name-only", "-z", LOG_FORMAT,

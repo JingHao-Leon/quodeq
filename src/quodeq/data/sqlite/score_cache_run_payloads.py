@@ -15,6 +15,8 @@ _logger = logging.getLogger(__name__)
 
 # The only tables these helpers touch: the name is formatted into the SQL, so it never comes from a caller.
 _TABLES = frozenset({"run_change", "map_snapshot"})
+# Run ids bound per SELECT, well under SQLite's smallest host-parameter limit (999).
+_MAX_BOUND_IDS = 500
 
 
 @dataclass(frozen=True)
@@ -34,24 +36,61 @@ RUN_CHANGE = RunPayloadTable("run_change")
 MAP_SNAPSHOT = RunPayloadTable("map_snapshot", separators=(",", ":"))
 
 
+def _serialised(table: RunPayloadTable, project: str, run_id: str, payload: dict) -> str | None:
+    """*payload* as stored JSON, or None (logged) when it cannot be serialised."""
+    try:
+        return json.dumps(payload, separators=table.separators)
+    except (TypeError, ValueError):
+        _logger.warning("%s payload for %s/%s is not JSON-serialisable", table.table, project, run_id, exc_info=True)
+        return None
+
+
+def store_run_payloads(conn: sqlite3.Connection, table: RunPayloadTable, project: str,
+                       payloads: dict[str, tuple[str, dict]]) -> None:
+    """Persist *payloads* (``run_id -> (key, payload)``) in one transaction (best-effort).
+
+    A payload that cannot be serialised is skipped (logged); the rest are stored.
+    """
+    rows = [(project, run_id, key, text) for run_id, (key, payload) in payloads.items()
+            if (text := _serialised(table, project, run_id, payload)) is not None]
+    if not rows:
+        return
+    try:
+        conn.executemany(f"INSERT OR REPLACE INTO {table.table} (project, run_id, key, payload) VALUES (?, ?, ?, ?)", rows)
+        conn.commit()
+    except sqlite3.Error:
+        _logger.warning("%s write failed for %s", table.table, project, exc_info=True)
+
+
 def store_run_payload(conn: sqlite3.Connection, table: RunPayloadTable, row: tuple[str, str, str], payload: dict) -> None:
     """Persist one run's *payload* under its key; *row* is ``(project, run_id, key)`` (best-effort)."""
-    project, run_id, _ = row
-    try:
-        conn.execute(
-            f"INSERT OR REPLACE INTO {table.table} (project, run_id, key, payload) VALUES (?, ?, ?, ?)",
-            (*row, json.dumps(payload, separators=table.separators)),
-        )
-        conn.commit()
-    except (sqlite3.Error, TypeError, ValueError):
-        _logger.warning("%s write failed for %s/%s", table.table, project, run_id, exc_info=True)
+    project, run_id, key = row
+    store_run_payloads(conn, table, project, {run_id: (key, payload)})
+
+
+def _chunks(run_ids: list[str]) -> list[list[str]]:
+    """*run_ids* split so no query binds more than ``_MAX_BOUND_IDS`` of them."""
+    return [run_ids[i:i + _MAX_BOUND_IDS] for i in range(0, len(run_ids), _MAX_BOUND_IDS)]
+
+
+def _matching_rows(conn: sqlite3.Connection, table: RunPayloadTable, project: str,
+                   keys: dict[str, str]) -> list[tuple[str, str, str]]:
+    """``(run_id, key, payload)`` rows of *keys*' runs only (the key is checked by the caller)."""
+    rows: list[tuple[str, str, str]] = []
+    for chunk in _chunks(sorted(keys)):
+        marks = ",".join("?" * len(chunk))
+        rows.extend(conn.execute(
+            f"SELECT run_id, key, payload FROM {table.table} WHERE project=? AND run_id IN ({marks})",
+            (project, *chunk)).fetchall())
+    return rows
 
 
 def load_run_payloads(conn: sqlite3.Connection, table: RunPayloadTable, project: str, keys: dict[str, str]) -> dict[str, dict]:
     """The payloads of *keys*' runs whose stored key still matches; {} on any error."""
     try:
-        rows = conn.execute(f"SELECT run_id, key, payload FROM {table.table} WHERE project=?", (project,)).fetchall()
+        rows = _matching_rows(conn, table, project, keys)
     except sqlite3.Error:
+        _logger.warning("%s read failed for %s", table.table, project, exc_info=True)
         return {}
     out: dict[str, dict] = {}
     for run_id, key, payload in rows:

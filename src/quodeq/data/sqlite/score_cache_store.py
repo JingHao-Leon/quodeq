@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 from quodeq.core.types import DimensionResult
 from quodeq.data.sqlite.score_cache_db import open_score_cache
-from quodeq.data.sqlite.score_cache_map_snapshot import load_map_snapshots, prune_map_snapshots, store_map_snapshot  # noqa: F401
+from quodeq.data.sqlite.score_cache_map_snapshot import load_map_snapshot_payloads, save_map_snapshot_payloads  # noqa: F401
 from quodeq.data.sqlite.score_cache_principles import (
     attach_principles, principle_rows, read_principle_rows, write_principle_rows,
 )

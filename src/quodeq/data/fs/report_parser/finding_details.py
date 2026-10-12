@@ -13,6 +13,9 @@ from pathlib import Path
 from quodeq.core.finding_identity import coerce_line, finding_dismiss_keys
 from quodeq.shared.constants import JSON_SUFFIX
 
+# A run's folder of per-dimension scored reports.
+_EVAL_DIR = "evaluation"
+
 
 def iter_eval_reports(eval_dir: Path, *, skip_corrupt: bool = False) -> Iterator[tuple[str, dict]]:
     """Yield ``(dimension, data)`` for every ``<dim>.json`` file in
@@ -44,7 +47,7 @@ def iter_readable_eval_reports(run_dir: Path) -> Iterator[tuple[str, object]]:
     JSON holds, so callers that need an object check for one. No
     ``evaluation/`` directory yields nothing.
     """
-    eval_dir = run_dir / "evaluation"
+    eval_dir = run_dir / _EVAL_DIR
     if not eval_dir.is_dir():
         return
     for path in eval_dir.iterdir():
@@ -65,7 +68,7 @@ def eval_report_dimensions(run_dir: Path) -> list[str]:
     directory gives an empty list.
     """
     try:
-        return sorted(path.stem for path in (run_dir / "evaluation").iterdir() if path.suffix == JSON_SUFFIX)
+        return sorted(path.stem for path in (run_dir / _EVAL_DIR).iterdir() if path.suffix == JSON_SUFFIX)
     except OSError:
         return []
 
