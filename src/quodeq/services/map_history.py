@@ -14,7 +14,7 @@ from typing import NamedTuple
 from quodeq.core.map_history.activity import estimate_edits
 from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
 from quodeq.core.map_history.snapshot import HiddenPredicate, RunSnapshot, build_run_snapshot
-from quodeq.core.map_history.timeline import ISO_DAY_LEN
+from quodeq.core.map_history.timeline import ISO_DAY_LEN, full_run_dimensions
 from quodeq.core.run.state import RunState
 from quodeq.services._map_git import git_commits_per_transition
 from quodeq.services._violation_filters import is_suppressed_violation
@@ -106,8 +106,7 @@ def _full_by_day(candidates: list[_Candidate]) -> tuple[dict[str, list[_Candidat
     Days ascend; each day keeps the run order of *candidates* (newest first,
     as ``rows.runs`` lists them), so a group's head is the day's last run.
     """
-    usual = Counter(len(c.dims) for c in candidates).most_common(1)[0][0]
-    need = max(1, usual - 1)
+    need = full_run_dimensions(len(c.dims) for c in candidates)
     by_day: dict[str, list[_Candidate]] = {}
     for c in sorted((c for c in candidates if len(c.dims) >= need), key=lambda c: c.day):
         by_day.setdefault(c.day, []).append(c)

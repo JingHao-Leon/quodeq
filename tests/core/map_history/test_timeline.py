@@ -1,7 +1,13 @@
 from collections import Counter
 
 from quodeq.core.map_history.snapshot import FileStat, RunSnapshot
-from quodeq.core.map_history.timeline import finding_flows, running_edits, violation_ages, violation_ids
+from quodeq.core.map_history.timeline import (
+    finding_flows,
+    full_run_dimensions,
+    running_edits,
+    violation_ages,
+    violation_ids,
+)
 
 
 def _snapshot(dims: tuple[str, ...] = ("sec",), **files: set[str]) -> RunSnapshot:
@@ -42,3 +48,11 @@ def test_age_survives_a_run_that_skipped_the_dimension():
     snaps = [_snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}}), _snapshot(("sec",), **{"b.py": {"sec:v:y"}}),
              _snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}})]
     assert violation_ages(snaps, days, [violation_ids(s) for s in snaps])[2]["a.py"] == 2
+
+
+def test_a_full_run_has_the_usual_dimension_count_less_one():
+    assert full_run_dimensions([6, 6, 5, 2]) == 5
+
+
+def test_a_full_run_needs_at_least_one_dimension():
+    assert full_run_dimensions([1, 1]) == 1
