@@ -18,7 +18,8 @@ def estimate_edits(prev: RunSnapshot, cur: RunSnapshot) -> set[str]:
     shared = set(prev.dims) & set(cur.dims)
     changed = {p for p, s in cur.files.items()
                if p in prev.files and _ids_in(s.ids, shared) != _ids_in(prev.files[p].ids, shared)}
-    new = set(cur.files) - set(prev.files)
+    # A new path is an edit only when it carries a finding in a dimension both runs ran.
+    new = {p for p in set(cur.files) - set(prev.files) if _ids_in(cur.files[p].ids, shared)}
     if len(changed | new) / max(1, len(cur.files)) > CACHE_RESET_SHARE:
         return set()
     return changed | new

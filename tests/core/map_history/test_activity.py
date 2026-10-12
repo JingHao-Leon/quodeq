@@ -38,3 +38,23 @@ def test_first_seen_follows_unbroken_chains():
     runs = [S(["sec"], **{"a.py": {"x"}}), S(["sec"], **{"a.py": {"x", "y"}}), S(["sec"], **{"a.py": {"y"}})]
     seen = first_seen_index(runs)
     assert seen[2] == {"sec:v:y": 1}
+
+
+def test_new_file_with_only_new_dimension_findings_is_not_an_edit():
+    stable = {f"s{i}.py": {f"s{i}"} for i in range(6)}
+    prev = S(["sec"], **stable)
+    cur_files = {p: FileStat(major=1, ids=frozenset(f"sec:v:{i}" for i in ids), dims=frozenset({"sec"})) for p, ids in stable.items()}
+    cur_files["b.py"] = FileStat(ids=frozenset({"acc:v:n"}), dims=frozenset({"acc"}))
+    cur = RunSnapshot(("acc", "sec"), cur_files)
+    assert estimate_edits(prev, cur) == set()
+
+
+def test_exactly_sixty_percent_edited_still_counts():
+    prev = S(["sec"], **{f"f{i}.py": {f"a{i}"} for i in range(10)})
+    cur = S(["sec"], **{f"f{i}.py": {f"b{i}" if i < 6 else f"a{i}"} for i in range(10)})
+    assert estimate_edits(prev, cur) == {f"f{i}.py" for i in range(6)}
+
+
+def test_first_seen_restarts_after_a_gap():
+    runs = [S(["sec"], **{"a.py": {"x"}}), S(["sec"], **{"a.py": {"y"}}), S(["sec"], **{"a.py": {"x"}})]
+    assert first_seen_index(runs)[2]["sec:v:x"] == 2
