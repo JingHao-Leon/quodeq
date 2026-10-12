@@ -6,30 +6,33 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import NamedTuple
 
 from quodeq.core.map_history.activity import estimate_edits
 from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
-from quodeq.core.map_history.snapshot import RunSnapshot, build_run_snapshot
+from quodeq.core.map_history.snapshot import HiddenPredicate, RunSnapshot, build_run_snapshot
 from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.core.run.state import RunState
 from quodeq.services._map_git import git_commits_per_transition
+from quodeq.services._violation_filters import is_suppressed_violation
 from quodeq.services.score_cache import score_cache_version
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.wiring import (
     eval_report_dimensions,
     iter_readable_eval_reports,
     load_map_snapshot_payloads,
+    load_suppression_rules,
     read_repository_info,
     save_map_snapshot_payloads,
 )
 
 # The ``frames`` value that asks for every frame (anything else gives the latest only).
 _ALL_FRAMES = "all"
-# Snapshot payload shape: bump to invalidate every cached snapshot.
-SNAPSHOT_SHAPE = "1"
+# Snapshot payload shape: bump to invalidate every cached snapshot (2: deleted and rule-hidden findings left out).
+SNAPSHOT_SHAPE = "2"
 _SOURCE_GIT = "git"
 _SOURCE_ESTIMATED = "estimated"
 
@@ -137,8 +140,14 @@ def _cache_keys(rows: ProjectRows, by_day: dict[str, list[_Candidate]]) -> dict[
             for group in by_day.values() for c in group if c.run_id in finished}
 
 
+def _hidden_predicate(rows: ProjectRows) -> HiddenPredicate:
+    """The app's suppression predicate (dismissed, deleted, pattern rules) over *rows*' project."""
+    keys = replace(rows.keys, rules=load_suppression_rules(rows.reports_root / rows.project))
+    return lambda dim, violation: is_suppressed_violation(violation, keys, dim)
+
+
 def _day_snapshot(rows: ProjectRows, group: list[_Candidate], cached: dict[str, RunSnapshot],
-                  need: int) -> _DaySnapshot | None:
+                  need: int, is_hidden: HiddenPredicate) -> _DaySnapshot | None:
     """The day's last run that is cached or reads as full, else None.
 
     *group* is newest first: an earlier run of the day stands in only when
@@ -150,7 +159,7 @@ def _day_snapshot(rows: ProjectRows, group: list[_Candidate], cached: dict[str, 
             return _DaySnapshot(c.run_id, cached[c.run_id], False)
         reports = c.reports if c.reports is not None else _readable_reports(rows.reports_root / rows.project / c.run_id)
         if len(reports) >= need:
-            return _DaySnapshot(c.run_id, build_run_snapshot(reports, rows.keys.dismissed, weights), True)
+            return _DaySnapshot(c.run_id, build_run_snapshot(reports, is_hidden, weights), True)
     return None
 
 
@@ -167,7 +176,9 @@ def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
     by_day, need = _full_by_day(candidates)
     keys = _cache_keys(rows, by_day)
     cached = _cached_snapshots(rows.project, keys)
-    picked = {day: got for day, group in by_day.items() if (got := _day_snapshot(rows, group, cached, need)) is not None}
+    is_hidden = _hidden_predicate(rows)
+    picked = {day: got for day, group in by_day.items()
+              if (got := _day_snapshot(rows, group, cached, need, is_hidden)) is not None}
     kept = {p.run_id for p in picked.values() if p.run_id in keys}
     fresh = {p.run_id: (keys[p.run_id], p.snapshot.to_json()) for p in picked.values() if p.built_now and p.run_id in keys}
     save_map_snapshot_payloads(rows.project, fresh, kept)

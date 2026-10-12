@@ -191,3 +191,24 @@ def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier
     out = build_map_history(env, "proj")
     assert list(out.days) == ["2026-09-01", "2026-09-08"]
     assert "x/morning.py" in out.file_names and "x/evening.py" not in out.file_names
+
+
+def _latest_files(env) -> dict[str, int]:
+    out = build_map_history(env, "proj")
+    return {out.file_names[r.file]: r.violations for r in out.frames[-1].files}
+
+
+def test_dismissed_deleted_and_rule_hidden_findings_do_not_count(env):
+    from quodeq.services.deleted import delete_finding
+    from quodeq.services.dismissed import dismiss_finding
+    p = env / "proj"
+    gone = {"dismissed.py": "R1", "deleted.py": "R2", "ruled.py": "R3", "kept.py": "R4"}
+    _run(p, "r1", "2026-09-01", {"security": [
+        {**_violation(f"x/{name}", req=req, snip=f"{req}()"), "principle": "Secure Design"}
+        for name, req in gone.items()]})
+    assert set(_latest_files(env)) == {f"x/{name}" for name in gone}
+    dismiss_finding(p, {"req": "R1", "file": "x/dismissed.py", "line": 1, "snippet": "R1()"})
+    delete_finding(p, {"dimension": "security", "principle": "Secure Design", "file": "x/deleted.py"})
+    (p / "suppression_rules.json").write_text(json.dumps(
+        {"version": 1, "rules": [{"req": "R3", "file": "x/*", "reason": "fixture"}]}))
+    assert _latest_files(env) == {"x/kept.py": 1}

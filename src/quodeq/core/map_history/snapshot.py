@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 
-from quodeq.core.dismissals import DismissedKeys
 from quodeq.core.run_diff import identity
 from quodeq.core.scoring.constants import SEVERITY_WEIGHT
 from quodeq.core.types.severity import Severity
@@ -21,6 +20,9 @@ _SEVERITIES = (Severity.CRITICAL, Severity.MAJOR, Severity.MINOR)
 _FALLBACK_SEVERITY = Severity.MINOR
 # Bytes of hash kept per finding identity: plenty to tell findings apart within one file.
 _ID_BYTES = 6
+
+# ``(dimension, violation) -> True`` when the app hides that violation (dismissed, deleted or rule-matched).
+HiddenPredicate = Callable[[str, dict], bool]
 
 
 @dataclass(frozen=True)
@@ -101,17 +103,11 @@ def _severity(violation: dict, weights: Mapping[str, float]) -> str:
     return sev if sev in weights and sev in _SEVERITIES else _FALLBACK_SEVERITY
 
 
-def _is_dismissed(finding: dict, dismissed: DismissedKeys) -> bool:
-    """True when the user dismissed *finding*."""
-    return dismissed.matches(req=finding.get("req"), principle=finding.get("principle"), file=str(finding["file"]),
-                             line=finding.get("line"), snippet=finding.get("snippet"))
-
-
-def _add_report(acc: dict[str, _FileTally], dim: str, report: dict, dismissed: DismissedKeys,
+def _add_report(acc: dict[str, _FileTally], dim: str, report: dict, is_hidden: HiddenPredicate,
                 weights: Mapping[str, float]) -> None:
-    """Tally one dimension's report into *acc*."""
+    """Tally one dimension's report into *acc*, skipping the violations *is_hidden* hides."""
     for v in _entries(report, "violations"):
-        if _is_dismissed(v, dismissed):
+        if is_hidden(dim, v):
             continue
         sev = _severity(v, weights)
         tally = acc.setdefault(str(v["file"]), _FileTally())
@@ -126,11 +122,12 @@ def _add_report(acc: dict[str, _FileTally], dim: str, report: dict, dismissed: D
         tally.dims.add(dim)
 
 
-def build_run_snapshot(reports: Iterable[tuple[str, object]], dismissed: DismissedKeys,
+def build_run_snapshot(reports: Iterable[tuple[str, object]], is_hidden: HiddenPredicate,
                        weights: Mapping[str, float] = SEVERITY_WEIGHT) -> RunSnapshot:
     """Per-file stats of one run from its ``(dimension, report)`` pairs.
 
-    *weights* are the grade formula's severity weights (the shipped defaults
+    *is_hidden* is the app's suppression predicate: a violation it hides is
+    not counted (compliance judgments are never hidden). *weights* are the grade formula's severity weights (the shipped defaults
     when the caller has no formula). Non-dict reports, and non-dict entries
     or entries without a file in a report's lists, are skipped.
     """
@@ -139,5 +136,5 @@ def build_run_snapshot(reports: Iterable[tuple[str, object]], dismissed: Dismiss
     for dim, report in reports:
         if isinstance(report, dict):
             dims.add(dim)
-            _add_report(acc, dim, report, dismissed, weights)
+            _add_report(acc, dim, report, is_hidden, weights)
     return RunSnapshot(tuple(sorted(dims)), {p: t.frozen() for p, t in acc.items()})
