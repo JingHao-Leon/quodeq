@@ -94,3 +94,13 @@ def test_run_days_are_utc_days(tmp_path, tokyo_clock):
     _commit_file(tmp_path, "late.py", "2026-09-12T23:30:00+00:00")   # 08:30 on the 13th in Tokyo
     _commit_file(tmp_path, "next.py", "2026-09-13T00:30:00+00:00")   # the next UTC day
     assert _between(tmp_path, "2026-09-05", "2026-09-12") == {"late.py": 1}
+
+
+def test_a_project_in_a_repo_subfolder_counts_its_own_paths_relative_to_it(tmp_path):
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "ui" / "src").mkdir(parents=True)
+    (tmp_path / "ui" / "src" / "a.js").write_text("1")
+    (tmp_path / "other.py").write_text("1")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "c", date="2026-09-10T10:00:00+00:00")
+    assert _between(tmp_path / "ui", "2026-09-05", "2026-09-12") == {"src/a.js": 1}

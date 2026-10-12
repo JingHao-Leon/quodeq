@@ -31,16 +31,18 @@ def git_commits_per_transition(repo: Path, days: list[str]) -> list[Counter[str]
     Item ``i`` (from 1) counts the commits from ``days[i-1]`` 00:00 through
     the end of ``days[i]``, both in UTC like the run days themselves (a run's
     day is the UTC date it started), the window one ``--since``/``--until``
-    call per transition would give. Item 0 is empty. None when git is
-    unavailable here.
+    call per transition would give. Item 0 is empty. *repo* may be a
+    subfolder of its repository: git finds the repository, and only that
+    folder's paths count, relative to it like the reports' paths. None when
+    git is unavailable or *repo* is not inside a repository.
     """
-    if not days or not (repo / ".git").exists():
+    if not days:
         return None
     parsed = [date.fromisoformat(d[:ISO_DAY_LEN]) for d in days]
     try:
         out = git_stdout(
-            ["-C", str(repo), "log", "--branches", "--remotes", "--no-merges", "--name-only", "-z", LOG_FORMAT,
-             f"--since={_git_instant(parsed[0])}", f"--until={_git_instant(parsed[-1] + _ONE_DAY)}"],
+            ["-C", str(repo), "log", "--branches", "--remotes", "--no-merges", "--name-only", "--relative", "-z",
+             LOG_FORMAT, f"--since={_git_instant(parsed[0])}", f"--until={_git_instant(parsed[-1] + _ONE_DAY)}"],
             timeout=_TIMEOUT_S)
     except UnicodeDecodeError:
         return None  # a path git cannot hand back as UTF-8: fall back to the estimate
