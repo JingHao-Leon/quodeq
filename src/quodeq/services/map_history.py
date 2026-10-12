@@ -9,12 +9,12 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from quodeq.core.run.state import RunState
 from quodeq.core.map_history.activity import estimate_edits, first_seen_index
 from quodeq.core.map_history.area_metrics import area_metrics_per_run
 from quodeq.core.map_history.areas import assign_areas
 from quodeq.core.map_history.snapshot import RunSnapshot, build_run_snapshot
 from quodeq.services._map_git import git_commits_between
-from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.score_cache import score_cache_version
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.wiring import (
@@ -34,6 +34,15 @@ SNAPSHOT_SHAPE = "1"
 _EMPTY: dict[str, Any] = {"activitySource": "none", "days": [], "fileNames": [], "fileArea": [], "fileTest": [], "frames": []}
 
 
+def _valid_day(day: str) -> bool:
+    """True when *day* is an ISO calendar date; runs without one cannot be placed on the timeline."""
+    try:
+        date.fromisoformat(day)
+    except ValueError:
+        return False
+    return True
+
+
 def _full_runs(rows: ProjectRows) -> list[tuple[str, str, list[tuple[str, object]]]]:
     """Oldest-first ``(day, run_id, reports)`` of full runs, one per day (the last of that day)."""
     candidates = []
@@ -42,7 +51,8 @@ def _full_runs(rows: ProjectRows) -> list[tuple[str, str, list[tuple[str, object
                    if isinstance(data, dict)]
         if reports:
             day = max(str(d.get("date") or run.date_iso or "")[:10] for _, d in reports)
-            candidates.append((day, run.run_id, reports))
+            if _valid_day(day):
+                candidates.append((day, run.run_id, reports))
     if not candidates:
         return []
     usual = Counter(len(r) for _, _, r in candidates).most_common(1)[0][0]
@@ -54,25 +64,39 @@ def _full_runs(rows: ProjectRows) -> list[tuple[str, str, list[tuple[str, object
 
 
 def _snapshots(rows: ProjectRows, runs: list[tuple]) -> list[RunSnapshot]:
-    project_dir = rows.reports_root / rows.project
-    version = score_cache_version(project_dir, rows.params)
-    keys = {run_id: f"{SNAPSHOT_SHAPE}|{version}" for _, run_id, _ in runs}
-    dismissed = dismissed_keys(project_dir)
+    """Per-run snapshots; only finished runs are read from or stored in the cache."""
+    version = score_cache_version(rows.reports_root / rows.project, rows.params)
+    finished = {r.run_id for r in rows.runs if r.status == RunState.DONE}
+    keys = {run_id: f"{SNAPSHOT_SHAPE}|{version}|{','.join(sorted(dim for dim, _ in reports))}"
+            for _, run_id, reports in runs if run_id in finished}
+    dismissed = rows.keys.dismissed
     built: dict[str, RunSnapshot] = {}
     try:
         with open_score_cache() as conn:
             cached = load_map_snapshots(conn, rows.project, keys)
             prune_map_snapshots(conn, rows.project, set(keys))
             for _, run_id, reports in runs:
-                if run_id in cached:
-                    built[run_id] = RunSnapshot.from_json(cached[run_id])
+                if run_id not in keys:
                     continue
-                built[run_id] = build_run_snapshot(reports, dismissed)
-                store_map_snapshot(conn, rows.project, run_id, keys[run_id], built[run_id].to_json())
+                snap = _from_cache(cached.get(run_id))
+                if snap is None:
+                    snap = build_run_snapshot(reports, dismissed)
+                    store_map_snapshot(conn, rows.project, run_id, keys[run_id], snap.to_json())
+                built[run_id] = snap
     except (sqlite3.Error, OSError):
         built.clear()  # the cache is only an accelerator: rebuild every snapshot below
     return [built[run_id] if run_id in built else build_run_snapshot(reports, dismissed)
             for _, run_id, reports in runs]
+
+
+def _from_cache(payload: dict | None) -> RunSnapshot | None:
+    """The snapshot of a cached *payload*, or None when absent or unreadable."""
+    if payload is None:
+        return None
+    try:
+        return RunSnapshot.from_json(payload)
+    except (KeyError, ValueError, TypeError):
+        return None
 
 
 def _violation_ids(snap: RunSnapshot) -> set[str]:
@@ -100,7 +124,7 @@ def build_map_history(reports_root: Path, project: str, *, frames: str = "latest
     """The map history payload (see the plan's payload shape)."""
     if not (reports_root / project).is_dir():
         return dict(_EMPTY)
-    rows = ProjectRows.load(reports_root, project)
+    rows = ProjectRows.load(reports_root, project, run_limit=0)
     runs = _full_runs(rows)
     if not runs:
         return dict(_EMPTY)

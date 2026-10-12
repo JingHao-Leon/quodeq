@@ -80,11 +80,15 @@ class ProjectRows:
     fetcher: _Fetcher
 
     @classmethod
-    def load(cls, reports_root: Path, project: str, deps: ScoringDeps | None = None) -> ProjectRows:
-        """Read the project's runs and suppressions and build its fetcher."""
+    def load(cls, reports_root: Path, project: str, deps: ScoringDeps | None = None,
+             *, run_limit: int | None = None) -> ProjectRows:
+        """Read the project's runs and suppressions and build its fetcher.
+
+        *run_limit* overrides the run listing's default cap (0 lists every run).
+        """
         project_dir = reports_root / project
         params = load_params()
-        runs = list_runs(reports_root, project)
+        runs = list_runs(reports_root, project) if run_limit is None else list_runs(reports_root, project, limit=run_limit)
         keys = SuppressionKeys(dismissed_keys(project_dir), deleted_keys(project_dir))
         return cls(reports_root, project, params, keys, runs, make_row_fetcher(
             reports_root, project, params, runs, deps))

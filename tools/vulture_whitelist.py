@@ -320,12 +320,4 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 _.workflow
 _.run_url
 
-_.prod_files  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.density  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.compliance_rate  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.touched_share  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.change_rate  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.persistent_share  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.need_pct  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
-_.has_history  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
 _.build_map_history  # services/map_history.py: called by the map history API route in a later task of this series; only tests call it so far.
