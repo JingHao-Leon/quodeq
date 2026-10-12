@@ -1887,8 +1887,6 @@
   "violations.dismissTypeConfirm": "Dismiss all",
   "violations.dismissTypeFailed": "Failed to dismiss the type. Please try again.",
   "violations.typeGroupCounts": "{open} open · {closed} closed",
-  "violations.typeMenuAria": "Actions for {req}",
-  "violations.typeMenuGlyph": "⋯",
   "violations.wbDismissRule": "dismiss all {req}",
   "violations.dismissAllProject": "Dismiss all {count} in this project",
   "violations.dismissAllProjectOne": "Dismiss the 1 finding in this project",
