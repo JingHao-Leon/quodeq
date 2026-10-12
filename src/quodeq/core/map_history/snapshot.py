@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 from quodeq.core.run_diff import identity
 from quodeq.core.scoring.constants import SEVERITY_WEIGHT
-from quodeq.core.types.severity import Severity
+from quodeq.core.types.severity import Severity, parse_severity
 
 # Verdict codes inside a finding identity ("<dimension>:<verdict>:<hash>"); they are baked into cached ids.
 VIOLATION = "v"
@@ -108,8 +108,13 @@ def _entries(report: dict, key: str) -> list[dict]:
 
 
 def _severity(violation: dict, weights: Mapping[str, float]) -> str:
-    """The tallied severity of *violation*: its own when weighted and known, else the fallback."""
-    sev = violation.get("severity")
+    """The tallied severity of *violation*: its own when weighted and known, else the fallback.
+
+    Read leniently like the rest of the app (``parse_severity``); a value that
+    is not a string at all (model output gone wrong) is the fallback too.
+    """
+    raw = violation.get("severity")
+    sev = parse_severity(raw, _FALLBACK_SEVERITY) if isinstance(raw, str) else _FALLBACK_SEVERITY
     return sev if sev in weights and sev in _SEVERITIES else _FALLBACK_SEVERITY
 
 

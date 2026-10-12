@@ -57,3 +57,10 @@ def test_non_dict_entries_in_a_reports_lists_are_skipped():
 def test_weights_come_from_the_caller():
     snap = build_run_snapshot(_reports(), _never, {"critical": 10.0, "major": 1.0, "minor": 0.5})
     assert snap.files["a.py"].weight == 10.5
+
+
+def test_a_non_string_severity_counts_as_minor():
+    reports = [("security", {"violations": [{**_violation("a.py", "major"), "severity": ["major"]},
+                                            {**_violation("b.py", "major"), "severity": {"x": 1}}]})]
+    snap = build_run_snapshot(reports, _never)
+    assert (snap.files["a.py"].minor, snap.files["b.py"].minor) == (1, 1)
