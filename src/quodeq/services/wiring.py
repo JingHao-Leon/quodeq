@@ -14,7 +14,7 @@ from __future__ import annotations
 
 # Per-project JSON artifacts: repository_info.json, scan.json.
 from quodeq.data.fs.project_files import (  # noqa: F401
-    list_project_dirs,
+    list_project_dirs, project_dir_exists,
     read_repository_info,
     read_scan_json,
     read_scan_total_files,
@@ -91,7 +91,7 @@ from quodeq.data.fs.stream_files import (  # noqa: F401
 # Legacy per-run evaluation/*.json finding details (SQL twin:
 # quodeq.data.sqlite.findings_queries.read_finding_details).
 from quodeq.data.fs.report_parser.finding_details import (  # noqa: F401
-    iter_eval_reports,
+    eval_report_dimensions, iter_eval_reports,
     iter_readable_eval_reports,
     read_eval_report,
     read_finding_details_from_json_eval,
@@ -245,7 +245,7 @@ from quodeq.data.sqlite.score_cache_db import (  # noqa: F401
 )
 from quodeq.data.sqlite.score_cache_rows import row_dimension, scalar_dimension  # noqa: F401
 from quodeq.data.sqlite.score_cache_store import (  # noqa: F401
-    load_run_changes,
+    load_map_snapshots, load_run_changes,
     load_run_key_sets,
     prune_run_changes,
     read_all_cached_rows,
@@ -253,7 +253,7 @@ from quodeq.data.sqlite.score_cache_store import (  # noqa: F401
     read_cached_rows,
     read_last_project_summary_cached,
     read_project_summary_or_last,
-    store_run_change,
+    save_map_snapshots, store_run_change,
     store_run_keys,
     write_cached_project_summary,
     write_cached_rows,
