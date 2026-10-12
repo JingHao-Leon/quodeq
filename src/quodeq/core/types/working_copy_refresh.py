@@ -20,5 +20,7 @@ class RefreshOutcome(StrEnum):
     BUSY = "busy"
     DIRTY = "dirty"
     NO_UPSTREAM = "no_upstream"
+    # The tracked branch was deleted or renamed on origin.
+    UPSTREAM_GONE = "upstream_gone"
     DIVERGED = "diverged"
     FETCH_FAILED = "fetch_failed"

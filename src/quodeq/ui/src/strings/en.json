@@ -1297,6 +1297,7 @@
   "projects.refreshErrorGeneric": "Could not update the code.",
   "projects.refreshErrorNoUpstream": "The checked-out branch does not track a branch on origin.",
   "projects.refreshErrorNotRefreshable": "This project has no git remote to update from.",
+  "projects.refreshErrorUpstreamGone": "The tracked branch no longer exists on origin. Switch branches with git yourself.",
   "projects.refreshUpToDate": "Already up to date.",
   "projects.refreshUpdated": "Updated to the latest code.",
   "projects.refreshUpdatedMany": "Updated, {count} new commits.",

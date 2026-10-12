@@ -19,6 +19,7 @@ _REFUSALS: dict[RefreshOutcome, tuple[HTTPStatus, str]] = {
     RefreshOutcome.BUSY: (HTTPStatus.CONFLICT, "This project is being evaluated or updated. Try again when it finishes."),
     RefreshOutcome.DIRTY: (HTTPStatus.CONFLICT, "This folder has uncommitted changes. Update it with git yourself."),
     RefreshOutcome.NO_UPSTREAM: (HTTPStatus.CONFLICT, "The checked-out branch does not track a branch on origin."),
+    RefreshOutcome.UPSTREAM_GONE: (HTTPStatus.CONFLICT, "The tracked branch no longer exists on origin. Switch branches with git yourself."),
     RefreshOutcome.DIVERGED: (HTTPStatus.CONFLICT, "Local and remote history have diverged. Update it with git yourself."),
     RefreshOutcome.FETCH_FAILED: (HTTPStatus.BAD_GATEWAY, "Could not fetch from the remote."),
 }
