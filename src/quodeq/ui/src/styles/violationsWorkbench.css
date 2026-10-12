@@ -61,3 +61,16 @@
 .wb-tag { margin-right: 8px; padding: 0 5px; border: 1px solid var(--color-border); border-radius: var(--term-radius); }
 .wb-more { width: 100%; padding: 10px 14px; border: 0; background: none; font: inherit; font-size: 11px; color: var(--color-text-muted); cursor: pointer; text-align: left; }
 .wb-more:hover { color: var(--color-text); }
+.wb .qd-cards-panel > .wb-detail__body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px; }
+.wb-where { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; }
+.wb-muted { color: var(--color-text-muted); }
+.wb-dismissed { font-size: 11px; color: var(--color-text-muted); }
+.wb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wb-actions__right { margin-left: auto; }
+.wb-detail .vdetail-row { margin: 0; }
+@media (max-width: 900px) {
+  .wb-split { display: flex; flex-direction: column; height: auto; }
+  .wb-split > .wb-detail { order: 1; }
+  .wb-split > .wb-listpanel { order: 2; }
+  .wb .qd-cards-panel > .wb-list { max-height: 420px; }
+}
