@@ -327,3 +327,5 @@ _.build_run_snapshot
 # core/map_history/activity.py: consumed by the map-history builder in a later task of this series; only tests call it so far.
 _.estimate_edits
 _.first_seen_index
+# services/_map_git.py: consumed by the map-history builder in a later task of this series; only tests call it so far.
+_.git_commits_between
