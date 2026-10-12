@@ -319,3 +319,6 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 # JSON (to_dict / to_camel_dict); the dashboard reads them by key.
 _.workflow
 _.run_url
+
+# core/map_history/areas.py: consumed by the map-history builder in a later task of this series; only tests call it so far.
+_.assign_areas
