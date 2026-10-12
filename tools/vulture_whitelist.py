@@ -322,3 +322,5 @@ _.run_url
 
 # core/map_history/areas.py: consumed by the map-history builder in a later task of this series; only tests call it so far.
 _.assign_areas
+# core/map_history/snapshot.py: consumed by the map-history builder in a later task of this series; only tests call it so far.
+_.build_run_snapshot
