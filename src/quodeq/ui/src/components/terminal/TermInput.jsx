@@ -12,6 +12,8 @@ import { KEY } from '../../vocab/keyboard.js';
  * @param {(next: string) => void} props.onChange
  * @param {() => void} [props.onSubmit]
  * @param {(e: KeyboardEvent) => void} [props.onKeyDown]  Extra key handler, run before Enter submits.
+ * @param {(e: FocusEvent) => void} [props.onBlur]
+ * @param {string}  [props.activeDescendant]  id of the active option of a list the input drives (aria-activedescendant).
  * @param {string}  [props.id]
  * @param {string}  [props.name]
  * @param {string}  [props.ariaLabel]
@@ -25,6 +27,8 @@ export default function TermInput({
   onChange,
   onSubmit,
   onKeyDown,
+  onBlur,
+  activeDescendant,
   id,
   name,
   ariaLabel,
@@ -40,10 +44,12 @@ export default function TermInput({
         id={id}
         name={name}
         aria-label={ariaLabel || command || 'input'}
+        aria-activedescendant={activeDescendant || undefined}
         placeholder={placeholder}
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         onKeyDown={(e) => {
           if (onKeyDown) onKeyDown(e);
           if (e.key === KEY.ENTER && onSubmit) onSubmit();

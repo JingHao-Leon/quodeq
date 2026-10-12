@@ -30,7 +30,7 @@ export default function WorkbenchMenu(props) {
   const pick = (v) => { pop.close(); onPick(v); };
   return (
     <LauncherRoot>
-      <LauncherButton btnRef={pop.btnRef} open={pop.open} ariaLabel={label} label={caption} onToggle={pop.toggle} />
+      <LauncherButton btnRef={pop.btnRef} open={pop.open} ariaLabel={caption} label={caption} onToggle={pop.toggle} />
       {pop.open && pop.pos && (
         <LauncherMenu menuRef={pop.menuRef} pos={pop.pos}>
           <Options options={props.options} value={props.value} label={label} onPick={pick} />

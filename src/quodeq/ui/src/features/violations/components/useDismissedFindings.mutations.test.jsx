@@ -225,7 +225,7 @@ describe('useDismissedFindings — handleDeleteAll', () => {
       variant: 'danger',
       title: 'Delete dismissed findings?',
       confirmLabel: 'Delete',
-      message: expect.stringContaining('permanently delete those 2 findings'),
+      message: expect.stringContaining('permanently delete all 2 dismissed findings in this project'),
     }));
     expect(deleteAllFindings).toHaveBeenCalledWith('proj');
     expect(restoreAllFindings).not.toHaveBeenCalled();

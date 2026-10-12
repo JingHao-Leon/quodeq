@@ -69,13 +69,13 @@ export default function FindingList({ groups, browse, selectedId, onSelect, show
   const ref = useSelectedInView(selectedId);
   const rows = groups.reduce((n, g) => n + g.items.length, 0);
   return (
-    <section className="qd-cards-panel wb-panel wb-listpanel">
+    <section className="qd-cards-panel wb-panel wb-listpanel" aria-label={t('violations.wbListAria')}>
       <div className="qd-cards-panel__head">
         <SectionLabel>{t('violations.wbFindingsLabel', { count: shown })}</SectionLabel>
-        <span className="run-history-panel__stats">{t('violations.wbShownOf', { shown, total })}</span>
+        <span className="run-history-panel__stats" role="status" aria-live="polite">{t('violations.wbShownOf', { shown, total })}</span>
       </div>
       {browse && <Crumbs dir={browse.dir} onDir={browse.onDir} />}
-      <div className="wb-list" ref={ref} aria-label={t('violations.wbListAria')}>
+      <div className="wb-list" ref={ref}>
         {browse && <FolderRows folders={browse.folders} dir={browse.dir} onDir={browse.onDir} />}
         {shown === 0 && <div className="wb-empty">{t('violations.wbEmpty')}</div>}
         {capGroups(groups, cap).map((g) => (

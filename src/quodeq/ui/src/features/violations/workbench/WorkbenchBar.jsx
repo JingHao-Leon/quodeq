@@ -2,7 +2,7 @@ import { t } from '../../../strings/index.js';
 import { severityLabel } from '../../../strings/labels.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
-import { severityCounts } from './workbenchModel.js';
+import { severityCounts, statusPool } from './workbenchModel.js';
 import WorkbenchMenu from './WorkbenchMenu.jsx';
 import WorkbenchSearch from './WorkbenchSearch.jsx';
 
@@ -55,7 +55,7 @@ function menus({ state, set, dimensions, statusCounts, sev }) {
 
 /** Search, the four filter menus and the path chips above the list. */
 export default function WorkbenchBar({ findings, state, set, addPath, removePath, setPaths, dimensions, statusCounts, inputRef }) {
-  const sev = severityCounts(findings.filter((f) => f.status === FINDING_STATUS.OPEN));
+  const sev = severityCounts(statusPool(findings, state.status));
   return (
     <>
       <div className="wb-bar">

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ViolationsPage from './ViolationsPage.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
@@ -205,7 +205,8 @@ describe('ViolationsPage — findings workbench', () => {
     const onWorkbenchChange = vi.fn();
     renderWorkbench({}, { onWorkbenchChange });
     fireEvent.click(await screen.findByText('Weak hash'));
-    expect(onWorkbenchChange).toHaveBeenCalledWith(expect.objectContaining({ selectedId: expect.stringContaining('src/a.py') }));
+    // The selection reaches the nav entry debounced (one history write per pause, not per click).
+    await waitFor(() => expect(onWorkbenchChange).toHaveBeenCalledWith(expect.objectContaining({ selectedId: expect.stringContaining('src/a.py') })));
   });
 });
 

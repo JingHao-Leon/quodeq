@@ -62,6 +62,16 @@ describe('FindingList', () => {
     expect(screen.getByText('(none)')).toBeInTheDocument();
   });
 
+  it('the shown count is a polite live status; the list area and the crumbs carry their own names', () => {
+    const lvl = folderLevel(findings, 'src/');
+    render(<FindingList {...base} shown={3} total={5} groups={lvl.files} browse={{ dir: 'src/', folders: lvl.folders, onDir: vi.fn() }} />);
+    const status = screen.getByRole('status');
+    expect(status).toHaveTextContent('3 of 5');
+    expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(screen.getByRole('navigation', { name: 'Folder path' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Findings' })).toBeInTheDocument();
+  });
+
   it('sevAbbr maps severities to short words, unknown to empty', () => {
     expect(sevAbbr(SEVERITY.CRITICAL)).toBe('crit');
     expect(sevAbbr(SEVERITY.MAJOR)).toBe('maj');

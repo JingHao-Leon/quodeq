@@ -6,7 +6,7 @@ import FindingDetail from './FindingDetail.jsx';
 import { flattenFindings } from './workbenchModel.js';
 import { makeDims, makeDismissed } from './_workbench.fixtures.js';
 
-vi.mock('./useFindingDetail.js', () => ({ useFindingDetail: (f) => (f ? { ...f.raw, reason: 'Because.', detailDeferred: false } : null) }));
+vi.mock('./useFindingDetail.js', () => ({ useFindingDetail: (f) => (f ? { ...f.raw, reason: 'Because.', confidence: 85, detailDeferred: false } : null) }));
 vi.mock('../../explorer/components/EvalCards.jsx', () => ({
   EvalViolationCard: ({ v, onDismiss }) => (
     <div data-testid="card">{v.reason}{onDismiss && <button type="button" onClick={() => onDismiss(v)}>dismiss</button>}</div>
@@ -24,9 +24,9 @@ describe('FindingDetail', () => {
     const onAddPath = vi.fn();
     render(<FindingDetail finding={pick('Unchecked return')} dims={dims} findings={findings} {...full} onAddPath={onAddPath} />);
     expect(screen.getByTestId('card')).toHaveTextContent('Because.');
-    await userEvent.click(screen.getByRole('button', { name: 'filter to this file' }));
+    await userEvent.click(screen.getByRole('button', { name: 'filter to src/a/b/y.py' }));
     expect(onAddPath).toHaveBeenCalledWith('src/a/b/y.py');
-    await userEvent.click(screen.getByRole('button', { name: 'filter to this folder' }));
+    await userEvent.click(screen.getByRole('button', { name: 'filter to src/a/b/' }));
     expect(onAddPath).toHaveBeenCalledWith('src/a/b/');
   });
 
@@ -43,8 +43,7 @@ describe('FindingDetail', () => {
 
   it('a finding without a file has no path or folder link', () => {
     render(<FindingDetail finding={pick('No file at all')} dims={dims} findings={findings} {...full} />);
-    expect(screen.queryByRole('button', { name: 'filter to this file' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'filter to this folder' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^filter to/ })).toBeNull();
   });
 
   it('a dismissed finding offers restore and delete, not dismiss', async () => {
@@ -62,6 +61,17 @@ describe('FindingDetail', () => {
     expect(screen.queryByTestId('rule-menu')).toBeNull();
   });
 
+  it('confidence reads from the hydrated finding', () => {
+    render(<FindingDetail finding={pick('Key logged')} dims={dims} findings={findings} {...full} />);
+    expect(screen.getByText('confidence 85%')).toBeInTheDocument();
+  });
+
+  it('a finding with no run offers no dismiss-by-rule menu', () => {
+    render(<FindingDetail finding={{ ...pick('Key logged'), runId: null }} dims={dims} findings={findings} {...full} />);
+    expect(screen.queryByTestId('rule-menu')).toBeNull();
+    expect(screen.getByRole('button', { name: 'dismiss' })).toBeInTheDocument();
+  });
+
   it('nothing selected asks for a pick', () => {
     render(<FindingDetail finding={null} dims={dims} findings={findings} {...full} />);
     expect(screen.getByText('pick a finding')).toBeInTheDocument();
@@ -69,7 +79,7 @@ describe('FindingDetail', () => {
 
   it('without onAddPath the file and folder are plain text', () => {
     render(<FindingDetail finding={pick('Unchecked return')} dims={dims} findings={findings} {...full} onAddPath={undefined} />);
-    expect(screen.queryByRole('button', { name: 'filter to this file' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^filter to/ })).toBeNull();
     expect(screen.getByText('in src/a/b/')).toBeInTheDocument();
   });
 });

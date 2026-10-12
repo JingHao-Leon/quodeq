@@ -55,9 +55,9 @@ describe('ViolationsPage — dismissed findings in the workbench', () => {
 
   it('restore all goes to the page\'s bulk handler', async () => {
     renderDismissed('local');
-    fireEvent.click(await screen.findByRole('button', { name: 'restore all 2' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'restore all 2 in project' }));
     expect(pageState.handleRestoreAll).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'delete all 2' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'delete all 2 in project' })).toBeInTheDocument();
   });
 
   it('a shared project lists the dismissed findings with no restore, delete or bulk action', async () => {
@@ -67,8 +67,8 @@ describe('ViolationsPage — dismissed findings in the workbench', () => {
     expect(list).toHaveTextContent('Old B');
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'restore all 2' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'delete all 2' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'restore all 2 in project' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'delete all 2 in project' })).toBeNull();
   });
 
   it('open file shows only for a dismissed finding whose file still has an open finding', async () => {

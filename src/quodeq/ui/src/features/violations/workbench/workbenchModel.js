@@ -38,15 +38,35 @@ function withIds(findings) {
   });
 }
 
-/** Open findings of `dims` plus the `dismissed` records, most severe first. */
+// A dismissed record without a dimension covers its place in every dimension.
+const ANY_DIMENSION = '*';
+const placeOf = (dimension, f) => [dimension, f.req, f.file, f.line].join('|');
+
+/** True when a dismissed record sits where `f` does (its dimension when it names one, rule, file, line). */
+function coveredBy(closed) {
+  const places = new Set(closed.map((c) => placeOf(c.dimension || ANY_DIMENSION, c)));
+  return (f) => places.has(placeOf(f.dimension, f)) || places.has(placeOf(ANY_DIMENSION, f));
+}
+
+/**
+ * Open findings of `dims` plus the `dismissed` records, most severe first. An
+ * open finding a dismissed record covers is left out: the dismiss lands in
+ * the dismissed list at once, the open payload only on the next refetch.
+ */
 export function flattenFindings(dims, dismissed) {
-  const open = (dims || []).flatMap((d) => (d.violations || []).map((raw) => toFinding(raw, {
-    status: FINDING_STATUS.OPEN, dimension: d.dimension, runId: d.fromRunId ?? null,
-  })));
   const closed = (dismissed || []).map((raw) => toFinding(raw, {
     status: FINDING_STATUS.DISMISSED, dimension: raw.dimension || '', runId: null,
   }));
+  const covered = coveredBy(closed);
+  const open = (dims || []).flatMap((d) => (d.violations || []).map((raw) => toFinding(raw, {
+    status: FINDING_STATUS.OPEN, dimension: d.dimension, runId: d.fromRunId ?? null,
+  }))).filter((f) => !covered(f));
   return withIds([...open, ...closed].sort(bySeverityThenTitle));
+}
+
+/** The findings in `status` (every one for all): what `N of M` and the severity counts count over. */
+export function statusPool(findings, status) {
+  return status === FINDING_STATUS.ALL ? findings : findings.filter((f) => f.status === status);
 }
 
 const underPath = (file, path) => (path.endsWith(FOLDER_SUFFIX) ? file.startsWith(path) : file === path);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
-import { applyFilters, flattenFindings, groupFindings, severityCounts } from './workbenchModel.js';
+import { applyFilters, flattenFindings, groupFindings, severityCounts, statusPool } from './workbenchModel.js';
 import { makeDims, makeDismissed } from './_workbench.fixtures.js';
 
 const all = () => flattenFindings(makeDims(), makeDismissed());
@@ -21,6 +21,22 @@ test('flattenFindings: identical findings still get distinct ids', () => {
   dims[0].violations.push({ ...dims[0].violations[0] });
   const ids = flattenFindings(dims, []).map((f) => f.id);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test('flattenFindings: an open finding a dismissed record covers (same dimension, rule, file, line) is left out', () => {
+  const rec = { title: 'Missing null guard', severity: 'major', file: 'src/a/x.py', line: 10, req: 'R-FT-2', dimension: 'reliability' };
+  const titled = (dismissed) => flattenFindings(makeDims(), dismissed).filter((f) => f.title === 'Missing null guard').map((f) => f.status);
+  assert.deepEqual(titled([rec]), [FINDING_STATUS.DISMISSED]);
+  assert.deepEqual(titled([{ ...rec, dimension: undefined }]), [FINDING_STATUS.DISMISSED]);
+  assert.deepEqual(titled([{ ...rec, dimension: 'security' }]).sort(), [FINDING_STATUS.DISMISSED, FINDING_STATUS.OPEN]);
+  const noFile = { title: 'No file at all', severity: 'minor', file: '', req: 'S-INT-1', dimension: 'security' };
+  assert.equal(flattenFindings(makeDims(), [noFile]).filter((f) => f.status === FINDING_STATUS.OPEN).length, 4);
+});
+
+test('statusPool: the findings in the chosen status, every one for all', () => {
+  assert.equal(statusPool(all(), FINDING_STATUS.OPEN).length, 5);
+  assert.equal(statusPool(all(), FINDING_STATUS.DISMISSED).length, 1);
+  assert.equal(statusPool(all(), FINDING_STATUS.ALL).length, 6);
 });
 
 test('applyFilters: text matches title, path, rule id and principle, case-insensitive', () => {

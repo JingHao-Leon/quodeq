@@ -22,18 +22,17 @@ function PathLink({ label, onPick, muted, children }) {
   );
 }
 
-function Where({ finding, onAddPath }) {
+function Where({ finding, confidence, onAddPath }) {
   const folder = parentFolder(finding.file);
-  const confidence = finding.raw.confidence;
   return (
     <div className="wb-where">
       {finding.file && (
-        <PathLink label={t('violations.wbFilterFile')} onPick={onAddPath && (() => onAddPath(finding.file))}>
+        <PathLink label={t('violations.wbFilterFileNamed', { path: finding.file })} onPick={onAddPath && (() => onAddPath(finding.file))}>
           {finding.line != null ? t('violations.wbFileLine', { file: finding.file, line: finding.line }) : finding.file}
         </PathLink>
       )}
       {folder && (
-        <PathLink muted label={t('violations.wbFilterFolder')} onPick={onAddPath && (() => onAddPath(folder))}>
+        <PathLink muted label={t('violations.wbFilterFolderNamed', { folder })} onPick={onAddPath && (() => onAddPath(folder))}>
           {t('violations.wbInFolder', { folder })}
         </PathLink>
       )}
@@ -70,12 +69,12 @@ export default function FindingDetail({ finding, dims, findings, onAddPath, onOp
         <span className="run-history-panel__stats">{[finding.dimension, finding.principle].filter(Boolean).join(t('violations.wbDot'))}</span>
       </div>
       <div className="wb-detail__body">
-        <Where finding={finding} onAddPath={onAddPath} />
+        <Where finding={finding} confidence={violation?.confidence ?? finding.raw.confidence} onAddPath={onAddPath} />
         <EvalViolationCard v={{ ...violation, principle: finding.principle, dimension: finding.dimension }} principle={finding.principle} index={0}
           onDismiss={open && onDismiss ? (v) => onDismiss(v, finding.runId) : undefined} />
         {!open && <DismissedActions finding={finding} onRestore={onRestore} onDelete={onDelete} />}
         <div className="wb-actions">
-          {open && onDismissType && <TypeRowMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
+          {open && onDismissType && finding.runId != null && <TypeRowMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
           {finding.file && onOpenFile && (
             <button type="button" className="eval-pill-btn wb-actions__right" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
           )}

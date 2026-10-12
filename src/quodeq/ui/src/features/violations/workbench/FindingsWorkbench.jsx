@@ -4,9 +4,10 @@
  */
 import { useCallback, useMemo, useRef } from 'react';
 import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
-import { applyFilters, flattenFindings, groupFindings } from './workbenchModel.js';
-import { collapseSingle, folderLevel } from './folderModel.js';
+import { applyFilters, flattenFindings, groupFindings, statusPool } from './workbenchModel.js';
+import { collapseSingle, folderLevel, parentFolder } from './folderModel.js';
 import { useWorkbenchState } from './useWorkbenchState.js';
+import { useSelection } from './useSelection.js';
 import { useWorkbenchKeys } from './useWorkbenchKeys.js';
 import WorkbenchBar from './WorkbenchBar.jsx';
 import FindingList from './FindingList.jsx';
@@ -40,6 +41,21 @@ function useView(all, state) {
   return { list, groups, level, dir, unpathed };
 }
 
+/** True when a filter narrows the list below the whole status: the bulk actions, project-wide, would read as acting on what shows. */
+const isNarrowed = (s) => Boolean(s.q.trim() || s.severity || s.dimension || s.paths.length);
+
+/**
+ * Folder moves and the detail's path links. Browsing folders, a link moves to
+ * the finding's folder (one chip, the current folder); elsewhere it adds a chip.
+ */
+function pathHandlers(wb, unpathed, folders) {
+  const onDir = (d) => wb.setPaths(d ? [collapseSingle(unpathed, d)] : []);
+  const toFolder = (p) => onDir(p.endsWith(FOLDER_END) ? p : (parentFolder(p) || ''));
+  return { onDir, onAddPath: folders ? toFolder : wb.addPath };
+}
+
+const canOpenFile = (f, actions) => Boolean(f && actions.onOpenFile && (!actions.canOpenFile || actions.canOpenFile(f)));
+
 /** The list's filters (not the search text, so typing keeps the scroll) as a string: a new value starts the row cap over. */
 const listKeyOf = (s) => [s.severity, s.dimension, s.status, s.group, ...s.paths].join(KEY_SEP);
 
@@ -51,29 +67,32 @@ export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = 
   const { list, groups, level, dir, unpathed } = useView(all, state);
   const ids = useMemo(() => groups.flatMap((g) => g.items.map((f) => f.id)), [groups]);
   const byId = useMemo(() => new Map(all.map((f) => [f.id, f])), [all]);
-  const selectedId = ids.includes(state.selectedId) ? state.selectedId : (ids[0] ?? null);
+  const selectedId = useSelection(ids, state.selectedId);
   const selected = byId.get(selectedId) || null;
   const select = useCallback((id) => set({ selectedId: id }), [set]);
   useWorkbenchKeys({ ids, selectedId, onSelect: select, searchRef });
-  const onDir = (d) => wb.setPaths(d ? [collapseSingle(unpathed, d)] : []);
-  const lineOnly = state.group === FINDING_GROUP.FILE || state.group === FINDING_GROUP.FOLDERS;
+  const folders = state.group === FINDING_GROUP.FOLDERS;
+  const { onDir, onAddPath } = pathHandlers(wb, unpathed, folders);
+  const lineOnly = state.group === FINDING_GROUP.FILE || folders;
   // The dismissed list's first fetch: bars, not a "nothing matches" that reads as "nothing dismissed".
   const waiting = dismissedLoading && state.status === FINDING_STATUS.DISMISSED && !all.some((f) => f.status === FINDING_STATUS.DISMISSED);
-  const canOpen = selected && (!actions.canOpenFile || actions.canOpenFile(selected));
+  const canOpen = canOpenFile(selected, actions);
+  // A pending selection reaches the nav entry before the file page is pushed over it.
+  const openFile = (f) => { wb.flush(); actions.onOpenFile(f); };
   return (
     <div className="wb">
       <WorkbenchBar findings={all} state={state} set={set} addPath={wb.addPath} removePath={wb.removePath} setPaths={wb.setPaths}
         dimensions={openByDimension(all)} statusCounts={statusCountsOf(all, state)} inputRef={searchRef} />
-      {state.status === FINDING_STATUS.DISMISSED && (
+      {state.status === FINDING_STATUS.DISMISSED && !isNarrowed(state) && (
         <DismissedBulk count={all.filter((f) => f.status === FINDING_STATUS.DISMISSED).length}
           onRestoreAll={actions.onRestoreAll} onDeleteAll={actions.onDeleteAll} />
       )}
       {waiting ? <CardListSkeleton rows={3} /> : (
       <div className="wb-split">
         <FindingList key={listKeyOf(state)} groups={groups} browse={level ? { dir, folders: level.folders, onDir } : null}
-          selectedId={selectedId} onSelect={select} shown={list.length} total={all.length} lineOnly={lineOnly} />
-        <FindingDetail finding={selected} dims={dims} findings={all} onAddPath={wb.addPath}
-          onOpenFile={canOpen ? actions.onOpenFile : undefined} onDismiss={actions.onDismiss} onDismissType={actions.onDismissType}
+          selectedId={selectedId} onSelect={select} shown={list.length} total={statusPool(all, state.status).length} lineOnly={lineOnly} />
+        <FindingDetail finding={selected} dims={dims} findings={all} onAddPath={onAddPath}
+          onOpenFile={canOpen ? openFile : undefined} onDismiss={actions.onDismiss} onDismissType={actions.onDismissType}
           onRestore={actions.onRestore} onDelete={actions.onDelete} />
       </div>
       )}

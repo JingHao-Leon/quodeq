@@ -8,7 +8,7 @@ const SEP = '/';
 export function Crumbs({ dir, onDir }) {
   const parts = dir.split(SEP).filter(Boolean);
   return (
-    <nav className="wb-crumbs" aria-label={t('violations.wbListAria')}>
+    <nav className="wb-crumbs" aria-label={t('violations.wbCrumbsAria')}>
       <button type="button" className="wb-link" onClick={() => onDir('')}>{t('violations.wbRoot')}</button>
       {parts.map((name, i) => {
         const path = `${parts.slice(0, i + 1).join(SEP)}${SEP}`;
