@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 from bisect import bisect_left, bisect_right
 from collections import Counter
+from typing import NamedTuple
 
 # The ``--format`` that gives each commit the header ``_HEADER`` parses.
 LOG_FORMAT = "--format=%x01%ct"
@@ -17,9 +18,16 @@ _LIST_SEP = "\n"
 _FIRST_TRANSITION = 1
 
 
-def parse_commit_log(out: str) -> list[tuple[int, list[str]]]:
-    """``(committer time, paths)`` per commit of a ``LOG_FORMAT --name-only -z`` log, in log order."""
-    commits: list[tuple[int, list[str]]] = []
+class Commit(NamedTuple):
+    """One commit of the log: when it was committed and the paths it touched."""
+
+    when: int                   # committer time, epoch seconds
+    paths: tuple[str, ...]
+
+
+def parse_commit_log(out: str) -> list[Commit]:
+    """Every commit of a ``LOG_FORMAT --name-only -z`` log, in log order."""
+    commits: list[tuple[int, list[str]]] = []  # (time, paths) while the paths are still being read
     after_header = False
     for token in out.split(_FIELD_SEP):
         if after_header:
@@ -30,10 +38,10 @@ def parse_commit_log(out: str) -> list[tuple[int, list[str]]]:
             commits.append((int(header.group(1)), []))
         elif token and commits:
             commits[-1][1].append(token)
-    return commits
+    return [Commit(when, tuple(paths)) for when, paths in commits]
 
 
-def commits_per_transition(commits: list[tuple[int, list[str]]], starts: list[int], ends: list[int]) -> list[Counter[str]]:
+def commits_per_transition(commits: list[Commit], starts: list[int], ends: list[int]) -> list[Counter[str]]:
     """Commits per path for each run-to-run transition (item 0 stays empty).
 
     *starts* and *ends* are each run day's first and last instant, ascending.

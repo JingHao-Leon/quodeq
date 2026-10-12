@@ -10,7 +10,7 @@ def _snapshot(weight: float) -> RunSnapshot:
 
 
 def _history(frame_runs):
-    activity = RunActivity("estimated", [Counter(), Counter({"x/a.py": 2})])
+    activity = RunActivity("estimated", (Counter(), Counter({"x/a.py": 2})))
     return assemble_history(["2026-09-01", "2026-09-08"], [_snapshot(2.0), _snapshot(2.004)], activity, frame_runs)
 
 

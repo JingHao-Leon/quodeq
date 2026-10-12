@@ -173,7 +173,7 @@ def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
 def _estimated_activity(snaps: list[RunSnapshot]) -> RunActivity:
     """Edits estimated from finding changes between consecutive runs."""
     return RunActivity(_SOURCE_ESTIMATED,
-                       [Counter()] + [Counter(estimate_edits(snaps[i - 1], s)) for i, s in enumerate(snaps[1:], start=1)])
+                       (Counter(), *(Counter(estimate_edits(snaps[i - 1], s)) for i, s in enumerate(snaps[1:], start=1))))
 
 
 def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot]) -> RunActivity:
@@ -184,7 +184,7 @@ def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot]) -> R
     got = git_commits_per_transition(Path(info["path"]), days) if len(days) > 1 else [Counter()]
     if got is None:
         return _estimated_activity(snaps)
-    return RunActivity(_SOURCE_GIT, [Counter({p: n for p, n in c.items() if p in snaps[i].files}) for i, c in enumerate(got)])
+    return RunActivity(_SOURCE_GIT, tuple(Counter({p: n for p, n in c.items() if p in snaps[i].files}) for i, c in enumerate(got)))
 
 
 def build_map_history(reports_root: Path, project: str, *, frames: str = "latest") -> MapHistory:

@@ -10,6 +10,7 @@ import json
 import logging
 import sqlite3
 from dataclasses import dataclass
+from typing import NamedTuple
 
 _logger = logging.getLogger(__name__)
 
@@ -30,6 +31,14 @@ class RunPayloadTable:
         """Refuse any table outside the fixed allow-list."""
         if self.table not in _TABLES:
             raise ValueError(f"not a per-run payload table: {self.table}")
+
+
+class RunKey(NamedTuple):
+    """Where one run's payload is filed: its project, its run and the cache key it was built under."""
+
+    project: str
+    run_id: str
+    key: str
 
 
 RUN_CHANGE = RunPayloadTable("run_change")
@@ -62,10 +71,9 @@ def store_run_payloads(conn: sqlite3.Connection, table: RunPayloadTable, project
         _logger.warning("%s write failed for %s", table.table, project, exc_info=True)
 
 
-def store_run_payload(conn: sqlite3.Connection, table: RunPayloadTable, row: tuple[str, str, str], payload: dict) -> None:
-    """Persist one run's *payload* under its key; *row* is ``(project, run_id, key)`` (best-effort)."""
-    project, run_id, key = row
-    store_run_payloads(conn, table, project, {run_id: (key, payload)})
+def store_run_payload(conn: sqlite3.Connection, table: RunPayloadTable, row: RunKey, payload: dict) -> None:
+    """Persist one run's *payload* under *row*'s key (best-effort)."""
+    store_run_payloads(conn, table, row.project, {row.run_id: (row.key, payload)})
 
 
 def _chunks(run_ids: list[str]) -> list[list[str]]:

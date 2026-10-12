@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import date
 
 from quodeq.core.map_history.activity import first_seen_index
@@ -23,7 +23,7 @@ def full_run_dimensions(dimension_counts: Iterable[int]) -> int:
     return max(1, usual - FULL_RUN_SLACK)
 
 
-def running_edits(per_transition: list[Counter[str]]) -> list[Counter[str]]:
+def running_edits(per_transition: Sequence[Counter[str]]) -> list[Counter[str]]:
     """Per run, the edits per path summed over every transition up to and including it."""
     out: list[Counter[str]] = []
     running: Counter[str] = Counter()

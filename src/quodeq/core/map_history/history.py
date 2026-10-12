@@ -59,7 +59,7 @@ class RunActivity:
     """Where the edits came from and, per run, the edits per path in the transition into it (run 0: none)."""
 
     source: str
-    per_transition: list[Counter[str]]
+    per_transition: tuple[Counter[str], ...]
 
 
 def _rows(snap: RunSnapshot, index: dict[str, int], edits: tuple[Counter[str], Counter[str]],

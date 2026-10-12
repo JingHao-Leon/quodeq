@@ -5,6 +5,7 @@ from bisect import bisect_left, bisect_right
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from enum import StrEnum
+from typing import NamedTuple
 
 from quodeq.core.map_history.areas import AreaAssignment
 from quodeq.core.map_history.snapshot import RunSnapshot
@@ -29,6 +30,13 @@ class AreaKind(StrEnum):
     WATCH = "watch"       # denser than most, no clear activity pattern
     HEALTHY = "healthy"   # less dense than most
     SMALL = "small"       # too few production files to judge
+
+
+class PathActivity(NamedTuple):
+    """Per path in one run: its edits so far and the age in days of its oldest violation."""
+
+    edits: dict[str, int]
+    ages: dict[str, int]
 
 
 @dataclass(frozen=True)
@@ -99,9 +107,9 @@ def _classify(stats: AreaStats, need: float, rates: list[float]) -> AreaKind:
 
 
 def _area_stats(k: int, area: str, paths: list[str], snap: RunSnapshot, assignments: dict[str, AreaAssignment],
-                activity: tuple[dict[str, int], dict[str, int]]) -> AreaStats:
-    """One area's stats in run *k*; *activity* is ``(edits so far, violation age in days)`` per path."""
-    edits, ages = activity
+                activity: PathActivity) -> AreaStats:
+    """One area's stats in run *k*, given its paths' *activity*."""
+    edits, ages = activity.edits, activity.ages
     prod = [p for p in paths if not assignments[p].is_test] or paths
     viol = sum(snap.files[p].violations for p in prod)
     comp = sum(snap.files[p].compliance for p in prod)
@@ -116,13 +124,13 @@ def _area_stats(k: int, area: str, paths: list[str], snap: RunSnapshot, assignme
 
 
 def _run_stats(k: int, snap: RunSnapshot, assignments: dict[str, AreaAssignment],
-               edits: dict[str, int], ages: dict[str, int]) -> list[AreaStats]:
+               activity: PathActivity) -> list[AreaStats]:
     """Every area's stats in run *k*, areas in first-seen path order; unassigned paths are left out."""
     by: dict[str, list[str]] = defaultdict(list)
     for path in snap.files:
         if path in assignments:
             by[assignments[path].area].append(path)
-    return [_area_stats(k, area, paths, snap, assignments, (edits, ages)) for area, paths in by.items()]
+    return [_area_stats(k, area, paths, snap, assignments, activity) for area, paths in by.items()]
 
 
 @dataclass
@@ -148,7 +156,7 @@ def area_metrics_per_run(snapshots: list[RunSnapshot], assignments: dict[str, Ar
     result: list[list[AreaMetrics]] = []
     smoothing = _Hysteresis()
     for k, snap in enumerate(snapshots):
-        stats = _run_stats(k, snap, assignments, edits[k], ages_days[k])
+        stats = _run_stats(k, snap, assignments, PathActivity(edits[k], ages_days[k]))
         judged = [s for s in stats if s.prod_files >= MIN_PROD_FILES]
         dens = sorted(s.density for s in judged)
         rates = sorted(s.change_rate for s in judged)

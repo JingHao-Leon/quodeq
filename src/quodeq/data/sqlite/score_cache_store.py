@@ -19,7 +19,7 @@ from quodeq.data.sqlite.score_cache_principles import (
     attach_principles, principle_rows, read_principle_rows, write_principle_rows,
 )
 from quodeq.data.sqlite.score_cache_rows import RUN_SCALARS_COLUMNS, dimension_from_row, row_values
-from quodeq.data.sqlite.score_cache_run_payloads import RUN_CHANGE, load_run_payloads, prune_run_payloads, store_run_payload
+from quodeq.data.sqlite.score_cache_run_payloads import RUN_CHANGE, RunKey, load_run_payloads, prune_run_payloads, store_run_payload
 
 _logger = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ def _decode_keys(dj: str, cj: str) -> tuple[set[tuple], set[tuple]] | None:
 
 def store_run_change(conn: sqlite3.Connection, project: str, run_id: str, key: str, payload: dict) -> None:
     """Persist one run's History change data under *key* (best-effort)."""
-    store_run_payload(conn, RUN_CHANGE, (project, run_id, key), payload)
+    store_run_payload(conn, RUN_CHANGE, RunKey(project, run_id, key), payload)
 
 
 def load_run_changes(conn: sqlite3.Connection, project: str, keys: dict[str, str]) -> dict[str, dict]:
