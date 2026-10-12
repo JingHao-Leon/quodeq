@@ -11,6 +11,7 @@ import { KEY } from '../../vocab/keyboard.js';
  * @param {string}  props.value
  * @param {(next: string) => void} props.onChange
  * @param {() => void} [props.onSubmit]
+ * @param {(e: KeyboardEvent) => void} [props.onKeyDown]  Extra key handler, run before Enter submits.
  * @param {string}  [props.id]
  * @param {string}  [props.name]
  * @param {string}  [props.ariaLabel]
@@ -23,6 +24,7 @@ export default function TermInput({
   value,
   onChange,
   onSubmit,
+  onKeyDown,
   id,
   name,
   ariaLabel,
@@ -43,6 +45,7 @@ export default function TermInput({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
+          if (onKeyDown) onKeyDown(e);
           if (e.key === KEY.ENTER && onSubmit) onSubmit();
         }}
         spellCheck={false}
