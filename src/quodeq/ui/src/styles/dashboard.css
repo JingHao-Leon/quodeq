@@ -2630,6 +2630,9 @@
   white-space: nowrap;
 }
 .projects-row__path { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* The branch keeps its width; a long path gives way first. */
+.projects-row__branch { flex-shrink: 0; }
+.projects-row__branch::before { content: "\00B7"; margin-right: 6px; }
 .projects-row--child .projects-row__name { position: relative; padding-left: 20px; }
 .projects-row--child .projects-row__name::before {
   content: "└";

@@ -10,7 +10,8 @@ const EMPTY_CELL = '–';
 
 // The second line under a row's name: the folder (or git URL) for a local
 // project, "remote only" with the publish age for one that lives only on
-// the server. A missing folder says so first, in the warning color.
+// the server. A missing folder says so first, in the warning color; a git
+// checkout ends with its branch (short sha when detached).
 function NameSubline({ entry, project }) {
   if (!entry.local) {
     const rel = relativeTime(entry.shared?.publishedAt);
@@ -21,6 +22,7 @@ function NameSubline({ entry, project }) {
     <small className="projects-row__sub">
       {rowLocation(entry) === ROW_LOCATION.MISSING && <span className="projects-row__warn">{t('projects.pathNotFound')}</span>}
       {path && <span className="projects-row__path">{path}</span>}
+      {project.branch && <span className="projects-row__branch" title={t('projects.branchTitle')}>{project.branch}</span>}
     </small>
   );
 }

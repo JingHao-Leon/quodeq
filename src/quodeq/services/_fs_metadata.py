@@ -24,6 +24,7 @@ from quodeq.services.wiring import RunInfo, load_visible_standard_ids
 from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services._fs_project_primitives import (  # noqa: F401 — re-export
     check_path_exists,
+    checked_out_branch_for,
     extract_project_metadata,
     read_repo_info,
 )

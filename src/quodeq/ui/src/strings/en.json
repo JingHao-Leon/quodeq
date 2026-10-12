@@ -1211,6 +1211,7 @@
   "projects.actionUpdate": "update",
   "projects.addAria": "Add project",
   "projects.addProject": "add project",
+  "projects.branchTitle": "Checked-out branch",
   "projects.colAction": "action",
   "projects.colFiles": "files",
   "projects.colLastRun": "last run",

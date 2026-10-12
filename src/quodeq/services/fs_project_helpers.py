@@ -24,6 +24,7 @@ from quodeq.services.wiring import (
 )
 from quodeq.services._fs_metadata import (
     check_path_exists,
+    checked_out_branch_for,
     extract_project_metadata,
     read_accumulated_summary,
     read_language_stats,
@@ -188,6 +189,7 @@ def build_project_entry(
         latest_done_run_id=latest_done_run_id,
         latest_date=runs[0].date_iso if runs else None,
         path_exists=check_path_exists(meta["path"], meta["location"]),
+        branch=checked_out_branch_for(meta["path"], meta["location"]),
         files_count=files_count,
         latest_grade=latest_grade,
         latest_score=latest_score,
