@@ -1,48 +1,18 @@
 import { useMemo, useState } from 'react';
 import { readVisibleStandardIds } from '../../../utils/visibleStandards.js';
 import { computeSummaryFromDimensions } from '../../../utils/visibleStandardsSummary.js';
-import { writeCachedState } from '../../../utils/pageStateCache.js';
-import { useTabScopedPageState } from '../../../hooks/useTabScopedPageState.js';
 import { useDismissedFindings } from '../components/useDismissedFindings.js';
 
-// This page's pageStateCache scope key.
-const PAGE_STATE_SCOPE = 'violations';
-
 /**
- * Fresh tab click (tabKey changed) drops the cached file-tree path so the
- * user lands at the root, then re-reads the (possibly just-reset) cache.
+ * The Violations page's state: the dismissed findings with their mutation
+ * handlers, the visible dimensions and their rolled-up counts.
  *
  * No data refresh happens here. Mounting the page is not evidence that the
  * dashboard changed: a finished run invalidates the caches itself and
  * staleTime ages the rest out. Marking the dashboard stale on mount made
  * the Overview refetch it on every return from this tab.
- *
- * `cache` is an optional injected page-state cache (see pageStateCache.js);
- * with none given this goes through the module's own free functions (the
- * shared default).
  */
-export function useViolationsTabKeyReset({ tabKey, selectedProject, cache }) {
-  // Round-tripping through a file detail does NOT change tabKey, so the
-  // cache survives unmount and the tree resumes where it was.
-  const cached = useTabScopedPageState({
-    namespace: PAGE_STATE_SCOPE, scope: selectedProject, tabKey, defaults: { fileCurrentPath: '' }, cache,
-  });
-  return cached;
-}
-
-/**
- * The Violations page's dismissed-findings, file-tree path and derived
- * summary state: the visible dimensions, their rolled-up counts, and the
- * currently browsed path (cached per project so a round trip resumes there).
- */
-export function useViolationsData({ accumulatedDimensions, selectedProject, onReconcile, initialFilePath, selectedSource, cache }) {
-  const [fileCurrentPath, _setFileCurrentPath] = useState(initialFilePath);
-  const write = cache ? cache.writeCachedState : writeCachedState;
-  const setFileCurrentPath = (v) => {
-    write(PAGE_STATE_SCOPE, selectedProject, { fileCurrentPath: v });
-    _setFileCurrentPath(v);
-  };
-
+export function useViolationsPageState({ selectedProject, onReconcile, accumulatedDimensions, selectedSource }) {
   const [restoreError, setRestoreError] = useState(null);
   // The dismissed list is a project query: a dismiss made elsewhere prepends
   // its entry to it and the reconcile refetches it (see useDismissedFindings).
@@ -56,55 +26,11 @@ export function useViolationsData({ accumulatedDimensions, selectedProject, onRe
 
   const summary = useMemo(() => computeSummaryFromDimensions(visibleDimensions), [visibleDimensions]);
 
-  const topFilesCount = useMemo(
-    () => countDistinctViolationField(visibleDimensions, 'file'),
-    [visibleDimensions]
-  );
-
-  const uniquePrinciples = useMemo(
-    () => countDistinctViolationField(visibleDimensions, 'principle'),
-    [visibleDimensions]
-  );
-
   return {
     dismissed,
     dismissedLoading,
     handleRestore, handleRestoreAll, handleDelete, handleDeleteAll,
     restoreError, visibleDimensions,
-    summary, topFilesCount, uniquePrinciples,
-    fileCurrentPath, setFileCurrentPath,
+    summary,
   };
-}
-
-/**
- * How many distinct values of `field` the visible dimensions' violations
- * carry. Missing values are dropped rather than counted as one empty group.
- *
- * @param {Array} dimensions
- * @param {string} field Violation field to count distinct values of.
- * @returns {number}
- */
-function countDistinctViolationField(dimensions, field) {
-  const values = dimensions.flatMap((d) => (d.violations || []).map((v) => v[field]));
-  return new Set(values.filter(Boolean)).size;
-}
-
-/**
- * The Violations page's whole state in one call: the tab-key reset runs
- * first, and the cached path it reads back seeds useViolationsData's
- * initialFilePath. Order matters, which is why they are composed here rather
- * than called side by side at the page. `cache` is an optional injected
- * page-state cache; omit it in production, where the page shares the
- * module-level default (see pageStateCache.js).
- */
-export function useViolationsPageState({ tabKey, selectedProject, onReconcile, accumulatedDimensions, selectedSource, cache }) {
-  const cached = useViolationsTabKeyReset({ tabKey, selectedProject, cache });
-  return useViolationsData({
-    accumulatedDimensions,
-    selectedProject,
-    onReconcile,
-    initialFilePath: cached.fileCurrentPath,
-    selectedSource,
-    cache,
-  });
 }

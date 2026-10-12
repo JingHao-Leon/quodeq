@@ -46,12 +46,12 @@ function Banners({ restoreError, dismissError, dismissNotice }) {
   );
 }
 
-export default function ViolationsPage({ data, callbacks, tabKey = 0, workbench = null, onWorkbenchChange }) {
+export default function ViolationsPage({ data, callbacks, workbench = null, onWorkbenchChange }) {
   const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL } = data;
   const { projects = [], projectsLoaded, projectName, loading, isFetching, error } = data;
   const { onNavigate, onReconcile, onRetry } = callbacks;
 
-  const pageState = useViolationsPageState({ tabKey, selectedProject, onReconcile, accumulatedDimensions, selectedSource });
+  const pageState = useViolationsPageState({ selectedProject, onReconcile, accumulatedDimensions, selectedSource });
   const { dismissed, dismissedLoading, restoreError, visibleDimensions, summary } = pageState;
   const { actions, error: dismissError, notice: dismissNotice } = useWorkbenchActions({
     visibleDimensions, selectedProject, selectedSource, callbacks, handlers: pageState,

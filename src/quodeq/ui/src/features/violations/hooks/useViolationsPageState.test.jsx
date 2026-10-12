@@ -1,33 +1,31 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { useViolationsTabKeyReset } from './useViolationsPageState.js';
-import { createPageStateCache, readCachedState, writeCachedState, clearAllCachedState } from '../../../utils/pageStateCache.js';
+import { useViolationsPageState } from './useViolationsPageState.js';
 
-describe('useViolationsTabKeyReset: page-state cache injection', () => {
-  beforeEach(() => clearAllCachedState());
-  afterEach(() => clearAllCachedState());
+vi.mock('../components/useDismissedFindings.js', () => ({
+  useDismissedFindings: () => ({
+    dismissed: [{ id: 'd1' }], loading: false,
+    handleRestore: vi.fn(), handleRestoreAll: vi.fn(), handleDelete: vi.fn(), handleDeleteAll: vi.fn(),
+  }),
+}));
+vi.mock('../../../utils/visibleStandards.js', () => ({ readVisibleStandardIds: () => ['security'] }));
 
-  it('reads from an injected cache and leaves the default (module) cache untouched', () => {
-    const injected = createPageStateCache();
-    injected.writeCachedState('violations', 'proj-x', { fileCurrentPath: 'src/foo' });
+const DIMS = [
+  { dimension: 'security', violations: [{ file: 'a.py', severity: 'major' }] },
+  { dimension: 'perf', violations: [{ file: 'b.py', severity: 'minor' }] },
+];
 
-    const { result } = renderHook(() =>
-      useViolationsTabKeyReset({ tabKey: 0, selectedProject: 'proj-x', cache: injected })
-    );
-
-    expect(result.current.fileCurrentPath).toBe('src/foo');
-    // The default cache never saw this scope: nothing was written there.
-    expect(readCachedState('violations', 'proj-x', { fileCurrentPath: '' }).fileCurrentPath).toBe('');
+describe('useViolationsPageState', () => {
+  it('keeps the visible dimensions and their summary', () => {
+    const { result } = renderHook(() => useViolationsPageState({ selectedProject: 'p', accumulatedDimensions: DIMS }));
+    expect(result.current.visibleDimensions.map((d) => d.dimension)).toEqual(['security']);
+    expect(result.current.summary.totalViolations).toBe(1);
   });
 
-  it('with no cache prop, it still reads from the default (module) cache -- unchanged production behavior', () => {
-    writeCachedState('violations', 'proj-y', { fileCurrentPath: 'src/bar' });
-
-    const { result } = renderHook(() =>
-      useViolationsTabKeyReset({ tabKey: 0, selectedProject: 'proj-y' })
-    );
-
-    expect(result.current.fileCurrentPath).toBe('src/bar');
-    expect(readCachedState('violations', 'proj-y', {}).fileCurrentPath).toBe('src/bar');
+  it('carries the dismissed list and no file-tree state', () => {
+    const { result } = renderHook(() => useViolationsPageState({ selectedProject: 'p', accumulatedDimensions: DIMS }));
+    expect(result.current.dismissed).toEqual([{ id: 'd1' }]);
+    expect(result.current).not.toHaveProperty('fileCurrentPath');
+    expect(result.current).not.toHaveProperty('topFilesCount');
   });
 });
