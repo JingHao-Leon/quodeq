@@ -39,17 +39,23 @@ class AreaMetrics:
     has_history: bool
 
 
-def _pct(values: list[float], v: float) -> float:
-    return sum(1 for x in values if x <= v) / max(1, len(values))
+def _midrank(values: list[float], v: float) -> float:
+    """Share below v plus half the ties."""
+    return (sum(1 for x in values if x < v) + 0.5 * sum(1 for x in values if x == v)) / max(1, len(values))
+
+
+def _need(values: list[float], v: float) -> float:
+    """Density rank; a clean area (density 0) never ranks above 0, however many others are clean."""
+    return 0.0 if v <= 0 else _midrank(values, v)
 
 
 def _classify(m: dict, dens: list[float], rates: list[float]) -> str:
-    need = _pct(dens, m["density"])
+    need = _need(dens, m["density"])
     if m["prod_files"] < MIN_PROD_FILES:
         return "small"
     if not m["has_history"]:
         return "healthy" if need < HEALTHY_NEED_PCT else "watch"
-    act = _pct(rates, m["change_rate"])
+    act = _midrank(rates, m["change_rate"])
     if need >= HOT_NEED_PCT and act >= HOT_ACT_PCT and m["change_rate"] > 0 and m["density"] >= FLOOR_HOTSPOT:
         return "hotspot"
     if need >= DORMANT_NEED_PCT and m["touched_share"] <= DORMANT_MAX_TOUCHED and m["density"] >= FLOOR_DORMANT:
@@ -100,6 +106,6 @@ def area_metrics_per_run(snapshots: list[RunSnapshot], assignments: dict[str, Ar
                 pending.pop(name, None)
             else:
                 pending[name] = raw
-            run.append(AreaMetrics(need_pct=round(_pct(dens, r["density"]), 3), kind=settled[name], raw_kind=raw, **r))
+            run.append(AreaMetrics(need_pct=round(_need(dens, r["density"]), 3), kind=settled[name], raw_kind=raw, **r))
         result.append(run)
     return result

@@ -42,3 +42,13 @@ def test_kind_changes_only_after_two_runs_agree():
     per_run = area_metrics_per_run(snaps, _assign(), edits, [{}] * 6)
     hot = [next(m for m in run if m.area == "hot") for run in per_run]
     assert hot[-1].kind == hot[-2].kind
+
+
+def test_clean_majority_is_healthy_and_dirty_one_dormant():
+    files = {f"a{a}/f{i}.py": FileStat(compliance=3) for a in range(4) for i in range(4)}
+    files.update({f"dirty/f{i}.py": FileStat(major=1, weight=2.0) for i in range(4)})
+    assign = {p: AreaAssignment(p.split("/")[0], "shared", False) for p in files}
+    snaps = [RunSnapshot(("sec",), files)] * 6
+    last = {m.area: m for m in area_metrics_per_run(snaps, assign, [{}] * 6, [{}] * 6)[-1]}
+    assert all(last[f"a{a}"].kind == "healthy" for a in range(4))
+    assert last["dirty"].kind == "dormant"
