@@ -201,8 +201,7 @@ class EvaluationsIndex:
 
         db = self._open_index()
         try:
-            with db:
-                return force_promote_to_cancelled_stale(db, job_id, run_dir=run_dir)
+            return force_promote_to_cancelled_stale(db, job_id, run_dir=run_dir)
         finally:
             db.close()
 

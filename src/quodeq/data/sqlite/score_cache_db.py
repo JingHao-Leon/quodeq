@@ -163,6 +163,21 @@ def _connection(path: Path) -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
+def rollback_quietly(conn: sqlite3.Connection) -> None:
+    """Undo a half-done best-effort write.
+
+    The writes delete before they insert; a failed insert would otherwise
+    leave that delete open on a session's shared connection, to be committed
+    by the next write with the rows gone.
+    """
+    try:
+        conn.rollback()
+    except sqlite3.Error:
+        # A rollback that fails means the connection itself is gone (closed,
+        # file vanished); the write's own warning already said so.
+        _logger.debug("score cache rollback failed", exc_info=True)
+
+
 @contextmanager
 def open_score_cache() -> Iterator[sqlite3.Connection]:
     """Open the score cache DB (WAL). Rebuilds from scratch if corrupt/older-schema.

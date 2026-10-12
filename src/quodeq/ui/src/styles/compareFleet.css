@@ -143,6 +143,8 @@
 .compare-dirmap__corner--watch { fill: var(--color-text); opacity: 0.75; }
 .compare-dirmap__corner--act { fill: var(--color-danger); opacity: 1; }
 .compare-dirmap__pt { cursor: pointer; }
+.compare-dirmap__pt:focus { outline: none; }
+.compare-dirmap__pt:focus-visible .compare-dirmap__dot { stroke: var(--color-accent); stroke-width: 2.5; }
 .compare-dirmap__pt.is-dim { opacity: 0.25; }
 .compare-dirmap__dot { fill: var(--dot); fill-opacity: 0.9; stroke: var(--color-surface); stroke-width: 1.5; }
 .compare-dirmap__pt.is-still .compare-dirmap__dot { fill: none; stroke: var(--dot); stroke-width: 1.8; }

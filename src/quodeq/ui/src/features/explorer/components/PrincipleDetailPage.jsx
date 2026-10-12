@@ -126,33 +126,30 @@ function renderPrincipleItem(item, { principle, cardDismiss }) {
 }
 
 /** Header, context blurb, severity filter pills, and the deferred
- * virtualized item list. */
-function PrincipleDetailBody({
-  principle, principleDescription, liveScore, score, liveGrade, grade, confidence, filteredViolations, compliance,
-  liveSevCounts, dateLabel, runId, principleData, activeSevFilter, setActiveSevFilter, items, virtualKey,
-  scrollElement, cardDismiss,
-}) {
+ * virtualized item list. `header` is PrincipleHeader's data object (the
+ * live score and grade already folded in); `filter` is the active severity
+ * filter and its setter; `list` is what the virtualizer needs. */
+function PrincipleDetailBody({ header, principleData, filter, list }) {
+  const { principle, violations, compliance, sevCounts } = header;
   return (
     <>
-      <PrincipleHeader
-        data={{ principle, description: principleDescription, score: liveScore ?? score, grade: liveGrade ?? grade, confidence, violations: filteredViolations, compliance, sevCounts: liveSevCounts, dateLabel, runId }}
-      />
+      <PrincipleHeader data={header} />
       <PrincipleContext principleData={principleData} />
-      {(filteredViolations.length > 0 || compliance.length > 0) && (
+      {(violations.length > 0 || compliance.length > 0) && (
         <SeverityFilterPills
-          counts={liveSevCounts}
+          counts={sevCounts}
           complianceCount={compliance.length}
-          activeFilter={activeSevFilter}
-          onFilterChange={setActiveSevFilter}
+          activeFilter={filter.active}
+          onFilterChange={filter.onChange}
         />
       )}
       <DeferredViolationList
-        resetKey={virtualKey}
-        items={items}
-        scrollElement={scrollElement}
+        resetKey={list.virtualKey}
+        items={list.items}
+        scrollElement={list.scrollElement}
         rowHeights={ROW_HEIGHT_PX}
         findingKey={principleFindingKey}
-        renderItem={(item) => renderPrincipleItem(item, { principle, cardDismiss })}
+        renderItem={(item) => renderPrincipleItem(item, { principle, cardDismiss: list.cardDismiss })}
       />
     </>
   );
@@ -196,13 +193,16 @@ export default memo(function PrincipleDetailPage({ evalPrincipal, severityFilter
   // (App.jsx passes onDismiss={undefined}) don't show a button that no-ops.
   const cardDismiss = onDismiss ? handleDismiss : undefined;
 
+  const header = {
+    principle, description: principleDescription, score: liveScore ?? score, grade: liveGrade ?? grade, confidence,
+    violations: filteredViolations, compliance, sevCounts: liveSevCounts, dateLabel, runId,
+  };
   return (
     <PrincipleDetailBody
-      principle={principle} principleDescription={principleDescription} liveScore={liveScore} score={score}
-      liveGrade={liveGrade} grade={grade} confidence={confidence} filteredViolations={filteredViolations} compliance={compliance}
-      liveSevCounts={liveSevCounts} dateLabel={dateLabel} runId={runId} principleData={principleData}
-      activeSevFilter={activeSevFilter} setActiveSevFilter={setActiveSevFilter} items={items}
-      virtualKey={virtualKey} scrollElement={scrollElement} cardDismiss={cardDismiss}
+      header={header}
+      principleData={principleData}
+      filter={{ active: activeSevFilter, onChange: setActiveSevFilter }}
+      list={{ items, virtualKey, scrollElement, cardDismiss }}
     />
   );
 });

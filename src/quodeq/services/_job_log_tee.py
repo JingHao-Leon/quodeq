@@ -104,19 +104,37 @@ def _read_and_tee_loop(
     left in the store) -- the caller must then skip the post-loop drain,
     though its ``finally`` still runs the writer/buffer cleanup.
     """
+    teeing = True
     try:
         for lines in _iter_line_batches(stream):
             if not ctx.flush_batch(job_id, lines):
                 return False
             # Tee after flush so a marker in this batch is already applied
-            # to the job before we try to resolve run_dir. Skip _cc JSON
-            # markers: they are structured IPC, not user-facing terminal
-            # output, and leaking them makes the xterm pane noisy.
-            for stripped in lines:
-                if not stripped.startswith(CC_MARKER_PREFIX):
-                    tee_run_log(job_id, stripped, ctx)
+            # to the job before we try to resolve run_dir.
+            if teeing:
+                teeing = _tee_lines(job_id, lines, ctx)
     except OSError as exc:  # IOError is OSError; BrokenPipeError is a subclass
         ctx.log.warning(f"Stream read error for job {job_id}: {exc}")
+    return True
+
+
+def _tee_lines(job_id: str, lines: list[str], ctx: TeeContext) -> bool:
+    """Tee *lines* to run.log; False once a write failed.
+
+    run.log is a copy of the output, the job's terminal is the output: a
+    disk full or a permission error on the copy must not stop the pipe
+    from being read, which would stall the child on a full pipe. The tee
+    is given up for the rest of the job and said so once. Skips _cc JSON
+    markers: they are structured IPC, not user-facing terminal output, and
+    leaking them makes the xterm pane noisy.
+    """
+    try:
+        for stripped in lines:
+            if not stripped.startswith(CC_MARKER_PREFIX):
+                tee_run_log(job_id, stripped, ctx)
+    except OSError as exc:
+        ctx.log.warning(f"run.log write error for job {job_id}, output is no longer teed: {exc}")
+        return False
     return True
 
 

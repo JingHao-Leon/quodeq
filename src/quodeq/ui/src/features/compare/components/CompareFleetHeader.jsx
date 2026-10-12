@@ -7,17 +7,16 @@ import { nf } from '../compareFormatters.js';
 
 
 /** Title + subtitle, and the header controls: duel/dimension launchers and
- * the scope picker. (Ranking lives in the tables' column headers.) */
+ * the scope picker. (Ranking lives in the tables' column headers.)
+ * `picker` is ScopePicker's props as one object, built by ComparePage. */
 export default function CompareFleetHeader({
-  scopeCount, totalFiles, scoredRows, openDuelPair, openDuel, board, openDimension,
-  rows, scopeIds, toggleProject, selectAll, selectFlagged,
-  pickerOpen, setPickerOpen,
+  picker, totalFiles, scoredRows, openDuelPair, openDuel, board, openDimension,
 }) {
   return (
     <div className="term-page-top compare-page__top">
       <TermHeader
         name={t('compare.title')}
-        sub={t('compare.subtitle', { count: scopeCount, files: nf(totalFiles) })}
+        sub={t('compare.subtitle', { count: picker.scopeCount, files: nf(totalFiles) })}
       />
       <div className="term-page-top__controls">
         {openDuelPair && scoredRows.length >= 2 && (
@@ -26,16 +25,7 @@ export default function CompareFleetHeader({
         {board.length > 0 && (
           <DimensionTrigger board={board} onOpen={openDimension} />
         )}
-        <ScopePicker
-          rows={rows}
-          scopeIds={scopeIds}
-          scopeCount={scopeCount}
-          toggleProject={toggleProject}
-          selectAll={selectAll}
-          selectFlagged={selectFlagged}
-          pickerOpen={pickerOpen}
-          setPickerOpen={setPickerOpen}
-        />
+        <ScopePicker {...picker} />
       </div>
     </div>
   );

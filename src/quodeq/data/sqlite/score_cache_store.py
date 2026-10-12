@@ -13,7 +13,7 @@ import sqlite3
 from dataclasses import dataclass
 
 from quodeq.core.types import DimensionResult
-from quodeq.data.sqlite.score_cache_db import open_score_cache
+from quodeq.data.sqlite.score_cache_db import open_score_cache, rollback_quietly
 from quodeq.data.sqlite.score_cache_principles import (
     attach_principles, principle_rows, read_principle_rows, write_principle_rows,
 )
@@ -64,6 +64,7 @@ def write_cached_rows(
         conn.commit()
     except sqlite3.Error:
         _logger.warning("score cache write failed for %s/%s", project, run_id, exc_info=True)
+        rollback_quietly(conn)
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,7 @@ def _write_payload(
         conn.commit()
     except sqlite3.Error:
         _logger.warning(slot.write_failed_log, project, exc_info=True)
+        rollback_quietly(conn)
 
 
 def read_cached_project_summary(

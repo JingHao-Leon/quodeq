@@ -36,9 +36,10 @@ function buildSharedProps({
   selectFlagged, openDimension, onOpenProjectDimension, onOpenDuel, openProject, now,
 }) {
   return {
-    rows, orderedRows, scopeRows, fleet, board, attention, errorsById,
-    hasCoverage, pickerOpen, setPickerOpen, scopeIds, scopeCount, toggleProject,
-    selectAll, selectFlagged, openDimension,
+    orderedRows, scopeRows, fleet, board, attention, errorsById, hasCoverage, openDimension,
+    // The scope picker's state and actions travel as one object down to
+    // ScopePicker; the fleet view and its header only pass it on.
+    picker: { rows, scopeIds, scopeCount, toggleProject, selectAll, selectFlagged, pickerOpen, setPickerOpen },
     // Expanded-row dimension chips jump to that project's own dimension
     // screen; the compare drill-down stays on the DIMENSIONS panel.
     onOpenProjectDimension,
@@ -158,7 +159,7 @@ function ComparePageBody({ duelView, dimensionView, board, selectedProject, open
         onOpenProject={openProject}
         onOpenPrinciple={openPrinciple}
         onOpenProjectDimension={onOpenProjectDimension}
-        scopeCount={shared.scopeCount}
+        scopeCount={shared.picker.scopeCount}
       />
     );
   }
