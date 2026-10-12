@@ -16,7 +16,7 @@ import { useMemo, useState } from 'react';
 import { t } from '../../../strings/index.js';
 import { buildDimensionAttention } from '../compareModel.js';
 import { ATTENTION_KIND } from '../compareDimensionView.js';
-import CompareDimensionHeader, { DIMENSION_PANEL_ID, dimensionTabId } from './CompareDimensionHeader.jsx';
+import CompareDimensionHeader from './CompareDimensionHeader.jsx';
 import CompareAttentionStrip from './CompareAttentionStrip.jsx';
 import CompareRadarPanel from './CompareRadarPanel.jsx';
 import CompareDimensionKpis from './CompareDimensionKpis.jsx';
@@ -113,7 +113,7 @@ export default function CompareDimensionView({
       <CompareDimensionHeader view={view} board={board} onOpenDimension={onOpenDimension} />
       {/* The header's tabs swap this one region, so it is the tab panel they
           control. The class repeats .compare-page's column rhythm. */}
-      <div id={DIMENSION_PANEL_ID} role="tabpanel" aria-labelledby={dimensionTabId(view.key)} className="compare-dimension-panel">
+      <div className="compare-dimension-panel">
         <CompareDimensionKpis view={view} rows={rows} scopeCount={scopeCount ?? rows.length} />
         <div className="compare-dim__pair">
           <CompareFleetTable

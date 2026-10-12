@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import CompareDimensionHeader, { DIMENSION_PANEL_ID, dimensionTabId } from './CompareDimensionHeader.jsx';
+import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom/vitest';
+import CompareDimensionHeader from './CompareDimensionHeader.jsx';
 
 const board = [
   { key: 'security', label: 'Security' },
@@ -17,32 +19,27 @@ const view = {
   delta: 0.4,
 };
 
+const switcher = () => screen.getByRole('button', { name: 'Switch dimension, Maintainability is open' });
+
 describe('CompareDimensionHeader accessibility (#6521)', () => {
-  it('exposes the dimension switcher as a labelled tablist', () => {
+  it('the switcher is a menu button that names the open dimension in full', () => {
     render(<CompareDimensionHeader view={view} board={board} onOpenDimension={vi.fn()} />);
-    expect(screen.getByRole('tablist', { name: 'Compare dimension' })).toBeInTheDocument();
-    expect(screen.getAllByRole('tab')).toHaveLength(board.length);
+    expect(switcher()).toHaveAttribute('aria-haspopup', 'menu');
+    expect(switcher()).toHaveTextContent('dimension: Maintainability');
   });
 
-  it('marks the open dimension as the selected tab', () => {
+  it('its menu ticks the open dimension and lists the others by full name', async () => {
     render(<CompareDimensionHeader view={view} board={board} onOpenDimension={vi.fn()} />);
-    expect(screen.getByRole('tab', { selected: true })).toHaveTextContent('Maint');
-    expect(screen.getByRole('tab', { name: 'Security' })).toHaveAttribute('aria-selected', 'false');
+    await userEvent.click(switcher());
+    expect(screen.getByRole('menuitemradio', { name: /Maintainability/ })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('menuitemradio', { name: /Security/ })).toHaveAttribute('aria-checked', 'false');
   });
 
-  it('names each tab after the whole dimension, not the truncated label', () => {
-    render(<CompareDimensionHeader view={view} board={board} onOpenDimension={vi.fn()} />);
-    // The visible text is clipped to five characters; the accessible name
-    // must still be the dimension's real name.
-    expect(screen.getByRole('tab', { name: 'Maintainability' })).toHaveTextContent('Maint');
-  });
-
-  it('points every tab at the panel it swaps, and identifies itself', () => {
-    render(<CompareDimensionHeader view={view} board={board} onOpenDimension={vi.fn()} />);
-    const selected = screen.getByRole('tab', { selected: true });
-    expect(selected).toHaveAttribute('id', dimensionTabId('maintainability'));
-    expect(selected).toHaveAttribute('aria-controls', DIMENSION_PANEL_ID);
-    expect(screen.getByRole('tab', { name: 'Security' }))
-      .toHaveAttribute('aria-controls', DIMENSION_PANEL_ID);
+  it('picking a dimension opens it', async () => {
+    const onOpenDimension = vi.fn();
+    render(<CompareDimensionHeader view={view} board={board} onOpenDimension={onOpenDimension} />);
+    await userEvent.click(switcher());
+    await userEvent.click(screen.getByRole('menuitemradio', { name: /Security/ }));
+    expect(onOpenDimension).toHaveBeenCalledWith('security');
   });
 });

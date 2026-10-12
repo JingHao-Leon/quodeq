@@ -17,6 +17,12 @@ test('sortScoreRows: by either side, missing scores last', () => {
   assert.deepEqual(sortScoreRows(rows, TABLE_SORT.NAME).map((r) => r.label), ['x', 'y', 'z']);
 });
 
+test('sortScoreRows: reversed flips the column order, ties stay by name', () => {
+  const rows = [dim('b', 7, 7.5), dim('a', 7, 6.5), dim('c', 8, 5)];
+  assert.deepEqual(sortScoreRows(rows, TABLE_SORT.GAP, true).map((r) => r.label), ['a', 'b', 'c']);
+  assert.deepEqual(sortScoreRows(rows, TABLE_SORT.NAME, true).map((r) => r.label), ['c', 'b', 'a']);
+});
+
 test('scoreAxis: zooms to just under the lowest score and keeps the zones inside it', () => {
   const duel = { dimensions: [dim('s', 5.3, 7)], principles: [{ items: [{ a: 5.1, b: 9.2 }] }] };
   const axis = scoreAxis(duel, TIERS);

@@ -6,7 +6,6 @@
  * overview, one level down.
  */
 import { t } from '../../../strings/index.js';
-import { scoreColorClass } from '../../../utils/formatters.js';
 import { scoreToGradeLabel } from '../../../utils/gradeThresholds.js';
 import CompareDeltaBadge from './CompareDeltaBadge.jsx';
 import { CriticalKpi, Kpi } from './CompareFleetKpis.jsx';
@@ -25,7 +24,6 @@ export default function CompareDimensionKpis({ view, rows, scopeCount }) {
       <Kpi
         label={t('compare.dimKpiScore', { dim })}
         value={score1(k.score)}
-        valueClass={scoreColorClass(k.score)}
         sub={t('compare.dimKpiScoreSub', { grade: scoreToGradeLabel(k.score) || NONE })}
       >
         <CompareDeltaBadge delta={k.delta} />
@@ -33,7 +31,6 @@ export default function CompareDimensionKpis({ view, rows, scopeCount }) {
       <Kpi
         label={t('compare.dimKpiBelow')}
         value={ofTotal(k.below, k.projects)}
-        valueClass={k.below ? 'compare-kpi__value--alarm' : ''}
         sub={t('compare.dimKpiBelowSub')}
       />
       <Kpi label={t('compare.dimKpiCoverage')} value={ofTotal(k.projects, k.scope)} sub={t('compare.dimKpiCoverageSub', { dim })} />

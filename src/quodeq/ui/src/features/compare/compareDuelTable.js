@@ -25,10 +25,14 @@ const COMPARE = Object.freeze({
   [TABLE_SORT.NAME]: (x, y) => x.label.localeCompare(y.label),
 });
 
-/** A sorted copy; ties keep name order so the table never shuffles. */
-export function sortScoreRows(rows, key) {
+/**
+ * A sorted copy; ties keep name order so the table never shuffles.
+ * `reversed` flips the column's own order (a second press on its header).
+ */
+export function sortScoreRows(rows, key, reversed = false) {
   const byName = COMPARE[TABLE_SORT.NAME];
-  return [...rows].sort((x, y) => COMPARE[key](x, y) || byName(x, y));
+  const sign = reversed ? -1 : 1;
+  return [...rows].sort((x, y) => sign * COMPARE[key](x, y) || byName(x, y));
 }
 
 /**
