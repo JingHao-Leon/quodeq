@@ -1,95 +1,79 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { ViolationsSubTabContent } from './ViolationsPage.jsx';
+import ViolationsPage from './ViolationsPage.jsx';
+import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
+
+// The finding card needs the app's side pane; the page under test is the
+// wiring around it, so the card is a stub here.
+vi.mock('../../explorer/components/EvalCards.jsx', () => ({ EvalViolationCard: ({ v }) => <div data-testid="card">{v.title}</div> }));
 
 // Shared projects have no mutation route on the backend (dismiss/restore/
 // delete are local-only by design, and the same project id can exist in both
-// worlds). ViolationsSubTabContent is the App-adjacent wiring point between
-// useDismissedFindings' handlers and DismissedSubTab's action buttons: when
-// selectedSource is 'shared' it must pass undefined instead of the real
-// handlers so the buttons vanish while the dismissed list stays visible.
-const sampleA = { req: 'A1', file: 'a.py', line: 10, severity: 'minor', principle: 'P1' };
-const sampleB = { req: 'B1', file: 'b.py', line: 20, severity: 'major', principle: 'P2' };
+// worlds). The page is the wiring point between useDismissedFindings'
+// handlers and the workbench's actions: for a shared project it passes
+// undefined, so the buttons are absent while the dismissed list stays visible.
+const sampleA = { title: 'Old A', req: 'A1', file: 'a.py', line: 10, severity: 'minor', principle: 'P1', dimension: 'security' };
+const sampleB = { title: 'Old B', req: 'B1', file: 'b.py', line: 20, severity: 'major', principle: 'P2', dimension: 'security' };
 
-function renderDismissedSubTab(selectedSource, overrides = {}) {
-  const handlers = {
-    handleRestore: vi.fn(),
-    handleRestoreAll: vi.fn(),
-    handleDelete: vi.fn(),
-    handleDeleteAll: vi.fn(),
-    ...overrides,
+const pageState = {};
+vi.mock('../hooks/useViolationsPageState.js', () => ({ useViolationsPageState: () => pageState }));
+
+beforeEach(() => {
+  Object.assign(pageState, {
+    dismissed: [sampleA, sampleB], dismissedLoading: false,
+    handleRestore: vi.fn(), handleRestoreAll: vi.fn(), handleDelete: vi.fn(), handleDeleteAll: vi.fn(),
+    restoreError: null, visibleDimensions: [], summary: { totalViolations: 0, severity: {} },
+  });
+});
+
+function renderDismissed(selectedSource) {
+  const QC = withQueryClient();
+  const data = {
+    accumulatedDimensions: [{ dimension: 'security', violations: [], compliance: [] }],
+    selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }], projectsLoaded: true,
+    projectName: 'p1', loading: false, isFetching: false, selectedSource,
   };
-  render(
-    <ViolationsSubTabContent
-      activeSubTab="dismissed"
-      dismissed={[sampleA, sampleB]}
-      visibleDimensions={[]}
-      callbacks={{}}
-      fileCurrentPath=""
-      setFileCurrentPath={() => {}}
-      selectedSource={selectedSource}
-      {...handlers}
-    />
+  return render(
+    <QC>
+      <ViolationsPage data={data} callbacks={{}} workbench={{ status: 'dismissed' }} onWorkbenchChange={() => {}} />
+    </QC>,
   );
-  return handlers;
 }
 
-describe('ViolationsSubTabContent — dismissed sub-tab, source gating', () => {
-  it('shows Restore/Delete and Restore all/Delete all when source is local', () => {
-    renderDismissedSubTab('local');
-    expect(screen.getAllByRole('button', { name: 'Restore' })).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: 'Delete' })).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Restore all' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete all' })).toBeInTheDocument();
+describe('ViolationsPage — dismissed findings in the workbench', () => {
+  it('the header counts the dismissed findings', () => {
+    renderDismissed('local');
+    expect(screen.getByText('0 open · 2 dismissed')).toBeInTheDocument();
   });
 
-  it('hides every action button when source is shared, but keeps the list visible', () => {
-    renderDismissedSubTab('shared');
+  it('restore hands the page\'s restore handler the dismissed record', async () => {
+    renderDismissed('local');
+    fireEvent.click(await screen.findByRole('button', { name: 'Restore' }));
+    expect(pageState.handleRestore).toHaveBeenCalledWith(sampleB);
+  });
+
+  it('restore all goes to the page\'s bulk handler', async () => {
+    renderDismissed('local');
+    fireEvent.click(await screen.findByRole('button', { name: 'restore all 2' }));
+    expect(pageState.handleRestoreAll).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'delete all 2' })).toBeInTheDocument();
+  });
+
+  it('a shared project lists the dismissed findings with no restore, delete or bulk action', async () => {
+    renderDismissed('shared');
+    const list = await screen.findByLabelText('Findings');
+    expect(list).toHaveTextContent('Old A');
+    expect(list).toHaveTextContent('Old B');
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Restore all' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Delete all' })).toBeNull();
-    expect(screen.getByText('a.py:10')).toBeInTheDocument();
-    expect(screen.getByText('b.py:20')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'restore all 2' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'delete all 2' })).toBeNull();
   });
 
-  it('renders the empty message instead of DismissedSubTab when there are no dismissed findings', () => {
-    render(
-      <ViolationsSubTabContent
-        activeSubTab="dismissed"
-        dismissed={[]}
-        visibleDimensions={[]}
-        callbacks={{}}
-        fileCurrentPath=""
-        setFileCurrentPath={() => {}}
-        selectedSource="shared"
-        handleRestore={vi.fn()}
-        handleRestoreAll={vi.fn()}
-        handleDelete={vi.fn()}
-        handleDeleteAll={vi.fn()}
-      />
-    );
-    expect(screen.getByText('No dismissed violations.')).toBeInTheDocument();
+  it('a dismissed finding whose file has no open finding offers no open file', async () => {
+    renderDismissed('local');
+    expect(await screen.findByLabelText('Findings')).toHaveTextContent('Old A');
+    expect(screen.queryByRole('button', { name: 'open file ›' })).toBeNull();
   });
 });
-
-describe('ViolationsSubTabContent — dismissed sub-tab, first fetch', () => {
-  it('shows the list skeleton while the dismissed list is still loading', () => {
-    const { container } = render(
-      <ViolationsSubTabContent
-        activeSubTab="dismissed"
-        dismissed={[]}
-        dismissedLoading
-        visibleDimensions={[]}
-        callbacks={{}}
-        fileCurrentPath=""
-        setFileCurrentPath={() => {}}
-        selectedSource="local"
-      />
-    );
-    expect(container.querySelector('.card-list-skeleton')).not.toBeNull();
-    expect(screen.queryByText('No dismissed violations.')).toBeNull();
-  });
-});
-

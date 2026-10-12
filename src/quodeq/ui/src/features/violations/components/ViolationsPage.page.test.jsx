@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { useState } from 'react';
 import ViolationsPage from './ViolationsPage.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
-import { VIOLATIONS_SUB_TAB } from '../violationsVocab.js';
+
+// The finding card needs the app's side pane; the page under test is the
+// wiring around it, so the card is a stub here.
+vi.mock('../../explorer/components/EvalCards.jsx', () => ({ EvalViolationCard: ({ v }) => <div data-testid="card">{v.title}</div> }));
 
 // Covers evaluate CTA gating, teammate persona (shared selection + zero
 // local projects), and the shared read-only chip. ViolationsPage's default
@@ -144,82 +146,66 @@ describe('ViolationsPage — error state + retry feedback (P4-T2)', () => {
   });
 });
 
-/* Mimics the App wiring (see ViolationsRoute): `subTab` is a route param and
-   flipping it REPLACES the nav entry in place — history must not grow per
-   flip, so the harness stack length is part of the assertions. */
-function SubTabNavHarness({ data, log }) {
-  const [stack, setStack] = useState([{}]);
-  const top = stack[stack.length - 1];
-  return (
-    <ViolationsPage
-      data={data}
-      callbacks={{}}
-      subTab={top.subTab || 'dimension'}
-      onSubTabChange={(v) => {
-        setStack((s) => {
-          log.push(['replace', v, s.length]);
-          return s.slice(0, -1).concat([{ ...s[s.length - 1], subTab: v }]);
-        });
-      }}
-    />
+const WB_DIMS = [{
+  dimension: 'security',
+  fromRunId: 'run-1',
+  violations: [
+    { title: 'Weak hash', file: 'src/a.py', line: 3, severity: 'minor', principle: 'P1', req: 'S-1' },
+    { title: 'Key logged', file: 'lib/b.py', line: 9, severity: 'major', principle: 'P2', req: 'S-2' },
+  ],
+  compliance: [],
+}];
+const localData = () => baseData({
+  selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }], accumulatedDimensions: WB_DIMS,
+});
+const noDismissedApi = { listDismissedFindings: async () => [] };
+
+function renderWorkbench(callbacks = {}, extra = {}) {
+  const QC = withQueryClient();
+  return render(
+    <QC>
+      <ApiProvider value={noDismissedApi}>
+        <ViolationsPage data={localData()} callbacks={callbacks} workbench={null} onWorkbenchChange={() => {}} {...extra} />
+      </ApiProvider>
+    </QC>,
   );
 }
 
-describe('ViolationsPage — sub-tab lives in the nav entry (replace, not push)', () => {
-  const DIMS = [{
-    dimension: 'security',
-    violations: [
-      { file: 'src/a.py', severity: 'minor', principle: 'P1' },
-      { file: 'lib/b.py', severity: 'major', principle: 'P2' },
-    ],
-    compliance: [],
-  }];
-  const data = () => ({
-    accumulatedDimensions: DIMS,
-    selectedProject: 'p1',
-    projects: [{ id: 'p1', name: 'p1' }],
-    projectsLoaded: true,
-    projectName: 'p1',
-    loading: false,
-    isFetching: false,
-    selectedSource: 'local',
+describe('ViolationsPage — findings workbench', () => {
+  it('the header sub-line counts open findings by severity and the dismissed ones', () => {
+    renderWorkbench();
+    expect(screen.getByText('2 open · 1 maj · 1 min · 0 dismissed')).toBeInTheDocument();
   });
 
-  function renderHarness(log) {
-    const QC = withQueryClient();
-    return render(
-      <QC>
-        <SubTabNavHarness data={data()} log={log} />
-      </QC>
-    );
-  }
-
-  it('flipping to by-file and dismissed replaces the entry in place; the view follows the param', async () => {
-    const log = [];
-    renderHarness(log);
-    // Default sub-tab renders the dimension grid.
-    expect(await screen.findByText('security')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('by-file'));
-    // Replace with the stack still at length 1 — a push would report 2 next.
-    expect(log).toEqual([['replace', 'file', 1]]);
-    // The controlled param round-tripped into the file tree view.
-    expect(await screen.findByText('src')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('dismissed'));
-    expect(log).toEqual([['replace', 'file', 1], ['replace', 'dismissed', 1]]);
-    expect(await screen.findByText('No dismissed violations.')).toBeInTheDocument();
+  it('the four view pills are gone', () => {
+    renderWorkbench();
+    expect(screen.queryByRole('group', { name: 'Group violations' })).toBeNull();
+    expect(screen.queryByText('by-file')).toBeNull();
   });
 
-  it('renders the sub-tab the route param dictates without any interaction', () => {
-    const QC = withQueryClient();
-    render(
-      <QC>
-        <ViolationsPage data={data()} callbacks={{}} subTab="file" onSubTabChange={() => {}} />
-      </QC>
-    );
-    expect(screen.getByText('src')).toBeInTheDocument();
-    expect(screen.getByText('lib')).toBeInTheDocument();
+  it('lists the findings with the most severe one selected', async () => {
+    renderWorkbench();
+    expect(await screen.findByText('2 of 2')).toBeInTheDocument();
+    expect(screen.getByText('Weak hash')).toBeInTheDocument();
+    expect(screen.getByRole('button', { current: true })).toHaveTextContent('Key logged');
+  });
+
+  it('open file hands the File page the object of the finding\'s file', async () => {
+    const onFileClick = vi.fn();
+    renderWorkbench({ onFileClick });
+    fireEvent.click(await screen.findByRole('button', { name: 'open file ›' }));
+    expect(onFileClick).toHaveBeenCalledTimes(1);
+    const fileObj = onFileClick.mock.calls[0][0];
+    expect(fileObj.file).toBe('lib/b.py');
+    expect(fileObj.total).toBe(1);
+    expect(fileObj.major).toBe(1);
+  });
+
+  it('a workbench change goes to onWorkbenchChange (the route replaces its entry)', async () => {
+    const onWorkbenchChange = vi.fn();
+    renderWorkbench({}, { onWorkbenchChange });
+    fireEvent.click(await screen.findByText('Weak hash'));
+    expect(onWorkbenchChange).toHaveBeenCalledWith(expect.objectContaining({ selectedId: expect.stringContaining('src/a.py') }));
   });
 });
 
@@ -237,27 +223,5 @@ describe('ViolationsPage — shared read-only chip (Finding 6)', () => {
       accumulatedDimensions: [{ dimension: 'security', violations: [], compliance: [] }],
     }));
     expect(screen.queryByText('remote · read-only')).toBeNull();
-  });
-});
-
-describe('ViolationsPage — by-type sub-tab', () => {
-  it('shows the by-type pill pressed and a row per requirement code', async () => {
-    const dim = { dimension: 'security', fromRunId: 'run-1', fromDateLabel: '26 Sep', principles: [{ name: 'Integrity', grade: 'B', score: '7.5' }],
-      violations: [{ req: 'S-1', principle: 'Integrity', file: 'a.py', line: 1, severity: 'minor' }] };
-    const api = { getRunDiff: async () => ({ dimensions: {} }), getStandard: async () => ({ principles: [] }), listDismissedFindings: async () => [] };
-    const QC = withQueryClient();
-    render(
-      <QC>
-        <ApiProvider value={api}>
-          <ViolationsPage
-            data={baseData({ selectedSource: 'local', selectedProject: 'p1', projects: [{ id: 'p1', name: 'p1' }], accumulatedDimensions: [dim] })}
-            callbacks={{ onTypeClick: vi.fn(), onReconcile: vi.fn(), onRefresh: vi.fn() }}
-            subTab={VIOLATIONS_SUB_TAB.TYPE}
-          />
-        </ApiProvider>
-      </QC>,
-    );
-    expect(screen.getByRole('button', { name: 'by-type' })).toHaveAttribute('aria-pressed', 'true');
-    expect(await screen.findByText('S-1')).toBeInTheDocument();
   });
 });

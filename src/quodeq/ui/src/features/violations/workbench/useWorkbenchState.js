@@ -3,7 +3,7 @@
  * selection). It lives in the Violations nav entry (`params.wb`), replaced on
  * every change, so back/forward and a round trip through a file restore it.
  */
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { SEVERITY } from '../../../vocab/severity.js';
 import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
 
@@ -32,12 +32,21 @@ export function readWorkbench(param) {
 
 export function useWorkbenchState(param, onChange) {
   const state = useMemo(() => readWorkbench(param), [param]);
-  const set = useCallback((patch) => onChange?.({ ...state, ...patch }), [state, onChange]);
+  // Two changes in one event (pick a path, then clear the search) must
+  // compose: each builds on the last one sent, not on the render's state.
+  const latest = useRef(state);
+  useEffect(() => { latest.current = state; }, [state]);
+  const set = useCallback((patch) => {
+    if (!onChange) return;
+    latest.current = { ...latest.current, ...patch };
+    onChange(latest.current);
+  }, [onChange]);
   const setPaths = useCallback((paths) => set({ paths }), [set]);
   const addPath = useCallback((path) => {
-    if (!path || state.paths.includes(path)) { set({}); return; }
-    set({ paths: [...state.paths, path] });
-  }, [state.paths, set]);
-  const removePath = useCallback((path) => set({ paths: state.paths.filter((p) => p !== path) }), [state.paths, set]);
+    const paths = latest.current.paths;
+    if (!path || paths.includes(path)) { set({}); return; }
+    set({ paths: [...paths, path] });
+  }, [set]);
+  const removePath = useCallback((path) => set({ paths: latest.current.paths.filter((p) => p !== path) }), [set]);
   return { state, set, setPaths, addPath, removePath };
 }

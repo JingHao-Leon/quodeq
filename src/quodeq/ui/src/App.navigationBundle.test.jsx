@@ -184,7 +184,7 @@ describe('map/violations view state lives in the nav stack', () => {
     expect(props.navigation.handleNavigate).not.toHaveBeenCalled();
   });
 
-  it('violations: the sub-tab flip replaces the entry (history must not grow), _tabKey preserved', () => {
+  it('violations: a workbench change replaces the entry (history must not grow), _tabKey preserved', () => {
     const props = {
       dashboardData: { latestAccumulated: null, accumulated: null, selectedDisplayName: 'p1', loading: false, isFetching: false },
       navigation: {
@@ -196,9 +196,9 @@ describe('map/violations view state lives in the nav stack', () => {
     };
     const outer = ROUTE_RENDERERS.violations({ _tabKey: 2 }, props);
     const inner = outer.type(outer.props);
-    expect(inner.props.subTab).toBe('dimension');
-    inner.props.onSubTabChange('file');
-    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith('violations', { _tabKey: 2, subTab: 'file' });
+    expect(inner.props.workbench).toBeNull();
+    inner.props.onWorkbenchChange({ group: 'file' });
+    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith('violations', { _tabKey: 2, wb: { group: 'file' } });
     expect(props.navigation.handleNavigate).not.toHaveBeenCalled();
   });
 
