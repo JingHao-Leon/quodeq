@@ -12,14 +12,15 @@ from quodeq.services.map_history import build_map_history
 DIMS = ("security", "maintainability")
 
 
-def _run(project_dir: Path, run_id: str, day: str, violations: dict[str, list[dict]], dims=DIMS, state="done") -> None:
+def _run(project_dir: Path, run_id: str, day: str, violations: dict[str, list[dict]], dims=DIMS, state="done",
+         at: str = "10:00:00") -> None:
     run = project_dir / run_id
     (run / "evaluation").mkdir(parents=True, exist_ok=True)
     for dim in dims:
         (run / "evaluation" / f"{dim}.json").write_text(json.dumps({
-            "dimension": dim, "date": f"{day}T10:00:00+00:00", "principles": [],
+            "dimension": dim, "date": f"{day}T{at}+00:00", "principles": [],
             "violations": violations.get(dim, []), "compliance": []}))
-    (run / "status.json").write_text(json.dumps({"state": state, "started_at": f"{day}T10:00:00Z"}))
+    (run / "status.json").write_text(json.dumps({"state": state, "started_at": f"{day}T{at}Z"}))
 
 
 @pytest.fixture
@@ -173,13 +174,20 @@ def test_the_run_is_dated_by_its_start_like_history(env):
     assert build_map_history(env, "proj").days == ("2026-09-01",)
 
 
+def test_the_days_last_run_stands_for_the_day(env):
+    p = env / "proj"
+    _run(p, "b-morning", "2026-09-08", {"security": [_violation("x/morning.py")]}, at="08:00:00")
+    _run(p, "a-evening", "2026-09-08", {"security": [_violation("x/evening.py")]}, at="20:00:00")
+    assert build_map_history(env, "proj").file_names == ("x/evening.py",)
+
+
 def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier_run(env):
     p = env / "proj"
     _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
-    _run(p, "r2", "2026-09-08", {"security": [_violation("x/a.py")]})
-    _run(p, "r3", "2026-09-08", {"security": [_violation("x/b.py", snip="b()")]})
+    _run(p, "r2", "2026-09-08", {"security": [_violation("x/morning.py")]}, at="08:00:00")
+    _run(p, "r3", "2026-09-08", {"security": [_violation("x/evening.py", snip="b()")]}, at="20:00:00")
     for dim in DIMS:
         (p / "r3" / "evaluation" / f"{dim}.json").write_text("{not json")
     out = build_map_history(env, "proj")
     assert list(out.days) == ["2026-09-01", "2026-09-08"]
-    assert "x/b.py" not in out.file_names
+    assert "x/morning.py" in out.file_names and "x/evening.py" not in out.file_names

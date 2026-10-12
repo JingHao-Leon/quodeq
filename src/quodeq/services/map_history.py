@@ -98,7 +98,11 @@ def _candidates(rows: ProjectRows) -> list[_Candidate]:
 
 
 def _full_by_day(candidates: list[_Candidate]) -> tuple[dict[str, list[_Candidate]], int]:
-    """Full-run candidates grouped by day (days ascending, each day in run order) and the dimension count a full run needs."""
+    """Full-run candidates grouped by day and the dimension count a full run needs.
+
+    Days ascend; each day keeps the run order of *candidates* (newest first,
+    as ``rows.runs`` lists them), so a group's head is the day's last run.
+    """
     usual = Counter(len(c.dims) for c in candidates).most_common(1)[0][0]
     need = max(1, usual - 1)
     by_day: dict[str, list[_Candidate]] = {}
@@ -135,9 +139,13 @@ def _cache_keys(rows: ProjectRows, by_day: dict[str, list[_Candidate]]) -> dict[
 
 def _day_snapshot(rows: ProjectRows, group: list[_Candidate], cached: dict[str, RunSnapshot],
                   need: int) -> _DaySnapshot | None:
-    """The day's last run that is cached or reads as full, else None."""
+    """The day's last run that is cached or reads as full, else None.
+
+    *group* is newest first: an earlier run of the day stands in only when
+    every later one is uncached and reads short of a full run.
+    """
     weights: Mapping[str, float] = rows.params.severity_weight
-    for c in reversed(group):
+    for c in group:
         if c.run_id in cached:
             return _DaySnapshot(c.run_id, cached[c.run_id], False)
         reports = c.reports if c.reports is not None else _readable_reports(rows.reports_root / rows.project / c.run_id)
