@@ -3,5 +3,6 @@
 // which arrives as an error whose `code` is the member's name.
 export const REFRESH_OUTCOME = Object.freeze({
   UPDATED: 'updated', UP_TO_DATE: 'up_to_date', NOT_REFRESHABLE: 'not_refreshable', BUSY: 'busy',
-  DIRTY: 'dirty', NO_UPSTREAM: 'no_upstream', DIVERGED: 'diverged', FETCH_FAILED: 'fetch_failed',
+  DIRTY: 'dirty', NO_UPSTREAM: 'no_upstream',
+  UPSTREAM_GONE: 'upstream_gone', DIVERGED: 'diverged', FETCH_FAILED: 'fetch_failed',
 });

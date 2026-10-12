@@ -11,6 +11,7 @@ const ERROR_KEYS = {
   BUSY: 'projects.refreshErrorBusy',
   DIRTY: 'projects.refreshErrorDirty',
   NO_UPSTREAM: 'projects.refreshErrorNoUpstream',
+  UPSTREAM_GONE: 'projects.refreshErrorUpstreamGone',
   DIVERGED: 'projects.refreshErrorDiverged',
   FETCH_FAILED: 'projects.refreshErrorFetchFailed',
   NOT_REFRESHABLE: 'projects.refreshErrorNotRefreshable',

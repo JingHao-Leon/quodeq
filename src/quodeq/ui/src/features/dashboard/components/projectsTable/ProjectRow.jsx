@@ -63,13 +63,24 @@ function pullLines(pull) {
   return lines;
 }
 
+// A refused code fetch: our sentence, then git's own output under it, which
+// names what actually failed (a missing branch, an auth prompt, a DNS error).
+export function RefreshError({ refresh }) {
+  return (
+    <div className="inline-error" role="alert">
+      {refresh.error}
+      {refresh.errorDetail && <pre className="projects-row__error-detail">{refresh.errorDetail}</pre>}
+    </div>
+  );
+}
+
 // The lines a row can owe its user: a publish that failed, a code fetch's
 // result, a pull under way or its result. They stack.
 function outcomeLines(id, local, publishActions, refresh, pull) {
   const lines = [];
   const publishError = local ? publishErrorFor(id, publishActions) : null;
   if (publishError) lines.push(<p key="publish" className="inline-error" role="alert">{publishError}</p>);
-  if (refresh?.error) lines.push(<p key="refresh" className="inline-error" role="alert" title={refresh.errorDetail || undefined}>{refresh.error}</p>);
+  if (refresh?.error) lines.push(<RefreshError key="refresh" refresh={refresh} />);
   if (refresh?.note) lines.push(<p key="note" className="projects-row__note" role="status">{refresh.note}</p>);
   return [...lines, ...pullLines(pull)];
 }

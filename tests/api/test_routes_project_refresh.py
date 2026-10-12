@@ -53,6 +53,7 @@ def test_unknown_project_is_404(client):
     (RefreshOutcome.BUSY, 409),
     (RefreshOutcome.DIRTY, 409),
     (RefreshOutcome.NO_UPSTREAM, 409),
+    (RefreshOutcome.UPSTREAM_GONE, 409),
     (RefreshOutcome.DIVERGED, 409),
     (RefreshOutcome.FETCH_FAILED, 502),
 ])
