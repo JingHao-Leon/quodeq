@@ -50,12 +50,26 @@ def test_estimated_history_with_a_new_dimension_midway(env):
     assert [next(r for r in f.files if r.file == a).touched for f in out.frames] == [False, True, False]
 
 
-def test_latest_only_by_default_and_cached_second_time(env, monkeypatch):
+def _two_runs(env) -> None:
     p = env / "proj"
     _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
     _run(p, "r2", "2026-09-08", {"security": [_violation("x/a.py")]})
+
+
+def test_latest_frame_only_by_default(env):
+    _two_runs(env)
+    assert [f.day for f in build_map_history(env, "proj").frames] == ["2026-09-08"]
+
+
+def test_an_unknown_frames_value_is_refused(env):
+    _two_runs(env)
+    with pytest.raises(ValueError):
+        build_map_history(env, "proj", frames="some")
+
+
+def test_the_second_call_builds_no_snapshot(env, monkeypatch):
+    _two_runs(env)
     first = build_map_history(env, "proj")
-    assert len(first.frames) == 1 and first.frames[0].day == "2026-09-08"
     calls = []
     real = map_history.build_run_snapshot
     monkeypatch.setattr(map_history, "build_run_snapshot", lambda *a, **kw: calls.append(1) or real(*a, **kw))
@@ -145,7 +159,8 @@ def test_history_is_not_capped_at_the_default_run_limit(env, monkeypatch):
 
 
 def _repo_with_a_commit(tmp_path: Path, day: str) -> Path:
-    repo = tmp_path / "repo"; repo.mkdir()
+    repo = tmp_path / "repo"
+    repo.mkdir()
     gitenv = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
               "GIT_COMMITTER_EMAIL": "t@t", "GIT_AUTHOR_DATE": f"{day}T10:00:00", "GIT_COMMITTER_DATE": f"{day}T10:00:00"}
     subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)

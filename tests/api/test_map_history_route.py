@@ -43,12 +43,21 @@ def test_bad_segment_is_400(client):
     assert client.get("/api/projects/a%5Cb/map/history").status_code == HTTPStatus.BAD_REQUEST
 
 
-def test_database_error_is_500(client, monkeypatch):
+@pytest.fixture
+def locked_db(monkeypatch):
     import sqlite3
 
     def boom(*_a, **_k):
         raise sqlite3.OperationalError("locked")
 
     monkeypatch.setattr("quodeq.api.routes_map_history.build_map_history", boom)
-    resp = client.get("/api/projects/proj/map/history")
-    assert resp.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and resp.get_json()["code"] == "INTERNAL_ERROR"
+
+
+@pytest.mark.usefixtures("locked_db")
+def test_database_error_is_500(client):
+    assert client.get("/api/projects/proj/map/history").status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+@pytest.mark.usefixtures("locked_db")
+def test_database_error_says_internal_error(client):
+    assert client.get("/api/projects/proj/map/history").get_json()["code"] == "INTERNAL_ERROR"

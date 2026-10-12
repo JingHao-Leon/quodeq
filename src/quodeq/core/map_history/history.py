@@ -5,7 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import NamedTuple
 
-from quodeq.core.map_history.area_metrics import WEIGHT_DECIMALS, AreaMetrics, area_metrics_per_run
+from quodeq.core.map_history.area_metrics import WEIGHT_DECIMALS, AreaMetrics, PathActivity, area_metrics_per_run
 from quodeq.core.map_history.areas import AreaAssignment, assign_areas
 from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import finding_flows, running_edits, violation_ages, violation_ids
@@ -75,7 +75,8 @@ def _run_facts(days: list[str], snapshots: list[RunSnapshot], activity: RunActiv
     running = running_edits(activity.per_transition)
     violations = [violation_ids(s) for s in snapshots]
     ages = violation_ages(snapshots, days, violations)
-    return _RunFacts(running, activity.per_transition, ages, area_metrics_per_run(snapshots, assignments, running, ages),
+    per_run = [PathActivity(edits, run_ages) for edits, run_ages in zip(running, ages, strict=True)]
+    return _RunFacts(running, activity.per_transition, ages, area_metrics_per_run(snapshots, assignments, per_run),
                      finding_flows(snapshots, violations, frame_runs))
 
 

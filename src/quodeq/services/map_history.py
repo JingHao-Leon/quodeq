@@ -25,6 +25,7 @@ from quodeq.services.wiring import (
     iter_readable_eval_reports,
     load_map_snapshots,
     load_suppression_rules,
+    project_dir_exists,
     read_repository_info,
     save_map_snapshots,
 )
@@ -190,8 +191,13 @@ def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot]) -> R
 
 
 def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_FRAMES) -> MapHistory:
-    """The project's map history: the latest frame, or every frame when *frames* is ``ALL_FRAMES``."""
-    if not (reports_root / project).is_dir():
+    """The project's map history: the latest frame, or every frame when *frames* is ``ALL_FRAMES``.
+
+    Raises ValueError when *frames* is not one of ``FRAME_CHOICES``.
+    """
+    if frames not in FRAME_CHOICES:
+        raise ValueError(f"unknown frames value: {frames!r}")
+    if not project_dir_exists(reports_root / project):
         return EMPTY_HISTORY
     days, snaps = _history(ProjectRows.load(reports_root, project, run_limit=0))
     if not days:

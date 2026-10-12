@@ -158,12 +158,12 @@ class _Hysteresis:
 
 
 def area_metrics_per_run(snapshots: list[RunSnapshot], assignments: dict[str, AreaAssignment],
-                         edits: list[dict[str, int]], ages_days: list[dict[str, int]]) -> list[list[AreaMetrics]]:
-    """Every run's area metrics; kinds use hysteresis (a change needs two runs in a row)."""
+                         activity: list[PathActivity]) -> list[list[AreaMetrics]]:
+    """Every run's area metrics from its snapshot and *activity* (one record per run); kinds use hysteresis."""
     result: list[list[AreaMetrics]] = []
     smoothing = _Hysteresis()
     for k, snap in enumerate(snapshots):
-        stats = _run_stats(k, snap, assignments, PathActivity(edits[k], ages_days[k]))
+        stats = _run_stats(k, snap, assignments, activity[k])
         judged = [s for s in stats if s.prod_files >= MIN_PROD_FILES]
         dens = sorted(s.density for s in judged)
         rates = sorted(s.change_rate for s in judged)

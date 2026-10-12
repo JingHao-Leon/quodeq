@@ -28,10 +28,19 @@ def first_seen_index(snapshots: list[RunSnapshot]) -> list[dict[str, int]]:
     keeps its start through that run (it is not listed for it).
     """
     out: list[dict[str, int]] = []
-    chains: dict[str, int] = {}
+    chains: dict[str, dict[str, int]] = {}  # per dimension, each live id's chain start
     for k, snap in enumerate(snapshots):
-        here = {fid: chains.get(fid, k) for stat in snap.files.values() for fid in stat.ids}
-        out.append(here)
-        ran = set(snap.dims)
-        chains = {**{fid: start for fid, start in chains.items() if finding_dimension(fid) not in ran}, **here}
+        fresh = _chain_starts(snap, chains, k)
+        out.append({fid: start for starts in fresh.values() for fid, start in starts.items()})
+        chains.update(fresh)  # only the dimensions this run ran are replaced; the others carry on
     return out
+
+
+def _chain_starts(snap: RunSnapshot, chains: dict[str, dict[str, int]], k: int) -> dict[str, dict[str, int]]:
+    """Per dimension *snap* ran, the chain start of each id present in run *k* (a new id starts at *k*)."""
+    fresh: dict[str, dict[str, int]] = {dim: {} for dim in snap.dims}
+    for stat in snap.files.values():
+        for fid in stat.ids:
+            dim = finding_dimension(fid)
+            fresh.setdefault(dim, {})[fid] = chains.get(dim, {}).get(fid, k)
+    return fresh

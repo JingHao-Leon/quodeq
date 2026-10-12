@@ -26,6 +26,12 @@ def test_a_row_in_another_layout_reads_as_a_miss(tmp_path, monkeypatch):
     assert load_map_snapshots("p", {"r1": "k", "r2": "k"}) == {}
 
 
+def test_every_saved_snapshot_loads_back(tmp_path, monkeypatch):
+    monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
+    save_map_snapshots("p", {f"r{i}": ("k", SEC) for i in range(5)}, {f"r{i}" for i in range(5)})
+    assert load_map_snapshots("p", {f"r{i}": "k" for i in range(5)}) == {f"r{i}": SEC for i in range(5)}
+
+
 def test_fresh_rows_are_stored_with_one_commit(tmp_path, monkeypatch):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
     commits = []
@@ -38,7 +44,6 @@ def test_fresh_rows_are_stored_with_one_commit(tmp_path, monkeypatch):
     monkeypatch.setattr(score_cache_map_snapshot, "store_run_payloads", spy)
     save_map_snapshots("p", {f"r{i}": ("k", SEC) for i in range(5)}, {f"r{i}" for i in range(5)})
     assert len(commits) == 1
-    assert len(load_map_snapshots("p", {f"r{i}": "k" for i in range(5)})) == 5
 
 
 def test_an_unavailable_cache_reads_empty_and_writes_nothing(monkeypatch, caplog):

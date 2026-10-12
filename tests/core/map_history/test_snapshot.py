@@ -1,3 +1,5 @@
+import pytest
+
 from quodeq.core.map_history.snapshot import build_run_snapshot, finding_dimension, is_violation
 
 
@@ -71,3 +73,9 @@ def test_a_non_string_severity_counts_as_minor():
                                             {**_violation("b.py", "major"), "severity": {"x": 1}}]})]
     snap = build_run_snapshot(reports, _never)
     assert (snap.files["a.py"].minor, snap.files["b.py"].minor) == (1, 1)
+
+
+def test_a_snapshots_files_cannot_be_changed():
+    snap = build_run_snapshot(_reports(), _never)
+    with pytest.raises(TypeError):
+        snap.files["new.py"] = snap.files["a.py"]

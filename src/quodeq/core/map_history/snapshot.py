@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 
 from quodeq.core.run_diff import identity
 from quodeq.core.scoring.constants import SEVERITY_WEIGHT
@@ -49,7 +50,11 @@ class RunSnapshot:
     """Per-file stats of one run, plus the dimensions that reported."""
 
     dims: tuple[str, ...]
-    files: dict[str, FileStat]
+    files: Mapping[str, FileStat]   # read-only view, so the frozen snapshot cannot be changed through it
+
+    def __post_init__(self) -> None:
+        """Hold *files* as a read-only copy."""
+        object.__setattr__(self, "files", MappingProxyType(dict(self.files)))
 
 
 def finding_dimension(finding_id: str) -> str:
