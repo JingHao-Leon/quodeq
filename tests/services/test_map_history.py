@@ -140,3 +140,50 @@ def test_history_is_not_capped_at_the_default_run_limit(env, monkeypatch):
     _run(env / "proj", "r1", "2026-09-01", {"security": [V("x/a.py")]})
     build_map_history(env, "proj")
     assert seen == {"run_limit": 0}
+
+
+def _repo_with_a_commit(tmp_path: Path, day: str) -> Path:
+    repo = tmp_path / "repo"; repo.mkdir()
+    gitenv = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t",
+              "GIT_COMMITTER_EMAIL": "t@t", "GIT_AUTHOR_DATE": f"{day}T10:00:00", "GIT_COMMITTER_DATE": f"{day}T10:00:00"}
+    subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    (repo / "a.py").write_text("1")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-qm", "c"], check=True, env=gitenv)
+    return repo
+
+
+def test_warm_call_reads_no_report_and_calls_git_once(env, tmp_path, monkeypatch):
+    p = env / "proj"
+    for i, day in enumerate(("2026-09-01", "2026-09-08", "2026-09-15")):
+        _run(p, f"r{i}", day, {"security": [V("a.py")]})
+    (p / "repository_info.json").write_text(json.dumps({"path": str(_repo_with_a_commit(tmp_path, "2026-09-05"))}))
+    first = build_map_history(env, "proj", frames="all")
+    reads, git_calls = [], []
+    real_read, real_git = map_history.iter_readable_eval_reports, map_history.git_commits_per_transition
+    monkeypatch.setattr(map_history, "iter_readable_eval_reports", lambda d: reads.append(d) or real_read(d))
+    monkeypatch.setattr(map_history, "git_commits_per_transition", lambda *a: git_calls.append(a) or real_git(*a))
+    assert build_map_history(env, "proj", frames="all") == first
+    assert first["activitySource"] == "git"
+    assert reads == []
+    assert len(git_calls) <= 1
+
+
+def test_the_run_is_dated_by_its_start_like_history(env):
+    p = env / "proj"
+    _run(p, "r1", "2026-09-01", {"security": [V("x/a.py")]})
+    report = p / "r1" / "evaluation" / "security.json"
+    report.write_text(json.dumps({**json.loads(report.read_text()), "date": "2026-09-02T01:00:00+00:00"}))
+    assert build_map_history(env, "proj")["days"] == ["2026-09-01"]
+
+
+def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier_run(env):
+    p = env / "proj"
+    _run(p, "r1", "2026-09-01", {"security": [V("x/a.py")]})
+    _run(p, "r2", "2026-09-08", {"security": [V("x/a.py")]})
+    _run(p, "r3", "2026-09-08", {"security": [V("x/b.py", snip="b()")]})
+    for dim in DIMS:
+        (p / "r3" / "evaluation" / f"{dim}.json").write_text("{not json")
+    out = build_map_history(env, "proj")
+    assert out["days"] == ["2026-09-01", "2026-09-08"]
+    assert "x/b.py" not in out["fileNames"]

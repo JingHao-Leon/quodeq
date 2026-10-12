@@ -1000,7 +1000,7 @@ tests/services/test_jobs_deadline_exit.py:26:private-name:quodeq.services._job_f
 tests/services/test_jobs_deadline_marker.py:6:private-module:quodeq.services._job_model.Job
 tests/services/test_jobs_deadline_marker.py:78:private-name:quodeq.analysis._api_call._LOCAL_TIMEOUT
 tests/services/test_jobs_run_log_batching.py:9:private-name:quodeq.services._job_log_tee._iter_line_batches
-tests/services/test_map_git.py:5:private-module:quodeq.services._map_git.git_commits_between
+tests/services/test_map_git.py:5:private-module:quodeq.services._map_git.git_commits_per_transition
 tests/services/test_per_run_versions_memo.py:15:private-name:quodeq.services.trend_fetcher._make_version_for
 tests/services/test_plugin_discovery.py:6:private-name:quodeq.services.plugin_discovery._discover_from_detection
 tests/services/test_post_run_hook.py:19:private-module:quodeq.services._post_run_hook.PostRunHook
