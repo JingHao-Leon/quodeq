@@ -59,3 +59,10 @@ def test_exactly_sixty_percent_edited_still_counts():
 def test_first_seen_restarts_after_a_gap():
     runs = [_snapshot(["sec"], **{"a.py": {"x"}}), _snapshot(["sec"], **{"a.py": {"y"}}), _snapshot(["sec"], **{"a.py": {"x"}})]
     assert first_seen_index(runs)[2]["sec:v:x"] == 2
+
+
+def test_first_seen_carries_a_chain_through_a_run_without_its_dimension():
+    runs = [_snapshot(["sec"], **{"a.py": {"x"}}), _snapshot(["mnt"], **{"b.py": {"y"}}), _snapshot(["sec"], **{"a.py": {"x"}})]
+    seen = first_seen_index(runs)
+    assert "sec:v:x" not in seen[1]
+    assert seen[2]["sec:v:x"] == 0

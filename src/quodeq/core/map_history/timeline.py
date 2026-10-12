@@ -5,7 +5,7 @@ from collections import Counter
 from datetime import date
 
 from quodeq.core.map_history.activity import first_seen_index
-from quodeq.core.map_history.snapshot import RunSnapshot, is_violation
+from quodeq.core.map_history.snapshot import RunSnapshot, ids_in_dims, is_violation
 
 # The leading characters of an ISO timestamp that make up its calendar day.
 ISO_DAY_LEN = 10
@@ -47,10 +47,19 @@ def violation_ages(snapshots: list[RunSnapshot], days: list[str], violations: li
     return out
 
 
-def finding_flows(violations: list[set[str]], runs: list[int]) -> dict[int, tuple[int, int]]:
+def _flow(prev: RunSnapshot, cur: RunSnapshot, prev_ids: set[str], cur_ids: set[str]) -> tuple[int, int]:
+    """``(new, fixed)`` from *prev* to *cur*, over the dimensions both runs ran."""
+    shared = set(prev.dims) & set(cur.dims)
+    before, after = ids_in_dims(prev_ids, shared), ids_in_dims(cur_ids, shared)
+    return len(after - before), len(before - after)
+
+
+def finding_flows(snapshots: list[RunSnapshot], violations: list[set[str]], runs: list[int]) -> dict[int, tuple[int, int]]:
     """``(new, fixed)`` violation counts of each run index in *runs* against the run before it (``(0, 0)`` for the first).
 
-    *violations* are each run's ``violation_ids``, oldest first.
+    *violations* are each run's ``violation_ids``, oldest first. Only the
+    dimensions both runs ran are compared, so a run that skipped a dimension
+    neither fixes nor reintroduces its findings.
     """
-    return {k: (len(violations[k] - violations[k - 1]), len(violations[k - 1] - violations[k])) if k else (0, 0)
+    return {k: _flow(snapshots[k - 1], snapshots[k], violations[k - 1], violations[k]) if k else (0, 0)
             for k in runs}

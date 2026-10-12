@@ -4,8 +4,8 @@ from quodeq.core.map_history.snapshot import FileStat, RunSnapshot
 from quodeq.core.map_history.timeline import finding_flows, running_edits, violation_ages, violation_ids
 
 
-def _snapshot(**files: set[str]) -> RunSnapshot:
-    return RunSnapshot(("sec",), {p: FileStat(ids=frozenset(ids)) for p, ids in files.items()})
+def _snapshot(dims: tuple[str, ...] = ("sec",), **files: set[str]) -> RunSnapshot:
+    return RunSnapshot(dims, {p: FileStat(ids=frozenset(ids)) for p, ids in files.items()})
 
 
 def test_violation_ids_leave_out_compliance():
@@ -24,6 +24,21 @@ def test_age_counts_from_the_start_of_the_unbroken_chain():
 
 
 def test_flows_count_new_and_fixed_against_the_run_before():
-    violations = [{"v1", "v2"}, {"v2", "v3", "v4"}]
-    assert finding_flows(violations, [1]) == {1: (2, 1)}
-    assert finding_flows(violations, [0, 1]) == {0: (0, 0), 1: (2, 1)}
+    snaps = [_snapshot(), _snapshot()]
+    violations = [{"sec:v:1", "sec:v:2"}, {"sec:v:2", "sec:v:3", "sec:v:4"}]
+    assert finding_flows(snaps, violations, [1]) == {1: (2, 1)}
+    assert finding_flows(snaps, violations, [0, 1]) == {0: (0, 0), 1: (2, 1)}
+
+
+def test_flows_leave_out_a_dimension_one_of_the_runs_did_not_run():
+    full, short = _snapshot(("mnt", "sec")), _snapshot(("sec",))
+    snaps = [full, short, full]
+    violations = [{"sec:v:1", "mnt:v:2"}, {"sec:v:1"}, {"sec:v:1", "mnt:v:2", "mnt:v:3"}]
+    assert finding_flows(snaps, violations, [1, 2]) == {1: (0, 0), 2: (0, 0)}
+
+
+def test_age_survives_a_run_that_skipped_the_dimension():
+    days = ["2026-09-01", "2026-09-02", "2026-09-03"]
+    snaps = [_snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}}), _snapshot(("sec",), **{"b.py": {"sec:v:y"}}),
+             _snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}})]
+    assert violation_ages(snaps, days, [violation_ids(s) for s in snaps])[2]["a.py"] == 2

@@ -212,3 +212,14 @@ def test_dismissed_deleted_and_rule_hidden_findings_do_not_count(env):
     (p / "suppression_rules.json").write_text(json.dumps(
         {"version": 1, "rules": [{"req": "R3", "file": "x/*", "reason": "fixture"}]}))
     assert _latest_files(env) == {"x/kept.py": 1}
+
+
+def test_a_run_missing_a_dimension_neither_fixes_nor_ages_its_findings(env):
+    p = env / "proj"
+    three = ("security", "maintainability", "reliability")
+    same = {d: [_violation(f"x/{d}{i}.py", req=f"R{i}") for i in range(5)] for d in three}
+    for rid, day in (("r1", "2026-09-01"), ("r2", "2026-09-02"), ("r3", "2026-09-03")):
+        _run(p, rid, day, same, dims=three[:2] if rid == "r2" else three)
+    out = build_map_history(env, "proj", frames="all")
+    assert [(f.new, f.fixed) for f in out.frames] == [(0, 0)] * 3
+    assert {r.age_days for r in out.frames[-1].files} == {2}

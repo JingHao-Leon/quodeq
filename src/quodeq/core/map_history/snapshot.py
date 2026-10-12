@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass, field
 
 from quodeq.core.run_diff import identity
@@ -62,6 +62,16 @@ class RunSnapshot:
         return cls(tuple(data["dims"]), {
             p: FileStat(c, ma, mi, co, w, frozenset(ids), frozenset(ds))
             for p, (c, ma, mi, co, w, ids, ds) in data["files"].items()})
+
+
+def finding_dimension(finding_id: str) -> str:
+    """The dimension that reported *finding_id* (its leading field)."""
+    return finding_id.split(_ID_SEP, 1)[0]
+
+
+def ids_in_dims(ids: Iterable[str], dims: Collection[str]) -> frozenset[str]:
+    """The finding identities of *ids* reported by one of *dims*."""
+    return frozenset(i for i in ids if finding_dimension(i) in dims)
 
 
 def is_violation(finding_id: str) -> bool:

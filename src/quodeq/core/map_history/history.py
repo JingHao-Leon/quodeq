@@ -85,7 +85,7 @@ def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: Ru
     violations = [violation_ids(s) for s in snapshots]
     ages = violation_ages(snapshots, days, violations)
     metrics = area_metrics_per_run(snapshots, assignments, running, ages)
-    flows = finding_flows(violations, frame_runs)
+    flows = finding_flows(snapshots, violations, frame_runs)
     frames = tuple(MapFrame(days[k], *flows[k], _rows(snapshots[k], index, (running[k], activity.per_transition[k]), ages[k]),
                             tuple(metrics[k])) for k in frame_runs)
     return MapHistory(activity.source, tuple(days), tuple(names), tuple(assignments[p].area for p in names),
