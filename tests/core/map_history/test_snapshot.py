@@ -1,4 +1,4 @@
-from quodeq.core.map_history.snapshot import build_run_snapshot
+from quodeq.core.map_history.snapshot import build_run_snapshot, finding_dimension, is_violation
 
 
 def _violation(file: str, sev: str, req: str = "R1", line: int = 1, snippet: str = "x()") -> dict:
@@ -17,13 +17,25 @@ def _reports():
     ]
 
 
-def test_counts_weights_and_dims():
+def test_violations_count_per_severity_and_compliance_per_file():
     snap = build_run_snapshot(_reports(), _never)
     a, b = snap.files["a.py"], snap.files["b.py"]
     assert (a.critical, a.major, a.minor, a.compliance) == (1, 0, 1, 0)
-    assert a.weight == 4.25
     assert (b.major, b.compliance) == (1, 1)
-    assert snap.dims == ("maintainability", "security")
+
+
+def test_a_files_weight_sums_its_violations_severity_weights():
+    assert build_run_snapshot(_reports(), _never).files["a.py"].weight == 4.25
+
+
+def test_dims_are_the_dimensions_with_a_readable_report():
+    assert build_run_snapshot(_reports(), _never).dims == ("maintainability", "security")
+
+
+def test_a_dimension_with_a_colon_keeps_its_identity_fields():
+    snap = build_run_snapshot([("org:sec", {"violations": [_violation("a.py", "major")]})], _never)
+    (fid,) = snap.files["a.py"].ids
+    assert finding_dimension(fid) == "org:sec" and is_violation(fid)
 
 
 def test_hidden_findings_do_not_count():

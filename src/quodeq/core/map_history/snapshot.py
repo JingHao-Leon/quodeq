@@ -12,9 +12,10 @@ from quodeq.core.types.severity import Severity, parse_severity
 # Verdict codes inside a finding identity ("<dimension>:<verdict>:<hash>"); they are baked into cached ids.
 VIOLATION = "v"
 COMPLIANCE = "c"
-# Where the verdict sits in a finding identity split on ":".
-_VERDICT_FIELD = 1
 _ID_SEP = ":"
+# An identity splits from the right into its three fields, so a ':' inside a dimension name cannot shift them.
+_ID_FIELDS_AFTER_DIM = 2
+_DIM_FIELD, _VERDICT_FIELD = 0, 1
 # The severities a file tallies; a violation whose severity is missing or unknown counts as minor.
 _SEVERITIES = (Severity.CRITICAL, Severity.MAJOR, Severity.MINOR)
 _FALLBACK_SEVERITY = Severity.MINOR
@@ -53,7 +54,7 @@ class RunSnapshot:
 
 def finding_dimension(finding_id: str) -> str:
     """The dimension that reported *finding_id* (its leading field)."""
-    return finding_id.split(_ID_SEP, 1)[0]
+    return finding_id.rsplit(_ID_SEP, _ID_FIELDS_AFTER_DIM)[_DIM_FIELD]
 
 
 def ids_in_dims(ids: Iterable[str], dims: Collection[str]) -> frozenset[str]:
@@ -63,7 +64,7 @@ def ids_in_dims(ids: Iterable[str], dims: Collection[str]) -> frozenset[str]:
 
 def is_violation(finding_id: str) -> bool:
     """True when *finding_id* names a violation (not a compliance judgment)."""
-    return finding_id.split(_ID_SEP)[_VERDICT_FIELD] == VIOLATION
+    return finding_id.rsplit(_ID_SEP, _ID_FIELDS_AFTER_DIM)[_VERDICT_FIELD] == VIOLATION
 
 
 def _fid(dimension: str, verdict: str, finding: dict) -> str:
