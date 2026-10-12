@@ -14,6 +14,8 @@ The assistant follows you around the app: it knows which project, run, tab, and 
 
 The assistant cannot change anything on its own. Ask it to dismiss a finding, verify one, or create a standard and it drafts the action as a preview card; nothing happens until you press **Apply**.
 
+Creating a standard is an interview. The assistant asks what it should enforce and which source it follows, proposes an outline of principles and requirements in the chat, and drafts the card only once you confirm that outline. The card shows every requirement, so you can read the whole standard before you apply it. Reject the card and say what to change if it is not right yet.
+
 ### Slash commands and skills
 
 | Key | Value |

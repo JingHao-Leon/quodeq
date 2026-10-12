@@ -3,6 +3,7 @@ import { applyAssistantAction, rejectAssistantAction } from '../../api/assistant
 import { notifyAssistantActionApplied } from '../../constants.js';
 import { t } from '../../strings/index.js';
 import { ACTION_TYPE } from '../../vocab/actionType.js';
+import { StandardOutline } from './StandardOutline.jsx';
 
 // Local lifecycle of one card: idle until the user picks, pending while the
 // request is in flight, then the terminal outcome. Drives both the banner and
@@ -32,6 +33,7 @@ function CardSummary({ actionType, summary }) {
       <div className="assistant-card-meta">
         {t('assistant.principlesMeta', { count: summary.principleCount, action: actionType })}
       </div>
+      <StandardOutline principles={summary.principles} />
     </div>
   );
 }
@@ -113,7 +115,8 @@ function ActionCardButtons({ disabled, onApply, onReject }) {
 
 /**
  * Renders the server-canonical summary of a proposed assistant action
- * (name, principle count, action type) with Apply / Reject controls.
+ * (name, principle count and the principle/requirement outline for a
+ * standard, action type) with Apply / Reject controls.
  *
  * No raw model markdown is rendered here — only the structured summary
  * fields provided by the server.

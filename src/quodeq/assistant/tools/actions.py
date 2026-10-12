@@ -45,17 +45,54 @@ class ActionSpec:
     apply: Callable[[dict, ActionContext], dict]       # executes on user approval
 
 
+def _hollow_content_errors(canonical: dict) -> list[str]:
+    """Why a drafted standard is not yet reviewable, one complaint per gap.
+
+    The import validator accepts an empty requirements list and requirements
+    without id or text (the manual import route tolerates skeletons the
+    editor fills in later). A drafted standard is different: the user reviews
+    it on a card and applies it as-is, so every principle needs at least one
+    requirement and every requirement needs an id and a checkable text. The
+    complaints go back to the model in-loop, which rewrites the payload
+    instead of handing the user an empty card.
+    """
+    errors: list[str] = []
+    for index, principle in enumerate(canonical.get("principles", [])):
+        label = f"principle {index} ({principle.get('name')!r})"
+        requirements = principle.get("requirements") or []
+        if not requirements:
+            errors.append(f"{label} has no requirements")
+        for req_index, req in enumerate(requirements):
+            if not str(req.get("id") or "").strip():
+                errors.append(f"{label} requirement {req_index} is missing an id")
+            if not str(req.get("text") or "").strip():
+                errors.append(f"{label} requirement {req_index} is missing its text")
+    return errors
+
+
 def _validate_create_standard(payload: dict, _ctx: ToolContext) -> dict:
     verdict = validate_import(payload)
     if not verdict["valid"]:
         raise ToolError("invalid standard payload: " + "; ".join(verdict["errors"]))
+    hollow = _hollow_content_errors(verdict["data"])
+    if hollow:
+        raise ToolError("incomplete standard, every principle needs requirements "
+                        "with an id and a checkable text: " + "; ".join(hollow))
     return verdict["data"]
 
 
 def _summarize_create_standard(canonical: dict) -> dict:
+    # The outline is what the user reads on the preview card before Apply;
+    # it is cut from the canonical payload, never from model prose.
+    principles = canonical.get("principles", [])
     return {
         "id": canonical.get("id"), "name": canonical.get("name"),
-        "principleCount": len(canonical.get("principles", [])),
+        "principleCount": len(principles),
+        "principles": [{
+            "name": p.get("name"),
+            "requirements": [{"id": r.get("id"), "text": r.get("text")}
+                             for r in p.get("requirements", [])],
+        } for p in principles],
     }
 
 

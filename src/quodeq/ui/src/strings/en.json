@@ -109,6 +109,7 @@
   "assistant.noProjectSelected": "no project selected",
   "assistant.noRepoAccess": "no repo access",
   "assistant.noSkillPacks": "No skill packs are installed.",
+  "assistant.outlineRequirements": "{count} requirements",
   "assistant.outcomeApplied": "Changes applied to your working tree (uncommitted). Review and commit them yourself.",
   "assistant.outcomeBranchKept": "Branch kept locally.",
   "assistant.outcomeDiscarded": "Changes discarded. The worktree and branch were removed.",
