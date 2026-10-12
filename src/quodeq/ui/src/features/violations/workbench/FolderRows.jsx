@@ -13,11 +13,12 @@ export function Crumbs({ dir, onDir }) {
       {parts.map((name, i) => {
         const path = `${parts.slice(0, i + 1).join(SEP)}${SEP}`;
         const last = i === parts.length - 1;
+        const label = name + SEP;
         return (
           <span key={path}>
             <span className="wb-crumbs__sep" aria-hidden="true">{t('violations.wbCrumbSep')}</span>
-            {last ? <span>{`${name}${SEP}`}</span>
-              : <button type="button" className="wb-link" onClick={() => onDir(path)}>{`${name}${SEP}`}</button>}
+            {last ? <span>{label}</span>
+              : <button type="button" className="wb-link" onClick={() => onDir(path)}>{label}</button>}
           </span>
         );
       })}
