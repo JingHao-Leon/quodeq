@@ -338,3 +338,7 @@ _.persistent_share  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics f
 _.need_pct  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
 _.has_history  # src/quodeq/core/map_history/area_metrics.py: AreaMetrics field consumed by the map history payload (later task)
 _.area_metrics_per_run  # src/quodeq/core/map_history/area_metrics.py: consumed by the map history builder (later task)
+# data/sqlite/score_cache_map_snapshot.py: consumed by the map history service in a later task of this series; only tests call it so far.
+_.store_map_snapshot
+_.load_map_snapshots
+_.prune_map_snapshots
