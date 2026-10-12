@@ -20,7 +20,10 @@ const WEAK = 'weak';
 function PrincipleList({ title, kind, items, empty, aName, bName, hover, setHover }) {
   return (
     <div className={`compare-duel-map__list compare-duel-map__list--${kind}`}>
-      <h3 className={`compare-duel-map__listHead compare-duel__ink--${kind}`}>{title}</h3>
+      <h3 className="compare-duel-map__listHead">
+        {kind !== WEAK && <span className={`compare-duel__swatch compare-duel__swatch--${kind}`} aria-hidden="true" />}
+        {title}
+      </h3>
       {items.length === 0 ? <p className="compare-duel-map__empty">{empty}</p> : (
         <ol className="compare-duel-map__rows">
           {items.map((p) => (

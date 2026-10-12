@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import CompareDimensionView from './CompareDimensionView.jsx';
-import { DIMENSION_PANEL_ID, dimensionTabId } from './CompareDimensionHeader.jsx';
 import { buildRow, buildDimensionView } from '../compareModel.js';
 import { NOW, makeSummary, makeProject, DIM_SEC, DIM_USE } from '../_compareModel.fixtures.js';
 
@@ -43,21 +42,13 @@ const renderView = () => render(
 );
 
 describe('CompareDimensionView accessibility (#6521)', () => {
-  it('renders the dimension body as the tab panel the tabs control', () => {
+  it('heads the page with the dimension switcher naming the open dimension', () => {
     renderView();
-    const panel = screen.getByRole('tabpanel');
-    expect(panel).toHaveAttribute('id', DIMENSION_PANEL_ID);
-    expect(panel).toHaveAttribute('aria-labelledby', dimensionTabId('security'));
-  });
-
-  it('labels the panel with the tab that is actually selected', () => {
-    renderView();
-    const selected = screen.getByRole('tab', { selected: true });
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', selected.id);
+    expect(screen.getByRole('button', { name: 'Switch dimension, Security is open' })).toBeInTheDocument();
   });
 
   it('contains the radar chart for the dimension', () => {
     renderView();
-    expect(screen.getByRole('tabpanel')).toContainElement(screen.getByRole('img', { name: /Radar chart/ }));
+    expect(screen.getByRole('img', { name: /Radar chart/ })).toBeInTheDocument();
   });
 });
