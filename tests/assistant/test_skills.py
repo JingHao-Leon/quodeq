@@ -105,3 +105,14 @@ def test_verify_finding_skill_is_card_gated():
     # pinned: the skill must never claim or instruct direct application
     assert "auto-apply" not in body.lower()
     assert "never claim the action was applied" in body
+
+
+def test_create_standard_skill_interviews_before_drafting():
+    """The skill is an interview: questions first, an outline to confirm, and
+    draft_action only after the user says yes. Hollow drafts were the symptom
+    of the old 'ask or infer' wording."""
+    body = load_skills()["create-standard"].instructions
+    assert "One question per message" in body
+    assert "outline" in body.lower()
+    assert "Do not call `draft_action` until the user has confirmed the outline" in body
+    assert "infer" not in body.lower()

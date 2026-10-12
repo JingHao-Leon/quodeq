@@ -234,3 +234,41 @@ def test_draft_dismiss_rejects_bool_line(project_ctx):
         "payload": {"req": "r1", "file": "a.py", "line": True, "reason": "fp"},
     })
     assert out["ok"] is False
+
+
+def _standard_with(requirements):
+    return {**_VALID_STANDARD,
+            "principles": [{"name": "P1", "description": "", "requirements": requirements}]}
+
+
+@pytest.mark.parametrize("requirements, complaint", [
+    ([], "no requirements"),
+    ([{"id": "", "text": "Endpoints return RFC7807"}], "missing an id"),
+    ([{"id": "r1", "text": "   "}], "missing its text"),
+    ([{"id": "r1", "description": "only a blurb"}], "missing its text"),
+])
+def test_draft_create_standard_rejects_hollow_content(ctx, requirements, complaint):
+    """A drafted standard must be reviewable: every principle carries at least
+    one requirement and every requirement has an id and a checkable text.
+    The model gets the complaint back in-loop instead of the user seeing an
+    empty card."""
+    out = build_registry(ctx).dispatch("draft_action", {
+        "action_type": "create_standard", "payload": _standard_with(requirements),
+    })
+    assert out["ok"] is False
+    assert complaint in out["error"]
+    assert "P1" in out["error"]
+
+
+def test_draft_create_standard_summary_carries_outline(ctx):
+    """The preview card renders the server-canonical outline, so the summary
+    must carry each principle with its requirement ids and texts."""
+    assert build_registry(ctx).dispatch("draft_action", {
+        "action_type": "create_standard", "payload": _VALID_STANDARD,
+    })["ok"] is True
+    frames = [f for _, f in ctx.repository.events_after("s1", 0)]
+    draft = next(f for f in frames if f["type"] == "action_draft")
+    assert draft["summary"]["principleCount"] == 1
+    assert draft["summary"]["principles"] == [
+        {"name": "P1", "requirements": [{"id": "r1", "text": "Endpoints return RFC7807"}]},
+    ]

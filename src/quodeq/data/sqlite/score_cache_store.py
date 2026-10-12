@@ -14,10 +14,12 @@ from dataclasses import dataclass
 
 from quodeq.core.types import DimensionResult
 from quodeq.data.sqlite.score_cache_db import open_score_cache, rollback_quietly
+from quodeq.data.sqlite.score_cache_map_snapshot import load_map_snapshots, save_map_snapshots  # noqa: F401
 from quodeq.data.sqlite.score_cache_principles import (
     attach_principles, principle_rows, read_principle_rows, write_principle_rows,
 )
 from quodeq.data.sqlite.score_cache_rows import RUN_SCALARS_COLUMNS, dimension_from_row, row_values
+from quodeq.data.sqlite.score_cache_run_payloads import RUN_CHANGE, RunKey, load_run_payloads, prune_run_payloads, store_run_payload
 
 _logger = logging.getLogger(__name__)
 
@@ -191,42 +193,17 @@ def _decode_keys(dj: str, cj: str) -> tuple[set[tuple], set[tuple]] | None:
 
 def store_run_change(conn: sqlite3.Connection, project: str, run_id: str, key: str, payload: dict) -> None:
     """Persist one run's History change data under *key* (best-effort)."""
-    try:
-        conn.execute(
-            "INSERT OR REPLACE INTO run_change (project, run_id, key, payload) VALUES (?, ?, ?, ?)",
-            (project, run_id, key, json.dumps(payload)),
-        )
-        conn.commit()
-    except (sqlite3.Error, TypeError, ValueError):
-        _logger.warning("run_change write failed for %s/%s", project, run_id, exc_info=True)
+    store_run_payload(conn, RUN_CHANGE, RunKey(project, run_id, key), payload)
 
 
 def load_run_changes(conn: sqlite3.Connection, project: str, keys: dict[str, str]) -> dict[str, dict]:
     """The cached change data of *keys*' runs whose stored key still matches; {} on any error."""
-    try:
-        rows = conn.execute("SELECT run_id, key, payload FROM run_change WHERE project=?", (project,)).fetchall()
-    except sqlite3.Error:
-        return {}
-    out: dict[str, dict] = {}
-    for run_id, key, payload in rows:
-        if keys.get(run_id) == key:
-            try:
-                out[run_id] = json.loads(payload)
-            except ValueError:
-                continue
-    return out
+    return load_run_payloads(conn, RUN_CHANGE, project, keys)
 
 
 def prune_run_changes(conn: sqlite3.Connection, project: str, keep_run_ids: set[str]) -> None:
     """Drop *project*'s change rows for runs outside *keep_run_ids* (best-effort)."""
-    try:
-        rows = conn.execute("SELECT run_id FROM run_change WHERE project=?", (project,)).fetchall()
-        gone = [(project, run_id) for (run_id,) in rows if run_id not in keep_run_ids]
-        if gone:
-            conn.executemany("DELETE FROM run_change WHERE project=? AND run_id=?", gone)
-            conn.commit()
-    except sqlite3.Error:
-        _logger.warning("run_change prune failed for %s", project, exc_info=True)
+    prune_run_payloads(conn, RUN_CHANGE, project, keep_run_ids)
 
 
 def read_all_cached_rows(
