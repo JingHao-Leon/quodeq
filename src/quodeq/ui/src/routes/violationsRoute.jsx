@@ -12,10 +12,11 @@
 import { lazy } from 'react';
 import { buildProjectRootFile } from '../utils/explorerUtils.js';
 import { NAV_TAB } from '../vocab/navTab.js';
-import { ROW_TYPE, VIOLATIONS_SUB_TAB } from '../features/violations/violationsVocab.js';
+import { ROW_TYPE } from '../features/violations/violationsVocab.js';
 import { typeFile } from '../features/violations/byTypeModel.js';
 import { SEVERITY_FILTER_ALL } from '../vocab/severity.js';
 import { FILE_SELECTOR_KIND, buildEvalPrincipal } from './liveSelectors.js';
+import { isSharedSource, makeDismissHandler } from './dismissWiring.js';
 
 // buildEvalPrincipal moved to routes/liveSelectors.js (the Principle page
 // rebuilds it from the live payload there); re-exported for its tests.
@@ -115,6 +116,17 @@ function buildViolationsCallbacks({ props, nav, navigateToPrinciple, navigateToD
     },
     onPrincipleClick: (principleObj) => navigateToPrinciple(principleObj),
     onReconcile: props.scheduleDashboardReconcile,
+    // The workbench dismisses findings from many runs: each finding carries
+    // its dimension's run, and the handler is made per call (undefined for a
+    // shared project, which is read-only).
+    onDismissFinding: isSharedSource(props.navigation.selectedSource) ? undefined
+      : (violation, runId) => makeDismissHandler({
+        selectedSource: props.navigation.selectedSource,
+        runId,
+        selectedProject: props.navigation.selectedProject,
+        fallbackDimension: violation.dimension,
+        deps: props,
+      })(violation),
     onNavigate: nav,
     onRetry: props.dashboardData.onRetry,
   };
@@ -125,12 +137,12 @@ function buildViolationsPageProps({ params, props, acc, dims, nav, navigateToPri
     data: buildViolationsData({ props, acc, dims }),
     callbacks: buildViolationsCallbacks({ props, nav, navigateToPrinciple, navigateToDimension, navigateToType }),
     tabKey: params._tabKey || 0,
-    // The by-dimension / by-file / dismissed flip is view state on the SAME
-    // screen: it lives in the route entry so back/forward and the crumb see
-    // it, but flipping replaces (never pushes) so history doesn't grow.
-    // Params are spread forward so _tabKey survives the flip.
-    subTab: params.subTab || VIOLATIONS_SUB_TAB.DIMENSION,
-    onSubTabChange: (v) => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, { ...params, subTab: v }),
+    // The workbench's search, filters, grouping and selection are view state
+    // on the SAME screen: they live in the route entry so back/forward and a
+    // round trip through a file restore them, and a change replaces (never
+    // pushes) the entry. Params are spread forward so _tabKey survives.
+    workbench: params.wb || null,
+    onWorkbenchChange: (wb) => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, { ...params, wb }),
   };
 }
 
