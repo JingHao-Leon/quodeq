@@ -1,4 +1,4 @@
-import { LauncherButton, LauncherMenu, LauncherRoot, useLauncherPopover } from '../../../components/launcher/launcherParts.jsx';
+import CaptionLauncher from './CaptionLauncher.jsx';
 import { t } from '../../../strings/index.js';
 
 const CHECK = '✓ ';
@@ -25,17 +25,10 @@ function Options({ options, value, label, onPick }) {
 /** A filter as the app's launcher: `label: value ▸`, a menu that ticks the current value. */
 export default function WorkbenchMenu(props) {
   const { label, valueLabel, onPick } = props;
-  const pop = useLauncherPopover();
   const caption = t('violations.wbMenuButton', { label, value: valueLabel });
-  const pick = (v) => { pop.close(); onPick(v); };
   return (
-    <LauncherRoot>
-      <LauncherButton btnRef={pop.btnRef} open={pop.open} ariaLabel={caption} label={caption} onToggle={pop.toggle} />
-      {pop.open && pop.pos && (
-        <LauncherMenu menuRef={pop.menuRef} pos={pop.pos}>
-          <Options options={props.options} value={props.value} label={label} onPick={pick} />
-        </LauncherMenu>
-      )}
-    </LauncherRoot>
+    <CaptionLauncher caption={caption}>
+      {(close) => <Options options={props.options} value={props.value} label={label} onPick={(v) => { close(); onPick(v); }} />}
+    </CaptionLauncher>
   );
 }

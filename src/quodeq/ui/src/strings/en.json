@@ -1923,6 +1923,7 @@
   "violations.typeMenuAria": "Actions for {req}",
   "violations.viewAria": "Group violations",
   "violations.typeMenuGlyph": "⋯",
+  "violations.wbDismissRule": "dismiss all {req}",
   "violations.dismissAllProject": "Dismiss all {count} in this project",
   "violations.dismissAllProjectOne": "Dismiss the 1 finding in this project",
   "violations.dismissAllPrinciple": "Dismiss all {count} in {principle}",
