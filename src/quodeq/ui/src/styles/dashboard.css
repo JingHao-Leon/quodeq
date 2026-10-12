@@ -2726,6 +2726,15 @@
 .projects-row__detail--lines { display: grid; gap: 4px; }
 .projects-row__detail p { margin: 0; }
 .projects-row__note { color: var(--color-text-muted); }
+.projects-row__detail .inline-error { margin: 0; }
+/* git's own output under a refused fetch: muted, kept verbatim. */
+.projects-row__error-detail {
+  margin: 2px 0 0;
+  font: inherit;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 /* The clone row: name, then the progress across the data columns. */
 .projects-row--ghost { cursor: default; }

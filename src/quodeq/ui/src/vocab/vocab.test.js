@@ -52,7 +52,8 @@ test('vocab modules spell the wire values', () => {
   assert.deepEqual(LOG_STREAM_STATUS, { IDLE: 'idle', STREAMING: 'streaming', DONE: 'done', ERROR: 'error' });
   assert.deepEqual(REFRESH_OUTCOME, {
     UPDATED: 'updated', UP_TO_DATE: 'up_to_date', NOT_REFRESHABLE: 'not_refreshable', BUSY: 'busy',
-    DIRTY: 'dirty', NO_UPSTREAM: 'no_upstream', DIVERGED: 'diverged', FETCH_FAILED: 'fetch_failed',
+    DIRTY: 'dirty', NO_UPSTREAM: 'no_upstream',
+    UPSTREAM_GONE: 'upstream_gone', DIVERGED: 'diverged', FETCH_FAILED: 'fetch_failed',
   });
   assert.deepEqual(STAGE_STATUS, { IDLE: 'idle', LOADING: 'loading', READY: 'ready', UNAVAILABLE: 'unavailable', ERROR: 'error' });
 });
