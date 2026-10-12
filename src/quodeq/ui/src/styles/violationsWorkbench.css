@@ -1,0 +1,76 @@
+/* Violations findings workbench: search bar, menus, chips, list and detail.
+   Tokens only; panels are qd-cards-panel, selection is the ink tint + accent bar. */
+.wb {
+  --wb-hover-bg: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
+  --wb-hover-bar: inset 2px 0 0 var(--color-accent);
+  display: flex; flex-direction: column; gap: var(--term-space-2); font-family: var(--term-font-mono);
+}
+.wb-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 11px; }
+.wb-search { position: relative; flex: 1 1 420px; max-width: 620px; }
+.wb-search .term-input { width: 100%; }
+.wb-search .term-input__field, .wb-search .term-input__field:focus { border: 0; box-shadow: none; background: transparent; height: auto; padding: 0; }
+.wb-sugg { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; display: flex; flex-direction: column; padding: 6px 0;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--term-radius);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 12%, transparent); }
+.wb-sugg__path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-menu__count { font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.compare-dueltrigger__item.wb-menu__current { color: var(--color-text); font-weight: 600; }
+.wb-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; }
+.wb-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 8px; border: 1px solid var(--color-border);
+  border-radius: var(--term-radius); background: var(--color-surface); }
+.wb-chip button { border: 0; background: none; color: var(--color-text-muted); cursor: pointer; font: inherit; padding: 0 4px; }
+.wb-chip button:hover { color: var(--color-text); }
+.wb-link { border: 0; background: none; padding: 0; font: inherit; color: var(--color-text); cursor: pointer;
+  text-decoration: underline dotted; text-underline-offset: 3px; }
+.wb-link--muted { color: var(--color-text-muted); }
+
+/* split: list and finding side by side, same height */
+.wb-split { display: grid; grid-template-columns: minmax(380px, 46%) 1fr; gap: var(--term-space-2); height: max(480px, calc(100vh - 250px)); }
+.wb .wb-panel { margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.wb .qd-cards-panel > .wb-list { flex: 1; min-height: 0; overflow: auto; padding: 0; }
+.wb-empty { padding: 16px; font-size: 12px; color: var(--color-text-muted); }
+.wb-crumbs { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 14px; font-size: 11px; border-bottom: 1px solid var(--color-border); }
+.wb-crumbs__sep { margin: 0 4px; color: var(--color-text-muted); }
+.wb-folder { display: grid; grid-template-columns: minmax(0, 1fr) auto 44px; gap: 12px; align-items: center; width: 100%; padding: 8px 14px;
+  border: 0; border-bottom: 1px solid var(--color-border); background: none; font: inherit; font-size: 12px; color: var(--color-text); text-align: left; cursor: pointer; }
+.wb-folder:hover { background: var(--wb-hover-bg); box-shadow: var(--wb-hover-bar); }
+.wb-folder__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-folder__sev { display: inline-flex; gap: 10px; font-size: 11px; }
+.wb-folder__n { text-align: right; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.wb-sevword--critical { color: var(--color-sev-critical-text); }
+.wb-sevword--major { color: var(--color-sev-major-text); }
+.wb-sevword--minor { color: var(--color-sev-minor-text); }
+.wb-group { position: sticky; top: 0; z-index: 1; display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px 4px;
+  background: var(--color-surface); border-top: 1px solid var(--color-border); font-size: 11px; font-weight: 600; color: var(--color-text); }
+.wb-group__k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-group__n { color: var(--color-text-muted); font-weight: 400; }
+.wb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t f" "m m"; gap: 2px 12px; width: 100%;
+  padding: 7px 14px 7px 12px; border: 0; border-left: 2px solid var(--color-border); border-bottom: 1px solid var(--color-border);
+  background: none; text-align: left; font: inherit; color: var(--color-text); cursor: pointer; }
+.wb-row--critical { border-left-color: var(--color-sev-critical-border); }
+.wb-row--major { border-left-color: var(--color-sev-major-border); }
+.wb-row--minor { border-left-color: var(--color-sev-minor-border); }
+.wb-row:hover { background: var(--wb-hover-bg); }
+.wb-row.is-sel { background: var(--wb-hover-bg); box-shadow: var(--wb-hover-bar); }
+.wb-row.is-dismissed .wb-row__t { text-decoration: line-through; text-decoration-color: var(--color-text-muted); }
+.wb-row__t { grid-area: t; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wb-row__f { grid-area: f; font-size: 11px; color: var(--color-text-muted); max-width: 260px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; direction: rtl; text-align: right; }
+.wb-row__f--line { direction: ltr; }
+.wb-row__meta { grid-area: m; font-size: 10px; color: var(--color-text-muted); }
+.wb-tag { margin-right: 8px; padding: 0 5px; border: 1px solid var(--color-border); border-radius: var(--term-radius); }
+.wb-more { width: 100%; padding: 10px 14px; border: 0; background: none; font: inherit; font-size: 11px; color: var(--color-text-muted); cursor: pointer; text-align: left; }
+.wb-more:hover { color: var(--color-text); }
+.wb .qd-cards-panel > .wb-detail__body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px; }
+.wb-where { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; }
+.wb-muted { color: var(--color-text-muted); }
+.wb-dismissed { font-size: 11px; color: var(--color-text-muted); }
+.wb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.wb-actions__right { margin-left: auto; }
+.wb-detail .vdetail-row { margin: 0; }
+@media (max-width: 900px) {
+  .wb-split { display: flex; flex-direction: column; height: auto; }
+  .wb-split > .wb-detail { order: 1; }
+  .wb-split > .wb-listpanel { order: 2; }
+  .wb .qd-cards-panel > .wb-list { max-height: 420px; }
+}

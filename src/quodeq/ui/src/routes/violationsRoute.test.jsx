@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import { PROJECT_SOURCE } from '../vocab/projectSource.js';
+import { NAV_TAB } from '../vocab/navTab.js';
 import { ViolationsRoute, violationsLookupsFor, buildEvalPrincipal } from './violationsRoute.jsx';
 
 function dims() {
@@ -82,6 +84,24 @@ describe('ViolationsRoute', () => {
       fileSelector: { kind: 'type', dimension: 'security', req: 'S-1', text: 'Hash it' },
       runId: 'run-1', dateLabel: '26 Sep', sourceTab: 'violations',
     }));
+  });
+
+  it('passes the workbench param through and replaces the entry on change', () => {
+    const props = routeProps({ dimensions: dims() });
+    props.navigation.handleNavigateReplace = vi.fn();
+    const el = ViolationsRoute({ params: { wb: { q: 'api' } }, props });
+    expect(el.props.workbench).toEqual({ q: 'api' });
+    el.props.onWorkbenchChange({ q: 'x' });
+    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { wb: { q: 'x' } });
+  });
+
+  it('offers a finding dismiss for a local project only', () => {
+    const local = ViolationsRoute({ params: {}, props: routeProps({ dimensions: dims() }) });
+    expect(typeof local.props.callbacks.onDismissFinding).toBe('function');
+    const sharedProps = routeProps({ dimensions: dims() });
+    sharedProps.navigation.selectedSource = PROJECT_SOURCE.SHARED;
+    const shared = ViolationsRoute({ params: {}, props: sharedProps });
+    expect(shared.props.callbacks.onDismissFinding).toBeUndefined();
   });
 });
 

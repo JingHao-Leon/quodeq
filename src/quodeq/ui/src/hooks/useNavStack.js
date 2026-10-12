@@ -42,6 +42,15 @@ function makeReplaceTop(navStackRef, entriesByIndex, history) {
   };
 }
 
+// A view-state replace for a page that is no longer on top (another page,
+// or an older visit of the same tab) is dropped: a page that flushes its view
+// state as it unmounts runs after the next page took the top, and must not
+// overwrite it.
+function isLeftBehind(top, entry) {
+  if (!top || top.page !== entry.page) return true;
+  return entry._tabKey !== undefined && top._tabKey !== entry._tabKey;
+}
+
 function makeNavPush(setNavStack, navStackRef, history, rememberEntry, startNavTransition) {
   return function navPush(entry) {
     const next = [...navStackRef.current, entry];
@@ -128,7 +137,10 @@ function createNavActions(setNavStack, navStackRef, history, entriesByIndex, sta
   // typed filters). Plain set, never a transition: this state can be driven
   // by controlled inputs, and rendering keystrokes at transition priority
   // makes typing lag.
-  const navReplace = (entry) => replaceTop(entry, setNavStack);
+  const navReplace = (entry) => {
+    if (isLeftBehind(navStackRef.current.at(-1), entry)) return;
+    replaceTop(entry, setNavStack);
+  };
   const navGoTo = (index) => {
     const steps = navStackRef.current.length - 1 - index;
     if (steps > 0) history.go(-steps);

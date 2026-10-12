@@ -8,6 +8,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ViolationsPage from './ViolationsPage.jsx';
+import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
+
+// The finding card needs the app's side pane; the page under test is the
+// wiring around it, so the card is a stub here.
+vi.mock('../../explorer/components/EvalCards.jsx', () => ({ EvalViolationCard: ({ v }) => <div data-testid="card">{v.title}</div> }));
 
 const RESTORE_ERROR = 'Restore failed: findings file is read-only';
 
@@ -16,12 +21,11 @@ const pageState = {
   handleRestore: vi.fn(), handleRestoreAll: vi.fn(),
   handleDelete: vi.fn(), handleDeleteAll: vi.fn(),
   restoreError: RESTORE_ERROR,
-  visibleDimensions: [],
+  visibleDimensions: [{ dimension: 'security', fromRunId: 'r1', violations: [
+    { title: 'Key logged', file: 'a.py', line: 1, severity: 'major', req: 'S-1' },
+    { title: 'Weak hash', file: 'b.py', line: 2, severity: 'minor', req: 'S-2' },
+  ] }],
   summary: { totalViolations: 0, severity: {} },
-  topFilesCount: 0,
-  uniquePrinciples: 0,
-  fileCurrentPath: '',
-  setFileCurrentPath: vi.fn(),
 };
 
 vi.mock('../hooks/useViolationsPageState.js', () => ({
@@ -41,9 +45,21 @@ const DATA = {
 
 describe('ViolationsPage restore-error banner (6146)', () => {
   it('announces the banner through role="alert"', () => {
-    render(<ViolationsPage data={DATA} callbacks={{}} />);
+    const QC = withQueryClient();
+    render(<QC><ViolationsPage data={DATA} callbacks={{}} /></QC>);
     const alert = screen.getByRole('alert');
     expect(alert).toHaveTextContent(RESTORE_ERROR);
     expect(alert).toHaveClass('error-banner');
+  });
+});
+
+describe('ViolationsPage workbench a11y', () => {
+  it('has a labelled search, a named list of row buttons and one current row', async () => {
+    const QC = withQueryClient();
+    render(<QC><ViolationsPage data={DATA} callbacks={{}} workbench={null} onWorkbenchChange={() => {}} /></QC>);
+    expect(await screen.findByRole('textbox', { name: 'Search findings' })).toBeInTheDocument();
+    const list = screen.getByLabelText('Findings');
+    expect(list.querySelectorAll('button.wb-row')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { current: true })).toHaveLength(1);
   });
 });
