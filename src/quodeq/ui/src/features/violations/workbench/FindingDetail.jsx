@@ -1,7 +1,7 @@
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
 import { EvalViolationCard } from '../../explorer/components/EvalCards.jsx';
-import TypeRowMenu from '../components/TypeRowMenu.jsx';
+import DismissRuleMenu from './DismissRuleMenu.jsx';
 import { FINDING_STATUS } from '../violationsVocab.js';
 import { parentFolder } from './folderModel.js';
 import { sevAbbr } from './sevWords.js';
@@ -74,7 +74,7 @@ export default function FindingDetail({ finding, dims, findings, onAddPath, onOp
           onDismiss={open && onDismiss ? (v) => onDismiss(v, finding.runId) : undefined} />
         {!open && <DismissedActions finding={finding} onRestore={onRestore} onDelete={onDelete} />}
         <div className="wb-actions">
-          {open && onDismissType && finding.runId != null && <TypeRowMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
+          {open && onDismissType && finding.runId != null && <DismissRuleMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
           {finding.file && onOpenFile && (
             <button type="button" className="eval-pill-btn wb-actions__right" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
           )}

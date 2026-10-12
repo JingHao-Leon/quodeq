@@ -12,7 +12,7 @@ vi.mock('../../explorer/components/EvalCards.jsx', () => ({
     <div data-testid="card">{v.reason}{onDismiss && <button type="button" onClick={() => onDismiss(v)}>dismiss</button>}</div>
   ),
 }));
-vi.mock('../components/TypeRowMenu.jsx', () => ({ default: () => <span data-testid="rule-menu" /> }));
+vi.mock('./DismissRuleMenu.jsx', () => ({ default: () => <span data-testid="rule-menu" /> }));
 
 const dims = makeDims();
 const findings = flattenFindings(dims, makeDismissed());
