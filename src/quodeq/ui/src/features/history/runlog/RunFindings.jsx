@@ -5,14 +5,21 @@ import { sevAbbr } from './RunSevText.jsx';
 
 const COLUMNS = 'minmax(0, 1fr) minmax(0, 240px)';
 
+/**
+ * One group per dimension. The list comes severity-first across dimensions,
+ * so the same dimension can recur; merging only neighbours gave two groups
+ * one React key, and switching tabs then left a stale group on screen.
+ * Groups keep first-seen order (so the most severe dimension leads) and
+ * each keeps its findings in list order.
+ */
 function groupByDimension(list) {
-  const groups = [];
+  const groups = new Map();
   list.forEach((f) => {
-    const g = groups.at(-1);
-    if (g && g.dim === f.dimension) g.items.push(f);
-    else groups.push({ dim: f.dimension, items: [f] });
+    const g = groups.get(f.dimension);
+    if (g) g.items.push(f);
+    else groups.set(f.dimension, { dim: f.dimension, items: [f] });
   });
-  return groups;
+  return [...groups.values()];
 }
 
 /** `11 maj · 3 min`, each count in its severity's colour. */
