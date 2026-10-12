@@ -1,4 +1,4 @@
-from quodeq.core.map_history.snapshot import RunSnapshot, build_run_snapshot
+from quodeq.core.map_history.snapshot import build_run_snapshot
 
 
 def _violation(file: str, sev: str, req: str = "R1", line: int = 1, snippet: str = "x()") -> dict:
@@ -35,11 +35,6 @@ def test_hidden_findings_do_not_count():
     snap = build_run_snapshot(_reports(), hidden)
     assert (snap.files["a.py"].critical, snap.files["a.py"].minor) == (0, 1)
     assert ("security", "R1") in seen and ("maintainability", "R1") in seen
-
-
-def test_round_trips_through_json():
-    snap = build_run_snapshot(_reports(), _never)
-    assert RunSnapshot.from_json(snap.to_json()) == snap
 
 
 def test_identities_are_per_dimension_and_stable():

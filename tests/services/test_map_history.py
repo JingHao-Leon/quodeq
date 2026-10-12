@@ -87,25 +87,33 @@ def test_unknown_project_is_empty(env):
     assert build_map_history(env, "nope") == EMPTY_HISTORY
 
 
-def _cached_run_ids():
-    from quodeq.services.wiring import open_score_cache
-    with open_score_cache() as conn:
-        return {r[0] for r in conn.execute("SELECT run_id FROM map_snapshot").fetchall()}
+@pytest.fixture
+def cached_runs(monkeypatch):
+    """The run ids the map snapshot store holds, tracked through its save function (prune, then store)."""
+    held: set[str] = set()
+    real = map_history.save_map_snapshots
+
+    def spy(project, snapshots, keep_run_ids):
+        held.intersection_update(keep_run_ids)
+        held.update(snapshots)
+        real(project, snapshots, keep_run_ids)
+    monkeypatch.setattr(map_history, "save_map_snapshots", spy)
+    return held
 
 
-def test_unfinished_runs_are_not_cached_and_new_dimensions_show_up(env):
+def test_unfinished_runs_are_not_cached_and_new_dimensions_show_up(env, cached_runs):
     p = env / "proj"
     _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
     _run(p, "r2", "2026-09-08", {"security": [_violation("x/a.py")]}, dims=("security",), state="running")
     (p / "r2" / ".pid").write_text(str(os.getpid()))  # a live process keeps the run RUNNING
     out = build_map_history(env, "proj")
     assert list(out.days) == ["2026-09-01", "2026-09-08"]
-    assert _cached_run_ids() == {"r1"}
+    assert cached_runs == {"r1"}
     (p / "r2" / ".pid").unlink()
     _run(p, "r2", "2026-09-08", {"security": [_violation("x/a.py")], "maintainability": [_violation("x/b.py", snip="b()")]})
     out = build_map_history(env, "proj")
     assert "x/b.py" in out.file_names
-    assert _cached_run_ids() == {"r1", "r2"}
+    assert cached_runs == {"r1", "r2"}
 
 
 def test_run_without_a_usable_day_is_skipped(env):
@@ -115,14 +123,11 @@ def test_run_without_a_usable_day_is_skipped(env):
     assert build_map_history(env, "proj").days == ("2026-09-01",)
 
 
-def test_corrupt_cached_payload_is_rebuilt(env):
+def test_a_cache_miss_is_rebuilt_to_the_same_history(env, monkeypatch):
     p = env / "proj"
     _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
     first = build_map_history(env, "proj")
-    from quodeq.services.wiring import open_score_cache
-    with open_score_cache() as conn:
-        conn.execute("UPDATE map_snapshot SET payload = ?", ('{"nope": 1}',))
-        conn.commit()
+    monkeypatch.setattr(map_history, "load_map_snapshots", lambda project, keys: {})
     assert build_map_history(env, "proj") == first
 
 

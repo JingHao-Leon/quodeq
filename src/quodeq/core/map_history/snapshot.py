@@ -50,19 +50,6 @@ class RunSnapshot:
     dims: tuple[str, ...]
     files: dict[str, FileStat]
 
-    def to_json(self) -> dict:
-        """Compact JSON form: one positional list per file."""
-        return {"dims": list(self.dims), "files": {
-            p: [s.critical, s.major, s.minor, s.compliance, s.weight, sorted(s.ids), sorted(s.dims)]
-            for p, s in self.files.items()}}
-
-    @classmethod
-    def from_json(cls, data: dict) -> RunSnapshot:
-        """Inverse of ``to_json``."""
-        return cls(tuple(data["dims"]), {
-            p: FileStat(c, ma, mi, co, w, frozenset(ids), frozenset(ds))
-            for p, (c, ma, mi, co, w, ids, ds) in data["files"].items()})
-
 
 def finding_dimension(finding_id: str) -> str:
     """The dimension that reported *finding_id* (its leading field)."""

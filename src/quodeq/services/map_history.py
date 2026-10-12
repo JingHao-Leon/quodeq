@@ -23,10 +23,10 @@ from quodeq.services.scoring import ProjectRows
 from quodeq.services.wiring import (
     eval_report_dimensions,
     iter_readable_eval_reports,
-    load_map_snapshot_payloads,
+    load_map_snapshots,
     load_suppression_rules,
     read_repository_info,
-    save_map_snapshot_payloads,
+    save_map_snapshots,
 )
 
 # The ``frames`` value that asks for every frame (anything else gives the latest only).
@@ -114,20 +114,6 @@ def _full_by_day(candidates: list[_Candidate]) -> tuple[dict[str, list[_Candidat
     return by_day, need
 
 
-def _from_cache(payload: dict) -> RunSnapshot | None:
-    """The snapshot of a cached *payload*, or None when it is unreadable (the run is rebuilt)."""
-    try:
-        return RunSnapshot.from_json(payload)
-    except (KeyError, ValueError, TypeError):
-        return None
-
-
-def _cached_snapshots(project: str, keys: dict[str, str]) -> dict[str, RunSnapshot]:
-    """The usable cached snapshots of *keys*' runs."""
-    payloads = load_map_snapshot_payloads(project, keys)
-    return {run_id: snap for run_id, payload in payloads.items() if (snap := _from_cache(payload)) is not None}
-
-
 def _cache_keys(rows: ProjectRows, by_day: dict[str, list[_Candidate]]) -> dict[str, str]:
     """The snapshot cache key of every finished candidate run.
 
@@ -175,13 +161,13 @@ def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
         return [], []
     by_day, need = _full_by_day(candidates)
     keys = _cache_keys(rows, by_day)
-    cached = _cached_snapshots(rows.project, keys)
+    cached = load_map_snapshots(rows.project, keys)
     is_hidden = _hidden_predicate(rows)
     picked = {day: got for day, group in by_day.items()
               if (got := _day_snapshot(rows, group, cached, need, is_hidden)) is not None}
     kept = {p.run_id for p in picked.values() if p.run_id in keys}
-    fresh = {p.run_id: (keys[p.run_id], p.snapshot.to_json()) for p in picked.values() if p.built_now and p.run_id in keys}
-    save_map_snapshot_payloads(rows.project, fresh, kept)
+    fresh = {p.run_id: (keys[p.run_id], p.snapshot) for p in picked.values() if p.built_now and p.run_id in keys}
+    save_map_snapshots(rows.project, fresh, kept)
     return list(picked), [p.snapshot for p in picked.values()]
 
 
