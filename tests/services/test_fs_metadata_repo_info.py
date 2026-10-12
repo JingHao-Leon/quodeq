@@ -19,6 +19,7 @@ from quodeq.services._fs_metadata import (
     read_language_stats,
     read_repo_info,
 )
+from quodeq.services.fs_project_helpers import checked_out_branch_for
 
 
 class TestCheckPathExists:
@@ -36,6 +37,20 @@ class TestCheckPathExists:
 
     def test_none_location_returns_none(self):
         assert check_path_exists("/some/path", None) is None
+
+
+class TestCheckedOutBranchFor:
+    def test_local_folder_reports_its_branch(self, tmp_path: Path):
+        (tmp_path / ".git").mkdir()
+        (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/dev\n", encoding="utf-8")
+
+        assert checked_out_branch_for(str(tmp_path), "local") == "dev"
+
+    def test_online_project_has_no_branch(self, tmp_path: Path):
+        (tmp_path / ".git").mkdir()
+        (tmp_path / ".git" / "HEAD").write_text("ref: refs/heads/dev\n", encoding="utf-8")
+
+        assert checked_out_branch_for(str(tmp_path), "online") is None
 
 
 class TestExtractProjectMetadata:

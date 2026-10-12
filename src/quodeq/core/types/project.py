@@ -43,3 +43,5 @@ class ProjectEntry:
     onboarding_completed_at: str | None = None
     origin_url: str | None = None
     summary_pending: bool = False
+    # The local folder's checked-out branch (short sha when detached).
+    branch: str | None = None

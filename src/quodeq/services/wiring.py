@@ -264,7 +264,7 @@ from quodeq.data.fs.evidence_tally import FindingTally, IncrementalTally, classi
 from quodeq.services._process_owners import DEFAULT_LIVE_TALLY_MEMO, DEFAULT_SINGLE_FLIGHT, DEFAULT_WALK_CACHE, LiveTallyMemo, SingleFlight, WalkCache  # noqa: F401
 
 # Local git repo statistics.
-from quodeq.data.fs.git_stats import count_commits_since, last_fetched_mtime  # noqa: F401
+from quodeq.data.fs.git_stats import checked_out_branch, count_commits_since, last_fetched_mtime  # noqa: F401
 
 # Project-identity index (project_index.json): load/save + the identity key
 # a project resolves to. The api layer reaches this via the public facade
