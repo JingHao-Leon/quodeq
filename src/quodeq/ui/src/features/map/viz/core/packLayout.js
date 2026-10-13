@@ -1,7 +1,8 @@
 import { hierarchy } from 'd3-hierarchy';
 import { packProportional } from './proportionalPack.js';
 
-// Layout units for the circle pack; the SVG viewBox scales them to the screen.
+// Layout units for the circle pack; the canvas viewport (packViewport) scales
+// them to the screen.
 export const PACK_BASE_SIZE = 600;
 // Trees at or above this many nodes lay out in the worker instead of the
 // render thread.

@@ -1,6 +1,5 @@
-// The document icon used for files in the Map, as numbers both renderers
-// share: the SVG FileShape builds path strings from these, the canvas
-// renderer traces them directly. Authored at origin (centred on 0,0) in a
+// The document icon used for files in the Map (the SVG FileShape of the Risk
+// Matrix builds its path strings from these numbers). Authored at origin (centred on 0,0) in a
 // BASE-unit box and scaled to the circle radius by the caller.
 
 export const FILE_SHAPE_BASE = 20;
@@ -39,7 +38,7 @@ export const FILE_RULE_LINES = [
   [LX1, FILE_Y + FILE_H * LINE_BOTTOM_RATIO, LX2 * LINE_BOTTOM_LENGTH_RATIO, FILE_LINE_OPACITY_SECONDARY],
 ];
 
-/** Colour of the rule lines: white at the given opacity, like the SVG. */
+/** Colour of the rule lines: white at the given opacity. */
 export function ruleLineColor(opacity) {
   return `rgba(255,255,255,${opacity})`;
 }

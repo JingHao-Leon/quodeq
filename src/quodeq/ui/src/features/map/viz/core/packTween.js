@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-// The SVG view zooms with `transition: transform 0.5s ease`; the canvas
-// reproduces that by tweening the focus transform itself.
+// The canvas zooms by tweening the focus transform itself over this long.
 export const PACK_TWEEN_MS = 500;
 const HALF = 0.5;
 const CUBIC = 3;

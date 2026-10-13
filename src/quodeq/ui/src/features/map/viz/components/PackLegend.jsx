@@ -15,7 +15,7 @@ function activityNote(source, loading) {
 export default function PackLegend({ mode, activitySource, activityLoading }) {
   const activity = mode === PACK_COLOR_MODE.ACTIVITY;
   return (
-    <div className="map-legend pack-legend" aria-live="polite">
+    <div className="pack-legend" aria-live="polite">
       <div className="pack-legend-title">{activity ? t('map.legendActivityTitle') : t('map.legendConcentrationTitle')}</div>
       <div className="pack-legend-row">
         <span>{activity ? t('map.legendActivityLow') : t('map.legendBetter')}</span>
