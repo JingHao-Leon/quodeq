@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { worstSeverity, nodeColor, nodeBorderColor } from './mapColors.js';
+import { worstSeverity } from './mapColors.js';
 
 test('worstSeverity: returns the highest severity present', () => {
   assert.equal(worstSeverity({ critical: 1, major: 0, minor: 0 }), 'critical');
@@ -13,10 +13,4 @@ test('worstSeverity: does not throw and returns null when severity is undefined/
   assert.doesNotThrow(() => worstSeverity(undefined));
   assert.equal(worstSeverity(undefined), null);
   assert.equal(worstSeverity(null), null);
-});
-
-test('nodeColor/nodeBorderColor: do not throw when node.severity is missing', () => {
-  const node = { violations: 0, compliance: 0 };
-  assert.doesNotThrow(() => nodeColor(node, 'violations'));
-  assert.doesNotThrow(() => nodeBorderColor(node, 'violations'));
 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decodeAreas, worstSeverity, NO_AREAS } from './mapAreas.js';
+import { decodeAreas, rowWorstSeverity, NO_AREAS } from './mapAreas.js';
 import { SEVERITY } from '../../../vocab/severity.js';
 
 const PAYLOAD = {
@@ -17,10 +17,10 @@ const PAYLOAD = {
 };
 
 test('the worst violation of a row', () => {
-  assert.equal(worstSeverity([0, 0, 2, 0, 1, 1]), SEVERITY.CRITICAL);
-  assert.equal(worstSeverity([0, 0, 2, 0, 0, 1]), SEVERITY.MAJOR);
-  assert.equal(worstSeverity([0, 0, 2, 0, 0, 0]), SEVERITY.MINOR);
-  assert.equal(worstSeverity([0, 0, 0, 4, 0, 0]), null);
+  assert.equal(rowWorstSeverity([0, 0, 2, 0, 1, 1]), SEVERITY.CRITICAL);
+  assert.equal(rowWorstSeverity([0, 0, 2, 0, 0, 1]), SEVERITY.MAJOR);
+  assert.equal(rowWorstSeverity([0, 0, 2, 0, 0, 0]), SEVERITY.MINOR);
+  assert.equal(rowWorstSeverity([0, 0, 0, 4, 0, 0]), null);
 });
 
 test('areas carry their files, summed stats and shown layers', () => {

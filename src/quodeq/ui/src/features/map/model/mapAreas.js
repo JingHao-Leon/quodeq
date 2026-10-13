@@ -16,7 +16,7 @@ export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
  * @param {number[]} row a history frame file row
  * @returns {string|null} a SEVERITY value
  */
-export function worstSeverity(row) {
+export function rowWorstSeverity(row) {
   if (row[ROW_CRITICAL] > 0) return SEVERITY.CRITICAL;
   if (row[ROW_MAJOR] > 0) return SEVERITY.MAJOR;
   return row[ROW_VIOLATIONS] > 0 ? SEVERITY.MINOR : null;
@@ -43,7 +43,7 @@ function addRow(area, row, path, layer) {
   s.critical += row[ROW_CRITICAL];
   s.major += row[ROW_MAJOR];
   if (layer) area.layers.add(layer);
-  area.dots.push({ path, worst: worstSeverity(row), checks: Math.max(1, row[ROW_VIOLATIONS] + row[ROW_COMPLIANCE]) });
+  area.dots.push({ path, worst: rowWorstSeverity(row), checks: Math.max(1, row[ROW_VIOLATIONS] + row[ROW_COMPLIANCE]) });
 }
 
 function isDecodable(payload, frame) {

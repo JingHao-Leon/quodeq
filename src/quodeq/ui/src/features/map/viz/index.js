@@ -7,7 +7,7 @@ export { default as VizBreadcrumb } from './components/VizBreadcrumb.jsx';
 export { buildFileTree, treeNodeToFileObj } from './core/fileTree.js';
 export {
   severityColor, complianceRateColor, severityCellStyle, complianceRateCellStyle,
-  healthColor, worstSeverity, nodeBorderColor, nodeColor,
+  healthColor, worstSeverity,
 } from './core/mapColors.js';
 export {
   TAU, parseCSSColor, getThemeColors, invalidateThemeColors,
