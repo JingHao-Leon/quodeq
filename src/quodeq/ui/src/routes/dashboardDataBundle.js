@@ -1,3 +1,5 @@
+import { PROJECT_SOURCE } from '../vocab/projectSource.js';
+
 /**
  * The dashboard data bundle handed to every DashboardPage route.
  *
@@ -11,6 +13,15 @@
  *
  * Moved out of routes/renderers.jsx verbatim (move-only refactor).
  */
+
+/** The selected project's name for page headers and breadcrumbs. A remote
+ * project is not in the local list, so its display name would be its id;
+ * its published name comes from sharedProjectInfo instead. */
+function displayName(state) {
+  const remoteName = state.selectedSource === PROJECT_SOURCE.SHARED ? state.sharedProjectInfo?.name : null;
+  return remoteName || state.selectedDisplayName;
+}
+
 export function buildDashboardDataBundle({ state, sharedHasContent = false }) {
   return {
     selectedProject: state.selectedProject, selectedSource: state.selectedSource, selectedRun: state.selectedRun, projects: state.projects,
@@ -24,7 +35,7 @@ export function buildDashboardDataBundle({ state, sharedHasContent = false }) {
     formulaUpdated: state.formulaUpdated,
     sharedProjectInfo: state.sharedProjectInfo,
     availableRuns: state.availableRuns, dailyRuns: state.dailyRuns, overviewRunIndex: state.overviewRunIndex,
-    selectedDisplayName: state.selectedDisplayName,
+    selectedDisplayName: displayName(state),
     granularity: state.granularity, onGranularityChange: state.onGranularityChange,
     sharedHasContent,
   };
