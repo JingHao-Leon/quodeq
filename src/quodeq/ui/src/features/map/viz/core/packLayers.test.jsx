@@ -40,6 +40,24 @@ describe('drawStatic', () => {
     expect(ctx.moveTo).toHaveBeenCalledTimes(1);
   });
 
+  it('never cuts a sub-folder that is still fading in out of its parent, so its slot never shows the page', () => {
+    const ctx = fakeCanvasContext();
+    const { circles, screenCoords, paint } = scene();
+    paint[3] = { ...paint[3], alpha: 0.5, arriving: true };
+    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    // Only src is cut out of the root; src stays whole under its arriving sub-folder.
+    expect(ctx.moveTo).toHaveBeenCalledTimes(1);
+  });
+
+  it('draws the fading dotted ring an arriving circle carries, under its fill', () => {
+    const ctx = fakeCanvasContext();
+    const { circles, screenCoords, paint } = scene();
+    paint[2] = { ...paint[2], alpha: 0.4, ghostRing: { ghost: true, file: true, stroke: 'rgb(9, 9, 9)', strokeAlpha: 0.3 } };
+    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
+    expect(ctx.globalAlpha).toBe(1);
+  });
+
   it('leaves globalAlpha back at 1', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();

@@ -65,13 +65,58 @@ test('a folder whose content and whose ancestors\' content all grow (or all shri
   assert.ok(checked > 0);
 });
 
-test('folders move between runs whose content changes, and stay put when it does not, in the mode the app plays', () => {
-  for (let k = 1; k < RUNS; k++) {
-    const moves = folderMovements(MODEL.parent, PLAYED[k - 1], PLAYED[k]);
-    const changed = CONTENT[k][0] !== CONTENT[k - 1][0];
-    assert.equal(percentile(moves, 1) > 0, changed, `run ${k}`);
+/** Per step k, the folders whose own content and every ancestor's content are the same in runs k - 1 and k. */
+function untouchedFolders(model) {
+  const content = model.sizes.map((_, k) => runContent(model, k));
+  const out = [];
+  for (let k = 1; k < model.sizes.length; k++) {
+    for (const i of model.parent.keys()) {
+      if (model.fileOf[i] >= 0) continue;
+      let same = true;
+      for (let j = i; j >= 0 && same; j = model.parent[j]) same = content[k][j] === content[k - 1][j];
+      if (same) out.push({ k, i });
+    }
   }
-  assert.deepEqual(runLayout(MODEL, ANCHOR, 1), PLAYED[1]);
+  return out;
+}
+
+/** Run `k` of MODEL, then the same run with one check taken off a file in one top folder and added to a file in another (the root total holds). */
+function shiftedModel(k) {
+  const topOf = (i) => { let j = i; while (MODEL.parent[j] > 0) j = MODEL.parent[j]; return j; };
+  const files = [...MODEL.parent.keys()].filter((i) => isLeaf(i) && MODEL.sizes[k][i] > 2);
+  const from = files[0];
+  const to = files.find((i) => topOf(i) !== topOf(from));
+  const shifted = Float32Array.from(MODEL.sizes[k]);
+  shifted[from] -= 1;
+  shifted[to] += 1;
+  const sizes = [MODEL.sizes[k], shifted, MODEL.sizes[RUNS - 1]];
+  const maxSize = Float32Array.from(MODEL.maxSize, (m, i) => Math.max(m, shifted[i]));
+  return { parent: MODEL.parent, fileOf: MODEL.fileOf, sizes, maxSize };
+}
+
+test('a folder whose own content and every ancestor\'s content are unchanged keeps x, y and r bit-identical, in the mode the app plays', () => {
+  const model = shiftedModel(RUNS / 2);
+  const anchor = anchorLayout(model);
+  const [before, after] = [0, 1].map((k) => runLayout(model, anchor, k));
+  const untouched = untouchedFolders(model);
+  assert.ok(after[R] < anchor[R], 'the map is below today\'s size, so a scale change would move things');
+  assert.ok(untouched.filter(({ i }) => i > 0).length > 1, 'sub-folders are untouched while content moved between others');
+  for (const { i } of untouched.filter((u) => u.k === 1)) {
+    const at = (xyr) => [...xyr.subarray(i * XYR_STRIDE, (i + 1) * XYR_STRIDE)];
+    assert.deepEqual(at(after), at(before), `folder ${i}`);
+  }
+  assert.ok(percentile(folderMovements(model.parent, before, after), 1) > 0, 'the two touched sub-trees do move');
+});
+
+test('folders move when the root content changes while the map is below today\'s size, in the mode the app plays', () => {
+  const rootScale = (k) => PLAYED[k][R] / ANCHOR[R];
+  let checked = 0;
+  for (let k = 1; k < RUNS; k++) {
+    if (CONTENT[k][0] === CONTENT[k - 1][0] || Math.min(rootScale(k), rootScale(k - 1)) >= 1) continue;
+    checked++;
+    assert.ok(percentile(folderMovements(MODEL.parent, PLAYED[k - 1], PLAYED[k]), 1) > 0, `run ${k}`);
+  }
+  assert.ok(checked > 0);
 });
 
 test('fixed slots keep every circle where the anchor put it', () => {

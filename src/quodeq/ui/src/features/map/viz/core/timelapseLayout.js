@@ -218,6 +218,9 @@ function fullContent(model) {
  * today (the latest run) when it has a file today, so the latest run is the
  * anchor and hands back to today's map without a jump, and its largest in any
  * run when it is gone by today. A run bigger than today fills the anchor.
+ * MIN_FOLDER_SCALE is a deliberate floor for the root too: a run with less
+ * than 4 % of today's content (or a folder of absent files) stays a small
+ * visible circle instead of a dot.
  * A node sits at its anchor offset from its parent times the parent's S,
  * from the parent's run centre; a folder's radius is its anchor radius times
  * its own S, a file's its run radius in √checks units times its parent's S.

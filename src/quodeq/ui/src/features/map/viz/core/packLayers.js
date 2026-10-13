@@ -40,12 +40,13 @@ function folderRadius(rPx) {
   return Math.max(0, rPx - clamp(rPx * INSET_SHARE, INSET_MIN_PX, INSET_MAX_PX));
 }
 
-/** Holes for the sub-folders drawn solid inside `c`; one drawn dotted (absent) or not at all keeps its parent's fill. */
+/** Holes for the sub-folders drawn solid inside `c`; one drawn dotted (absent), still fading in
+ * (time-lapse move) or not at all keeps its parent's fill. */
 function traceCutOut(ctx, { c, at, index, paints }) {
   for (const child of c.children || []) {
     if (!isPackFolder(child)) continue;
     const i = index.get(child);
-    if (i === undefined || !paints[i] || paints[i].ghost) continue;
+    if (i === undefined || !paints[i] || paints[i].ghost || paints[i].arriving) continue;
     const p = at(i);
     const r = folderRadius(p.r);
     if (r <= 0) continue;
@@ -112,7 +113,8 @@ function drawGhost(ctx, p, paint) {
  * `index` maps each circle to its position in `circles`; the caller builds it
  * once per circles array, so a tween frame does not rebuild it.
  * A ghost paint (time-lapse: absent from the run shown) draws a dotted
- * outline; a circle without paint is not drawn.
+ * outline, and a `ghostRing` (a circle arriving during a move) draws one
+ * under the fill; a circle without paint is not drawn.
  * @returns {number} circles drawn
  */
 export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index, width, height }) {
@@ -122,6 +124,7 @@ export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index,
   circles.forEach((c, i) => {
     if (!paint[i] || screenCoords[i].r <= 0 || !isDrawable(screenCoords[i], viewport, width, height)) return;
     const p = at(i);
+    if (paint[i].ghostRing) drawGhost(ctx, p, paint[i].ghostRing);
     if (paint[i].ghost) drawGhost(ctx, p, paint[i]);
     else if (paint[i].file) drawFile(ctx, p, paint[i]);
     else drawFolder(ctx, { c, p, paint: paint[i], at, index, paints: paint });

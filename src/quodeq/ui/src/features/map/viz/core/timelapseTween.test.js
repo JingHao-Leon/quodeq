@@ -34,6 +34,15 @@ test('a circle that arrives fades in with its target colour; one that leaves kee
   assert.equal(at[1], from[1]);
 });
 
+test('an arriving circle\'s dotted ring fades out as its fill fades in, in a ring object made once per move', () => {
+  const tween = createPaintTween([ghost], [solid('rgb(200, 100, 50)')]);
+  const ring = paintTweenAt(tween, 0)[0].ghostRing;
+  assert.deepEqual([ring.ghost, ring.file, ring.stroke, ring.strokeAlpha], [true, true, ghost.stroke, ghost.strokeAlpha]);
+  assert.equal(paintTweenAt(tween, HALF)[0].ghostRing, ring);
+  assert.equal(ring.strokeAlpha, ghost.strokeAlpha * HALF);
+  assert.equal(paintTweenAt(tween, 1)[0].ghostRing.strokeAlpha, 0);
+});
+
 test('a circle that stays dotted or keeps its paint is the target paint itself', () => {
   const same = solid('rgb(1, 2, 3)');
   const at = paintTweenAt(createPaintTween([ghost, { ...same }], [ghost, same]), HALF);
