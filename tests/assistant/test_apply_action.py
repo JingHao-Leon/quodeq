@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from quodeq.assistant.apply_action import (
@@ -12,10 +10,13 @@ from quodeq.assistant.apply_action import (
 from quodeq.assistant.tools.actions import ActionConflict, ActionContext, ActionSpec
 
 
-def _ctx(tmp_path: Path) -> ActionContext:
+def _ctx() -> ActionContext:
+    """Ports no test here may reach: the workflow is under test, not an action."""
+    def unreachable(*_args):
+        pytest.fail("the apply workflow must not call an action port")
     return ActionContext(
-        evaluations_dir=tmp_path, evaluators_dir=tmp_path,
-        compiled_dir=tmp_path, dimensions_file=tmp_path / "dimensions.json",
+        import_standard=unreachable, dismiss_finding=unreachable, rescore=unreachable,
+        dismiss_delta=unreachable, verify_finding=unreachable,
     )
 
 
@@ -56,31 +57,31 @@ def _drafted(action_type: str = "fake") -> dict:
 
 
 class TestApplyDraftedAction:
-    def test_unknown_action(self, tmp_path):
+    def test_unknown_action(self):
         repo = FakeRepo(action=None)
-        outcome = apply_drafted_action(repo, "a1", _ctx(tmp_path), actions={})
+        outcome = apply_drafted_action(repo, "a1", _ctx(), actions={})
         assert outcome == ApplyOutcome("unknown_action")
 
-    def test_shared_session_is_read_only(self, tmp_path):
+    def test_shared_session_is_read_only(self):
         repo = FakeRepo(action=_drafted(), session={"source": "shared"})
-        outcome = apply_drafted_action(repo, "a1", _ctx(tmp_path), actions={})
+        outcome = apply_drafted_action(repo, "a1", _ctx(), actions={})
         assert outcome.kind == "read_only"
         assert repo.status_calls == []
 
-    def test_already_applied(self, tmp_path):
+    def test_already_applied(self):
         action = _drafted()
         action["status"] = "applied"
         repo = FakeRepo(action=action)
-        outcome = apply_drafted_action(repo, "a1", _ctx(tmp_path), actions={})
+        outcome = apply_drafted_action(repo, "a1", _ctx(), actions={})
         assert outcome == ApplyOutcome("already", detail="applied")
 
-    def test_unsupported_action_type(self, tmp_path):
+    def test_unsupported_action_type(self):
         repo = FakeRepo(action=_drafted("nope"))
-        outcome = apply_drafted_action(repo, "a1", _ctx(tmp_path), actions={})
+        outcome = apply_drafted_action(repo, "a1", _ctx(), actions={})
         assert outcome.kind == "unsupported"
         assert repo.status_calls == []
 
-    def test_applied_success_claims_before_side_effect(self, tmp_path):
+    def test_applied_success_claims_before_side_effect(self):
         order: list[str] = []
         repo = FakeRepo(action=_drafted())
 
@@ -90,12 +91,12 @@ class TestApplyDraftedAction:
             return {"ok": True, "payload": payload}
 
         outcome = apply_drafted_action(
-            repo, "a1", _ctx(tmp_path), actions={"fake": _spec(apply_fn)})
+            repo, "a1", _ctx(), actions={"fake": _spec(apply_fn)})
         assert outcome == ApplyOutcome("applied", result={"ok": True, "payload": {"k": "v"}})
         assert order == ["apply"]
         assert repo.status_calls == [("a1", "applied", "drafted")]
 
-    def test_cas_loser_sees_non_drafted_state(self, tmp_path):
+    def test_cas_loser_sees_non_drafted_state(self):
         action = _drafted()
         repo = FakeRepo(action=action)
         original_set = repo.set_action_status
@@ -107,34 +108,34 @@ class TestApplyDraftedAction:
 
         repo.set_action_status = racing_set
         outcome = apply_drafted_action(
-            repo, "a1", _ctx(tmp_path),
+            repo, "a1", _ctx(),
             actions={"fake": _spec(lambda p, c: pytest.fail("must not run"))})
         assert outcome == ApplyOutcome("already", detail="applied")
 
-    def test_value_error_releases_back_to_drafted(self, tmp_path):
+    def test_value_error_releases_back_to_drafted(self):
         repo = FakeRepo(action=_drafted())
 
         def apply_fn(payload, ctx):
             raise ValueError("bad payload")
 
         outcome = apply_drafted_action(
-            repo, "a1", _ctx(tmp_path), actions={"fake": _spec(apply_fn)})
+            repo, "a1", _ctx(), actions={"fake": _spec(apply_fn)})
         assert outcome == ApplyOutcome("invalid", detail="bad payload")
         assert repo.action["status"] == "drafted"
         assert repo.status_calls == [("a1", "applied", "drafted"), ("a1", "drafted", None)]
 
-    def test_action_conflict_releases_back_to_drafted(self, tmp_path):
+    def test_action_conflict_releases_back_to_drafted(self):
         repo = FakeRepo(action=_drafted())
 
         def apply_fn(payload, ctx):
             raise ActionConflict("already dismissed")
 
         outcome = apply_drafted_action(
-            repo, "a1", _ctx(tmp_path), actions={"fake": _spec(apply_fn)})
+            repo, "a1", _ctx(), actions={"fake": _spec(apply_fn)})
         assert outcome == ApplyOutcome("conflict", detail="already dismissed")
         assert repo.action["status"] == "drafted"
 
-    def test_unexpected_apply_error_releases_claim_and_propagates(self, tmp_path):
+    def test_unexpected_apply_error_releases_claim_and_propagates(self):
         repo = FakeRepo(action=_drafted())
 
         def apply_fn(payload, ctx):
@@ -142,7 +143,7 @@ class TestApplyDraftedAction:
 
         with pytest.raises(RuntimeError, match="boom"):
             apply_drafted_action(
-                repo, "a1", _ctx(tmp_path), actions={"fake": _spec(apply_fn)})
+                repo, "a1", _ctx(), actions={"fake": _spec(apply_fn)})
         assert repo.action["status"] == "drafted"
 
 

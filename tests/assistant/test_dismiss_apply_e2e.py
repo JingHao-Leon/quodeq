@@ -9,7 +9,8 @@ finding on the suppression read path (silent no-op reporting dismissed: True).
 import json
 
 from quodeq.assistant.tools import ToolContext, build_registry
-from quodeq.assistant.tools.actions import ACTIONS, ActionContext
+from quodeq.assistant.tools.actions import ACTIONS
+from quodeq.api.assistant_action_context import action_context_for
 from quodeq.core.types.finding import Finding
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
 from quodeq.services.dismissed import dismissed_keys
@@ -42,11 +43,9 @@ def _ctx(tmp_path, violations):
 
 
 def _action_ctx(eval_root):
-    return ActionContext(
-        evaluations_dir=eval_root,
-        evaluators_dir=eval_root,
-        compiled_dir=eval_root,
-        dimensions_file=eval_root / "dimensions.json",
+    return action_context_for(
+        evaluations_dir=eval_root, evaluators_dir=eval_root,
+        compiled_dir=eval_root, dimensions_file=eval_root / "dimensions.json",
     )
 
 

@@ -10,6 +10,8 @@ from __future__ import annotations
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from quodeq.data.fs.run_status_store import RunState, RunStatus, write_status
 from quodeq.data.sqlite import run_index as _run_index
 from quodeq.services._evaluations_index import EvaluationsIndex
@@ -236,3 +238,14 @@ def test_get_status_still_tails_the_log_of_a_finished_run(tmp_path: Path, monkey
     assert snapshot is not None
     assert snapshot.logs == ["log line"]
     assert len(tailed) == 1
+
+
+def test_reads_without_a_reports_root_fail_with_a_clear_error(tmp_path: Path) -> None:
+    """An index built without reports_root has nothing to fall back to and says so."""
+    jobs = JobManager(job_store=InMemoryJobStore(), reports_root=tmp_path)
+    index = EvaluationsIndex(jobs=jobs, index_db_path=tmp_path / "index.db")
+
+    with pytest.raises(ValueError, match="reports_root"):
+        index.get_status("ext-run-0")
+    with pytest.raises(ValueError, match="reports_root"):
+        index.rebuild()

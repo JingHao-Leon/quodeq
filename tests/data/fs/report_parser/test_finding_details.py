@@ -84,3 +84,17 @@ class TestReadFindingDetailsFromJsonEval:
         _seed_eval(tmp_path, "security", [{"req": "S-1", "file": "a.py", "line": "x"}])
         out = read_finding_details_from_json_eval(tmp_path, {("S-1", "a.py", 0)})
         assert out[("S-1", "a.py", 0)]["line"] == 0
+
+    def test_skips_reports_and_entries_that_are_not_objects(self, tmp_path):
+        eval_dir = tmp_path / "evaluation"
+        eval_dir.mkdir(parents=True)
+        (eval_dir / "security.json").write_text(json.dumps(["not", "a", "report"]))
+        (eval_dir / "reliability.json").write_text(json.dumps({"violations": [
+            "not an entry",
+            {"req": "R-1", "file": "a.py", "line": 2, "end_line": "n/a"},
+        ]}))
+
+        out = read_finding_details_from_json_eval(tmp_path, {("R-1", "a.py", 2)})
+
+        assert set(out) == {("R-1", "a.py", 2)}
+        assert out[("R-1", "a.py", 2)]["endLine"] == 0
