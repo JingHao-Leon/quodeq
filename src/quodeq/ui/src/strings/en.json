@@ -990,6 +990,7 @@
   "map.projectSystem": "Project System",
   "map.projectSystemNamed": "{project} System",
   "map.rate": "Rate",
+  "map.rateNone": "–",
   "map.returnedToOverview": "Returned to galaxy overview",
   "map.returnedToPrinciples": "Returned to principles",
   "map.runEvaluationDesc": "Run an evaluation for {project} to populate this page.",

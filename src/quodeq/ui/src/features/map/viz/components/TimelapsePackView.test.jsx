@@ -131,7 +131,28 @@ describe('TimelapsePackView while paused', () => {
   });
 });
 
+describe('TimelapsePackView background click', () => {
+  it('a click outside every circle while paused zooms out', async () => {
+    const onDrillDown = vi.fn();
+    const { container } = await renderView({ timelapse: timelapse(), onDrillDown });
+    fireEvent.click(overlayOf(container));
+    expect(onDrillDown).toHaveBeenCalledWith('');
+  });
+});
+
 describe('TimelapsePackView while playing', () => {
+  it('a pause does not bring back the circle hovered before play', async () => {
+    const tl = timelapse();
+    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const { container, rerender } = await renderView({ ...props, timelapse: tl });
+    hitPath = 'src/ui/a.js';
+    fireEvent.mouseMove(overlayOf(container));
+    rerender(<TimelapsePackView {...props} timelapse={{ ...tl, playing: true }} />);
+    rerender(<TimelapsePackView {...props} timelapse={tl} />);
+    expect(container.querySelector('.map-tooltip')).toBeNull();
+    expect(overlayOf(container).style.cursor).toBe('default');
+  });
+
   it('shows no hover and no tooltip', async () => {
     const { container } = await renderView({ timelapse: timelapse({ playing: true }) });
     hitPath = 'src/ui/a.js';
@@ -149,9 +170,10 @@ describe('TimelapsePackView across runs', () => {
     rerender(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} timelapse={{ ...tl, position: 2 }} />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     act(() => { vi.advanceTimersByTime(450); });
-    const front = Number(container.querySelectorAll('canvas')[1].style.opacity);
+    const [back, front] = [...container.querySelectorAll('canvas')].slice(0, 2).map((c) => Number(c.style.opacity));
     expect(front).toBeGreaterThan(0);
     expect(front).toBeLessThan(1);
+    expect(back).toBeCloseTo(1 - front);
   });
 
   it('another history replaces the old one, settled on its own run', async () => {

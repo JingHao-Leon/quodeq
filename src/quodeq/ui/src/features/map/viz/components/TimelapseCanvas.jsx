@@ -15,17 +15,18 @@ function usePaintAt({ model, nodeDataAt, colorMode, palette, weights }) {
     : null), [model, nodeDataAt, colorMode, palette, weights]);
 }
 
-/** What each static canvas shows this frame: a move interpolates, a fade shows both runs. */
+/** What each static canvas shows this frame, and how opaque: a move interpolates, a fade crosses both runs. */
 function useLayers(view, paintAt) {
   const buffer = useRef(new Float32Array(0));
   return useMemo(() => {
     if (!view || !paintAt) return null;
     const { from, to, kind, t } = view;
     const front = { xyr: to.state, paint: paintAt(to.k) };
-    if (!from) return { front, back: null, alpha: 1 };
-    if (kind === TRANSITION.FADE) return { front, back: { xyr: from.state, paint: paintAt(from.k) }, alpha: t };
+    if (!from) return { front, back: null, alpha: 1, backAlpha: 0 };
+    // Neither run is opaque (cut-outs, translucent fills, dotted ghosts), so the old one fades out as the new one fades in.
+    if (kind === TRANSITION.FADE) return { front, back: { xyr: from.state, paint: paintAt(from.k) }, alpha: t, backAlpha: 1 - t };
     if (buffer.current.length !== to.state.length) buffer.current = new Float32Array(to.state.length);
-    return { front: { xyr: lerpXyr(from.state, to.state, t, buffer.current), paint: front.paint }, back: null, alpha: 1 };
+    return { front: { xyr: lerpXyr(from.state, to.state, t, buffer.current), paint: front.paint }, back: null, alpha: 1, backAlpha: 0 };
   }, [view, paintAt]);
 }
 
@@ -122,7 +123,7 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const pointer = usePointer({ model, coords: coords.front, viewport, focusIndex, interaction, settled });
   return (
     <div style={WRAPPER_STYLE}>
-      <canvas ref={refs.back} aria-hidden="true" style={LAYER_STYLE} />
+      <canvas ref={refs.back} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.backAlpha : 0 }} />
       <canvas ref={refs.front} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.alpha : 1 }} />
       <canvas ref={refs.overlay} className="viz-focusable" tabIndex={0} aria-label={label}
         style={{ ...LAYER_STYLE, cursor: interaction.hover === null ? 'default' : 'pointer' }} {...pointer} />

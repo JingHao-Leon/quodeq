@@ -17,7 +17,7 @@ function Numbers({ hd }) {
       <div className="map-tooltip-row"><span>{t('map.violations')}</span><span>{hd.violations}</span></div>
       {hd.violations > 0 && <MapTooltipSeverityRows severity={hd.severity} />}
       <div className="map-tooltip-row"><span>{t('map.compliance')}</span><span>{hd.compliance}</span></div>
-      <div className="map-tooltip-row"><span>{t('map.rate')}</span><span>{total > 0 ? ((hd.compliance / total) * PERCENT).toFixed(0) + '%' : '—'}</span></div>
+      <div className="map-tooltip-row"><span>{t('map.rate')}</span><span>{total > 0 ? ((hd.compliance / total) * PERCENT).toFixed(0) + '%' : t('map.rateNone')}</span></div>
     </>
   );
 }

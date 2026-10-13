@@ -33,11 +33,12 @@ function usePrefetch(layouts, { position, playing, data }) {
 }
 
 /** Hover index tied to the folder it was taken under (a zoom or another
- * history reads as "no hover" until the pointer moves again); always none
- * while playing. */
+ * history reads as "no hover" until the pointer moves again). Play drops it,
+ * so a pause never brings back the circle hovered before play. */
 function useHover(focusNode, playing) {
   const [state, setState] = useState({ focusNode, index: null });
   const setHover = useCallback((index) => setState({ focusNode, index }), [focusNode]);
+  if (playing && state.index !== null) setState({ focusNode, index: null });
   return [playing || state.focusNode !== focusNode ? null : state.index, setHover];
 }
 
