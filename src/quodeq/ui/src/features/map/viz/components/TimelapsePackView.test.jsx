@@ -8,6 +8,7 @@ import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { ABSENCE } from '../core/timelapseScene.js';
 import { GHOST_DASH_PX } from '../core/packLayers.js';
 import { createTimelapseLayouts } from '../core/timelapseLayouts.js';
+import { paintTweenAt } from '../core/timelapseTween.js';
 import { dayDate } from '../core/timelapseBarModel.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
@@ -24,6 +25,10 @@ vi.mock('../core/packCanvasGeometry.js', async (importOriginal) => {
       return i < 0 ? null : i;
     },
   };
+});
+vi.mock('../core/timelapseTween.js', async (importOriginal) => {
+  const real = await importOriginal();
+  return { ...real, paintTweenAt: vi.fn(real.paintTweenAt) };
 });
 vi.mock('../core/timelapseLayouts.js', async (importOriginal) => {
   const real = await importOriginal();
@@ -62,8 +67,11 @@ const shortDate = (day) => formatShortDate(dayDate(day).toISOString());
 const ghostStrokes = () => ctx.setLineDash.mock.calls.filter(([dash]) => dash.length > 0).length;
 
 // No Worker in jsdom: the layouts are computed on this thread, a few promise turns after the first render.
+/** The view's props apart from the time-lapse, as every test renders it. */
+const baseProps = () => ({ colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() });
+
 async function renderView(props) {
-  const view = render(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} {...props} />);
+  const view = render(<TimelapsePackView {...baseProps()} {...props} />);
   await waitFor(() => expect(overlayOf(view.container)).not.toBeNull());
   // The palette is read after the canvases mount; let that paint land.
   await act(async () => {});
@@ -163,7 +171,7 @@ describe('TimelapsePackView background click', () => {
 describe('TimelapsePackView while playing', () => {
   it('a pause does not bring back the circle hovered before play', async () => {
     const tl = timelapse();
-    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const props = baseProps();
     const { container, rerender } = await renderView({ ...props, timelapse: tl });
     hitPath = 'src/ui/a.js';
     fireEvent.mouseMove(overlayOf(container));
@@ -187,7 +195,7 @@ describe('TimelapsePackView across runs', () => {
     const tl = timelapse({ data: DATA3, moveMs: 900 });
     const { container, rerender } = await renderView({ timelapse: tl });
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
-    rerender(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} timelapse={{ ...tl, position: 2 }} />);
+    rerender(<TimelapsePackView {...baseProps()} timelapse={{ ...tl, position: 2 }} />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     act(() => { vi.advanceTimersByTime(450); });
     const [back, front] = [...container.querySelectorAll('canvas')].slice(0, 2).map((c) => Number(c.style.opacity));
@@ -196,9 +204,21 @@ describe('TimelapsePackView across runs', () => {
     expect(back).toBeCloseTo(1 - front);
   });
 
+  it('a one-run move paints through the colour tween at the move\'s eased t, not the target run\'s paint at once', async () => {
+    const tl = timelapse({ data: DATA3, moveMs: 900 });
+    const { rerender } = await renderView({ timelapse: tl });
+    paintTweenAt.mockClear();
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+    rerender(<TimelapsePackView {...baseProps()} timelapse={{ ...tl, position: 1 }} />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    act(() => { vi.advanceTimersByTime(450); });
+    const ts = paintTweenAt.mock.calls.map(([, t]) => t);
+    expect(ts.some((t) => t > 0 && t < 1)).toBe(true);
+  });
+
   it('another history replaces the old one, settled on its own run', async () => {
     const tl = timelapse({ moveMs: 900 });
-    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const props = baseProps();
     const { container, rerender } = await renderView({ ...props, timelapse: tl });
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, data: DATA3, position: 2 }} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(2));
@@ -208,7 +228,7 @@ describe('TimelapsePackView across runs', () => {
   it('keeps its layouts when the playback goes to the latest run and back (no rebuild on a second seek)', async () => {
     createTimelapseLayouts.mockClear();
     const tl = timelapse({ data: DATA3 });
-    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const props = baseProps();
     const { rerender } = await renderView({ ...props, timelapse: tl });
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 2 }} />);
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 1 }} />);
