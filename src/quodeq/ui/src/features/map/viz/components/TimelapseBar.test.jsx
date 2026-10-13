@@ -57,6 +57,11 @@ describe('TimelapseBar', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it('a position past the last run shows the last run', () => {
+    render(<TimelapseBar timelapse={bar({ position: 5 })} />);
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '3');
+  });
+
   it('hovering a run shows its numbers', () => {
     render(<TimelapseBar timelapse={bar()} />);
     const slider = screen.getByRole('slider');

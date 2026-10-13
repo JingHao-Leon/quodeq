@@ -39,6 +39,16 @@ function usePlaybackGuard(state, dispatch, { active, blocked }) {
   }, [active, blocked, playing, past, dispatch]);
 }
 
+/**
+ * The run on screen, safe in every committed render: never past the end of
+ * the history in hand (a switch to a project with a shorter cached history
+ * renders once before the reset lands) and always the latest while blocked.
+ */
+function shownPosition(state, runCount, blocked) {
+  const latest = Math.max(0, runCount - 1);
+  return blocked ? latest : Math.min(state.position, latest);
+}
+
 function usePlaybackControls(dispatch) {
   return useMemo(() => ({
     toggle: () => dispatch({ type: PLAYBACK_ACTION.TOGGLE }),
@@ -70,10 +80,11 @@ export default function useMapTimelapse({ project, source, active, blocked = fal
   const controls = usePlaybackControls(dispatch);
   const onSettled = useCallback((position) => dispatch({ type: PLAYBACK_ACTION.SETTLED, position }), []);
   const status = timelapseStatus(enabled, query);
+  const position = shownPosition(state, data.runs.length, blocked);
   return {
-    status, data, position: state.position, speed: state.speed,
+    status, data, position, speed: state.speed,
     playing: state.playing && !blocked,
-    past: status === TIMELAPSE_STATUS.READY && !blocked && isPast(state),
+    past: status === TIMELAPSE_STATUS.READY && position < data.runs.length - 1,
     moveMs: prefersReducedMotion() ? 0 : MOVE_MS / state.speed,
     controls, onSettled,
   };

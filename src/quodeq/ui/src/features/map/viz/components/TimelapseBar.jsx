@@ -126,19 +126,21 @@ function Legend() {
  * speed; a track with the issue trend, new (up) and fixed (down) bars per
  * run, month ticks and the current run; and a readout of the run shown.
  * The track is a slider: arrows step, Home/End jump, Space plays or pauses.
- * Nothing is drawn until the history has a run.
+ * Nothing is drawn until the history has a run; a position past the last
+ * run shows the last run.
  */
 export default function TimelapseBar({ timelapse }) {
   const { data, position, playing, speed, controls } = timelapse;
   const { runs } = data;
   if (!runs.length) return null;
+  const shown = Math.min(position, runs.length - 1);
   return (
     <div className="map-timelapse" role="group" aria-label={t('map.timelapseAria')}>
       <Buttons playing={playing} controls={controls} />
       <Speeds speed={speed} setSpeed={controls.setSpeed} />
-      <Track runs={runs} position={position} controls={controls} />
+      <Track runs={runs} position={shown} controls={controls} />
       <div className="map-timelapse__info">
-        <div className="map-timelapse__readout">{readout(runs, position)}</div>
+        <div className="map-timelapse__readout">{readout(runs, shown)}</div>
         <Legend />
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiProvider } from '../../../api/ApiContext.jsx';
 import useMapTimelapse from './useMapTimelapse.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 import { TIMELAPSE_STATUS, HOLD_MS } from '../model/timelapsePlayback.js';
@@ -11,6 +13,27 @@ const PAYLOAD = {
 };
 const api = () => ({ getMapHistory: vi.fn().mockResolvedValue(PAYLOAD) });
 afterEach(() => { vi.useRealTimers(); });
+
+const LONG_PAYLOAD = { ...PAYLOAD, frames: [...PAYLOAD.frames, frame('2026-09-22', []), frame('2026-09-29', [])] };
+
+/** A wrapper whose cache keeps every project's history, as the app's does between switches. */
+function withCachedApi(fake) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: Infinity } } });
+  return function CachedWrapper({ children }) {
+    return <QueryClientProvider client={client}><ApiProvider value={fake}>{children}</ApiProvider></QueryClientProvider>;
+  };
+}
+
+/** Every committed render's position and run count, not just the last. */
+function recording(props, fake) {
+  const seen = [];
+  const hook = renderHook((p) => {
+    const value = useMapTimelapse(p);
+    seen.push({ position: value.position, runs: value.data.runs.length });
+    return value;
+  }, { initialProps: { source: 'local', active: true, ...props }, wrapper: withCachedApi(fake) });
+  return { ...hook, seen };
+}
 
 function setup(props, fake = api()) {
   const hook = renderHook((p) => useMapTimelapse(p), { initialProps: { project: 'p1', source: 'local', active: true, ...props }, wrapper: withStableQueryApi(fake) });
@@ -75,5 +98,24 @@ describe('useMapTimelapse', () => {
     await waitFor(() => expect(result.current.status).toBe(TIMELAPSE_STATUS.READY));
     act(() => result.current.controls.toggle());
     expect([result.current.playing, result.current.position, result.current.past]).toEqual([false, 2, false]);
+  });
+
+  it('switching to a project with a shorter cached history never shows a run past its end', async () => {
+    const fake = { getMapHistory: vi.fn((project) => Promise.resolve(project === 'long' ? LONG_PAYLOAD : PAYLOAD)) };
+    const { result, rerender, seen } = recording({ project: 'short' }, fake);
+    await waitFor(() => expect(result.current.status).toBe(TIMELAPSE_STATUS.READY));
+    rerender({ project: 'long', source: 'local', active: true });
+    await waitFor(() => expect(result.current.position).toBe(4));
+    seen.length = 0;
+    rerender({ project: 'short', source: 'local', active: true });
+    expect(seen.filter((r) => r.position > Math.max(0, r.runs - 1))).toEqual([]);
+  });
+
+  it('while blocked every render shows the latest run, even right after play is pressed', async () => {
+    const { result, seen } = recording({ project: 'p1', blocked: true }, api());
+    await waitFor(() => expect(result.current.status).toBe(TIMELAPSE_STATUS.READY));
+    seen.length = 0;
+    act(() => result.current.controls.toggle());
+    expect(seen.map((r) => r.position).filter((k) => k !== 2)).toEqual([]);
   });
 });
