@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { ZoomablePackView, GalaxyView, GalaxyFolderView, VizBreadcrumb, RiskView } from '../viz/index.js';
+import { GalaxyView, GalaxyFolderView, VizBreadcrumb, RiskView } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
 import { TermHeader } from '../../../components/terminal/index.js';
@@ -11,9 +11,11 @@ import { t } from '../../../strings/index.js';
 import { DATA_THEME_ATTR } from '../../../constants.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { PACK_COLOR_MODES, VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, PACK_COLOR_MODE } from '../mapVocab.js';
-import PackLegend from '../viz/components/PackLegend.jsx';
 import useMapActivity from '../hooks/useMapActivity.js';
 import useMapAreas from '../hooks/useMapAreas.js';
+import useMapTimelapse from '../hooks/useMapTimelapse.js';
+import MapPackPanel from './MapPackPanel.jsx';
+import MapTimelapseFooter from './MapTimelapseFooter.jsx';
 import useRiskActions from './useRiskActions.js';
 import useSeverityWeights from '../hooks/useSeverityWeights.js';
 import { THEME_FAMILY } from '../../../vocab/theme.js';
@@ -38,6 +40,11 @@ const GALAXY_MODES = [
   { id: GALAXY_MODE.STANDARDS, label: 'Standards' },
 ];
 
+/** True while the Dimensions filter leaves some dimension out. */
+function dimensionsFiltered({ allDimensions, selectedDimensions }) {
+  return selectedDimensions.size !== allDimensions.length;
+}
+
 function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -51,7 +58,7 @@ function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
 
   if (allDimensions.length <= 1) return null;
 
-  const isFiltered = selectedDimensions.size !== allDimensions.length;
+  const isFiltered = dimensionsFiltered({ allDimensions, selectedDimensions });
 
   return (
     <div className="map-filter-wrap" ref={ref}>
@@ -144,7 +151,7 @@ function hasBreadcrumb(vizStyle) {
   return vizStyle === VIZ_STYLE.ZOOMPACK;
 }
 
-function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk }) {
+function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk, timelapse }) {
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
   const { fullTree, currentPath, onPathChange, explicitPath } = treeState;
@@ -173,16 +180,9 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
         />
       )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
-        <ZoomablePackView
-          node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath}
-          dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick}
-          showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} autoOpen={!explicitPath}
-        />
-      )}
-      {vizStyle === VIZ_STYLE.ZOOMPACK && (
-        <PackLegend
-          mode={viewMode} activityLoading={pack.loading}
-          activitySource={pack.failed ? ACTIVITY_SOURCE.NONE : pack.activity.source}
+        <MapPackPanel
+          view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, explicitPath, onDrillDown, onFileClick }}
+          pack={pack} timelapse={timelapse} past={timelapse.past}
         />
       )}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.STANDARDS && <GalaxyView dimensions={dimensions} onNavigate={onNavigate} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} standardTypes={standardTypes} />}
@@ -202,9 +202,16 @@ function nodeSummary(node) {
   return `${viol} violation${viol !== 1 ? 's' : ''} · ratio ${complianceRatio(viol, node.compliance)}`;
 }
 
-function MapBody({ ready, state, pack, risk }) {
+function MapBody({ ready, state, pack, risk, timelapse }) {
   if (!ready) return <MapVizSkeleton />;
-  return <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks} display={state.display} pack={pack} risk={risk} />;
+  const filtered = state.vizState.vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(state.dimensionState);
+  return (
+    <>
+      <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks}
+        display={state.display} pack={pack} risk={risk} timelapse={timelapse} />
+      <MapTimelapseFooter timelapse={timelapse} filtered={filtered} />
+    </>
+  );
 }
 
 // The pack's severity weights and edit counts; Concentration never waits on
@@ -214,6 +221,16 @@ function useMapPackData(project, source, packShown) {
   const weights = useSeverityWeights(project, source);
   const activityUnavailable = source === PROJECT_SOURCE.SHARED || (activity.source === ACTIVITY_SOURCE.NONE && !loading);
   return { pack: { weights, activity, loading, failed }, activityUnavailable };
+}
+
+// The time-lapse plays under the Circle Pack and Risk tabs; a Dimensions
+// filter holds it on the latest run on the pack only (Risk ignores the filter).
+function usePageTimelapse({ project, source, vizStyle, dimensionState }) {
+  return useMapTimelapse({
+    project, source,
+    active: vizStyle === VIZ_STYLE.ZOOMPACK || vizStyle === VIZ_STYLE.RISK,
+    blocked: vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(dimensionState),
+  });
 }
 
 export default function MapPage(props) {
@@ -228,8 +245,10 @@ export default function MapPage(props) {
   // The hook tolerates missing data — `state.allDimensions` is `[]` when there
   // is no project or no run data, which is exactly what we use for case C.
   const state = useMapPageState({ ...props, deferTree: !ready });
-  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, state.viewState.vizStyle === VIZ_STYLE.ZOOMPACK);
-  const areaState = useMapAreas(selectedProject, selectedSource, state.viewState.vizStyle === VIZ_STYLE.RISK);
+  const { vizStyle } = state.viewState;
+  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, vizStyle === VIZ_STYLE.ZOOMPACK);
+  const areaState = useMapAreas(selectedProject, selectedSource, vizStyle === VIZ_STYLE.RISK);
+  const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState });
 
   if (!projectsLoaded) return <MapLoadingState />;
   if (projects.length === 0 && selectedSource !== PROJECT_SOURCE.SHARED) return <MapNoProjectsState onNavigate={onNavigate} />;
@@ -257,7 +276,7 @@ export default function MapPage(props) {
         />
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, onShowInPack: props.nav?.onShowInPack }} />
+      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, onShowInPack: props.nav?.onShowInPack }} timelapse={timelapse} />
     </div>
   );
 }
