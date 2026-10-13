@@ -6,11 +6,10 @@ import { WRAPPER_STYLE } from './canvasLayer.js';
 import { riskLabelText, riskItemText } from './riskAreaInfo.js';
 import { useRunTransition } from './useRunTransition.js';
 import { timelapseNoteText } from './timelapseNote.js';
-import { createSkyTimeline, lerpSkyNodes } from '../core/skyTimeline.js';
+import { lerpSkyNodes } from '../core/skyTimeline.js';
 import { TRANSITION } from '../core/timelapseScene.js';
 import { dayDate } from '../core/timelapseBarModel.js';
 import { hoverWithTooltipPos } from '../core/tooltipPlacement.js';
-import { areaSetAt } from '../../model/mapAreas.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
 
@@ -65,10 +64,11 @@ function useAreaTexts(timeline, k) {
  * ring rows (every kind of the history). Playing: a click
  * pauses. Paused: hover shows the run's numbers (or since when a dotted area
  * is gone); there is no selection, since View Details acts on today's data.
+ * `timeline` is createSkyTimeline of `timelapse.data`, built (and warmed) by
+ * the Risk tab, so a seek finds its run already settled.
  */
-export default function RiskTimelapseView({ timelapse, dark, showLabels }) {
+export default function RiskTimelapseView({ timelapse, timeline, dark, showLabels }) {
   const { data, position, playing, moveMs, onSettled, controls } = timelapse;
-  const timeline = useMemo(() => createSkyTimeline((k) => areaSetAt(data, k), data.runs), [data]);
   const load = useCallback((k) => timeline.sceneAt(k), [timeline]);
   const view = useRunTransition({ target: position, load, kindOf: alwaysMove, durationMs: moveMs, onSettled });
   const nodes = useViewNodes(view);
@@ -87,9 +87,9 @@ export default function RiskTimelapseView({ timelapse, dark, showLabels }) {
     <div ref={containerRef} style={WRAPPER_STYLE}>
       <SkyCanvas areas={scene.areas} average={scene.average} dark={dark} showLabels={showLabels && !view.from}
         selected={null} onSelect={onSelect} onHover={onHover} hoverable={!playing} labelText={labelText} itemText={itemText}
-        nodes={nodes} rings={timeline.rings} label={label} />
+        nodes={nodes} rings={timeline.rings()} label={label} />
       <RiskTooltip area={hovered} at={hover} note={note} />
-      <RiskLegend kinds={timeline.kinds} />
+      <RiskLegend kinds={timeline.kinds()} />
     </div>
   );
 }

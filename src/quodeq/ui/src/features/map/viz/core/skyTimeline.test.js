@@ -53,9 +53,9 @@ test('a dotted area at the midpoint of two runs that have it takes the earlier o
 test('one scale for the whole history: the rings never move between runs', () => {
   const tl = timeline();
   const top = densityTop(SETS.flatMap((s) => s.areas));
-  assert.deepEqual(tl.rings, ringsAt(top));
-  assert.deepEqual(tl.sceneAt(0).rings, tl.rings);
-  assert.deepEqual(tl.sceneAt(2).rings, tl.rings);
+  assert.deepEqual(tl.rings(), ringsAt(top));
+  assert.deepEqual(tl.sceneAt(0).rings, tl.rings());
+  assert.deepEqual(tl.sceneAt(2).rings, tl.rings());
 });
 
 test('a run settles from the run before: little drift when little changes', () => {
@@ -119,7 +119,85 @@ test('an empty history has an empty sky and never throws', () => {
 
 test('the kinds of the whole history, so a legend keeps its rows from run to run', () => {
   const sets = SETS.map((set, k) => ({ ...set, areas: set.areas.map((a) => (a.name === 'beta' && k === 0 ? { ...a, kind: 'hotspot' } : a)) }));
-  const kinds = createSkyTimeline((k) => sets[k], RUNS).kinds;
+  const kinds = createSkyTimeline((k) => sets[k], RUNS).kinds();
   assert.deepEqual([...kinds].sort(), ['hotspot', 'watch']);
-  assert.deepEqual(createSkyTimeline(() => SETS[0], []).kinds, []);
+  assert.deepEqual(createSkyTimeline(() => SETS[0], []).kinds(), []);
+});
+
+const LONG_HISTORY = 12;
+
+const BENCHMARK_LIKE = [4.41, 0.94, 0.6];
+const BENCHMARK_TOP = 1.88;
+const RING_EPS = 1e-9;
+const daysOf = (sets) => sets.map((_, k) => ({ day: `2026-09-${String(k + 1).padStart(2, '0')}` }));
+const closeRings = (a, b) => Math.abs(a.fixFirst - b.fixFirst) < RING_EPS && Math.abs(a.watch - b.watch) < RING_EPS;
+
+test('a runaway area is capped over a history too: its other runs never count as the second densest', () => {
+  const set = { areas: BENCHMARK_LIKE.map((d, i) => area(`b${i}`, 6, d)), average: 1 };
+  const sets = [set, set, set];
+  const tl = createSkyTimeline((k) => sets[k], daysOf(sets));
+  assert.ok(closeRings(tl.rings(), ringsAt(BENCHMARK_TOP)), JSON.stringify(tl.rings()));
+});
+
+test('the history top takes each area at its peak, even when the peak is in an earlier run', () => {
+  const PEAKED = 1.5;
+  const LATER = 0.2;
+  const sets = [0, 1, 2].map((k) => ({ areas: [area('alpha', 8, k ? LATER : PEAKED), area('beta', 6, 1), area('gamma', 7, 0.9)], average: 1 }));
+  const tl = createSkyTimeline((k) => sets[k], daysOf(sets));
+  const peaks = [area('alpha', 8, PEAKED), area('beta', 6, 1), area('gamma', 7, 0.9)];
+  assert.ok(closeRings(tl.rings(), ringsAt(densityTop(peaks))), JSON.stringify(tl.rings()));
+  assert.ok(densityTop(peaks) > densityTop(sets[2].areas));
+});
+
+function longTimeline() {
+  const sets = Array.from({ length: LONG_HISTORY }, (_, k) => ({
+    areas: [area('alpha', 8 + k), area('beta', 6, 0.8), ...(k % 3 ? [area('gamma', 7, 2.4)] : [])], average: 1,
+  }));
+  const runs = sets.map((_, k) => ({ day: `2026-09-${String(k + 1).padStart(2, '0')}` }));
+  let reads = 0;
+  const tl = createSkyTimeline((k) => { reads += 1; return sets[k]; }, runs);
+  return { tl, reads: () => reads };
+}
+
+test('nothing is read or laid out until a run is asked for or warmed', () => {
+  const { tl, reads } = longTimeline();
+  assert.equal(reads(), 0);
+  assert.deepEqual(tl.progress(), { summarized: 0, settled: 0, total: LONG_HISTORY });
+});
+
+test('each warm step does one run of work: every run read, then every run settled, then nothing left', () => {
+  const { tl } = longTimeline();
+  let steps = 0;
+  while (tl.warmStep()) steps += 1;
+  assert.equal(steps, LONG_HISTORY * 2);
+  assert.deepEqual(tl.progress(), { summarized: LONG_HISTORY, settled: LONG_HISTORY, total: LONG_HISTORY });
+  assert.equal(tl.warmStep(), false);
+});
+
+test('a warmed run is handed back without any layout work', () => {
+  const { tl } = longTimeline();
+  while (tl.warmStep());
+  const before = tl.progress();
+  const scene = tl.sceneAt(LONG_HISTORY - 1);
+  assert.deepEqual(tl.progress(), before);
+  assert.equal(scene.nodes.size, 3);
+});
+
+test('a warmed sky is the sky a cold seek computes', () => {
+  const warm = longTimeline().tl;
+  while (warm.warmStep());
+  const cold = longTimeline().tl;
+  const k = LONG_HISTORY - 1;
+  assert.deepEqual([...warm.sceneAt(k).nodes], [...cold.sceneAt(k).nodes]);
+  assert.deepEqual(warm.rings(), cold.rings());
+});
+
+test('a seek beyond what is warmed settles the rest, and warming carries on from there', () => {
+  const { tl } = longTimeline();
+  tl.warmStep();
+  tl.sceneAt(LONG_HISTORY / 2);
+  assert.deepEqual(tl.progress(), { summarized: LONG_HISTORY, settled: LONG_HISTORY / 2 + 1, total: LONG_HISTORY });
+  let steps = 0;
+  while (tl.warmStep()) steps += 1;
+  assert.equal(steps, LONG_HISTORY / 2 - 1);
 });

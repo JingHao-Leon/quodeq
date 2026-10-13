@@ -40,16 +40,24 @@ function bubbleAt(k, name) {
 
 /** Render, then wait for run 0's static sky (the dotted area) to be drawn. */
 async function drawn(tl) {
-  const view = render(<RiskTimelapseView timelapse={tl} dark={false} showLabels />);
+  const view = render(<Past tl={tl} />);
   await waitFor(() => expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]));
   return { ...view, sky: view.container.querySelector('canvas[tabindex="0"]') };
 }
+let timelines = new WeakMap();
+beforeEach(() => { timelines = new WeakMap(); });
+/** The Risk tab's timeline for a history: one per data within a test, as useSkyTimeline keeps it. */
+function timelineOf(data) {
+  if (!timelines.has(data)) timelines.set(data, createSkyTimeline((j) => areaSetAt(data, j), data.runs));
+  return timelines.get(data);
+}
+const Past = ({ tl }) => <RiskTimelapseView timelapse={tl} timeline={timelineOf(tl.data)} dark={false} showLabels />;
 const timelapse = (over = {}) => ({ data: DATA, position: 0, playing: false, moveMs: 0, onSettled: vi.fn(), controls: { pause: vi.fn() }, ...over });
 
 describe('RiskTimelapseView', () => {
   it('draws the run, the area without files dotted, and tells the playback it settled', async () => {
     const tl = timelapse();
-    render(<RiskTimelapseView timelapse={tl} dark={false} showLabels />);
+    render(<Past tl={tl} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(0));
     await waitFor(() => expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]));
   });
@@ -74,7 +82,7 @@ describe('RiskTimelapseView', () => {
     const tl = timelapse();
     const { container, sky, rerender } = await drawn(tl);
     fireEvent.mouseMove(sky, bubbleAt(0, 'lib'));
-    rerender(<RiskTimelapseView timelapse={{ ...tl, position: 1 }} dark={false} showLabels />);
+    rerender(<Past tl={{ ...tl, position: 1 }} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(1));
     expect(container.querySelector('.map-tooltip')).toBeNull();
   });
@@ -92,9 +100,9 @@ describe('RiskTimelapseView', () => {
       { day: '2026-09-08', new: 0, fixed: 0, areas: [metrics('app', 3)], files: [], gone: [] },
     ]);
     const tl = timelapse({ data });
-    render(<RiskTimelapseView timelapse={tl} dark={false} showLabels />);
+    render(<Past tl={tl} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(0));
-    const wide = createSkyTimeline((j) => areaSetAt(data, j), data.runs).rings;
+    const wide = createSkyTimeline((j) => areaSetAt(data, j), data.runs).rings();
     const own = skyRings(areaSetAt(data, 0).areas);
     expect(own.fixFirst).not.toBeCloseTo(wide.fixFirst);
     await waitFor(() => expect(ctx.arc).toHaveBeenCalledWith(FRAME.cx, FRAME.cy, wide.fixFirst * FRAME.s, 0, TAU));
@@ -112,7 +120,7 @@ describe('RiskTimelapseView', () => {
 
   it('a click while playing pauses', async () => {
     const tl = timelapse({ playing: true });
-    const { container } = render(<RiskTimelapseView timelapse={tl} dark={false} showLabels />);
+    const { container } = render(<Past tl={tl} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalled());
     fireEvent.click(container.querySelector('canvas[tabindex="0"]'));
     expect(tl.controls.pause).toHaveBeenCalled();
