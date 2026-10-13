@@ -57,12 +57,12 @@ function usePackPaint({ circles, colorMode, palette, weights, editsByPath }) {
   }, [circles, colorMode, palette, weights, editsByPath]);
 }
 
-function useStaticLayer(canvasRef, { circles, paint, screenCoords, viewport, size }) {
+function useStaticLayer(canvasRef, { circles, indexOf, paint, screenCoords, viewport, size }) {
   useEffect(() => {
     if (!paint) return;
     const ctx = prepareLayer(canvasRef.current, size);
-    if (ctx) drawStatic(ctx, { circles, screenCoords, viewport, paint, width: size.w, height: size.h });
-  }, [canvasRef, circles, paint, screenCoords, viewport, size]);
+    if (ctx) drawStatic(ctx, { circles, screenCoords, viewport, paint, index: indexOf, width: size.w, height: size.h });
+  }, [canvasRef, circles, indexOf, paint, screenCoords, viewport, size]);
 }
 
 function useOverlayLayer(canvasRef, frame) {
@@ -155,7 +155,7 @@ export default function PackCanvas({ circles, transform, skipTransition, colorMo
   const hoverIndex = validIndex(hover, circles);
   const keep = keepCircle(hoverIndex === null ? null : circles[hoverIndex], focusNode);
 
-  useStaticLayer(staticRef, { circles, paint, screenCoords, viewport, size });
+  useStaticLayer(staticRef, { circles, indexOf, paint, screenCoords, viewport, size });
   useOverlayLayer(overlayRef, {
     circles, screenCoords, viewport, focusNode, theme, size, hoverIndex,
     keepIndex: keep ? indexOf.get(keep) ?? null : null,

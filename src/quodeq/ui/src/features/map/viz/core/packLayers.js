@@ -33,10 +33,6 @@ function folderRadius(rPx) {
   return Math.max(0, rPx - clamp(rPx * INSET_SHARE, INSET_MIN_PX, INSET_MAX_PX));
 }
 
-function indexByNode(circles) {
-  return new Map(circles.map((c, i) => [c, i]));
-}
-
 function traceCutOut(ctx, c, at, index) {
   for (const child of c.children || []) {
     if (!child.children?.length) continue;
@@ -79,11 +75,12 @@ function drawFile(ctx, p, paint) {
 
 /**
  * The static layer: every visible circle, parents before children.
+ * `index` maps each circle to its position in `circles`; the caller builds it
+ * once per circles array, so a tween frame does not rebuild it.
  * @returns {number} circles drawn
  */
-export function drawStatic(ctx, { circles, screenCoords, viewport, paint, width, height }) {
+export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index, width, height }) {
   ctx.clearRect(0, 0, width, height);
-  const index = indexByNode(circles);
   const at = (i) => toPx(screenCoords[i], viewport);
   let drawn = 0;
   circles.forEach((c, i) => {
@@ -119,17 +116,37 @@ function drawHover(ctx, p, palette) {
   ctx.globalAlpha = 1;
 }
 
+function labelCandidates({ circles, screenCoords, viewport, focusNode }) {
+  const out = [];
+  circles.forEach((c, i) => {
+    const p = toPx(screenCoords[i], viewport);
+    if (c.parent === focusNode && p.r > LABEL_MIN_R) out.push({ c, p });
+  });
+  return out.sort((a, b) => b.p.r - a.p.r);
+}
+
+function overlaps(a, b) {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+/** Labels of the focus's children, largest circle first; a label whose box
+ * would overlap one already placed is skipped, so labels never collide. */
 function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font }) {
   ctx.fillStyle = rgbCss(palette.text);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  circles.forEach((c, i) => {
-    const p = toPx(screenCoords[i], viewport);
-    if (c.parent !== focusNode || p.r <= LABEL_MIN_R) return;
+  const placed = [];
+  for (const { c, p } of labelCandidates({ circles, screenCoords, viewport, focusNode })) {
     const size = Math.min(LABEL_FONT_MAX, Math.max(LABEL_FONT_MIN, p.r / LABEL_FONT_DIVISOR));
     ctx.font = `${c.children?.length ? LABEL_WEIGHT_FOLDER : LABEL_WEIGHT_FILE} ${size}px ${font}`;
-    ctx.fillText(chainLabel(c.data.name), p.px, p.py - p.r - LABEL_GAP);
-  });
+    const text = chainLabel(c.data.name);
+    const w = ctx.measureText(text).width;
+    const y = p.py - p.r - LABEL_GAP;
+    const box = { x: p.px - w / 2, y: y - size, w, h: size };
+    if (placed.some((b) => overlaps(b, box))) continue;
+    placed.push(box);
+    ctx.fillText(text, p.px, y);
+  }
 }
 
 /** The overlay: one veil around the kept circle, the hover ring, and labels of the focus's children. */
