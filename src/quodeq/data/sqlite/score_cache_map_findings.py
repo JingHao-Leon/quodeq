@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from quodeq.core.finding_identity import SuppressionSubject
+from quodeq.core.finding_identity import SuppressionSubject, dismiss_identities
 from quodeq.core.map_history.raw_run import ViolationRecord
 
 _SEPARATORS = (",", ":")
@@ -23,11 +23,33 @@ def _encoded(record: ViolationRecord) -> str:
                        record.severity, record.fid], separators=_SEPARATORS)
 
 
+def _texts(*items: object) -> bool:
+    """Whether every item is text."""
+    return all(isinstance(i, str) for i in items)
+
+
+def _fingerprints(fps: object, req: str, principle: str) -> tuple[str | None, ...] | None:
+    """*fps* as the subject's fingerprints: one text or null per dismiss identity, else None."""
+    if not isinstance(fps, list) or len(fps) != len(dismiss_identities(req, principle)):
+        return None
+    return tuple(fps) if all(fp is None or isinstance(fp, str) for fp in fps) else None
+
+
 def _decoded(text: str) -> ViolationRecord | None:
-    """Inverse of ``_encoded``; None for a row in another layout (its runs read as misses)."""
+    """Inverse of ``_encoded``; None for a row in another layout (its runs read as misses, the next save rewrites it).
+
+    The suppression predicate zips the fingerprints with the dismiss
+    identities, so a row whose fingerprints do not match them one for one
+    does not decode.
+    """
     try:
         dim, req, principle, file, line, fps, deleted, severity, fid = json.loads(text)
-        subject = SuppressionSubject(dim, req, principle, file, int(line), tuple(fps),
+        if not _texts(dim, req, principle, file, severity, fid) or not (deleted is None or isinstance(deleted, str)):
+            return None
+        fingerprints = _fingerprints(fps, req, principle)
+        if fingerprints is None:
+            return None
+        subject = SuppressionSubject(dim, req, principle, file, int(line), fingerprints,
                                      file if deleted is None else deleted)
     except (ValueError, TypeError, OverflowError):
         return None

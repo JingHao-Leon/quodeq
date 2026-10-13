@@ -82,3 +82,20 @@ def test_a_run_cached_under_an_older_shape_is_rebuilt(env, monkeypatch):
     monkeypatch.setattr(map_history, "build_raw_run", lambda *a, **kw: calls.append(1) or real(*a, **kw))
     assert build_map_history(env, "proj", frames="all") == first
     assert len(calls) == 2
+
+
+def test_a_garbled_stored_record_is_rebuilt_not_a_failure(env):
+    from quodeq.data.sqlite.score_cache_db import open_score_cache
+    from quodeq.services.dismissed import dismiss_finding
+    _two_findings(env)
+    first = build_map_history(env, "proj", frames="all")
+    with open_score_cache() as conn:
+        rows = conn.execute("SELECT rec, payload FROM map_finding").fetchall()
+        for rec, payload in rows:
+            garbled = json.loads(payload)
+            garbled[5] = []
+            conn.execute("UPDATE map_finding SET payload=? WHERE rec=?", (json.dumps(garbled), rec))
+        conn.commit()
+    dismiss_finding(env / "proj", {"req": "R9", "file": "x/z.py", "line": 1, "snippet": "z()"})
+    assert build_map_history(env, "proj", frames="all") == first
+    assert build_map_history(env, "proj", frames="all") == first

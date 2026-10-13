@@ -1,5 +1,8 @@
+import json
 import logging
 import sqlite3
+
+import pytest
 
 from quodeq.core.finding_identity import SuppressionSubject
 from quodeq.core.map_history.raw_run import RawFile, RawHistory, RawHistoryWrite, RawRun, ViolationRecord, record_key
@@ -120,3 +123,30 @@ def test_a_run_with_a_non_text_record_key_reads_as_a_miss(tmp_path, monkeypatch)
     with open_score_cache() as conn:
         store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", bad), "r2": ("k", worse)})
     assert load_map_snapshots("p", {"r1": "k", "r2": "k"}).runs == {}
+
+
+def _garble_record(rec: str, payload: list) -> None:
+    with open_score_cache() as conn:
+        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", (json.dumps(payload), rec))
+        conn.commit()
+
+
+@pytest.mark.parametrize("fps", [[], "ffff", ["f" * 64, "f" * 64], [3]])
+def test_a_record_with_the_wrong_fingerprints_reads_as_a_miss_and_heals(tmp_path, monkeypatch, fps):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"})
+    _garble_record(K, ["sec", "R1", "P", "a.py", 3, fps, None, "major", "sec:v:0123456789ab"])
+    assert load_map_snapshots("p", {"r1": "k"}).runs == {}
+    _save({"r1": ("k", RUN)}, {"r1"})
+    assert load_map_snapshots("p", {"r1": "k"}) == RawHistory({"r1": RUN}, {K: REC, KO: ODD})
+
+
+@pytest.mark.parametrize("field", [0, 1, 2, 3, 6, 7, 8])
+def test_a_record_with_a_non_text_field_reads_as_a_miss(tmp_path, monkeypatch, field):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"})
+    payload = ["sec", "R1", "P", "a.py", 3, ["f" * 64], "a.py:x", "major", "sec:v:0123456789ab"]
+    payload[field] = 7
+    _garble_record(K, payload)
+    assert load_map_snapshots("p", {"r1": "k"}).runs == {}
+
