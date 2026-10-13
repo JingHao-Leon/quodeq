@@ -3,6 +3,10 @@ import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapPage from './MapPage.jsx';
 import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
+
+const API = { getMapHistory: vi.fn(() => new Promise(() => {})), getGradeFormula: vi.fn(() => new Promise(() => {})) };
+const WRAP = { wrapper: withStableQueryApi(API) };
 
 // The circle pack observes its container size.
 beforeEach(() => { stubResizeObserver(); });
@@ -36,7 +40,7 @@ function data() {
 describe('MapPage paints its frame first', () => {
   it('builds the tree from nothing on the first commit and from the findings only after', () => {
     buildFileTree.mockClear();
-    render(<MapPage data={data()} callbacks={{}} />);
+    render(<MapPage data={data()} callbacks={{}} />, WRAP);
     const sizes = buildFileTree.mock.calls.map(([dims]) => dims.length);
     expect(sizes[0]).toBe(0);
     expect(sizes.at(-1)).toBe(DIMS.length);
@@ -46,7 +50,7 @@ describe('MapPage paints its frame first', () => {
   });
 
   it('settles on the visualisation once the deferred body mounts', () => {
-    const { container } = render(<MapPage data={data()} callbacks={{}} />);
+    const { container } = render(<MapPage data={data()} callbacks={{}} />, WRAP);
     expect(container.querySelector('.term-header')).toBeInTheDocument();
     expect(container.querySelector('.map-viz-container--skeleton')).toBeNull();
     expect(container.querySelector('.map-viz-container')).toBeInTheDocument();

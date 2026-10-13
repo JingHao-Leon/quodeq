@@ -25,6 +25,18 @@ function setup(props) {
   );
 }
 
+describe('useMapPageState: pack colour mode', () => {
+  it('an old health nav entry opens the pack as concentration', () => {
+    const { result } = setup({ nav: { viewMode: 'health' } });
+    expect(result.current.viewState.viewMode).toBe('concentration');
+  });
+
+  it('activity is kept', () => {
+    const { result } = setup({ nav: { viewMode: 'activity' } });
+    expect(result.current.viewState.viewMode).toBe('activity');
+  });
+});
+
 describe('useMapPageState: page-state cache injection', () => {
   beforeEach(() => {
     localStorage.clear();

@@ -13,7 +13,10 @@ import { useThemeIsDark } from '../../../hooks/useThemeIsDark.js';
 import { t } from '../../../strings/index.js';
 import { DATA_THEME_ATTR } from '../../../constants.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
-import { VIEW_MODES, VIZ_STYLE, GALAXY_MODE } from '../mapVocab.js';
+import { PACK_COLOR_MODES, VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, PACK_COLOR_MODE } from '../mapVocab.js';
+import PackLegend from '../viz/components/PackLegend.jsx';
+import useMapActivity from '../hooks/useMapActivity.js';
+import useSeverityWeights from '../hooks/useSeverityWeights.js';
 import { THEME_FAMILY } from '../../../vocab/theme.js';
 
 // data-theme attr for forcing the viz dark while the app is light: keep the
@@ -76,22 +79,33 @@ function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
   );
 }
 
-function MapControls({ viewState, galaxyState, dimensionState }) {
+function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
+  return (
+    <div className="term-seg" role="group" aria-label={t('map.colorModeAria')}>
+      {PACK_COLOR_MODES.map((m) => {
+        const blocked = m.value === PACK_COLOR_MODE.ACTIVITY && activityUnavailable;
+        return (
+          <button
+            key={m.value} type="button" className={`term-btn${viewMode === m.value ? ' term-btn--on' : ''}`}
+            onClick={() => setViewMode(m.value)} aria-pressed={viewMode === m.value}
+            disabled={blocked} title={blocked ? t('map.activityUnavailable') : undefined}
+          >
+            {t(m.labelKey)}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MapControls({ viewState, galaxyState, dimensionState, activityUnavailable }) {
   const { viewMode, setViewMode, vizStyle, setVizStyle } = viewState;
   const { galaxyMode, setGalaxyMode } = galaxyState;
   const { allDimensions, selectedDimensions, onToggleDimension } = dimensionState;
   return (
     <div className="term-page-top__controls map-controls">
       <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={onToggleDimension} />
-      {vizStyle === VIZ_STYLE.ZOOMPACK && (
-        <div className="term-seg">
-          {VIEW_MODES.map((m) => (
-            <button key={m.id} type="button" className={`term-btn${viewMode === m.id ? ' term-btn--on' : ''}`} onClick={() => setViewMode(m.id)} aria-pressed={viewMode === m.id}>
-              {m.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {vizStyle === VIZ_STYLE.ZOOMPACK && <PackColorSeg viewMode={viewMode} setViewMode={setViewMode} activityUnavailable={activityUnavailable} />}
       {vizStyle === VIZ_STYLE.GALAXY && (
         <div className="term-seg">
           {GALAXY_MODES.map((m) => (
@@ -121,7 +135,7 @@ function MapBreadcrumb({ path, onNavigate, projectName }) {
   );
 }
 
-function MapVizContainer({ vizState, treeState, dimensions, callbacks, display }) {
+function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack }) {
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
   const { node, fullTree, currentPath, onPathChange } = treeState;
@@ -143,7 +157,8 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display }
         )}
       </div>
       {vizStyle === VIZ_STYLE.RISKMATRIX && <RiskMatrixView node={node} onDrillDown={onDrillDown} onFileClick={onFileClick} showLabels={showLabels} />}
-      {vizStyle === VIZ_STYLE.ZOOMPACK && <ZoomablePackView node={fullTree} colorMode={viewMode} dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick} showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} />}
+      {vizStyle === VIZ_STYLE.ZOOMPACK && <ZoomablePackView node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath} dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick} showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} />}
+      {vizStyle === VIZ_STYLE.ZOOMPACK && <PackLegend mode={viewMode} activitySource={pack.failed ? ACTIVITY_SOURCE.NONE : pack.activity.source} activityLoading={pack.loading} />}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.STANDARDS && <GalaxyView dimensions={dimensions} onNavigate={onNavigate} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} standardTypes={standardTypes} />}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.FILESYSTEM && <GalaxyFolderView node={fullTree} currentPath={currentPath} onPathChange={onPathChange} onFileClick={onFileClick} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} />}
     </div>
@@ -161,9 +176,17 @@ function nodeSummary(node) {
   return `${viol} violation${viol !== 1 ? 's' : ''} · ratio ${complianceRatio(viol, node.compliance)}`;
 }
 
-function MapBody({ ready, state }) {
+function MapBody({ ready, state, pack }) {
   if (!ready) return <MapVizSkeleton />;
-  return <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks} display={state.display} />;
+  return <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks} display={state.display} pack={pack} />;
+}
+
+// The pack's severity weights and edit counts; Concentration never waits on the history.
+function useMapPackData(project, source) {
+  const { activity, loading, failed } = useMapActivity(project, source);
+  const weights = useSeverityWeights(project, source);
+  const activityUnavailable = source === PROJECT_SOURCE.SHARED || (activity.source === ACTIVITY_SOURCE.NONE && !loading);
+  return { pack: { weights, activity, loading, failed }, activityUnavailable };
 }
 
 export default function MapPage(props) {
@@ -178,6 +201,7 @@ export default function MapPage(props) {
   // The hook tolerates missing data — `state.allDimensions` is `[]` when there
   // is no project or no run data, which is exactly what we use for case C.
   const state = useMapPageState({ ...props, deferTree: !ready });
+  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource);
 
   if (!projectsLoaded) return <MapLoadingState />;
   if (projects.length === 0 && selectedSource !== PROJECT_SOURCE.SHARED) return <MapNoProjectsState onNavigate={onNavigate} />;
@@ -203,9 +227,9 @@ export default function MapPage(props) {
           sub={sub}
           badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null}
         />
-        <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} />
+        <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} />
+      <MapBody ready={ready} state={state} pack={pack} />
     </div>
   );
 }

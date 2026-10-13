@@ -4,6 +4,8 @@ import '@testing-library/jest-dom/vitest';
 import { useState } from 'react';
 import MapPage from './MapPage.jsx';
 import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
+import { t } from '../../../strings/index.js';
 
 // The circle pack observes its container size.
 beforeEach(() => { stubResizeObserver(); });
@@ -29,8 +31,18 @@ function baseData(overrides = {}) {
   };
 }
 
-function renderPage(data, callbacks = {}) {
-  return render(<MapPage data={data} callbacks={callbacks} />);
+const FORMULA = { current: { severityWeight: { critical: 4, major: 2, minor: 0.25 } } };
+
+function fakeApi(overrides = {}) {
+  return {
+    getMapHistory: vi.fn().mockResolvedValue({ activitySource: 'none', frames: [] }),
+    getGradeFormula: vi.fn().mockResolvedValue(FORMULA),
+    ...overrides,
+  };
+}
+
+function renderPage(data, callbacks = {}, api = fakeApi()) {
+  return render(<MapPage data={data} callbacks={callbacks} />, { wrapper: withStableQueryApi(api) });
 }
 
 describe('MapPage — evaluate CTA gating for shared (Critical 1)', () => {
@@ -177,7 +189,7 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
 
   it('style toggle replaces, folder drill pushes, breadcrumb-up unwinds to the trail entry', () => {
     const log = [];
-    const { container } = render(<NavHarness data={data()} log={log} />);
+    const { container } = render(<NavHarness data={data()} log={log} />, { wrapper: withStableQueryApi(fakeApi()) });
 
     // Switch to the risk-matrix style: a replace, not a push.
     fireEvent.click(screen.getByRole('button', { name: 'Risk Matrix' }));
@@ -201,10 +213,47 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
 
   it('view-mode toggle on the circle pack replaces in place', () => {
     const log = [];
-    render(<NavHarness data={data()} log={log} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Violations' }));
-    expect(log).toEqual([['replace', 'viewMode', 'violations']]);
-    expect(screen.getByRole('button', { name: 'Violations' })).toHaveAttribute('aria-pressed', 'true');
+    render(<NavHarness data={data()} log={log} />, { wrapper: withStableQueryApi(fakeApi()) });
+    fireEvent.click(screen.getByRole('button', { name: 'Activity' }));
+    expect(log).toEqual([['replace', 'viewMode', 'activity']]);
+    expect(screen.getByRole('button', { name: 'Activity' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('MapPage: Concentration and Activity', () => {
+  const DIMS = [{
+    dimension: 'security',
+    violations: [{ file: 'src/a.py', severity: 'minor', principle: 'P1' }, { file: 'main.py', severity: 'minor', principle: 'P2' }],
+    compliance: [],
+  }];
+  const local = () => baseData({ selectedSource: 'local', selectedProject: 'p1', projectName: 'p1', accumulated: { dimensions: DIMS } });
+
+  it('the pack offers Concentration and Activity, not Health or Violations', () => {
+    renderPage(local());
+    expect(screen.getByRole('button', { name: t('map.colorConcentration') })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t('map.colorActivity') })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Health' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Violations' })).toBeNull();
+  });
+
+  it('a shared project cannot pick Activity', () => {
+    renderPage(baseData({ accumulated: { dimensions: DIMS } }));
+    const button = screen.getByRole('button', { name: t('map.colorActivity') });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', t('map.activityUnavailable'));
+  });
+
+  it('Concentration draws without waiting for the history', () => {
+    const api = fakeApi({ getMapHistory: vi.fn(() => new Promise(() => {})) });
+    const { container } = renderPage(local(), {}, api);
+    expect(container.querySelector('canvas')).toBeInTheDocument();
+  });
+
+  it('a failed history under Activity is explained in the legend', async () => {
+    const api = fakeApi({ getMapHistory: vi.fn().mockRejectedValue(new Error('boom')) });
+    render(<NavHarness data={local()} log={[]} />, { wrapper: withStableQueryApi(api) });
+    fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
+    expect(await screen.findByText(t('map.activityUnavailable'), { selector: '.pack-legend-note' })).toBeInTheDocument();
   });
 });
 
