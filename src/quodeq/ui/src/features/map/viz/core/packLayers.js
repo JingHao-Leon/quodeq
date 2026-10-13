@@ -40,11 +40,12 @@ function folderRadius(rPx) {
   return Math.max(0, rPx - clamp(rPx * INSET_SHARE, INSET_MIN_PX, INSET_MAX_PX));
 }
 
-function traceCutOut(ctx, c, at, index) {
+/** Holes for the sub-folders drawn solid inside `c`; one drawn dotted (absent) or not at all keeps its parent's fill. */
+function traceCutOut(ctx, { c, at, index, paints }) {
   for (const child of c.children || []) {
     if (!isPackFolder(child)) continue;
     const i = index.get(child);
-    if (i === undefined) continue;
+    if (i === undefined || !paints[i] || paints[i].ghost) continue;
     const p = at(i);
     const r = folderRadius(p.r);
     if (r <= 0) continue;
@@ -53,12 +54,12 @@ function traceCutOut(ctx, c, at, index) {
   }
 }
 
-function drawFolder(ctx, { c, p, paint, at, index }) {
+function drawFolder(ctx, { c, p, paint, at, index, paints }) {
   const r = folderRadius(p.r);
   ctx.beginPath();
   ctx.arc(p.px, p.py, r, 0, TAU);
   if (!paint.outlineOnly) {
-    if (paint.cutOut) traceCutOut(ctx, c, at, index);
+    if (paint.cutOut) traceCutOut(ctx, { c, at, index, paints });
     ctx.globalAlpha = paint.alpha;
     ctx.fillStyle = paint.fill;
     ctx.fill(paint.cutOut ? EVEN_ODD : undefined);
@@ -121,7 +122,7 @@ export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index,
     const p = at(i);
     if (paint[i].ghost) drawGhost(ctx, p, paint[i]);
     else if (paint[i].file) drawFile(ctx, p, paint[i]);
-    else drawFolder(ctx, { c, p, paint: paint[i], at, index });
+    else drawFolder(ctx, { c, p, paint: paint[i], at, index, paints: paint });
     drawn++;
   });
   return drawn;

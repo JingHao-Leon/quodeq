@@ -31,6 +31,15 @@ describe('drawStatic', () => {
     expect(ctx.moveTo).toHaveBeenCalledTimes(2);
   });
 
+  it('never cuts a ghost (absent) sub-folder out of its parent, so absence is no brighter than presence', () => {
+    const ctx = fakeCanvasContext();
+    const { circles, screenCoords, paint } = scene();
+    paint[3] = { ghost: true, file: false, stroke: 'rgb(9, 9, 9)', strokeAlpha: 0.4 };
+    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    // Only src is cut out of the root; src stays whole under its ghost sub-folder.
+    expect(ctx.moveTo).toHaveBeenCalledTimes(1);
+  });
+
   it('leaves globalAlpha back at 1', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
