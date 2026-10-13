@@ -44,9 +44,18 @@ function runSummary(set) {
   return { areas, bubbles: skyAreas(set).map((a) => a.name), average: set.average };
 }
 
-/** The history's scale top: densityTop (the live sky's rule) over every present instance of an area on the sky. */
+/**
+ * The history's scale top: densityTop (the live sky's rule) over one value
+ * per area on the sky, its peak density across the runs it is present in.
+ * One value per area keeps the percentile and the outlier cap working per
+ * area: fed every instance, a runaway area's own other runs would be its
+ * "second densest" and the cap would never hold it back.
+ */
 function historyTop(summaries, names) {
-  return densityTop(summaries.flatMap(({ areas }) => names.filter((n) => areas.has(n)).map((n) => areas.get(n))));
+  const peaks = names.map((name) => ({
+    density: summaries.reduce((peak, { areas }) => Math.max(peak, areas.get(name)?.density || 0), 0),
+  }));
+  return densityTop(peaks);
 }
 
 /** Every kind an area on the sky has in some run (a legend that holds still while the runs play). */

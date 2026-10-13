@@ -124,18 +124,29 @@ test('the kinds of the whole history, so a legend keeps its rows from run to run
   assert.deepEqual(createSkyTimeline(() => SETS[0], []).kinds(), []);
 });
 
-const OUTLIER = 9;
 const LONG_HISTORY = 12;
 
-test('the history-wide top follows the same percentile rule as the live sky, over every present instance', () => {
-  const sets = Array.from({ length: LONG_HISTORY }, (_, k) => ({
-    areas: [area('alpha', 8, HALF + k / LONG_HISTORY), area('beta', 6, k === 0 ? OUTLIER : 1)], average: 1,
-  }));
-  const runs = sets.map((_, k) => ({ day: `2026-09-${String(k + 1).padStart(2, '0')}` }));
-  const tl = createSkyTimeline((k) => sets[k], runs);
-  const instances = sets.flatMap((s) => s.areas);
-  assert.deepEqual(tl.rings(), ringsAt(densityTop(instances)));
-  assert.ok(densityTop(instances) < OUTLIER);
+const BENCHMARK_LIKE = [4.41, 0.94, 0.6];
+const BENCHMARK_TOP = 1.88;
+const RING_EPS = 1e-9;
+const daysOf = (sets) => sets.map((_, k) => ({ day: `2026-09-${String(k + 1).padStart(2, '0')}` }));
+const closeRings = (a, b) => Math.abs(a.fixFirst - b.fixFirst) < RING_EPS && Math.abs(a.watch - b.watch) < RING_EPS;
+
+test('a runaway area is capped over a history too: its other runs never count as the second densest', () => {
+  const set = { areas: BENCHMARK_LIKE.map((d, i) => area(`b${i}`, 6, d)), average: 1 };
+  const sets = [set, set, set];
+  const tl = createSkyTimeline((k) => sets[k], daysOf(sets));
+  assert.ok(closeRings(tl.rings(), ringsAt(BENCHMARK_TOP)), JSON.stringify(tl.rings()));
+});
+
+test('the history top takes each area at its peak, even when the peak is in an earlier run', () => {
+  const PEAKED = 1.5;
+  const LATER = 0.2;
+  const sets = [0, 1, 2].map((k) => ({ areas: [area('alpha', 8, k ? LATER : PEAKED), area('beta', 6, 1), area('gamma', 7, 0.9)], average: 1 }));
+  const tl = createSkyTimeline((k) => sets[k], daysOf(sets));
+  const peaks = [area('alpha', 8, PEAKED), area('beta', 6, 1), area('gamma', 7, 0.9)];
+  assert.ok(closeRings(tl.rings(), ringsAt(densityTop(peaks))), JSON.stringify(tl.rings()));
+  assert.ok(densityTop(peaks) > densityTop(sets[2].areas));
 });
 
 function longTimeline() {
