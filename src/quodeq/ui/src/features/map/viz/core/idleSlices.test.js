@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runInIdleSlices, idleScheduler } from './idleSlices.js';
+import { runInIdleSlices, idleScheduler, FALLBACK_SLICE_BUDGET_MS } from './idleSlices.js';
 import { createSkyTimeline } from './skyTimeline.js';
 
 const PER_SLICE = 3;
@@ -101,4 +101,24 @@ test('the idle scheduler falls back to a timer where idle callbacks are missing'
   assert.equal(calls.length, 1);
   const idle = idleScheduler({ requestIdleCallback: () => 'idle-handle', cancelIdleCallback: () => {} });
   assert.equal(idle.schedule(() => {}), 'idle-handle');
+});
+
+test('a host with idle callbacks but no way to cancel them gets the timer, never a half pair', () => {
+  const timers = [];
+  const host = { requestIdleCallback: () => 'idle-handle', setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout: () => {} };
+  const scheduler = idleScheduler(host);
+  assert.equal(scheduler.schedule(() => {}), 1);
+  assert.doesNotThrow(() => scheduler.cancel(1));
+});
+
+test('the timer fallback hands each slice a deadline that runs out after its budget', () => {
+  let clock = 0;
+  const timers = [];
+  const host = { performance: { now: () => clock }, setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout: () => {} };
+  let deadline = null;
+  idleScheduler(host).schedule((d) => { deadline = d; });
+  timers[0]();
+  assert.equal(deadline.timeRemaining(), FALLBACK_SLICE_BUDGET_MS);
+  clock += FALLBACK_SLICE_BUDGET_MS;
+  assert.equal(deadline.timeRemaining(), 0);
 });

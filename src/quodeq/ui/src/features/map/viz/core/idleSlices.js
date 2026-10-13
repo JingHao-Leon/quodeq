@@ -2,18 +2,35 @@
 export const WARM_STEPS_PER_SLICE = 4;
 /** Delay of the timer that stands in for an idle callback where the browser has none. */
 const FALLBACK_DELAY_MS = 16;
+/**
+ * The timer's stand-in for an idle deadline: a slice stops after this long.
+ * WebKit (the desktop app) has no idle callbacks, and without a deadline a
+ * slice holding the history build and run 0's full layout could run long.
+ */
+export const FALLBACK_SLICE_BUDGET_MS = 8;
+
+/** A deadline like an idle callback's: time left of a budget that starts now. */
+function syntheticDeadline(budgetMs, now) {
+  const end = now() + budgetMs;
+  return { timeRemaining: () => Math.max(0, end - now()) };
+}
 
 /**
- * Idle callbacks where the host has them, a short timer otherwise.
+ * Idle callbacks where the host has both halves of the pair, a short timer
+ * with a synthetic deadline otherwise.
  * @param {object} [host] the global object (injectable for tests)
  * @returns {{schedule: function(function): *, cancel: function(*): void}}
  */
 export function idleScheduler(host = globalThis) {
-  if (typeof host.requestIdleCallback === 'function') {
+  if (typeof host.requestIdleCallback === 'function' && typeof host.cancelIdleCallback === 'function') {
     return { schedule: host.requestIdleCallback.bind(host), cancel: host.cancelIdleCallback.bind(host) };
   }
   const setTimer = host.setTimeout.bind(host);
-  return { schedule: (fn) => setTimer(fn, FALLBACK_DELAY_MS), cancel: host.clearTimeout.bind(host) };
+  const now = () => (host.performance || performance).now();
+  return {
+    schedule: (fn) => setTimer(() => fn(syntheticDeadline(FALLBACK_SLICE_BUDGET_MS, now)), FALLBACK_DELAY_MS),
+    cancel: host.clearTimeout.bind(host),
+  };
 }
 
 const hasTimeLeft = (deadline) => !deadline || deadline.timeRemaining() > 0;
