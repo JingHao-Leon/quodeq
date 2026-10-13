@@ -21,8 +21,8 @@ export function createTimelapseLayouts(model) {
   let local = null;
   const localAnchor = () => { local = local || anchorLayout(layoutModel); return local; };
   const runLocally = (k) => runLayout(layoutModel, localAnchor(), k);
-  const viaWorker = requestTimelapseModel(model.id, layoutModel);
-  const anchor = viaWorker ? viaWorker.catch(localAnchor) : Promise.resolve().then(localAnchor);
+  const sent = requestTimelapseModel(layoutModel);
+  const anchor = sent ? sent.anchor.catch(localAnchor) : Promise.resolve().then(localAnchor);
   const runs = new Map();
   const remember = (k, promise) => {
     runs.set(k, promise);
@@ -34,7 +34,7 @@ export function createTimelapseLayouts(model) {
     run(k) {
       const hit = runs.get(k);
       if (hit) return hit;
-      const job = anchor.then(() => (local ? runLocally(k) : requestTimelapseRun(model.id, k) || runLocally(k)));
+      const job = anchor.then(() => (local ? runLocally(k) : requestTimelapseRun(sent.modelId, k) || runLocally(k)));
       return remember(k, job.catch(() => runLocally(k)));
     },
   };

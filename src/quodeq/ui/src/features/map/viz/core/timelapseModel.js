@@ -3,7 +3,6 @@ import { buildPathTree } from './fileTree.js';
 import { filePathKey } from '../../model/mapActivity.js';
 
 const NO_FILE = -1;
-let modelCount = 0;
 
 function maxChecksPerFile(data) {
   const max = new Float32Array(data.fileNames.length);
@@ -36,9 +35,8 @@ export function buildTimelapseModel(data) {
   const nodes = root.descendants();
   const index = new Map(nodes.map((n, i) => [n, i]));
   const fileOf = Int32Array.from(nodes, (n) => (n.children ? NO_FILE : fileIndex.get(n.data.path) ?? NO_FILE));
-  modelCount += 1;
   return {
-    id: modelCount, root, nodes, index, fileOf,
+    root, nodes, index, fileOf,
     parent: Int32Array.from(nodes, (n) => (n.parent ? index.get(n.parent) : NO_FILE)),
     sizes: data.checks.map((c) => Float32Array.from(fileOf, (f) => (f === NO_FILE ? 0 : c[f]))),
     maxSize: Float32Array.from(fileOf, (f) => (f === NO_FILE ? 0 : Math.max(1, maxChecks[f]))),

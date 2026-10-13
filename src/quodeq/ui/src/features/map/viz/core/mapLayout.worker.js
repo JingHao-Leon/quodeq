@@ -1,9 +1,8 @@
-import { handlePackMessage } from './packLayout.js';
-import { createTimelapseHandler } from './timelapseWorker.js';
+import { createLayoutHandler } from './timelapseWorker.js';
 
-const timelapse = createTimelapseHandler();
+const handle = createLayoutHandler();
 
 self.onmessage = (event) => {
-  const reply = event.data.type ? timelapse(event.data) : handlePackMessage(event.data);
+  const reply = handle(event.data);
   self.postMessage(reply, reply.xyr ? [reply.xyr.buffer] : []);
 };

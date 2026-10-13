@@ -77,4 +77,25 @@ describe('useRunTransition', () => {
     await flush();
     expect([result.current.from, result.current.to.k]).toEqual([null, 1]);
   });
+
+  it('a run that fails to load keeps the view and says why instead of an unhandled rejection', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const onSettled = vi.fn();
+    const failing = () => Promise.reject(new Error('layout failed'));
+    const hook = renderHook(() => useRunTransition({ target: 0, load: failing, kindOf, durationMs: 0, onSettled }));
+    await flush();
+    await flush();
+    expect([hook.result.current, onSettled.mock.calls.length, warn.mock.calls.length]).toEqual([null, 0, 1]);
+    warn.mockRestore();
+  });
+
+  it('a load that throws is handled like one that rejects', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const throwing = () => { throw new Error('no scene'); };
+    const hook = renderHook(() => useRunTransition({ target: 0, load: throwing, kindOf, durationMs: 0, onSettled: vi.fn() }));
+    await flush();
+    await flush();
+    expect([hook.result.current, warn.mock.calls.length]).toEqual([null, 1]);
+    warn.mockRestore();
+  });
 });

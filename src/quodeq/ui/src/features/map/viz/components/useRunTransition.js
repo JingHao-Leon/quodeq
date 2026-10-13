@@ -25,7 +25,8 @@ export function useRunTransition({ target, load, kindOf, durationMs, onSettled }
     let raf = 0;
     let moving = null;
     const setView = (view) => setShownView({ load, view });
-    void Promise.resolve(load(target)).then((state) => {
+    // The executor runs now, so load starts at once and a throw from it rejects like a failed load.
+    new Promise((resolve) => { resolve(load(target)); }).then((state) => {
       if (!live) return;
       const to = { k: target, state };
       const from = shown.current;
@@ -46,6 +47,9 @@ export function useRunTransition({ target, load, kindOf, durationMs, onSettled }
         raf = requestAnimationFrame(step);
       };
       raf = requestAnimationFrame(step);
+    }).catch((err) => {
+      // The run on screen stays; playback waits on a settle that cannot come, so say why.
+      if (live) console.warn('[useRunTransition] run could not be loaded', target, err);
     });
     return () => {
       live = false;

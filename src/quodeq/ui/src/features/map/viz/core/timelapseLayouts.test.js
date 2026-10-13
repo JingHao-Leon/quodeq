@@ -4,7 +4,7 @@ import { createTimelapseLayouts, layoutModelOf } from './timelapseLayouts.js';
 import { anchorLayout, runLayout } from './timelapseLayout.js';
 import { syntheticModel } from './timelapseSynthetic.js';
 
-const MODEL = { id: 1, ...syntheticModel({ files: 60, runs: 3, seed: 2 }) };
+const MODEL = syntheticModel({ files: 60, runs: 3, seed: 2 });
 
 test('without a worker the layouts are computed on this thread and cached', async () => {
   const layouts = createTimelapseLayouts(MODEL);

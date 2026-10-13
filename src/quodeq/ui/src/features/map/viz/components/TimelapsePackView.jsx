@@ -14,12 +14,17 @@ import { t } from '../../../../strings/index.js';
 
 const NO_TIP = Object.freeze({ node: null, note: null });
 
+/** A layout that failed even on this thread: the view keeps what it shows, the console says why. */
+function warnLayoutFailed(err) {
+  console.warn('[TimelapsePackView] time-lapse layout failed', err);
+}
+
 /** The whole-history layout every run is framed in, once the worker has it (never another model's). */
 function useAnchor(layouts) {
   const [held, setHeld] = useState({ layouts: null, anchor: null });
   useEffect(() => {
     let live = true;
-    void layouts.anchor().then((anchor) => { if (live) setHeld({ layouts, anchor }); });
+    layouts.anchor().then((anchor) => { if (live) setHeld({ layouts, anchor }); }).catch(warnLayoutFailed);
     return () => { live = false; };
   }, [layouts]);
   return held.layouts === layouts ? held.anchor : null;
@@ -28,7 +33,7 @@ function useAnchor(layouts) {
 /** While playing, lay out the next run ahead so the move can start on time. */
 function usePrefetch(layouts, { position, playing, data }) {
   useEffect(() => {
-    if (playing && position + 1 < data.runs.length) void layouts.run(position + 1);
+    if (playing && position + 1 < data.runs.length) layouts.run(position + 1).catch(warnLayoutFailed);
   }, [layouts, position, playing, data]);
 }
 

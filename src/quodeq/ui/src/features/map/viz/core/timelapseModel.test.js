@@ -29,10 +29,6 @@ test('paths are spelled like the dashboard tree and chains collapse the same way
   assert.equal(model.fileOf[0], -1);
 });
 
-test('every build gets its own id', () => {
-  assert.notEqual(buildTimelapseModel(DATA).id, buildTimelapseModel(DATA).id);
-});
-
 test('siblings are ordered largest whole-history size first, equal sizes by name', () => {
   const data = {
     fileNames: ['d/zz.py', 'd/aa.py', 'd/mm.py', 'd/big.py', 'd/bb.py'],
