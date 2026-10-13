@@ -53,9 +53,9 @@ test('a dotted area at the midpoint of two runs that have it takes the earlier o
 test('one scale for the whole history: the rings never move between runs', () => {
   const tl = timeline();
   const top = densityTop(SETS.flatMap((s) => s.areas));
-  assert.deepEqual(tl.rings, ringsAt(top));
-  assert.deepEqual(tl.sceneAt(0).rings, tl.rings);
-  assert.deepEqual(tl.sceneAt(2).rings, tl.rings);
+  assert.deepEqual(tl.rings(), ringsAt(top));
+  assert.deepEqual(tl.sceneAt(0).rings, tl.rings());
+  assert.deepEqual(tl.sceneAt(2).rings, tl.rings());
 });
 
 test('a run settles from the run before: little drift when little changes', () => {
@@ -119,7 +119,74 @@ test('an empty history has an empty sky and never throws', () => {
 
 test('the kinds of the whole history, so a legend keeps its rows from run to run', () => {
   const sets = SETS.map((set, k) => ({ ...set, areas: set.areas.map((a) => (a.name === 'beta' && k === 0 ? { ...a, kind: 'hotspot' } : a)) }));
-  const kinds = createSkyTimeline((k) => sets[k], RUNS).kinds;
+  const kinds = createSkyTimeline((k) => sets[k], RUNS).kinds();
   assert.deepEqual([...kinds].sort(), ['hotspot', 'watch']);
-  assert.deepEqual(createSkyTimeline(() => SETS[0], []).kinds, []);
+  assert.deepEqual(createSkyTimeline(() => SETS[0], []).kinds(), []);
+});
+
+const OUTLIER = 9;
+const LONG_HISTORY = 12;
+
+test('the history-wide top follows the same percentile rule as the live sky, over every present instance', () => {
+  const sets = Array.from({ length: LONG_HISTORY }, (_, k) => ({
+    areas: [area('alpha', 8, HALF + k / LONG_HISTORY), area('beta', 6, k === 0 ? OUTLIER : 1)], average: 1,
+  }));
+  const runs = sets.map((_, k) => ({ day: `2026-09-${String(k + 1).padStart(2, '0')}` }));
+  const tl = createSkyTimeline((k) => sets[k], runs);
+  const instances = sets.flatMap((s) => s.areas);
+  assert.deepEqual(tl.rings(), ringsAt(densityTop(instances)));
+  assert.ok(densityTop(instances) < OUTLIER);
+});
+
+function longTimeline() {
+  const sets = Array.from({ length: LONG_HISTORY }, (_, k) => ({
+    areas: [area('alpha', 8 + k), area('beta', 6, 0.8), ...(k % 3 ? [area('gamma', 7, 2.4)] : [])], average: 1,
+  }));
+  const runs = sets.map((_, k) => ({ day: `2026-09-${String(k + 1).padStart(2, '0')}` }));
+  let reads = 0;
+  const tl = createSkyTimeline((k) => { reads += 1; return sets[k]; }, runs);
+  return { tl, reads: () => reads };
+}
+
+test('nothing is read or laid out until a run is asked for or warmed', () => {
+  const { tl, reads } = longTimeline();
+  assert.equal(reads(), 0);
+  assert.deepEqual(tl.progress(), { summarized: 0, settled: 0, total: LONG_HISTORY });
+});
+
+test('each warm step does one run of work: every run read, then every run settled, then nothing left', () => {
+  const { tl } = longTimeline();
+  let steps = 0;
+  while (tl.warmStep()) steps += 1;
+  assert.equal(steps, LONG_HISTORY * 2);
+  assert.deepEqual(tl.progress(), { summarized: LONG_HISTORY, settled: LONG_HISTORY, total: LONG_HISTORY });
+  assert.equal(tl.warmStep(), false);
+});
+
+test('a warmed run is handed back without any layout work', () => {
+  const { tl } = longTimeline();
+  while (tl.warmStep());
+  const before = tl.progress();
+  const scene = tl.sceneAt(LONG_HISTORY - 1);
+  assert.deepEqual(tl.progress(), before);
+  assert.equal(scene.nodes.size, 3);
+});
+
+test('a warmed sky is the sky a cold seek computes', () => {
+  const warm = longTimeline().tl;
+  while (warm.warmStep());
+  const cold = longTimeline().tl;
+  const k = LONG_HISTORY - 1;
+  assert.deepEqual([...warm.sceneAt(k).nodes], [...cold.sceneAt(k).nodes]);
+  assert.deepEqual(warm.rings(), cold.rings());
+});
+
+test('a seek beyond what is warmed settles the rest, and warming carries on from there', () => {
+  const { tl } = longTimeline();
+  tl.warmStep();
+  tl.sceneAt(LONG_HISTORY / 2);
+  assert.deepEqual(tl.progress(), { summarized: LONG_HISTORY, settled: LONG_HISTORY / 2 + 1, total: LONG_HISTORY });
+  let steps = 0;
+  while (tl.warmStep()) steps += 1;
+  assert.equal(steps, LONG_HISTORY / 2 - 1);
 });

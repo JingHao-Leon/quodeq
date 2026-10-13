@@ -44,7 +44,7 @@ function runSummary(set) {
   return { areas, bubbles: skyAreas(set).map((a) => a.name), average: set.average };
 }
 
-/** The history's scale top: the densest present instance of any area on the sky. */
+/** The history's scale top: densityTop (the live sky's rule) over every present instance of an area on the sky. */
 function historyTop(summaries, names) {
   return densityTop(summaries.flatMap(({ areas }) => names.filter((n) => areas.has(n)).map((n) => areas.get(n))));
 }
@@ -58,11 +58,11 @@ function historyKinds(summaries, names) {
 /**
  * Bubble positions per run, settled in order, each from the run before, under
  * one top; computed up to the run asked for and kept (a few dozen per run).
- * @returns {function(number): Map<string, {x: number, y: number, r: number}>}
+ * @returns {{at: function(number): Map<string, {x: number, y: number, r: number}>, settled: function(): number}}
  */
 function settledRuns(present, names, top, ghostAt) {
   const nodes = [];
-  return (k) => {
+  const at = (k) => {
     for (let j = nodes.length; j <= k; j++) {
       const areas = names.map((name) => present[j].get(name) || ghostAt(name, j));
       const laid = j ? layoutSkyFrom(areas, nodes[j - 1], top) : layoutSky(areas, top);
@@ -70,6 +70,41 @@ function settledRuns(present, names, top, ghostAt) {
     }
     return nodes[k];
   };
+  return { at, settled: () => nodes.length };
+}
+
+/**
+ * What the whole history decides once every run is summarised: the names on
+ * the sky, the scale top and its rings, the legend's kinds, and the chain of
+ * settled runs.
+ */
+function historyOf(summaries) {
+  const present = summaries.map((s) => s.areas);
+  const names = [...new Set(summaries.flatMap((s) => s.bubbles))].sort();
+  const top = historyTop(summaries, names);
+  const ghostAt = ghostAreas(present, names);
+  return {
+    present, names, ghostAt,
+    rings: ringsAt(top),
+    kinds: historyKinds(summaries, names),
+    chain: settledRuns(present, names, top, ghostAt),
+  };
+}
+
+/**
+ * The per-run summaries, read one run at a time (so the read can be spread
+ * over idle slices), and the history built from them once all are in.
+ */
+function lazyHistory(areaSetAt, runCount) {
+  const summaries = [];
+  let history = null;
+  const summarizeNext = () => { summaries.push(runSummary(areaSetAt(summaries.length))); };
+  const ready = () => {
+    while (summaries.length < runCount) summarizeNext();
+    if (!history) history = historyOf(summaries);
+    return history;
+  };
+  return { ready, summarizeNext, summarized: () => summaries.length, summaryAt: (k) => summaries[k] };
 }
 
 /**
@@ -79,32 +114,45 @@ function settledRuns(present, names, top, ghostAt) {
  * the targets and the rings still while the runs play. Only per-run area
  * summaries and positions are kept for the whole history; a run's full area
  * set (with its file dots) is rebuilt on demand for the last few runs asked.
+ * Nothing is read or laid out up front: the first scene (or `rings()`,
+ * `kinds()`, `absenceAt`) reads what is still missing, and `warmStep` does that work
+ * ahead of time, one run per call, so a seek finds its run already settled.
  * @param {function(number): {areas: object[], average: number}} areaSetAt run k's area set
  * @param {{day: string}[]} runs the history's runs, oldest first
- * @returns {{rings: {fixFirst: number, watch: number}, kinds: string[],
+ * @returns {{rings: function(): {fixFirst: number, watch: number}, kinds: function(): string[],
  *   sceneAt: function(number): {areas: object[], average: number, rings: object, nodes: Map<string, {x: number, y: number, r: number}>},
- *   absenceAt: function(number, string): ({kind: string, day: string}|null)}}
+ *   absenceAt: function(number, string): ({kind: string, day: string}|null),
+ *   warmStep: function(): boolean,
+ *   progress: function(): {summarized: number, settled: number, total: number}}}
  */
 export function createSkyTimeline(areaSetAt, runs) {
-  const summaries = runs.map((_, k) => runSummary(areaSetAt(k)));
-  const present = summaries.map((s) => s.areas);
-  const names = [...new Set(summaries.flatMap((s) => s.bubbles))].sort();
-  const top = historyTop(summaries, names);
-  const rings = ringsAt(top);
-  const ghostAt = ghostAreas(present, names);
-  const nodesAt = settledRuns(present, names, top, ghostAt);
-  const empty = Object.freeze({ areas: [], average: 0, rings, nodes: new Map() });
+  const total = runs.length;
+  const lazy = lazyHistory(areaSetAt, total);
   const sceneOf = cachedRuns((k) => {
+    const { names, ghostAt, rings, chain } = lazy.ready();
     const full = new Map(areaSetAt(k).areas.map((a) => [a.name, a]));
     const areas = names.map((name) => full.get(name) || ghostAt(name, k));
-    return { areas, average: summaries[k].average, rings, nodes: nodesAt(k) };
+    return { areas, average: lazy.summaryAt(k).average, rings, nodes: chain.at(k) };
   }, SKY_SCENE_CACHE_SIZE);
+  const settled = () => (lazy.summarized() < total ? 0 : lazy.ready().chain.settled());
+  let empty = null;
+  const emptyScene = () => (empty ||= Object.freeze({ areas: [], average: 0, rings: lazy.ready().rings, nodes: new Map() }));
   return {
-    rings,
-    kinds: historyKinds(summaries, names),
-    sceneAt: (k) => (k >= 0 && k < runs.length ? sceneOf(k) : empty),
-    absenceAt: (k, name) => absenceIn(runs, k, (j) => Boolean(present[j]?.has(name))),
+    rings: () => lazy.ready().rings,
+    kinds: () => lazy.ready().kinds,
+    sceneAt: (k) => (k >= 0 && k < total ? sceneOf(k) : emptyScene()),
+    absenceAt: (k, name) => absenceIn(runs, k, (j) => Boolean(lazy.ready().present[j]?.has(name))),
+    warmStep: () => warmOne(lazy, total, settled()),
+    progress: () => ({ summarized: lazy.summarized(), settled: settled(), total }),
   };
+}
+
+/** One unit of warm-up: read the next run, or settle the next run once all are read. False when nothing is left. */
+function warmOne(lazy, total, settled) {
+  if (lazy.summarized() < total) { lazy.summarizeNext(); return true; }
+  if (settled >= total) return false;
+  lazy.ready().chain.at(settled);
+  return true;
 }
 
 /**
