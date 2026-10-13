@@ -48,14 +48,22 @@ export function changeBars(runs, view = BAR_VIEW) {
   return runs.map((r, i) => ({ x: runX(i, runs.length, view) - w / 2, w, up: h(r.added), down: h(r.fixed) }));
 }
 
-/** The first run of each month, labelled with the month's short name. */
-export function monthTicks(runs) {
+/**
+ * The first run of each month, labelled with the month's short name. A tick
+ * closer than `minGap` (view units) to the last one kept is left out, so on a
+ * long history the labels never overlap.
+ */
+export function monthTicks(runs, minGap = 0, view = BAR_VIEW) {
   const ticks = [];
   let month = '';
+  let lastX = -Infinity;
   runs.forEach((r, index) => {
     const key = r.day.slice(0, MONTH_KEY_LENGTH);
     if (key === month) return;
     month = key;
+    const x = runX(index, runs.length, view);
+    if (x - lastX < minGap) return;
+    lastX = x;
     ticks.push({ index, label: MONTH.format(dayDate(r.day)) });
   });
   return ticks;

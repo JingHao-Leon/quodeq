@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import TimelapseBar from './TimelapseBar.jsx';
+import TimelapseBar, { MIN_TICK_GAP_PX, TRACK_FALLBACK_PX } from './TimelapseBar.jsx';
 import { t } from '../../../../strings/index.js';
 
 const RUNS = [
@@ -71,6 +71,35 @@ describe('TimelapseBar', () => {
     slider.getBoundingClientRect = () => ({ left: 0, width: 300, top: 0, height: 40 });
     fireEvent.mouseMove(slider, { clientX: 290 });
     expect(screen.getByText(/12 issues · 1 new · 3 fixed/)).toBeInTheDocument();
+  });
+});
+
+describe('TimelapseBar track labels', () => {
+  const tipAt = (clientX) => {
+    render(<TimelapseBar timelapse={bar()} />);
+    const slider = screen.getByRole('slider');
+    slider.getBoundingClientRect = () => ({ left: 0, width: 300, top: 0, height: 40 });
+    fireEvent.mouseMove(slider, { clientX });
+    return document.querySelector('.map-timelapse__tip').style;
+  };
+
+  it('the run tooltip shifts by its own share of the track, so it stays inside at both ends', () => {
+    for (const clientX of [1, 299]) {
+      const { left, transform } = tipAt(clientX);
+      expect(transform).toBe(`translateX(-${left})`);
+      cleanup();
+    }
+  });
+
+  it('on a long history the month labels are thinned so neighbours never overlap', () => {
+    const monthly = Array.from({ length: 48 }, (_, m) => ({
+      day: `${2022 + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, '0')}-01`, issues: m, added: 0, fixed: 0,
+    }));
+    const { container } = render(<TimelapseBar timelapse={bar({ data: { runs: monthly }, position: 0 })} />);
+    const lefts = [...container.querySelectorAll('.map-timelapse__tick')].map((el) => parseFloat(el.style.left));
+    const gapsPx = lefts.slice(1).map((x, i) => ((x - lefts[i]) / 100) * TRACK_FALLBACK_PX);
+    expect(lefts.length).toBeGreaterThan(1);
+    expect(Math.min(...gapsPx)).toBeGreaterThanOrEqual(MIN_TICK_GAP_PX);
   });
 });
 

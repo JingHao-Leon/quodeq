@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { t, LOCALE } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
@@ -15,6 +15,10 @@ const LEGEND = Object.freeze([
   { key: 'map.timelapseLegendNew', swatch: 'map-timelapse__swatch--new' },
   { key: 'map.timelapseLegendFixed', swatch: 'map-timelapse__swatch--fixed' },
 ]);
+/** The least distance between two month labels' centres, in pixels: a short month name and a gap. */
+export const MIN_TICK_GAP_PX = 36;
+/** The track width assumed until it is measured (and where it cannot be). */
+export const TRACK_FALLBACK_PX = 420;
 const pct = (x) => `${(x / BAR_VIEW.width) * PERCENT}%`;
 const dateOf = (run) => formatShortDate(dayDate(run.day).toISOString());
 const count = (n) => n.toLocaleString(LOCALE);
@@ -83,9 +87,35 @@ function TrackPlot({ runs, position, geometry }) {
   );
 }
 
+/** The element's width in pixels, followed as it resizes. */
+function useWidth(ref) {
+  const [width, setWidth] = useState(TRACK_FALLBACK_PX);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(([entry]) => { if (entry.contentRect.width > 0) setWidth(entry.contentRect.width); });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref]);
+  return width;
+}
+
+/**
+ * The run's numbers above the track. It moves left by its own share of the
+ * track as the run does by the track's, so it stays inside the track at both
+ * ends (never over the speed buttons or out of the window).
+ */
+function RunTip({ runs, index }) {
+  const left = pct(runX(index, runs.length));
+  return <span className="map-tooltip map-timelapse__tip" style={{ left, transform: `translateX(-${left})` }}>{runTitle(runs[index])}</span>;
+}
+
 function Track({ runs, position, controls }) {
   const [hover, setHover] = useState(null);
-  const geometry = useMemo(() => ({ points: trendPoints(runs), bars: changeBars(runs), ticks: monthTicks(runs) }), [runs]);
+  const ref = useRef(null);
+  const width = useWidth(ref);
+  const geometry = useMemo(() => ({ points: trendPoints(runs), bars: changeBars(runs) }), [runs]);
+  const ticks = useMemo(() => monthTicks(runs, (MIN_TICK_GAP_PX / width) * BAR_VIEW.width), [runs, width]);
   const at = (e) => {
     const box = e.currentTarget.getBoundingClientRect();
     return runIndexAt((e.clientX - box.left) / Math.max(1, box.width), runs.length);
@@ -93,19 +123,17 @@ function Track({ runs, position, controls }) {
   const dot = geometry.points[position];
   return (
     <div
-      className="map-timelapse__track" role="slider" tabIndex={0} aria-label={t('map.timelapseTrackAria')}
+      ref={ref} className="map-timelapse__track" role="slider" tabIndex={0} aria-label={t('map.timelapseTrackAria')}
       aria-valuemin={1} aria-valuemax={runs.length} aria-valuenow={position + 1} aria-valuetext={readout(runs, position)}
       onKeyDown={keyHandler(controls)} onMouseMove={(e) => setHover(at(e))} onMouseLeave={() => setHover(null)}
       onClick={(e) => controls.seek(at(e))}
     >
       <TrackPlot runs={runs} position={position} geometry={geometry} />
       <span className="map-timelapse__dot" style={{ left: pct(dot.x), top: dot.y }} />
-      {geometry.ticks.map((tick) => (
+      {ticks.map((tick) => (
         <span key={tick.index} className="map-timelapse__tick" style={{ left: pct(runX(tick.index, runs.length)) }}>{tick.label}</span>
       ))}
-      {hover !== null && (
-        <span className="map-tooltip map-timelapse__tip" style={{ left: pct(runX(hover, runs.length)) }}>{runTitle(runs[hover])}</span>
-      )}
+      {hover !== null && <RunTip runs={runs} index={hover} />}
     </div>
   );
 }

@@ -37,3 +37,11 @@ test('the readout delta is signed', () => {
   assert.deepEqual([issueDelta(RUNS, 0), issueDelta(RUNS, 1), issueDelta(RUNS, 2)], [0, 4, -2]);
   assert.deepEqual([signedCount(4), signedCount(-2), signedCount(0)], ['+4', '−2', '0']);
 });
+
+test('month ticks closer than the gap a label needs are left out, so labels never overlap', () => {
+  const monthly = Array.from({ length: 24 }, (_, m) => ({ day: `${2025 + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, '0')}-01` }));
+  const slot = BAR_VIEW.width / monthly.length;
+  assert.equal(monthTicks(monthly).length, 24);
+  const thinned = monthTicks(monthly, slot * 2.5).map((t) => t.index);
+  assert.deepEqual(thinned, [0, 3, 6, 9, 12, 15, 18, 21]);
+});

@@ -38,10 +38,10 @@
   color: var(--color-text-muted);
   pointer-events: none;
 }
+/* Shifted by its own share of the track (inline, TimelapseBar.jsx), so it stays inside the track. */
 .map-timelapse__tip {
   position: absolute;
   bottom: 100%;
-  transform: translateX(-50%);
   white-space: nowrap;
   pointer-events: none;
 }
