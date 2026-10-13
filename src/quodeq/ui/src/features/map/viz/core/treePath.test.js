@@ -11,8 +11,11 @@ test('an exact folder node', () => {
   assert.equal(nearestTreePath(TREE, 'src/main/java/nl/x/article'), 'src/main/java/nl/x/article');
 });
 
-test('a folder inside a collapsed chain snaps to the chain node, never the root', () => {
+test('a folder below the deepest node snaps to that node', () => {
   assert.equal(nearestTreePath(TREE, 'src/main/java/nl/x/article/deep/more'), 'src/main/java/nl/x/article');
+});
+
+test('a folder above a collapsed chain node has no node of its own: the root', () => {
   assert.equal(nearestTreePath(TREE, 'src/main'), '');
 });
 

@@ -49,8 +49,14 @@ export function largestFolder(paths) {
   let best = '';
   let bestCount = 0;
   for (const [folder, n] of counts) {
-    const better = n > bestCount || (n === bestCount && (folder.length < best.length || (folder.length === best.length && folder < best)));
-    if (better) { best = folder; bestCount = n; }
+    if (isBetter(folder, n, best, bestCount)) { best = folder; bestCount = n; }
   }
   return best;
+}
+
+/** More files wins; on a tie the shorter folder, then the alphabetically first. */
+function isBetter(folder, count, best, bestCount) {
+  if (count !== bestCount) return count > bestCount;
+  if (folder.length !== best.length) return folder.length < best.length;
+  return folder < best;
 }
