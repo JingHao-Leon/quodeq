@@ -1,4 +1,3 @@
-import { MAP_VIEW_MODE } from '../../mapVocab.js';
 
 const RATE_HIGH = 0.9;
 const RATE_MEDIUM = 0.7;
@@ -64,30 +63,4 @@ export function worstSeverity(severity) {
   if (severity.major > 0) return 'major';
   if (severity.minor > 0) return 'minor';
   return null;
-}
-
-function severityBorderColor(severity) {
-  return severityBucket(severity).borderColor;
-}
-
-function complianceRateBorderColor(rate) {
-  return rateBucket(rate).borderColor;
-}
-
-export function nodeBorderColor(node, viewMode) {
-  switch (viewMode) {
-    case MAP_VIEW_MODE.VIOLATIONS: return severityBorderColor(worstSeverity(node.severity));
-    case MAP_VIEW_MODE.COMPLIANCE: return complianceRateBorderColor(node.complianceRate);
-    case MAP_VIEW_MODE.HEALTH: return complianceRateBorderColor(node.complianceRate);
-    default: return severityBorderColor(worstSeverity(node.severity));
-  }
-}
-
-export function nodeColor(node, viewMode) {
-  switch (viewMode) {
-    case MAP_VIEW_MODE.VIOLATIONS: return severityColor(worstSeverity(node.severity));
-    case MAP_VIEW_MODE.COMPLIANCE: return complianceRateColor(node.complianceRate);
-    case MAP_VIEW_MODE.HEALTH: return healthColor(node.complianceRate);
-    default: return severityColor(worstSeverity(node.severity));
-  }
 }

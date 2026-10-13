@@ -15,13 +15,14 @@ function useFocusResetSync(resetKey, setFocus) {
 
 /** Once per resetKey, at the root, open the folder that holds most of the
  * files. The drill goes through `onDrillDown` like a user's, so the page's
- * breadcrumb follows; the ref keeps a later way back to the root there. */
-function useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown }) {
+ * breadcrumb follows; the ref keeps a later way back to the root there.
+ * `autoOpen` false (an explicit jump to the root) skips it for the visit. */
+function useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown, autoOpen }) {
   const openedFor = useRef(null);
   useEffect(() => {
     if (!circles.length || openedFor.current === resetKey) return;
     openedFor.current = resetKey;
-    const path = currentPath ? null : dominantFolderPath(root?.data);
+    const path = currentPath || !autoOpen ? null : dominantFolderPath(root?.data);
     if (path) onDrillDown?.(path);
   }, [circles, resetKey]);
 }
@@ -113,14 +114,14 @@ function useResolvedFocus(focus, root, circles) {
  * click handlers that drill in, open files and zoom out.
  * @returns {{focusNode: object, transform: {k:number,tx:number,ty:number}, handleClick: Function, handleBgClick: Function, skipTransition: {current: boolean}}}
  */
-export function useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick }) {
+export function useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick, autoOpen = true }) {
   const [focus, setFocus] = useState(null);
   const skipTransition = useRef(true);
   const prevPathRef = useRef(null);
 
   useFocusResetSync(resetKey, setFocus);
   useFocusPathSync({ currentPath, circles, setFocus, skipTransition, prevPathRef });
-  useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown });
+  useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown, autoOpen });
 
   // Enable transitions after first paint
   useEffect(() => {

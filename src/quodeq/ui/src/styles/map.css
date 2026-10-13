@@ -571,3 +571,33 @@
 .pack-legend-bar--activity {
   background: linear-gradient(90deg, var(--color-surface-alt), var(--color-map-activity));
 }
+
+/* ── Risk tab ────────────────────────────────────────── */
+
+.map-empty-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.map-tooltip--floating { position: absolute; z-index: 10; }
+.map-tooltip-tag { font-style: italic; margin-bottom: 4px; }
+.risk-legend-bar {
+  width: 180px;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-surface-alt), var(--color-map-worse));
+}
+.risk-legend-scale { display: flex; justify-content: space-between; letter-spacing: 0.04em; }
+.risk-legend-hot { color: var(--color-map-worse); font-weight: var(--weight-semibold); }
+.risk-ring {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--color-map-worse);
+}
+.risk-ring--dashed { border-style: dashed; }

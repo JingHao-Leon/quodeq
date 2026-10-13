@@ -1,56 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.jsx';
 import { useCanvasSize } from './galaxyCanvasSize.js';
+import { prepareLayer, useLayerTheme, KBD_MAX, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
 import { drawStatic, drawOverlay } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle, screenCoordsFor } from '../core/packCanvasGeometry.js';
 import { useTweenedTransform } from '../core/packTween.js';
 import { buildPackPaint } from '../core/packPaint.js';
-import { readMapPalette } from '../core/mapPalette.js';
-import { parseCSSColor } from '../core/galaxyCore.js';
 import { pickAtFocusLevel, keepCircle } from '../core/packPick.js';
 import { packStateText } from '../core/packStateText.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 
-// Keyboard stand-ins cover the current level only, capped like the galaxy
-// views: one button per child of the focused folder.
-const KBD_MAX = 100;
 const NO_EVENT = { stopPropagation() {} };
-const FONT_TOKEN = '--font-sans';
-// The root font size the canvas label bounds were designed for.
-const BASE_ROOT_PX = 16;
-const WRAPPER_STYLE = { position: 'relative', width: '100%', height: '100%' };
-const LAYER_STYLE = { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' };
-
-/** Size a layer's backing store for the device pixel ratio (only when it
- * changed: assigning `width` clears the canvas) and return its context. */
-function prepareLayer(canvas, size) {
-  const ctx = canvas?.getContext('2d');
-  if (!ctx) return null;
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.round(size.w * dpr);
-  const h = Math.round(size.h * dpr);
-  if (canvas.width !== w) canvas.width = w;
-  if (canvas.height !== h) canvas.height = h;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return ctx;
-}
-
-/** Palette and label font, read after commit: the Map container's theme
- * attribute flips in the same commit as `dark`, so only then do the tokens
- * resolve to the new theme. Without a 2D context there is nothing to paint
- * (and no way to parse a colour), so the palette stays unread. */
-function useLayerTheme(canvasRef, dark) {
-  const [theme, setTheme] = useState({ palette: null, font: '', fontScale: 1 });
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el?.getContext('2d')) return;
-    const style = getComputedStyle(el);
-    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || BASE_ROOT_PX;
-    setTheme({ palette: readMapPalette(style, parseCSSColor, dark), font: style.getPropertyValue(FONT_TOKEN).trim(), fontScale: rootPx / BASE_ROOT_PX });
-  }, [canvasRef, dark]);
-  return theme;
-}
 
 function usePackPaint({ circles, colorMode, palette, weights, editsByPath }) {
   return useMemo(() => {

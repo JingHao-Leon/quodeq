@@ -8,14 +8,9 @@ import { useFocusManager } from './useFocusManager.js';
 import { t } from '../../../../strings/index.js';
 import { PERCENT } from '../../../../constants.js';
 import MapTooltipSeverityRows from './MapTooltipSeverityRows.jsx';
+import { clampTooltipToBox } from '../core/tooltipPlacement.js';
 import FadeIn from '../../../../components/FadeIn.jsx';
 
-const TOOLTIP_OFFSET = 16;
-const TOOLTIP_MAX_MARGIN = 180;
-const TOOLTIP_MAX_MARGIN_Y = 160;
-// Container size assumed while the element has not been measured yet, so
-// the tooltip still clamps to something sane on the first hover.
-const CONTAINER_FALLBACK_PX = 300;
 // No activity data yet: one shared empty map keeps the paint memo stable.
 // Read-only by convention (freezing a Map does not stop set()).
 const NO_EDITS = new Map();
@@ -25,13 +20,7 @@ const CONTAINER_STYLE = { position: 'relative', width: '100%', height: '100%', d
 /** Tooltip position, clamped so it never runs off the container edge. */
 function tooltipStyle(mousePos, containerRef) {
   const el = containerRef.current;
-  return {
-    position: 'absolute',
-    left: Math.min(mousePos.current.x + TOOLTIP_OFFSET, (el?.offsetWidth || CONTAINER_FALLBACK_PX) - TOOLTIP_MAX_MARGIN),
-    top: Math.min(mousePos.current.y + TOOLTIP_OFFSET, (el?.offsetHeight || CONTAINER_FALLBACK_PX) - TOOLTIP_MAX_MARGIN_Y),
-    pointerEvents: 'none',
-    zIndex: 10,
-  };
+  return clampTooltipToBox(mousePos.current.x, mousePos.current.y, el?.offsetWidth, el?.offsetHeight);
 }
 
 /** Per-severity rows, shown only for a node that actually has violations. */
@@ -46,7 +35,7 @@ function PackTooltip({ circles, hover, mousePos, containerRef }) {
   const hd = circles[hover].data;
   const total = hd.violations + hd.compliance;
   return (
-    <div className="map-tooltip" style={tooltipStyle(mousePos, containerRef)}>
+    <div className="map-tooltip map-tooltip--floating" style={tooltipStyle(mousePos, containerRef)}>
       <div className="map-tooltip-title">{(hd.path || hd.name || '').replace(/\/$/, '')}</div>
       <div className="map-tooltip-row"><span>{t('map.violations')}</span><span>{hd.violations}</span></div>
       <TooltipSeverityRows hd={hd} />
@@ -72,17 +61,18 @@ function useHover(circles, focusNode) {
 /**
  * The Map's zoomable circle pack. `colorMode` is a PACK_COLOR_MODE (anything
  * else paints as concentration); `weights` are the severity weights of the
- * grade formula and `editsByPath` the activity per file path.
+ * grade formula and `editsByPath` the activity per file path. `autoOpen`
+ * false keeps the pack where `currentPath` puts it (no dominant-folder open).
  */
 export default function ZoomablePackView({
   node, colorMode = PACK_COLOR_MODE.CONCENTRATION, weights = DEFAULT_SEVERITY_WEIGHTS, editsByPath = NO_EDITS, dark = false,
-  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '',
+  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '', autoOpen = true,
 }) {
   const mousePos = useRef({ x: 0, y: 0 });
   const containerRef = useRef(null);
 
   const { root, circles } = usePackLayout(node);
-  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick });
+  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick, autoOpen });
   const [hover, setHover] = useHover(circles, focus.focusNode);
 
   if (!node) return null;

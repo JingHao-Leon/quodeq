@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import {
-  RiskMatrixView, ZoomablePackView,
-  GalaxyView, GalaxyFolderView, VizBreadcrumb,
-} from '../viz/index.js';
+import { ZoomablePackView, GalaxyView, GalaxyFolderView, VizBreadcrumb, RiskView } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
 import { TermHeader } from '../../../components/terminal/index.js';
@@ -16,6 +13,8 @@ import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { PACK_COLOR_MODES, VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, PACK_COLOR_MODE } from '../mapVocab.js';
 import PackLegend from '../viz/components/PackLegend.jsx';
 import useMapActivity from '../hooks/useMapActivity.js';
+import useMapAreas from '../hooks/useMapAreas.js';
+import useRiskActions from './useRiskActions.js';
 import useSeverityWeights from '../hooks/useSeverityWeights.js';
 import { THEME_FAMILY } from '../../../vocab/theme.js';
 
@@ -31,7 +30,7 @@ function getDarkThemeAttr() {
 const VIZ_STYLES = [
   { id: VIZ_STYLE.ZOOMPACK, label: t('map.vizCirclePack'), enabled: true },
   { id: VIZ_STYLE.GALAXY, label: 'Galaxy', enabled: true },
-  { id: VIZ_STYLE.RISKMATRIX, label: t('map.vizRiskMatrix'), enabled: true },
+  { id: VIZ_STYLE.RISK, label: t('map.vizRisk'), enabled: true },
 ];
 
 const GALAXY_MODES = [
@@ -109,7 +108,7 @@ function MapControls({ viewState, galaxyState, dimensionState, activityUnavailab
   const { allDimensions, selectedDimensions, onToggleDimension } = dimensionState;
   return (
     <div className="term-page-top__controls map-controls">
-      <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={onToggleDimension} />
+      {vizStyle !== VIZ_STYLE.RISK && <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={onToggleDimension} />}
       {vizStyle === VIZ_STYLE.ZOOMPACK && <PackColorSeg viewMode={viewMode} setViewMode={setViewMode} activityUnavailable={activityUnavailable} />}
       {vizStyle === VIZ_STYLE.GALAXY && (
         <div className="term-seg">
@@ -140,15 +139,21 @@ function MapBreadcrumb({ path, onNavigate, projectName }) {
   );
 }
 
-function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack }) {
+// The Galaxy draws its own trail and Risk has no folder level to show.
+function hasBreadcrumb(vizStyle) {
+  return vizStyle === VIZ_STYLE.ZOOMPACK;
+}
+
+function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk }) {
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
-  const { node, fullTree, currentPath, onPathChange } = treeState;
+  const { fullTree, currentPath, onPathChange, explicitPath } = treeState;
   const { onDrillDown, onFileClick, onNavigate, onBreadcrumbNav } = callbacks;
   const { showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
+  const riskActions = useRiskActions({ areaState: risk.areaState, fullTree, onNavigate, onShowInPack: risk.onShowInPack });
   return (
     <div className="map-viz-container" {...(darkMode && !appIsDark ? { [DATA_THEME_ATTR]: getDarkThemeAttr() } : {})}>
-      {vizStyle !== VIZ_STYLE.GALAXY && <MapBreadcrumb path={breadcrumb} onNavigate={onBreadcrumbNav} projectName={projectName} />}
+      {hasBreadcrumb(vizStyle) && <MapBreadcrumb path={breadcrumb} onNavigate={onBreadcrumbNav} projectName={projectName} />}
       <div className="map-viz-toggles">
         <label className="map-label-toggle">
           <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
@@ -161,12 +166,17 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
           </label>
         )}
       </div>
-      {vizStyle === VIZ_STYLE.RISKMATRIX && <RiskMatrixView node={node} onDrillDown={onDrillDown} onFileClick={onFileClick} showLabels={showLabels} />}
+      {vizStyle === VIZ_STYLE.RISK && (
+        <RiskView
+          areaState={risk.areaState} dark={darkMode || appIsDark} showLabels={showLabels} resetKey={resetKey}
+          onViewDetails={riskActions.onViewDetails} onShowInPack={riskActions.onShowInPack}
+        />
+      )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
         <ZoomablePackView
           node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath}
           dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick}
-          showLabels={showLabels} resetKey={resetKey} currentPath={currentPath}
+          showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} autoOpen={!explicitPath}
         />
       )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
@@ -192,9 +202,9 @@ function nodeSummary(node) {
   return `${viol} violation${viol !== 1 ? 's' : ''} · ratio ${complianceRatio(viol, node.compliance)}`;
 }
 
-function MapBody({ ready, state, pack }) {
+function MapBody({ ready, state, pack, risk }) {
   if (!ready) return <MapVizSkeleton />;
-  return <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks} display={state.display} pack={pack} />;
+  return <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks} display={state.display} pack={pack} risk={risk} />;
 }
 
 // The pack's severity weights and edit counts; Concentration never waits on
@@ -219,6 +229,7 @@ export default function MapPage(props) {
   // is no project or no run data, which is exactly what we use for case C.
   const state = useMapPageState({ ...props, deferTree: !ready });
   const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, state.viewState.vizStyle === VIZ_STYLE.ZOOMPACK);
+  const areaState = useMapAreas(selectedProject, selectedSource, state.viewState.vizStyle === VIZ_STYLE.RISK);
 
   if (!projectsLoaded) return <MapLoadingState />;
   if (projects.length === 0 && selectedSource !== PROJECT_SOURCE.SHARED) return <MapNoProjectsState onNavigate={onNavigate} />;
@@ -246,7 +257,7 @@ export default function MapPage(props) {
         />
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} pack={pack} />
+      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, onShowInPack: props.nav?.onShowInPack }} />
     </div>
   );
 }

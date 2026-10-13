@@ -74,6 +74,12 @@ describe('ZoomablePackView opens inside a dominant folder', () => {
     expect(onDrillDown).toHaveBeenCalledWith('app');
   });
 
+  it('stays at the root when auto-open is off (an explicit jump there)', () => {
+    const onDrillDown = vi.fn();
+    render(<ZoomablePackView node={dominantTree()} currentPath="" autoOpen={false} onDrillDown={onDrillDown} />);
+    expect(onDrillDown).not.toHaveBeenCalled();
+  });
+
   it('opens again for a new resetKey', () => {
     const onDrillDown = vi.fn();
     const tree = dominantTree();

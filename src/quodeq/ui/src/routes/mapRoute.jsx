@@ -1,9 +1,10 @@
 /**
- * The Map tab's route renderer, moved out of routes/renderers.jsx verbatim
- * (move-only refactor).
+ * The Map tab's route renderer: lazy-loads MapPage and carries the display
+ * toggles (viz style and modes) across the nav stack.
  */
 import { lazy } from 'react';
 import { NAV_TAB } from '../vocab/navTab.js';
+import { VIZ_STYLE } from '../features/map/mapVocab.js';
 
 const MapPage = lazy(() => import('../features/map/components/MapPage.jsx'));
 
@@ -16,6 +17,13 @@ const MapPage = lazy(() => import('../features/map/components/MapPage.jsx'));
 function withCurrentView(entry, { vizStyle, viewMode, galaxyMode }) {
   const next = { ...entry, vizStyle, viewMode, galaxyMode };
   return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined));
+}
+
+// A drill is a new visit: the "landed by Show in Circle Pack" mark stays on
+// the entry it was pushed with and is not carried forward.
+function withoutLanding(params) {
+  const { explicitPath, ...rest } = params;
+  return rest;
 }
 
 export function mapRoute(params, props) {
@@ -39,9 +47,13 @@ export function mapRoute(params, props) {
         return;
       }
     }
-    props.navigation.handleNavigate(NAV_TAB.MAP, { ...params, path });
+    props.navigation.handleNavigate(NAV_TAB.MAP, { ...withoutLanding(params), path });
   };
   const replaceView = (patch) => props.navigation.handleNavigateReplace(NAV_TAB.MAP, { ...params, ...patch });
+  // Risk's "Show in Circle Pack": one history entry, so back returns to Risk.
+  // explicitPath keeps the pack on that path (no dominant-folder auto-open,
+  // which would land elsewhere and push a second entry).
+  const showInPack = (path) => props.navigation.handleNavigate(NAV_TAB.MAP, { ...params, vizStyle: VIZ_STYLE.ZOOMPACK, path, explicitPath: true });
   return <MapPage
     data={{
       accumulated: acc,
@@ -61,10 +73,12 @@ export function mapRoute(params, props) {
       vizStyle: params.vizStyle,
       viewMode: params.viewMode,
       galaxyMode: params.galaxyMode,
+      explicitPath: Boolean(params.explicitPath),
       onPathChange: handlePathChange,
       onVizStyleChange: (v) => replaceView({ vizStyle: v }),
       onViewModeChange: (v) => replaceView({ viewMode: v }),
       onGalaxyModeChange: (v) => replaceView({ galaxyMode: v }),
+      onShowInPack: showInPack,
     }}
     isDirectNav={isDirectNav}
     tabKey={params._tabKey || 0}

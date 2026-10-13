@@ -1,6 +1,6 @@
 ## Code Map
 
-The **Map** tab draws your codebase as shapes you can scan at a glance: three layouts, and for the Circle Pack two ways to color it.
+The **Map** tab draws your codebase as shapes you can scan at a glance: three layouts (Circle Pack, Galaxy and Risk), and for the Circle Pack two ways to color it.
 
 ### Pick a color mode (Circle Pack)
 
@@ -13,7 +13,7 @@ The **Map** tab draws your codebase as shapes you can scan at a glance: three la
 | --- | --- |
 | Circle Pack | Nested circles sized by checks run. Best for spotting heavy files at a glance. |
 | Galaxy | Force-directed cluster view. Two sub-modes: filesystem (by directory) or standards (by violated principle). |
-| Risk Matrix | Files plotted by complexity (size) vs. issue density. Top-right quadrant is your priority list. |
+| Risk | Functional areas on a sky: the closer to the centre, the more an area needs rework. A solid ring marks a hotspot (needs work and changes often), a dashed ring dormant debt (needs work, rarely touched). Click an area for its details, the Violations workbench filtered to it, or its place in the Circle Pack. |
 
 ### Filter by dimension
 

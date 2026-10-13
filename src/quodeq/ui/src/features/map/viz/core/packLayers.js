@@ -94,12 +94,12 @@ export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index,
   return drawn;
 }
 
-function drawVeil(ctx, p, palette, size) {
-  const r = folderRadius(p.r);
+/** Fills the canvas with the themed veil, leaving a round hole at (px, py). */
+export function drawVeilWithHole(ctx, { px, py, r }, palette, size) {
   ctx.beginPath();
   ctx.rect(0, 0, size.width, size.height);
-  ctx.moveTo(p.px + r, p.py);
-  ctx.arc(p.px, p.py, r, 0, TAU, true);
+  ctx.moveTo(px + r, py);
+  ctx.arc(px, py, r, 0, TAU, true);
   ctx.closePath();
   ctx.globalAlpha = palette.dark ? VEIL_ALPHA_DARK : VEIL_ALPHA_LIGHT;
   ctx.fillStyle = rgbCss(palette.bg);
@@ -107,14 +107,23 @@ function drawVeil(ctx, p, palette, size) {
   ctx.globalAlpha = 1;
 }
 
-function drawHover(ctx, p, palette) {
+function drawVeil(ctx, p, palette, size) {
+  drawVeilWithHole(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette, size);
+}
+
+/** The hover ring both vizzes draw: a thin text-coloured circle of radius `r` at (px, py). */
+export function drawHoverRing(ctx, { px, py, r }, palette) {
   ctx.beginPath();
-  ctx.arc(p.px, p.py, folderRadius(p.r), 0, TAU);
+  ctx.arc(px, py, r, 0, TAU);
   ctx.globalAlpha = HOVER_STROKE_ALPHA;
   ctx.lineWidth = HOVER_STROKE_PX;
   ctx.strokeStyle = rgbCss(palette.text);
   ctx.stroke();
   ctx.globalAlpha = 1;
+}
+
+function drawHover(ctx, p, palette) {
+  drawHoverRing(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette);
 }
 
 function labelCandidates({ circles, screenCoords, viewport, focusNode }) {

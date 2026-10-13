@@ -6,10 +6,11 @@ import MapPage from './MapPage.jsx';
 import { stubResizeObserver } from '../../../test-utils/packFixture.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
+import { fakeCanvasContext } from '../../../test-utils/fakeCanvasContext.js';
 
 // The circle pack observes its container size.
 beforeEach(() => { stubResizeObserver(); });
-afterEach(() => { vi.unstubAllGlobals(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 // Covers evaluate CTA gating for shared projects and the shared read-only
 // chip. MapPage previously never
@@ -189,26 +190,28 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
 
   it('style toggle replaces, folder drill pushes, breadcrumb-up unwinds to the trail entry', () => {
     const log = [];
-    const { container } = render(<NavHarness data={data()} log={log} />, { wrapper: withStableQueryApi(fakeApi()) });
+    render(<NavHarness data={data()} log={log} />, { wrapper: withStableQueryApi(fakeApi()) });
 
-    // Switch to the risk-matrix style: a replace, not a push.
-    fireEvent.click(screen.getByRole('button', { name: 'Risk Matrix' }));
-    expect(log).toEqual([['replace', 'vizStyle', 'riskmatrix']]);
+    // Away to Risk and back to the pack: replaces, not pushes.
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizRisk') }));
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizCirclePack') }));
+    expect(log).toEqual([['replace', 'vizStyle', 'risk'], ['replace', 'vizStyle', 'zoompack']]);
 
-    // Drill into the `src` folder circle: a push.
-    const circle = container.querySelector('circle[role="button"]');
-    expect(circle).not.toBeNull();
-    fireEvent.click(circle);
-    expect(log[1]).toEqual(['push', 'src']);
+    // A non-default pack colour, so the unwind below can show it kept.
+    fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
+
+    // Drill into the `src` folder (its keyboard stand-in): a push.
+    fireEvent.keyDown(screen.getByRole('button', { name: /^src\b/ }), { key: 'Enter' });
+    expect(log[3]).toEqual(['push', 'src']);
     // The controlled path round-tripped: breadcrumb now shows the folder.
     expect(screen.getAllByText('src').length).toBeGreaterThan(0);
 
     // Breadcrumb back to the project root: unwinds to the earlier entry
     // (the browser-back equivalent), never a fresh push.
     fireEvent.click(screen.getByRole('button', { name: 'proj' }));
-    expect(log[2]).toEqual(['goTo', 0]);
-    // The unwound entry still carries the style set by the replace.
-    expect(screen.getByRole('button', { name: 'Risk Matrix' })).toHaveAttribute('aria-pressed', 'true');
+    expect(log[4]).toEqual(['goTo', 0]);
+    // The unwound entry still carries the colour set by the replace.
+    expect(screen.getByRole('button', { name: t('map.colorActivity') })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('view-mode toggle on the circle pack replaces in place', () => {
@@ -252,9 +255,10 @@ describe('MapPage: Concentration and Activity', () => {
     expect(note).toHaveTextContent(t('map.activityUnavailable'));
   });
 
-  it('the history is not fetched while another view than the Circle Pack is shown', () => {
+  it('the history is not fetched on the Galaxy', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => fakeCanvasContext());
     const api = fakeApi();
-    render(<MapPage data={local()} callbacks={{}} nav={{ vizStyle: 'riskmatrix' }} />, { wrapper: withStableQueryApi(api) });
+    render(<MapPage data={local()} callbacks={{}} nav={{ vizStyle: 'galaxy' }} />, { wrapper: withStableQueryApi(api) });
     expect(api.getMapHistory).not.toHaveBeenCalled();
   });
 

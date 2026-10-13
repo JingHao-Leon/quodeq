@@ -7,7 +7,21 @@ export const MAP_VIEW_MODE = Object.freeze({ HEALTH: 'health', VIOLATIONS: 'viol
 
 // The map's three layout engines (the `vizStyle` nav param): MapPage's
 // toggle and useMapPageState's nav-param default.
-export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', GALAXY: 'galaxy', RISKMATRIX: 'riskmatrix' });
+export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', GALAXY: 'galaxy', RISK: 'risk' });
+// The Risk Matrix's old nav value: entries saved before the Risk tab open it.
+const LEGACY_RISK_MATRIX = 'riskmatrix';
+const VIZ_STYLE_VALUES = new Set(Object.values(VIZ_STYLE));
+
+/**
+ * The view for a nav value: the old Risk Matrix opens Risk, anything unknown
+ * (or missing) the Circle Pack.
+ * @param {string|undefined} value the `vizStyle` nav param
+ * @returns {string} a VIZ_STYLE value
+ */
+export function normalizeVizStyle(value) {
+  if (value === LEGACY_RISK_MATRIX) return VIZ_STYLE.RISK;
+  return VIZ_STYLE_VALUES.has(value) ? value : VIZ_STYLE.ZOOMPACK;
+}
 
 // Sub-mode of VIZ_STYLE.GALAXY (the `galaxyMode` nav param): grouped by
 // folder structure or by standard/dimension.
@@ -40,3 +54,8 @@ export const PACK_COLOR_MODES = Object.freeze([
 export function normalizePackMode(mode) {
   return mode === PACK_COLOR_MODE.ACTIVITY ? PACK_COLOR_MODE.ACTIVITY : PACK_COLOR_MODE.CONCENTRATION;
 }
+
+/** Area kinds from the map history (backend `AreaKind`). */
+export const AREA_KIND = Object.freeze({ HOTSPOT: 'hotspot', DORMANT: 'dormant', WATCH: 'watch', HEALTHY: 'healthy', SMALL: 'small' });
+/** Kinds that wear a ring on the Risk sky: hotspot solid, dormant dashed (spec 2.4). */
+export const RING_KINDS = Object.freeze([AREA_KIND.HOTSPOT, AREA_KIND.DORMANT]);
