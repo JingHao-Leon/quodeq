@@ -21,7 +21,7 @@ The **Dimensions** pill in the map controls narrows every layout to the dimensio
 
 ### Time-lapse
 
-Under the Circle Pack and the Risk sky, the time-lapse bar plays your project's history back, one evaluation run per day. ⏮ goes to the first run, ▶ plays (from the first run when you are on the latest one), ⏭ returns to today's map, and 1×, 2× or 4× sets the pace. The line shows how many issues each run found; bars above the axis are new issues, bars below it fixed ones. Click the track, or use the arrow keys, Home and End on it, to pick a run.
+Under the Circle Pack and the Risk sky, the time-lapse bar plays your project's history back, one evaluation run per day. ⏮ goes to the first run, ▶ plays (from the first run when you are on the latest one), ⏭ returns to today's map, and 1×, 2× or 4× sets the pace. The line shows the project's issue count as of each run, counted like the page header: a dimension a run did not evaluate keeps the findings of the last run that did. Bars above the axis are new issues, bars below it fixed ones. Click the track, or use the arrow keys, Home and End on it, to pick a run.
 
 On the Circle Pack, folders keep their place for the whole history and files grow and shrink inside them from one run to the next; when many files appear or disappear at once, the map fades to the next run instead. On the Risk sky, areas drift towards their place for each run while the rings stay where they are, and the sky fades back to today's at the end. Files, folders and areas that are not in the run shown are drawn as dotted outlines, and their tooltip says since when they are gone or when they first appear. While it plays, a click on the map pauses; paused, hover shows that run's numbers and a click on a folder zooms in.
 
