@@ -17,3 +17,6 @@ export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', GALAXY: 'galaxy',
 // Sub-mode of VIZ_STYLE.GALAXY (the `galaxyMode` nav param): grouped by
 // folder structure or by standard/dimension.
 export const GALAXY_MODE = Object.freeze({ FILESYSTEM: 'filesystem', STANDARDS: 'standards' });
+
+/** How a pack node is judged: a file, a folder holding only files, or a folder with sub-folders. */
+export const NODE_KIND = Object.freeze({ FILE: 'file', FOLDER: 'folder', PARENT: 'parent' });
