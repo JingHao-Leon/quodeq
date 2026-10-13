@@ -39,6 +39,17 @@ const DETAIL_BUTTON_STYLE = {
   cursor: 'pointer',
   transition: 'all 0.2s',
 };
+const TAG_STYLE = { color: 'var(--color-text-muted)', fontSize: 11, margin: '-4px 0 8px' };
+const SECONDARY_BUTTON_STYLE = {
+  marginTop: 8,
+  padding: 0,
+  background: 'none',
+  border: 'none',
+  color: 'var(--color-accent)',
+  fontSize: 11,
+  cursor: 'pointer',
+  textDecoration: 'underline',
+};
 const DETAIL_BUTTON_HOVER_BG = 'color-mix(in srgb, var(--color-accent) 35%, transparent)';
 
 /** Presentational component for the level info panel overlay */
@@ -47,6 +58,7 @@ export function LevelInfoPanel({ levelInfo }) {
   return (
     <div style={PANEL_STYLE}>
       <div style={TITLE_STYLE}>{levelInfo.title}</div>
+      {levelInfo.tag && <div style={TAG_STYLE}>{levelInfo.tag}</div>}
       {levelInfo.lines.map((l, i) => (
         <div key={i} style={{ ...ROW_STYLE, color: l.color || 'var(--color-text-muted)' }}>
           <span>{l.label}</span>
@@ -64,6 +76,13 @@ export function LevelInfoPanel({ levelInfo }) {
           onMouseEnter={e => { e.target.style.background = DETAIL_BUTTON_HOVER_BG; }}
           onMouseLeave={e => { e.target.style.background = DETAIL_BUTTON_STYLE.background; }}
         >{t('map.viewDetails')}</button>
+      )}
+      {levelInfo.secondaryAction && (
+        <div>
+          <button type="button" onClick={levelInfo.secondaryAction.onClick} style={SECONDARY_BUTTON_STYLE}>
+            {levelInfo.secondaryAction.label}
+          </button>
+        </div>
       )}
     </div>
   );
