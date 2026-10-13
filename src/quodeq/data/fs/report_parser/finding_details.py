@@ -94,12 +94,18 @@ def read_finding_details_from_json_eval(
     in ``findings_queries``. Keys not present are simply absent from the
     result; the first file mentioning a key wins. ``dimension`` comes from
     the filename so the entry stays linked to its standard. Unreadable files
-    are skipped.
+    are skipped, and so is a report (or a violation entry) that is valid JSON
+    but not an object: a truncated or hand-edited run must not take the
+    lookup down for every other dimension.
     """
     wanted = set(keys)
     out: dict[tuple, dict] = {}
     for dimension, data in iter_readable_eval_reports(run_dir):
+        if not isinstance(data, dict):
+            continue
         for v in (data.get("violations") or []):
+            if not isinstance(v, dict):
+                continue
             req = str(v.get("req") or "")
             file = str(v.get("file") or "")
             line = coerce_line(v.get("line") or 0)
@@ -116,7 +122,7 @@ def read_finding_details_from_json_eval(
                 "severity": v.get("severity") or "", "title": v.get("title") or "",
                 "reason": v.get("reason") or "", "snippet": v.get("snippet") or "",
                 "context": v.get("context") or "", "scope": v.get("scope") or "",
-                "endLine": int(v.get("end_line") or v.get("endLine") or 0),
+                "endLine": coerce_line(v.get("end_line") or v.get("endLine") or 0),
                 "reqRefs": v.get("req_refs") or v.get("reqRefs") or [],
             }
             for key in hits:

@@ -243,7 +243,7 @@ class EvaluationsIndex:
         Returns ``(rows_written, elapsed_ms)``. Used by the
         ``/api/index/rebuild`` admin endpoint.
         """
-        root = reports_root if reports_root is not None else self._reports_root
+        root = self._coerce_reports_dir(reports_root)
         db = self._open_index()
         try:
             return _run_index.rebuild_index(db, root)
@@ -283,10 +283,11 @@ class EvaluationsIndex:
         return Path(self._reports_root) if self._reports_root is not None else None
 
     def _coerce_reports_dir(self, reports_dir: Path | None) -> Path:
-        """Resolve *reports_dir* to a Path, falling back to the injected reports_root."""
-        if reports_dir is not None:
-            return Path(reports_dir)
-        return Path(self._reports_root)
+        """*reports_dir* as a Path, else the injected reports_root; a clear error when neither is set."""
+        root = Path(reports_dir) if reports_dir is not None else self._resolve_reports_root()
+        if root is None:
+            raise ValueError("EvaluationsIndex requires reports_root when reports_dir is omitted")
+        return root
 
     def _open_index(self):
         """Open the index DB at the injected path."""

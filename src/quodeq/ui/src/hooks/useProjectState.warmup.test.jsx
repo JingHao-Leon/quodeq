@@ -27,6 +27,21 @@ describe('useProjectState: the warm-up snapshot rides on the list', () => {
     expect(client.getQueryData(projectsKeys.warmup())).toEqual(warmup);
   });
 
+  it('keeps polling while the snapshot says the warm-up is active, with no card pending', async () => {
+    // The worker writes a card summary first and spends the rest of a
+    // project on scores: cards stop pending long before the queue ends, and
+    // the strip must still see the queue finish.
+    const rows = [{ id: 'p1', name: 'p1', summaryPending: false }];
+    const listProjects = vi.fn()
+      .mockResolvedValueOnce({ projects: rows, warmup: { active: true, projectsDone: 0, projectsTotal: 2 } })
+      .mockResolvedValue({ projects: rows, warmup: { active: false, projectsDone: 2, projectsTotal: 2 } });
+    const { client, wrapper, storage } = setup(listProjects);
+    renderHook(() => useProjectState({ storage, summaryPollMs: 20 }), { wrapper });
+
+    await waitFor(() => expect(client.getQueryData(projectsKeys.warmup())?.active).toBe(false));
+    expect(listProjects).toHaveBeenCalledTimes(2);
+  });
+
   it('a response without a snapshot records null', async () => {
     const { client, wrapper, storage } = setup(vi.fn().mockResolvedValue({ projects: [] }));
     const { result } = renderHook(() => useProjectState({ storage }), { wrapper });
