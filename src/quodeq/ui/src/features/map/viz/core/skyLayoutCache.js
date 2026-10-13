@@ -7,12 +7,12 @@ const FIELD_SEP = '\u0000';
 const AREA_SEP = '\u0001';
 
 /**
- * The inputs the layout depends on, as one string: name, need and file count per area.
- * @param {{name: string, needPct: number, stats: {files: number}}[]} areas
+ * The inputs the layout depends on, as one string: name, density and file count per area.
+ * @param {{name: string, density: number, stats: {files: number}}[]} areas
  * @returns {string}
  */
 export function skyLayoutSignature(areas) {
-  return areas.map((a) => [a.name, a.needPct, a.stats.files].join(FIELD_SEP)).join(AREA_SEP);
+  return areas.map((a) => [a.name, a.density, a.stats.files].join(FIELD_SEP)).join(AREA_SEP);
 }
 
 /**

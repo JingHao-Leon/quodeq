@@ -3,6 +3,8 @@ import { PERCENT } from '../../../../constants.js';
 import { AREA_KIND } from '../../mapVocab.js';
 import { severityLines } from './levelInfoLines.js';
 
+/** Decimals shown for an area's weighted issues per file. */
+const DENSITY_DECIMALS = 2;
 const KIND_KEY = new Map([
   [AREA_KIND.HOTSPOT, 'map.riskKindHotspot'], [AREA_KIND.DORMANT, 'map.riskKindDormant'],
   [AREA_KIND.WATCH, 'map.riskKindWatch'], [AREA_KIND.HEALTHY, 'map.riskKindHealthy'], [AREA_KIND.SMALL, 'map.riskKindSmall'],
@@ -23,12 +25,6 @@ export function riskLabelText(area) {
   return { title: area.name, sub: issuesSub(area.stats.violations) };
 }
 
-/** The need comparison, left out for an area too small to judge. */
-function needLines(area) {
-  if (area.kind === AREA_KIND.SMALL) return [];
-  return [{ label: t('map.riskNeed'), value: t('map.riskNeedValue', { pct: Math.round(area.needPct * PERCENT) }) }];
-}
-
 /** The info panel (and tooltip) content for an area. */
 export function riskAreaInfo(area) {
   const s = area.stats;
@@ -41,7 +37,7 @@ export function riskAreaInfo(area) {
       { label: t('map.riskFiles'), value: s.files },
       { label: t('map.riskIssues'), value: s.violations },
       ...severityLines({ critical: s.critical, major: s.major, minor }, { colored: true }),
-      ...needLines(area),
+      { label: t('map.riskDensity'), value: (area.density || 0).toFixed(DENSITY_DECIMALS) },
       { label: t('map.riskChanged'), value: t('map.riskChangedValue', { pct: Math.round(area.touchedShare * PERCENT) }) },
     ],
   };

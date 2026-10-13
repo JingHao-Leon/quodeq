@@ -1,7 +1,7 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLayers.js
 import { TAU } from './galaxyCore.js';
 import { rgbCss, mixRgb } from './mapPaint.js';
-import { SKY_RIM, RING_FIX_FIRST, RING_WATCH } from './skyLayout.js';
+import { SKY_RIM } from './skyLayout.js';
 import { RING_STYLE } from './skyPaint.js';
 import { LABEL_LINE_PX } from './skyLabels.js';
 import { drawVeilWithHole, drawHoverRing } from './packLayers.js';
@@ -22,11 +22,6 @@ const BAND_WIDTH_RIM = 1;
 const BAND_WIDTH_WATCH = 1.1;
 const BAND_WIDTH_FIX = 1.3;
 const BUBBLE_STROKE_WIDTH = 1;
-const BANDS = [
-  { at: SKY_RIM, muted: true, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_RIM },
-  { at: RING_WATCH, muted: false, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_WATCH },
-  { at: RING_FIX_FIRST, muted: false, alpha: BAND_ALPHA_STRONG, width: BAND_WIDTH_FIX },
-];
 const CENTRE_RING_PX = 7;
 const CENTRE_DOT_PX = 2.5;
 const CENTRE_RING_ALPHA = 0.55;
@@ -45,6 +40,15 @@ const TITLE_WEIGHT = 600;
 const SUB_WEIGHT = 500;
 
 const side = (palette) => (palette.dark ? 'dark' : 'light');
+
+/** The rim, then the watch and fix-first lines where this project's layout put them. */
+function bandsFor(rings) {
+  return [
+    { at: SKY_RIM, muted: true, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_RIM },
+    { at: rings.watch, muted: false, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_WATCH },
+    { at: rings.fixFirst, muted: false, alpha: BAND_ALPHA_STRONG, width: BAND_WIDTH_FIX },
+  ];
+}
 
 /** The sky's centre and radius in pixels for a canvas size. */
 export function skyFrame(width, height) {
@@ -69,13 +73,13 @@ export function pickBubble(bubbles, x, y) {
   return best;
 }
 
-function drawBackdrop(ctx, frame, palette) {
+function drawBackdrop(ctx, frame, rings, palette) {
   const { cx, cy, s } = frame;
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, SKY_RIM * s);
   const hot = rgbCss(palette.worse);
   g.addColorStop(0, hot);
-  g.addColorStop(RING_FIX_FIRST / SKY_RIM, hot);
-  g.addColorStop(RING_WATCH / SKY_RIM, rgbCss(mixRgb(palette.bg, palette.worse, WATCH_GLOW_SHARE)));
+  g.addColorStop(rings.fixFirst / SKY_RIM, hot);
+  g.addColorStop(rings.watch / SKY_RIM, rgbCss(mixRgb(palette.bg, palette.worse, WATCH_GLOW_SHARE)));
   g.addColorStop(1, rgbCss(palette.bg));
   ctx.globalAlpha = GLOW_ALPHA[side(palette)];
   ctx.fillStyle = g;
@@ -85,9 +89,9 @@ function drawBackdrop(ctx, frame, palette) {
   ctx.globalAlpha = 1;
 }
 
-function drawBands(ctx, frame, palette) {
+function drawBands(ctx, frame, rings, palette) {
   ctx.setLineDash(BAND_DASH);
-  for (const band of BANDS) {
+  for (const band of bandsFor(rings)) {
     ctx.beginPath();
     ctx.arc(frame.cx, frame.cy, band.at * frame.s, 0, TAU);
     ctx.strokeStyle = rgbCss(band.muted ? palette.textMuted : palette.worse);
@@ -152,11 +156,14 @@ function drawBubble(ctx, b, paint, files) {
   drawFiles(ctx, b, files);
 }
 
-/** The static layer: backdrop, bands, centre mark, then bubbles largest first. */
-export function drawSkyStatic(ctx, { frame, bubbles, paints, files, palette, width, height }) {
+/**
+ * The static layer: backdrop, bands, centre mark, then bubbles largest first.
+ * `rings` are skyRings distances, so the lines and the glow follow the project.
+ */
+export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width, height }) {
   ctx.clearRect(0, 0, width, height);
-  drawBackdrop(ctx, frame, palette);
-  drawBands(ctx, frame, palette);
+  drawBackdrop(ctx, frame, rings, palette);
+  drawBands(ctx, frame, rings, palette);
   drawCentre(ctx, frame, palette);
   const order = bubbles.map((_, i) => i).sort((a, b) => bubbles[b].R - bubbles[a].R);
   for (const i of order) drawBubble(ctx, bubbles[i], paints[i], files[i]);

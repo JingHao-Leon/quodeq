@@ -68,6 +68,17 @@ export function fileStrength(b, dark) {
   return clamp(band.base + band.span * Math.abs(b), band.min, band.max);
 }
 
+/**
+ * A file circle's Concentration colour: its badness hue mixed into the page
+ * background by its file strength. Shared by the Circle Pack and the Risk sky.
+ * @param {number} b the file's badness
+ * @param {object} palette readMapPalette output (with `dark`)
+ * @returns {{r:number, g:number, b:number}}
+ */
+export function fileConcentrationColor(b, palette) {
+  return mixRgb(palette.bg, badnessHue(b, palette), fileStrength(b, palette.dark));
+}
+
 /** Edits that count as "changed often": the 90th percentile of edited files, at least 2. */
 export function activityScale(editCounts) {
   const edited = editCounts.filter((n) => n > 0).sort((a, b) => a - b);

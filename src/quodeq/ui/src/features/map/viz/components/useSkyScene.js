@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { createLayoutCache } from '../core/skyLayoutCache.js';
+import { skyRings } from '../core/skyLayout.js';
 import { packAreaFiles } from '../core/skyMiniPack.js';
-import { skyAreaPaint, dotColor } from '../core/skyPaint.js';
+import { skyAreaPaint, fileDotColor } from '../core/skyPaint.js';
 import { skyFrame, toPixels } from '../core/skyLayers.js';
 import { chooseLabelled, mustLabelled, placeSkyLabels } from '../core/skyLabels.js';
 
@@ -10,16 +11,17 @@ export const skyLayoutCache = createLayoutCache();
 
 const isIndex = (i) => i !== null && i !== undefined;
 
-/** Layout and file packs depend only on the areas; colours on the palette too. */
+/** Layout, rings and file packs depend only on the areas; colours on the palette and average too. */
 function useSkyModel(areas, average, palette) {
   const nodes = useMemo(() => skyLayoutCache.layout(areas), [areas]);
+  const rings = useMemo(() => skyRings(areas), [areas]);
   const packs = useMemo(() => areas.map((a) => packAreaFiles(a.dots)), [areas]);
   const paints = useMemo(() => (palette ? areas.map((a) => skyAreaPaint(a, average, palette)) : null), [areas, average, palette]);
   const files = useMemo(
-    () => (palette ? areas.map((a, i) => ({ dots: packs[i], colors: a.dots.map((d) => dotColor(d.worst, palette)) })) : null),
-    [areas, packs, palette],
+    () => (palette ? areas.map((a, i) => ({ dots: packs[i], colors: a.dots.map((d) => fileDotColor(d.stats, average, palette)) })) : null),
+    [areas, packs, average, palette],
   );
-  return { nodes, paints, files };
+  return { nodes, rings, paints, files };
 }
 
 function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, labelText }) {
@@ -35,13 +37,13 @@ function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, la
 }
 
 /**
- * Everything the sky draws, memoised per input: layout, file packs, paints,
+ * Everything the sky draws, memoised per input: layout, rings, file packs, paints,
  * pixel bubbles for the canvas size, and placed labels.
  */
 export function useSkyScene({ areas, average, palette, size, hover, selected, showLabels, measure, labelText }) {
-  const { nodes, paints, files } = useSkyModel(areas, average, palette);
+  const { nodes, rings, paints, files } = useSkyModel(areas, average, palette);
   const frame = useMemo(() => skyFrame(size.w, size.h), [size.w, size.h]);
   const bubbles = useMemo(() => toPixels(nodes, frame), [nodes, frame]);
   const labels = useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, labelText });
-  return { frame, bubbles, paints, files, labels };
+  return { frame, rings, bubbles, paints, files, labels };
 }
