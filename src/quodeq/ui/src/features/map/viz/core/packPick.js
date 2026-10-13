@@ -1,15 +1,13 @@
 /**
- * What a hit at `circle` selects while `focusNode` is open: the child of the
- * focus that contains it (a file is selectable only inside its own folder),
- * or null when the hit is outside the focused folder.
+ * What a hit selects: the deepest circle under the pointer, at any depth and
+ * whether or not it sits inside the open folder. The open folder itself is
+ * never a pick (a click in its empty space does nothing).
  * @param {object|null} circle the deepest circle under the cursor
  * @param {object} focusNode the open folder (the root at the top)
  * @returns {object|null}
  */
-export function pickAtFocusLevel(circle, focusNode) {
-  let n = circle;
-  while (n && n.parent !== focusNode) n = n.parent;
-  return n || null;
+export function pickUnderPointer(circle, focusNode) {
+  return circle && circle !== focusNode ? circle : null;
 }
 
 /**

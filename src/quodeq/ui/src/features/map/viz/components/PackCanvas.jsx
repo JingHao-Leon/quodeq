@@ -6,7 +6,7 @@ import { drawStatic, drawOverlay } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle, screenCoordsFor } from '../core/packCanvasGeometry.js';
 import { useTweenedTransform } from '../core/packTween.js';
 import { buildPackPaint } from '../core/packPaint.js';
-import { pickAtFocusLevel, keepCircle } from '../core/packPick.js';
+import { pickUnderPointer, keepCircle } from '../core/packPick.js';
 import { packStateText } from '../core/packStateText.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
@@ -64,10 +64,9 @@ function validIndex(i, circles) {
 }
 
 /**
- * Pointer handling under the focus-level pick rule: a hit selects the child
- * of the open folder that contains it, so a file is selectable only inside
- * its own folder. A miss, or a hit outside the open folder, goes to the
- * parent; a hit on the open folder itself does nothing.
+ * Pointer handling: a hit selects the deepest circle under the pointer, at
+ * any depth, so a click goes straight to a nested folder or file. A miss goes
+ * to the parent; a hit on the open folder itself does nothing.
  */
 function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, indexOf, hover, setHover, handleClick, handleBgClick }) {
   const hitAt = (e) => {
@@ -77,15 +76,14 @@ function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, in
     return i === null ? null : circles[i];
   };
   const onMouseMove = (e) => {
-    const hit = hitAt(e);
-    const picked = hit && pickAtFocusLevel(hit, focusNode);
+    const picked = pickUnderPointer(hitAt(e), focusNode);
     const i = picked ? indexOf.get(picked) : null;
     if (i !== hover) setHover(i);
   };
   const onClick = (e) => {
     const hit = hitAt(e);
     if (hit === focusNode) return;
-    const picked = hit && pickAtFocusLevel(hit, focusNode);
+    const picked = pickUnderPointer(hit, focusNode);
     if (picked) handleClick(e, picked);
     else handleBgClick();
   };
