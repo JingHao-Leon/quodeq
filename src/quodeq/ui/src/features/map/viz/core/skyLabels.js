@@ -10,6 +10,7 @@ const ABOVE_GAP = 18;
 const SIDE_GAP = 6;
 const PAD = 4;
 const BUBBLE_GRACE = 2;   // a label may graze a bubble's edge by this much
+const FAR_STEPS = 2;      // how many label steps further out a must label may move
 
 const isIndex = (i) => i !== null && i !== undefined;
 
@@ -72,18 +73,44 @@ function hitsBubble(box, bubbles, own) {
   });
 }
 
+/**
+ * Further spots for a must label: the four sides pushed out by one and two
+ * label steps, then the diagonals beside the below and above spots.
+ */
+function fartherCandidates(b, w) {
+  const [below, above, right, left] = candidates(b, w);
+  const dy = LABEL_BLOCK_PX + PAD;
+  const dx = w + PAD;
+  const out = [];
+  for (let k = 1; k <= FAR_STEPS; k++) {
+    out.push([below[0], below[1] + k * dy], [above[0], above[1] - k * dy], [right[0] + k * dx, right[1]], [left[0] - k * dx, left[1]]);
+  }
+  out.push([b.px + dx, below[1]], [b.px - dx, below[1]], [b.px + dx, above[1]], [b.px - dx, above[1]]);
+  return out;
+}
+
+/**
+ * A spot clear of every placed label. A wanted label also needs to keep off
+ * other bubbles and tries the four near spots only; a must label prefers a
+ * bubble-free spot, may graze bubbles, and tries farther spots too. Null when
+ * nothing is free: labels never overlap each other.
+ */
 function spotFor(index, { bubbles, placed, w, must }) {
   const free = (box) => !placed.some((p) => boxesOverlap(p.box, box));
-  const boxes = candidates(bubbles[index], w).map(([x, y]) => ({ x, y, box: boxAt(x, y, w) }));
-  const clear = boxes.find((c) => free(c.box) && !hitsBubble(c.box, bubbles, index));
+  const b = bubbles[index];
+  const spots = must ? [...candidates(b, w), ...fartherCandidates(b, w)] : candidates(b, w);
+  const boxes = spots.map(([x, y]) => ({ x, y, box: boxAt(x, y, w) })).filter((c) => free(c.box));
+  const clear = boxes.find((c) => !hitsBubble(c.box, bubbles, index));
   if (clear || !must) return clear || null;
-  return boxes.find((c) => free(c.box)) || boxes[0];
+  return boxes[0] || null;
 }
 
 /**
  * Greedy label placement: must-show labels first, then the rest, larger
  * bubbles first; each takes the first spot (below, above, right, left) clear
- * of other bubbles and labels. Wanted labels without a spot are dropped.
+ * of other bubbles and labels. Must labels may move further out and graze
+ * bubbles. No two labels ever overlap: a label without a free spot is
+ * dropped (the area keeps its tooltip, keyboard button and panel).
  * @returns {{index: number, x: number, y: number}[]}
  */
 export function placeSkyLabels({ bubbles, wanted, must, measure }) {
