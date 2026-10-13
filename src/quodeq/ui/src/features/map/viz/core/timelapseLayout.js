@@ -202,10 +202,10 @@ function peakContent(model) {
  * sum of its files' squared radii (an absent file at its reserved slot, so
  * area follows checks run), peak content its largest in any run (so a folder
  * is drawn full size in its fullest run), and the root's parent scale 1.
- * A node sits at its anchor offset from
- * its parent times the parent's S, from the parent's run centre; a folder's
- * radius is its anchor radius times its own S, a file's its run radius in
- * √checks units times its parent's S. Each child's circle is its anchor
+ * A node sits at its anchor offset from its parent times the parent's S,
+ * from the parent's run centre; a folder's radius is its anchor radius times
+ * its own S, a file's its run radius in √checks units times its parent's S.
+ * Each child's circle is its anchor
  * circle relative to the parent, scaled by the parent's S and then shrunk in
  * place (own S <= parent's S, run size <= largest size), so the anchor's
  * containment and sibling gaps carry over: nothing leaves its parent, no
@@ -217,17 +217,21 @@ function scaledSlotsRun(model, anchor, k) {
   const size = model.sizes[k];
   const run = runContent(model, k);
   const peak = peakContent(model);
-  const scale = new Float64Array(model.parent.length);
+  // The root's parent is a virtual one at scale 1, centred where the anchor is.
+  const scale = new Float64Array(model.parent.length + 1).fill(1);
   const out = new Float32Array(model.parent.length * XYR_STRIDE);
+  out.set(anchor.subarray(0, R));
   for (let i = 0; i < model.parent.length; i++) {
     const o = i * XYR_STRIDE;
     const p = model.parent[i] * XYR_STRIDE;
-    const up = i === 0 ? 1 : scale[model.parent[i]];
-    out[o] = i === 0 ? anchor[o] : out[p] + (anchor[o] - anchor[p]) * up;
-    out[o + Y] = i === 0 ? anchor[o + Y] : out[p + Y] + (anchor[o + Y] - anchor[p + Y]) * up;
+    const up = scale[model.parent[i] + 1];
+    if (i > 0) {
+      out[o] = out[p] + (anchor[o] - anchor[p]) * up;
+      out[o + Y] = out[p + Y] + (anchor[o + Y] - anchor[p + Y]) * up;
+    }
     if (kids[i].length === 0) { out[o + R] = leafRadius(size[i]) * unit * up; continue; }
-    scale[i] = Math.min(up, Math.max(MIN_FOLDER_SCALE, Math.sqrt(run[i] / peak[i])));
-    out[o + R] = anchor[o + R] * scale[i];
+    scale[i + 1] = Math.min(up, Math.max(MIN_FOLDER_SCALE, Math.sqrt(run[i] / peak[i])));
+    out[o + R] = anchor[o + R] * scale[i + 1];
   }
   return out;
 }

@@ -8,7 +8,7 @@ const CHANNEL_MAX = 255;
 const RED_SHIFT = 16;
 const GREEN_SHIFT = 8;
 const RGB_DIGITS = /(\d+)\D+(\d+)\D+(\d+)/;
-/** Distinct colour strings kept for reuse across frames before the cache starts over. */
+/** Distinct colours kept (each way, string and number) before a cache starts over. */
 export const CSS_CACHE_SIZE = 4096;
 const NO_COLOUR = 0;
 const OPAQUE = 1;
@@ -37,6 +37,7 @@ export function packCss(css) {
   if (packed === undefined) {
     const m = RGB_DIGITS.exec(css);
     packed = m ? pack(Number(m[1]), Number(m[2]), Number(m[3])) : NO_COLOUR;
+    if (packedOfCss.size >= CSS_CACHE_SIZE) packedOfCss.clear();
     packedOfCss.set(css, packed);
   }
   return packed;
