@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { anchorLayout, runLayout, fileChurn, LAYOUT_MODE, CROSSFADE_CHURN } from './timelapseLayout.js';
+import { anchorLayout, runLayout, fileChurn, LAYOUT_MODE, TIMELAPSE_LAYOUT_MODE, CROSSFADE_CHURN } from './timelapseLayout.js';
 import { childrenOutside, maxSiblingOverlap, folderMovements, percentile, OVERLAP_TOLERANCE } from './layoutChecks.js';
 import { syntheticModel } from './timelapseSynthetic.js';
 import { PACK_BASE_SIZE, XYR_STRIDE } from './packLayout.js';
@@ -16,6 +16,7 @@ const R = 2;
 const runs = (mode) => Array.from({ length: RUNS }, (_, k) => runLayout(MODEL, ANCHOR, k, mode));
 const RELAXED = runs(LAYOUT_MODE.RELAX);
 const SLOTS = runs(LAYOUT_MODE.FIXED_SLOTS);
+const PLAYED = { [LAYOUT_MODE.RELAX]: RELAXED, [LAYOUT_MODE.FIXED_SLOTS]: SLOTS }[TIMELAPSE_LAYOUT_MODE];
 const isLeaf = (i) => MODEL.fileOf[i] >= 0;
 
 test('the anchor is the whole map, centred', () => {
@@ -44,10 +45,10 @@ for (const [mode, layouts] of [[LAYOUT_MODE.RELAX, RELAXED], [LAYOUT_MODE.FIXED_
   });
 }
 
-test('folders move little between runs that do not cross-fade', () => {
+test('folders move little between runs that do not cross-fade, in the mode the app plays', () => {
   const moves = [];
   for (let k = 1; k < RUNS; k++) {
-    if (fileChurn(MODEL, k - 1, k) <= CROSSFADE_CHURN) moves.push(...folderMovements(MODEL.parent, RELAXED[k - 1], RELAXED[k]));
+    if (fileChurn(MODEL, k - 1, k) <= CROSSFADE_CHURN) moves.push(...folderMovements(MODEL.parent, PLAYED[k - 1], PLAYED[k]));
   }
   assert.ok(moves.length > 0);
   assert.ok(percentile(moves, 0.9) <= MOVE_P90_MAX, `p90 ${percentile(moves, 0.9)}`);
@@ -69,5 +70,5 @@ test('churn is the share of files that appear or leave', () => {
 });
 
 test('the same history always lays out the same', () => {
-  assert.deepEqual(runLayout(MODEL, anchorLayout(MODEL), RUNS - 1), RELAXED[RUNS - 1]);
+  assert.deepEqual(runLayout(MODEL, anchorLayout(MODEL), RUNS - 1, LAYOUT_MODE.RELAX), RELAXED[RUNS - 1]);
 });

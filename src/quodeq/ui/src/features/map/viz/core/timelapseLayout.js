@@ -18,8 +18,8 @@ import { forNeighbourPairs } from './circleGrid.js';
  * maxSize: Float32Array (per node: a leaf's largest checks, at least 1) }`.
  */
 export const LAYOUT_MODE = Object.freeze({ RELAX: 'relax', FIXED_SLOTS: 'fixed-slots' });
-/** The layout the app plays back; the real-data gate may switch it to FIXED_SLOTS. */
-export const TIMELAPSE_LAYOUT_MODE = LAYOUT_MODE.RELAX;
+/** The layout the app plays back: fixed slots until the relaxation meets its invariants on real data. */
+export const TIMELAPSE_LAYOUT_MODE = LAYOUT_MODE.FIXED_SLOTS;
 /** More than this share of files appearing or leaving between two runs cross-fades instead of moving. */
 export const CROSSFADE_CHURN = 0.2;
 
