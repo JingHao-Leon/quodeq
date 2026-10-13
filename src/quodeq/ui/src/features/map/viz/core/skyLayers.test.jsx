@@ -4,6 +4,7 @@ import { skyFrame, toPixels, pickBubble, drawSkyStatic, drawSkyOverlay, skyTitle
 import { RING_STYLE } from './skyPaint.js';
 import { TAU } from './galaxyCore.js';
 import { SKY_RIM } from './skyLayout.js';
+import { GHOST_DASH_PX } from './packLayers.js';
 
 const SIZE = 400;
 const C = (r, g, b) => ({ r, g, b });
@@ -47,6 +48,18 @@ describe('drawSkyStatic', () => {
     expect(ctx.arc).toHaveBeenCalledWith(cx, cy, RINGS.watch * radius, 0, TAU);
     const stops = ctx.createRadialGradient.mock.results[0].value.addColorStop.mock.calls.map(([at]) => at);
     expect(stops).toEqual(expect.arrayContaining([expect.closeTo(RINGS.fixFirst / SKY_RIM), expect.closeTo(RINGS.watch / SKY_RIM)]));
+  });
+
+  it('draws a ghost bubble as a dotted outline, without fill or files', () => {
+    const frame = skyFrame(SIZE, SIZE);
+    const empty = fakeCanvasContext();
+    drawSkyStatic(empty, { frame, rings: RINGS, bubbles: [], paints: [], files: [], palette: PALETTE, width: SIZE, height: SIZE });
+    const ctx = fakeCanvasContext();
+    const ghost = { ghost: true, stroke: 'rgb(1, 1, 1)', strokeAlpha: 0.4, ring: null };
+    const files = [{ dots: [{ x: 0, y: 0, r: 0.5 }], colors: ['rgb(255, 0, 0)'] }];
+    drawSkyStatic(ctx, { frame, rings: RINGS, bubbles: toPixels([{ x: 0, y: 0, r: 0.2 }], frame), paints: [ghost], files, palette: PALETTE, width: SIZE, height: SIZE });
+    expect(ctx.fills.length).toBe(empty.fills.length);
+    expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
   });
 });
 

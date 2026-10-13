@@ -63,8 +63,11 @@ function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selec
  * The Risk sky: a static layer of bubbles and an overlay with the veil, hover ring and labels.
  * `onSelect(index, byKeyboard)` is told whether the keyboard list chose the area;
  * `canvasRef`, when given, reaches the focusable overlay canvas.
+ * `nodes` are positions aligned with `areas` and `rings` the line distances,
+ * both given by the time-lapse; without them the sky lays itself out.
+ * `label` names the canvas for assistive tech (the time-lapse gives the run's date).
  */
-export default function SkyCanvas({ areas, average, dark, showLabels, selected, onSelect, onHover, labelText, canvasRef }) {
+export default function SkyCanvas({ areas, average, dark, showLabels, selected, onSelect, onHover, labelText, canvasRef, nodes, rings, label }) {
   const staticRef = useRef(null);
   const ownOverlayRef = useRef(null);
   const overlayRef = canvasRef || ownOverlayRef;
@@ -75,7 +78,7 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
   const measureText = useMeasure(overlayRef, theme);
   const measure = useCallback((i) => measureText(labelText(areas[i]).title), [measureText, labelText, areas]);
   const hover = validHover(rawHover, areas);
-  const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText });
+  const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText, nodes, rings });
   useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected });
 
   const onMove = (e) => {
@@ -109,7 +112,7 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
           className="viz-focusable"
           tabIndex={0}
           role="img"
-          aria-label={t('map.riskSkyAria')}
+          aria-label={label || t('map.riskSkyAria')}
           onMouseMove={onMove}
           onMouseLeave={() => { setHover(null); onHover(null); }}
           onClick={onClick}

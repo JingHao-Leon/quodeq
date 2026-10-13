@@ -4,7 +4,7 @@ import { rgbCss, mixRgb } from './mapPaint.js';
 import { SKY_RIM } from './skyLayout.js';
 import { RING_STYLE } from './skyPaint.js';
 import { LABEL_LINE_PX } from './skyLabels.js';
-import { drawVeilWithHole, drawHoverRing } from './packLayers.js';
+import { drawVeilWithHole, drawHoverRing, strokeGhostCircle } from './packLayers.js';
 
 /** The sky uses 90 % of the shorter side's half as its radius. */
 export const SKY_SCALE = 0.9;
@@ -141,7 +141,12 @@ function drawFiles(ctx, b, files) {
   });
 }
 
+/** A bubble drawn dotted (paint.ghost): an area with no file in the run shown, without fill, ring or files. */
 function drawBubble(ctx, b, paint, files) {
+  if (paint.ghost) {
+    strokeGhostCircle(ctx, { px: b.px, py: b.py, r: b.R }, paint, BUBBLE_STROKE_WIDTH);
+    return;
+  }
   ctx.beginPath();
   ctx.arc(b.px, b.py, b.R, 0, TAU);
   ctx.globalAlpha = paint.alpha;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { GalaxyView, GalaxyFolderView, VizBreadcrumb, RiskView } from '../viz/index.js';
+import { GalaxyView, GalaxyFolderView, VizBreadcrumb } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
 import { TermHeader } from '../../../components/terminal/index.js';
@@ -15,6 +15,7 @@ import useMapActivity from '../hooks/useMapActivity.js';
 import useMapAreas from '../hooks/useMapAreas.js';
 import useMapTimelapse from '../hooks/useMapTimelapse.js';
 import MapPackPanel from './MapPackPanel.jsx';
+import MapRiskPanel from './MapRiskPanel.jsx';
 import MapTimelapseFooter from './MapTimelapseFooter.jsx';
 import useRiskActions from './useRiskActions.js';
 import useSeverityWeights from '../hooks/useSeverityWeights.js';
@@ -174,10 +175,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
         )}
       </div>
       {vizStyle === VIZ_STYLE.RISK && (
-        <RiskView
-          areaState={risk.areaState} dark={darkMode || appIsDark} showLabels={showLabels} resetKey={resetKey}
-          onViewDetails={riskActions.onViewDetails} onShowInPack={riskActions.onShowInPack}
-        />
+        <MapRiskPanel risk={risk} riskActions={riskActions} view={{ dark: darkMode || appIsDark, showLabels, resetKey }} timelapse={timelapse} />
       )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
         <MapPackPanel

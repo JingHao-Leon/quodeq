@@ -6,6 +6,7 @@ export { default as HeatGridView } from './components/HeatGridView.jsx';
 export { default as VizBreadcrumb } from './components/VizBreadcrumb.jsx';
 export { default as TimelapseBar } from './components/TimelapseBar.jsx';
 export { default as TimelapsePackView } from './components/TimelapsePackView.jsx';
+export { default as RiskTimelapseView } from './components/RiskTimelapseView.jsx';
 export { buildFileTree, treeNodeToFileObj } from './core/fileTree.js';
 export {
   severityColor, complianceRateColor, severityCellStyle, complianceRateCellStyle,

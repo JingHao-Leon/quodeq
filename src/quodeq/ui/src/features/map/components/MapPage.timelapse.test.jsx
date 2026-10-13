@@ -5,6 +5,8 @@ import MapPage from './MapPage.jsx';
 import { stubPackCanvas } from '../../../test-utils/packFixture.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
+import { formatShortDate } from '../../../utils/formatters.js';
+import { dayDate } from '../viz/core/timelapseBarModel.js';
 
 beforeEach(() => { stubPackCanvas(); });
 // Unmount before the stubs go: a pack layout landing after the test would mount a canvas without them.
@@ -64,6 +66,17 @@ describe('MapPage: the time-lapse', () => {
   it('the Galaxy tab has no bar', () => {
     page({ nav: { vizStyle: 'galaxy' } });
     expect(screen.queryByRole('group', { name: t('map.timelapseAria') })).toBeNull();
+  });
+
+  it('the Risk tab has the bar too', async () => {
+    page({ nav: { vizStyle: 'risk' } });
+    expect(await screen.findByRole('group', { name: t('map.timelapseAria') })).toBeInTheDocument();
+  });
+
+  it('on the Risk tab the first run fades in the past sky, named by its date', async () => {
+    page({ nav: { vizStyle: 'risk' } });
+    fireEvent.click(await screen.findByRole('button', { name: t('map.timelapseFirst') }));
+    expect(await screen.findByRole('img', { name: t('map.timelapseRiskAria', { date: formatShortDate(dayDate('2026-09-01').toISOString()) }) })).toBeInTheDocument();
   });
 
   it('a Dimensions filter replaces the bar with a note', async () => {
