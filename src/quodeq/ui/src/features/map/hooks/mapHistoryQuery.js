@@ -15,15 +15,16 @@ export function mapHistoryEnabled(project, source, active) {
 }
 
 /**
- * The latest-frame map history query, shared by every Map view that reads it
- * (one key, one fetch); each caller adds its own `select`.
- * @param {{api: object, project: string, source: string, active: boolean}} args
+ * The map history query, shared by every Map view that reads it (one key per
+ * frames mode, one fetch); each caller adds its own `select`. The latest-frame
+ * history by default; the time-lapse asks for every frame.
+ * @param {{api: object, project: string, source: string, active: boolean, frames?: string}} args
  * @returns {object} useQuery options without `select`
  */
-export function mapHistoryQuery({ api, project, source, active }) {
+export function mapHistoryQuery({ api, project, source, active, frames = MAP_FRAMES.LATEST }) {
   return {
-    queryKey: projectKeys.mapHistory(project, MAP_FRAMES.LATEST, source),
-    queryFn: () => api.getMapHistory(project, MAP_FRAMES.LATEST),
+    queryKey: projectKeys.mapHistory(project, frames, source),
+    queryFn: () => api.getMapHistory(project, frames),
     enabled: mapHistoryEnabled(project, source, active),
     staleTime: STALE_TIME_MS,
     retry: false,
