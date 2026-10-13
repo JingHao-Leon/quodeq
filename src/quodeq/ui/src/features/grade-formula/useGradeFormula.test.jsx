@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import useGradeFormula from './useGradeFormula.js';
-import { projectKeys } from '../../api/queryKeys.js';
+import { projectKeys, gradeFormulaKeys } from '../../api/queryKeys.js';
 import { RescoreTrackerProvider } from './rescore/RescoreTrackerProvider.jsx';
 
 vi.mock('../../api/index.js', () => ({
@@ -178,6 +178,20 @@ describe('useGradeFormula', () => {
     expect(result.current.isCustom).toBe(false);
     // Reset also re-baked grades server-side: invalidate the score caches.
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() }));
+  });
+
+  it('adopting a formula writes its severity weights into the shared formula cache (the Map reads it)', async () => {
+    const saved = { ...CURRENT, severityWeight: { critical: 6, major: 3, minor: 1 } };
+    saveGradeFormula.mockResolvedValue({ current: saved, defaults: DEFAULTS, isCustom: true, rescore: LANDED_RESCORE });
+    queryClient.setQueryData(gradeFormulaKeys.current(), { current: CURRENT, defaults: DEFAULTS, isCustom: false });
+    const { result } = renderGradeFormula('proj');
+    await waitFor(() => expect(result.current.draft).toEqual(CURRENT));
+
+    await act(async () => { await result.current.apply(); });
+
+    const cached = queryClient.getQueryData(gradeFormulaKeys.current());
+    expect(cached.current.severityWeight).toEqual(saved.severityWeight);
+    expect(cached.defaults).toEqual(DEFAULTS);
   });
 
   it('surfaces a load error when the initial GET rejects', async () => {

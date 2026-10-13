@@ -11,6 +11,8 @@ import { t } from '../../../strings/index.js';
 function useFormulaIntents({ setSaved, setDraft, setIsCustom, setPreview, setBusy, setError, setPartialNotice }) {
   const queryClient = useQueryClient();
   // The Map's severity weights read the same formula: keep that cache entry current.
+  // The entry holds the GET payload as `{...prev, current, isCustom}`: the server's
+  // other fields (defaults, rescore) stay, the formula and its custom flag are replaced.
   const adoptServerFormula = useCallback((formula, custom) => {
     setSaved(formula);
     setDraft(formula);

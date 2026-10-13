@@ -307,7 +307,6 @@
   --color-danger:  var(--primitive-red-600);
   --color-success: var(--primitive-green-700);
 
-  /* Severity bands — traditional: red=critical, amber=major, green=minor */
   /* Map */
   --color-map-worse: var(--color-sev-critical-text);
   --color-map-better: color-mix(in srgb, var(--color-text) 35%, var(--color-surface-alt));
@@ -316,6 +315,7 @@
   --color-map-activity-idle: var(--primitive-steel-300);
   --color-map-glass-parent: var(--primitive-mauve-100);
 
+  /* Severity bands — traditional: red=critical, amber=major, green=minor */
   --color-sev-critical-text:   var(--primitive-crimson-600);
   --color-sev-critical-bg:     color-mix(in srgb, var(--primitive-crimson-600) 4%, transparent);
   --color-sev-critical-border: color-mix(in srgb, var(--primitive-crimson-600) 38%, transparent);
@@ -449,7 +449,7 @@
     --color-danger:  #e05c4b;
     --color-success: #4caf7d;
 
-    /* Map */
+    /* Map (keep in step with the shared [data-theme$="dark"] Map set below) */
     --color-map-worse: var(--color-sev-critical-text);
     --color-map-better: var(--color-accent);
     --color-map-neutral: var(--primitive-slate-350);
@@ -564,7 +564,8 @@ html[data-theme$="dark"]:root, [data-theme$="dark"] {
 }
 
 /* Map colours: shared dark and light sets for every family (each resolves
-   its own accent and severity tokens). */
+   its own accent and severity tokens). The dark set repeats the one in the
+   prefers-color-scheme: dark block above; keep the two in step. */
 html[data-theme$="dark"]:root, [data-theme$="dark"] {
   --color-map-worse: var(--color-sev-critical-text);
   --color-map-better: var(--color-accent);

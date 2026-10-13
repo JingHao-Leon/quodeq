@@ -49,3 +49,13 @@ test('weights follow the grade formula', () => {
   assert.ok(Math.abs(nodeWeight(node, DEFAULT_SEVERITY_WEIGHTS) - 9) < EPS);
   assert.ok(Math.abs(nodeWeight(node, { critical: 1, major: 1, minor: 1 }) - 7) < EPS);
 });
+
+test('a node without a severity object weighs nothing', () => {
+  assert.equal(nodeWeight({}, DEFAULT_SEVERITY_WEIGHTS), 0);
+});
+
+test('a zero project average still gives a finite badness', () => {
+  const b = badness(stats({ lift: 1 }), 0, NODE_KIND.FOLDER);
+  assert.ok(Number.isFinite(b));
+  assert.ok(b >= -1 && b <= 1);
+});
