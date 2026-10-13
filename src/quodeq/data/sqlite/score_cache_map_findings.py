@@ -69,7 +69,9 @@ def store_map_findings(conn: sqlite3.Connection, project: str, records: dict[str
     Nothing is written when nothing changed. Raises ``sqlite3.Error``; the caller logs.
     """
     stored = {rec for (rec,) in conn.execute("SELECT rec FROM map_finding WHERE project=?", (project,))}
-    decodable = set(load_map_findings(conn, project))  # a row that does not decode is rewritten, not kept
+    # A row that does not decode is rewritten, not kept. With no fresh record (a warm read) there is nothing
+    # to rewrite: a run whose record does not decode reads as a miss, so its records come back fresh.
+    decodable = set(load_map_findings(conn, project)) if records else set()
     gone = [(project, rec) for rec in stored - keep]
     fresh = [(project, rec, _encoded(r)) for rec, r in records.items() if rec not in decodable]
     if not gone and not fresh:

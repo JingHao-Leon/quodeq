@@ -150,3 +150,15 @@ def test_a_record_with_a_non_text_field_reads_as_a_miss(tmp_path, monkeypatch, f
     _garble_record(K, payload)
     assert load_map_snapshots("p", {"r1": "k"}).runs == {}
 
+
+
+def test_a_warm_save_with_nothing_fresh_reads_no_record_row(tmp_path, monkeypatch):
+    from quodeq.data.sqlite.score_cache_db import score_cache_session
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"})
+    reads = []
+    with score_cache_session():
+        with open_score_cache() as conn:
+            conn.set_trace_callback(lambda sql: reads.append(sql) if "payload FROM map_finding" in sql else None)
+        _save({}, {"r1"}, records={})
+    assert reads == []
