@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
 from quodeq.assistant.action_status import ActionStatus
 from quodeq.assistant.frame_type import FrameType
@@ -81,6 +82,25 @@ def _validate_create_standard(payload: dict, _ctx: ToolContext) -> dict:
     return verdict["data"]
 
 
+_LINK_SCHEMES = frozenset({"http", "https"})
+
+
+def _summarize_ref(ref: dict) -> dict:
+    """A requirement reference as the card shows it: a label and, when the
+    url is a web link, the url. Any other scheme is dropped so the card never
+    renders a javascript: or file: href from a model-written payload."""
+    url = str(ref.get("url") or "")
+    name = str(ref.get("name") or "").strip() or " ".join(
+        str(ref.get(k)) for k in ("source", "id") if ref.get(k)) or url
+    return {"name": name, "url": url if urlparse(url).scheme in _LINK_SCHEMES else None}
+
+
+def _summarize_requirement(req: dict) -> dict:
+    refs = [_summarize_ref(r) for r in req.get("refs") or [] if isinstance(r, dict)]
+    return {"id": req.get("id"), "text": req.get("text"),
+            "refs": [r for r in refs if r["name"]]}
+
+
 def _summarize_create_standard(canonical: dict) -> dict:
     # The outline is what the user reads on the preview card before Apply;
     # it is cut from the canonical payload, never from model prose.
@@ -90,8 +110,7 @@ def _summarize_create_standard(canonical: dict) -> dict:
         "principleCount": len(principles),
         "principles": [{
             "name": p.get("name"),
-            "requirements": [{"id": r.get("id"), "text": r.get("text")}
-                             for r in p.get("requirements", [])],
+            "requirements": [_summarize_requirement(r) for r in p.get("requirements", [])],
         } for p in principles],
     }
 

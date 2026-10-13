@@ -27,7 +27,11 @@ Propose the outline in chat: 2-5 principles, each with 2-6 requirements,
 shown as the requirement ids and one-line texts under each principle. Every
 requirement text describes verifiable behavior in code, not an aspiration
 ("Activities release location listeners in onPause", not "use resources
-wisely"). Ask whether this is what they want, and revise the outline until
+wisely"). Never prefix the text with a label such as "Explicit:",
+"Recommended:" or "MUST:". Carry the strength inside the sentence: "must"
+for a rule the source requires, "should" for one it recommends. When the
+source classifies its rules (explicit, recommended, core, optional), name
+that class in the requirement's `description`, not in its `text`. Ask whether this is what they want, and revise the outline until
 they say yes.
 Do not call `draft_action` until the user has confirmed the outline.
 
@@ -39,7 +43,13 @@ requirements: [{id, text, description, refs}]}]}`. Use a short kebab-case
 `id`, `weight: 1.0`, `source: "assistant"`. Every principle carries at least
 one requirement, and every requirement carries a non-empty `id` and `text`;
 the draft is refused otherwise, so fix the payload and retry. Put the
-confirmed outline in the payload in full. If the user later asks for a
+confirmed outline in the payload in full.
+Every requirement taken from a published source carries a reference to the
+page it comes from in `refs`: `{"source": "url", "name": "<page or section
+title>", "url": "<the exact page you read or the user gave>"}`. Use the
+most specific page, not the guide's home page, and never invent a URL. A
+requirement that is the team's own convention has no ref; say so when you
+present the outline. If the user later asks for a
 change, revise and draft again; the earlier card can be rejected.
 
 ## 4. Hand over
