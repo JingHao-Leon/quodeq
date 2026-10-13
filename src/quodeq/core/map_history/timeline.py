@@ -38,25 +38,30 @@ def violation_ids(snapshot: RunSnapshot) -> set[str]:
     return {f for stat in snapshot.files.values() for f in stat.ids if is_violation(f)}
 
 
-def _age_days(starts: list[int], days: list[date], today: date) -> int:
-    """Days since the earliest of *starts* (run indexes into *days*), 0 when there is none."""
-    return (today - days[min(starts)]).days if starts else 0
+# The chain start of a file without a violation.
+NO_VIOLATION_START = -1
 
 
-def violation_ages(snapshots: list[RunSnapshot], days: list[str], violations: list[set[str]]) -> list[dict[str, int]]:
-    """Per run, each file's oldest violation age in days (0 for a file without violations).
+def violation_age_starts(snapshots: list[RunSnapshot], violations: list[set[str]]) -> list[dict[str, int]]:
+    """Per run, each file's oldest violation chain start (a run index), NO_VIOLATION_START without a violation.
 
-    A violation's age runs from the run where its unbroken presence started.
-    *days* are the runs' ISO days, oldest first; *violations* each run's
-    ``violation_ids``.
+    A violation's chain starts at the run where its unbroken presence began;
+    *violations* are each run's ``violation_ids``. A start stays the same run
+    after run, which keeps delta frames small.
     """
-    parsed = [date.fromisoformat(d) for d in days]
     out: list[dict[str, int]] = []
     for k, (snap, seen) in enumerate(zip(snapshots, first_seen_index(snapshots), strict=True)):
         here = violations[k]
-        out.append({path: _age_days([seen[f] for f in stat.ids if f in here and f in seen], parsed, parsed[k])
+        out.append({path: min((seen[f] for f in stat.ids if f in here and f in seen), default=NO_VIOLATION_START)
                     for path, stat in snap.files.items()})
     return out
+
+
+def ages_from_starts(days: list[str], starts: list[dict[str, int]]) -> list[dict[str, int]]:
+    """Per run, each file's oldest violation age in days (0 for a file without violations)."""
+    parsed = [date.fromisoformat(d) for d in days]
+    return [{path: (parsed[k] - parsed[s]).days if s != NO_VIOLATION_START else 0 for path, s in run.items()}
+            for k, run in enumerate(starts)]
 
 
 def _flow(prev: RunSnapshot, cur: RunSnapshot, prev_ids: set[str], cur_ids: set[str]) -> tuple[int, int]:

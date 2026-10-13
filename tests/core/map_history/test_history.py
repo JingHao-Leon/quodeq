@@ -24,5 +24,5 @@ def test_rows_carry_running_edits_touch_and_age():
     assert history.file_names == ("x/a.py", "x/tests/a_test.py")
     assert history.file_test == (False, True)
     rows = {r.file: r for r in history.frames[0].files}
-    assert rows[0] == FileRow(0, 2.0, 1, 0, 0, 1, 2, True, 7)
-    assert (rows[1].touched, rows[1].age_days) == (False, 0)
+    assert rows[0] == FileRow(0, 2.0, 1, 0, 0, 1, 2, True, 0)
+    assert (rows[1].touched, rows[1].age_from) == (False, -1)

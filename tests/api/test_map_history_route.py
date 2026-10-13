@@ -32,7 +32,9 @@ def test_latest_by_default(client):
 
 
 def test_all_frames(client):
-    assert len(client.get("/api/projects/proj/map/history?frames=all").get_json()["frames"]) == 2
+    body = client.get("/api/projects/proj/map/history?frames=all").get_json()
+    assert len(body["frames"]) == 2 and body["frameEncoding"] == "delta"
+    assert client.get("/api/projects/proj/map/history").get_json()["frameEncoding"] == "full"
 
 
 def test_bad_frames_value_is_400(client):

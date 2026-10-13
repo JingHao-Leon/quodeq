@@ -2,10 +2,12 @@ from collections import Counter
 
 from quodeq.core.map_history.snapshot import FileStat, RunSnapshot
 from quodeq.core.map_history.timeline import (
+    NO_VIOLATION_START,
+    ages_from_starts,
     finding_flows,
     full_run_dimensions,
     running_edits,
-    violation_ages,
+    violation_age_starts,
     violation_ids,
 )
 
@@ -25,8 +27,9 @@ def test_running_edits_add_up_every_transition():
 
 def test_age_counts_from_the_start_of_the_unbroken_chain():
     snaps = [_snapshot(**{"a.py": {"sec:v:x"}}), _snapshot(**{"a.py": {"sec:v:x", "sec:c:y"}, "b.py": {"sec:c:y"}})]
-    ages = violation_ages(snaps, ["2026-09-01", "2026-09-08"], [violation_ids(s) for s in snaps])
-    assert ages == [{"a.py": 0}, {"a.py": 7, "b.py": 0}]
+    starts = violation_age_starts(snaps, [violation_ids(s) for s in snaps])
+    assert starts == [{"a.py": 0}, {"a.py": 0, "b.py": NO_VIOLATION_START}]
+    assert ages_from_starts(["2026-09-01", "2026-09-08"], starts) == [{"a.py": 0}, {"a.py": 7, "b.py": 0}]
 
 
 def test_flows_count_new_and_fixed_against_the_run_before():
@@ -47,7 +50,8 @@ def test_age_survives_a_run_that_skipped_the_dimension():
     days = ["2026-09-01", "2026-09-02", "2026-09-03"]
     snaps = [_snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}}), _snapshot(("sec",), **{"b.py": {"sec:v:y"}}),
              _snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}})]
-    assert violation_ages(snaps, days, [violation_ids(s) for s in snaps])[2]["a.py"] == 2
+    starts = violation_age_starts(snaps, [violation_ids(s) for s in snaps])
+    assert starts[2]["a.py"] == 0 and ages_from_starts(days, starts)[2]["a.py"] == 2
 
 
 def test_a_full_run_has_the_usual_dimension_count_less_one():

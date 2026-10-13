@@ -200,5 +200,5 @@ def test_a_run_missing_a_dimension_neither_fixes_nor_ages_its_findings(env):
         _run(p, rid, day, same, dims=three[:2] if rid == "r2" else three)
     out = build_map_history(env, "proj", frames="all")
     assert [(f.new, f.fixed) for f in out.frames] == [(0, 0)] * 3
-    assert {r.age_days for r in out.frames[-1].files} == {2}
+    assert {r.age_from for r in out.frames[-1].files} == {0}
 
