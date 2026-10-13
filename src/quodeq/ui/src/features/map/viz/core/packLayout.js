@@ -11,6 +11,12 @@ export const PACK_WORKER_NODE_THRESHOLD = 2000;
 /** Numbers per node in a layout array: x, y, r. */
 export const XYR_STRIDE = 3;
 
+/** Circle `i` of a layout array (x, y, r per node) as `{x, y, r}`. */
+export function circleAt(xyr, i) {
+  const o = i * XYR_STRIDE;
+  return { x: xyr[o], y: xyr[o + 1], r: xyr[o + 2] };
+}
+
 /** Checks run on a file: its violations plus its passing checks, at least 1. */
 export function checksRun(node) {
   return Math.max(1, (node.violations || 0) + (node.compliance || 0));

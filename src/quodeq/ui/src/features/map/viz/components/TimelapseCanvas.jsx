@@ -1,0 +1,131 @@
+import { useEffect, useMemo, useRef } from 'react';
+import { useCanvasSize } from './galaxyCanvasSize.js';
+import { prepareLayer, useLayerTheme, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
+import { drawStatic, drawOverlay } from '../core/packLayers.js';
+import { packViewport, toLayoutPoint, hitCircle, focusTransformFor } from '../core/packCanvasGeometry.js';
+import { useTweenedTransform } from '../core/packTween.js';
+import { circleAt } from '../core/packLayout.js';
+import { runPaint, lerpXyr, screenCoordsInto, cachedRuns, TRANSITION } from '../core/timelapseScene.js';
+import { KEY } from '../../../../vocab/keyboard.js';
+
+/** Paint per run for this mode, theme and formula, cached. */
+function usePaintAt({ model, nodeDataAt, colorMode, palette, weights }) {
+  return useMemo(() => (palette
+    ? cachedRuns((k) => runPaint({ model, nodeData: nodeDataAt(k), mode: colorMode, palette, weights }))
+    : null), [model, nodeDataAt, colorMode, palette, weights]);
+}
+
+/** What each static canvas shows this frame: a move interpolates, a fade shows both runs. */
+function useLayers(view, paintAt) {
+  const buffer = useRef(new Float32Array(0));
+  return useMemo(() => {
+    if (!view || !paintAt) return null;
+    const { from, to, kind, t } = view;
+    const front = { xyr: to.state, paint: paintAt(to.k) };
+    if (!from) return { front, back: null, alpha: 1 };
+    if (kind === TRANSITION.FADE) return { front, back: { xyr: from.state, paint: paintAt(from.k) }, alpha: t };
+    if (buffer.current.length !== to.state.length) buffer.current = new Float32Array(to.state.length);
+    return { front: { xyr: lerpXyr(from.state, to.state, t, buffer.current), paint: front.paint }, back: null, alpha: 1 };
+  }, [view, paintAt]);
+}
+
+/** One static canvas: the layer's circles through the camera (screen coordinates kept in `coords`), or blank. */
+function drawLayer(canvas, layer, { model, camera, viewport, size, coords }) {
+  const ctx = prepareLayer(canvas, size);
+  if (!ctx) return;
+  if (!layer) { ctx.clearRect(0, 0, size.w, size.h); return; }
+  screenCoordsInto(layer.xyr, camera, coords);
+  drawStatic(ctx, { circles: model.nodes, screenCoords: coords, viewport, paint: layer.paint, index: model.index, width: size.w, height: size.h });
+}
+
+/**
+ * Pointer and keyboard on the overlay. Playing: no hover, any click pauses.
+ * Paused: hover once the run has settled, a folder click zooms into it, a
+ * background click or Escape zooms out, a file click does nothing.
+ */
+function usePointer({ model, coords, viewport, focusIndex, interaction, settled }) {
+  const hitAt = (e) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const p = toLayoutPoint(e.clientX - box.left, e.clientY - box.top, viewport);
+    return hitCircle(model.nodes, coords.current, p.x, p.y);
+  };
+  const zoomOut = () => {
+    const parent = model.nodes[focusIndex].parent;
+    if (parent) interaction.onDrillDown(parent.data.path);
+  };
+  return {
+    onMouseMove: (e) => {
+      const i = interaction.playing || !settled ? null : hitAt(e);
+      const picked = i === focusIndex ? null : i;
+      if (picked !== interaction.hover) interaction.setHover(picked);
+    },
+    onMouseLeave: () => interaction.setHover(null),
+    onClick: (e) => {
+      if (interaction.playing) { interaction.pause(); return; }
+      const i = hitAt(e);
+      if (i === null) zoomOut();
+      else if (i !== focusIndex && model.nodes[i].children) interaction.onDrillDown(model.nodes[i].data.path);
+    },
+    onKeyDown: (e) => {
+      if (e.key !== KEY.ESCAPE) return;
+      e.preventDefault();
+      zoomOut();
+    },
+  };
+}
+
+/** Both static canvases, redrawn only when the run on screen, the camera or the canvas changes (never on hover). */
+function useStaticLayers({ refs, coords, layers, camera, viewport, size, model }) {
+  useEffect(() => {
+    if (!layers) return;
+    const common = { model, camera, viewport, size };
+    drawLayer(refs.back.current, layers.back, { ...common, coords: coords.back.current });
+    drawLayer(refs.front.current, layers.front, { ...common, coords: coords.front.current });
+    // refs and coords are stable ref objects; the coordinate arrays are filled in place.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layers, camera, viewport, size, model]);
+}
+
+/**
+ * The time-lapse pack on three stacked canvases: a back layer (the run being
+ * faded out), a front layer (the run shown, or the move in progress) and an
+ * overlay (veil, hover ring, labels once settled). The camera frames the
+ * focused folder's whole-history circle, so it holds still while runs change.
+ */
+export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
+  const { model, nodeDataAt, anchor, view, focusIndex, label } = scene;
+  const { colorMode, weights, dark } = paintInputs;
+  const refs = { back: useRef(null), front: useRef(null), overlay: useRef(null) };
+  const coords = { back: useRef([]), front: useRef([]) };
+  const size = useCanvasSize(refs.overlay);
+  const viewport = useMemo(() => packViewport(size.w, size.h), [size.w, size.h]);
+  const theme = useLayerTheme(refs.overlay, dark);
+  const paintAt = usePaintAt({ model, nodeDataAt, colorMode, palette: theme.palette, weights });
+  const target = useMemo(() => focusTransformFor(circleAt(anchor, focusIndex)), [anchor, focusIndex]);
+  const camera = useTweenedTransform(target);
+  const layers = useLayers(view, paintAt);
+  const settled = Boolean(view && !view.from);
+  useStaticLayers({ refs, coords, layers, camera, viewport, size, model });
+
+  useEffect(() => {
+    const ctx = prepareLayer(refs.overlay.current, size);
+    if (!ctx || !theme.palette || !layers) return;
+    const keep = interaction.hover ?? (focusIndex > 0 ? focusIndex : null);
+    drawOverlay(ctx, {
+      circles: model.nodes, screenCoords: coords.front.current, viewport, keepIndex: keep, hoverIndex: interaction.hover,
+      focusNode: model.nodes[focusIndex], showLabels: interaction.showLabels && settled && camera === target,
+      palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layers, camera, viewport, size, model, theme, interaction.hover, interaction.showLabels, focusIndex, settled, target]);
+
+  const pointer = usePointer({ model, coords: coords.front, viewport, focusIndex, interaction, settled });
+  return (
+    <div style={WRAPPER_STYLE}>
+      <canvas ref={refs.back} aria-hidden="true" style={LAYER_STYLE} />
+      <canvas ref={refs.front} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.alpha : 1 }} />
+      <canvas ref={refs.overlay} className="viz-focusable" tabIndex={0} aria-label={label}
+        style={{ ...LAYER_STYLE, cursor: interaction.hover === null ? 'default' : 'pointer' }} {...pointer} />
+    </div>
+  );
+}
