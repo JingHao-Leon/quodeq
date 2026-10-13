@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import {
   RiskMatrixView, ZoomablePackView,
   GalaxyView, GalaxyFolderView, VizBreadcrumb,
@@ -79,7 +79,10 @@ function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
   );
 }
 
+// A blocked mode stays focusable (aria-disabled, like the style toggles) so
+// keyboard and screen-reader users reach the reason it is unavailable.
 function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
+  const noteId = useId();
   return (
     <div className="term-seg" role="group" aria-label={t('map.colorModeAria')}>
       {PACK_COLOR_MODES.map((m) => {
@@ -87,13 +90,15 @@ function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
         return (
           <button
             key={m.value} type="button" className={`term-btn${viewMode === m.value ? ' term-btn--on' : ''}`}
-            onClick={() => setViewMode(m.value)} aria-pressed={viewMode === m.value}
-            disabled={blocked} title={blocked ? t('map.activityUnavailable') : undefined}
+            onClick={() => !blocked && setViewMode(m.value)} aria-pressed={viewMode === m.value}
+            aria-disabled={blocked || undefined} aria-describedby={blocked ? noteId : undefined}
+            title={blocked ? t('map.activityUnavailable') : undefined}
           >
             {t(m.labelKey)}
           </button>
         );
       })}
+      {activityUnavailable && <span id={noteId} className="sr-only">{t('map.activityUnavailable')}</span>}
     </div>
   );
 }
@@ -181,9 +186,10 @@ function MapBody({ ready, state, pack }) {
   return <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks} display={state.display} pack={pack} />;
 }
 
-// The pack's severity weights and edit counts; Concentration never waits on the history.
-function useMapPackData(project, source) {
-  const { activity, loading, failed } = useMapActivity(project, source);
+// The pack's severity weights and edit counts; Concentration never waits on
+// the history, and the history is fetched only while the pack is on screen.
+function useMapPackData(project, source, packShown) {
+  const { activity, loading, failed } = useMapActivity(project, source, packShown);
   const weights = useSeverityWeights(project, source);
   const activityUnavailable = source === PROJECT_SOURCE.SHARED || (activity.source === ACTIVITY_SOURCE.NONE && !loading);
   return { pack: { weights, activity, loading, failed }, activityUnavailable };
@@ -201,7 +207,7 @@ export default function MapPage(props) {
   // The hook tolerates missing data — `state.allDimensions` is `[]` when there
   // is no project or no run data, which is exactly what we use for case C.
   const state = useMapPageState({ ...props, deferTree: !ready });
-  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource);
+  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, state.viewState.vizStyle === VIZ_STYLE.ZOOMPACK);
 
   if (!projectsLoaded) return <MapLoadingState />;
   if (projects.length === 0 && selectedSource !== PROJECT_SOURCE.SHARED) return <MapNoProjectsState onNavigate={onNavigate} />;

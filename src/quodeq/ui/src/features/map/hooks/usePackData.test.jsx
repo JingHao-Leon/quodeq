@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 import useMapActivity from './useMapActivity.js';
 import useSeverityWeights from './useSeverityWeights.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from '../viz/core/mapBadness.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
+import { ERROR_RETRY_MS } from '../../../hooks/queryDefaults.js';
 
 const PAYLOAD = { activitySource: 'estimated', fileNames: ['a.py'], frames: [{ files: [[0, 0, 0, 0, 0, 0, 3, 1, 0]] }] };
 
@@ -29,6 +30,29 @@ describe('useMapActivity', () => {
     const { result } = renderHook(() => useMapActivity('p', PROJECT_SOURCE.LOCAL), { wrapper: withStableQueryApi({ getMapHistory }) });
     await waitFor(() => expect(result.current.failed).toBe(true));
     expect(result.current.activity.source).toBe('none');
+  });
+
+  it('never fetches while the Circle Pack is not the active view', () => {
+    const getMapHistory = vi.fn();
+    renderHook(() => useMapActivity('p', PROJECT_SOURCE.LOCAL, false), { wrapper: withStableQueryApi({ getMapHistory }) });
+    expect(getMapHistory).not.toHaveBeenCalled();
+  });
+});
+
+describe('useMapActivity recovery', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('a failed fetch recovers in-session once the endpoint answers', async () => {
+    vi.useFakeTimers();
+    const state = { fail: true };
+    const getMapHistory = vi.fn(async () => { if (state.fail) throw new Error('boom'); return PAYLOAD; });
+    const { result } = renderHook(() => useMapActivity('p', PROJECT_SOURCE.LOCAL), { wrapper: withStableQueryApi({ getMapHistory }) });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(result.current.failed).toBe(true);
+    state.fail = false;
+    await act(async () => { await vi.advanceTimersByTimeAsync(ERROR_RETRY_MS + 1); });
+    expect(result.current.failed).toBe(false);
+    expect(result.current.activity.source).toBe('estimated');
   });
 });
 

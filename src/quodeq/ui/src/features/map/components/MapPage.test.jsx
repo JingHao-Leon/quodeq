@@ -239,8 +239,23 @@ describe('MapPage: Concentration and Activity', () => {
   it('a shared project cannot pick Activity', () => {
     renderPage(baseData({ accumulated: { dimensions: DIMS } }));
     const button = screen.getByRole('button', { name: t('map.colorActivity') });
-    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
     expect(button).toHaveAttribute('title', t('map.activityUnavailable'));
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('the blocked Activity button carries its reason as an accessible description', () => {
+    renderPage(baseData({ accumulated: { dimensions: DIMS } }));
+    const button = screen.getByRole('button', { name: t('map.colorActivity') });
+    const note = document.getElementById(button.getAttribute('aria-describedby'));
+    expect(note).toHaveTextContent(t('map.activityUnavailable'));
+  });
+
+  it('the history is not fetched while another view than the Circle Pack is shown', () => {
+    const api = fakeApi();
+    render(<MapPage data={local()} callbacks={{}} nav={{ vizStyle: 'riskmatrix' }} />, { wrapper: withStableQueryApi(api) });
+    expect(api.getMapHistory).not.toHaveBeenCalled();
   });
 
   it('Concentration draws without waiting for the history', () => {
