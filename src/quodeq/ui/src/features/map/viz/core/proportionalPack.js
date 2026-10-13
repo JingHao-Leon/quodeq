@@ -1,4 +1,5 @@
 import { packSiblings, packEnclose } from 'd3-hierarchy';
+import { isPackFolder } from './packNode.js';
 
 // Each sibling is packed as if 3 % larger plus a hair, so neighbours keep a
 // gap of about 1.5 % of their radius on each side, at every depth.
@@ -44,7 +45,7 @@ function placeFromOffsets(root) {
  */
 export function packProportional(root, size) {
   root.eachAfter((node) => {
-    if (node.children?.length) packFolder(node);
+    if (isPackFolder(node)) packFolder(node);
     else node.r = leafRadius(node);
   });
   placeFromOffsets(root);

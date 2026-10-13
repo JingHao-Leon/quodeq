@@ -1,5 +1,6 @@
 import { hierarchy } from 'd3-hierarchy';
 import { packProportional } from './proportionalPack.js';
+import { isPackFolder } from './packNode.js';
 
 // Layout units for the circle pack; the canvas viewport (packViewport) scales
 // them to the screen.
@@ -18,7 +19,7 @@ export function checksRun(node) {
  * "size = checks run"), children sorted largest first. */
 export function buildPackRoot(node) {
   return hierarchy(node, (d) => d.children || [])
-    .sum((d) => (d.children?.length ? 0 : checksRun(d)))
+    .sum((d) => (isPackFolder(d) ? 0 : checksRun(d)))
     .sort((a, b) => (b.value || 0) - (a.value || 0));
 }
 

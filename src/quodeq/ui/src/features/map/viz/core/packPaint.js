@@ -6,11 +6,12 @@ import {
 } from './mapPaint.js';
 import { NODE_KIND, PACK_COLOR_MODE } from '../../mapVocab.js';
 import { filePathKey } from '../../model/mapActivity.js';
+import { isPackFolder } from './packNode.js';
 
 const STROKE_ALPHA = 0.22;
 const STROKE_ALPHA_TOP = 0.3;    // light: the first ring of folders reads a little stronger
 
-const isLeaf = (n) => !n.children?.length;
+const isLeaf = (n) => !isPackFolder(n);
 
 function kindOf(n) {
   if (isLeaf(n)) return NODE_KIND.FILE;

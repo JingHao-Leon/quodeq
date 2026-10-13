@@ -3,6 +3,7 @@ import { TAU } from './galaxyCore.js';
 import { clamp } from './mapBadness.js';
 import { chainLabel } from './chainLabel.js';
 import { rgbCss } from './mapPaint.js';
+import { isPackFolder } from './packNode.js';
 
 /** Files are drawn at 84 % of their slot, so siblings never touch. */
 export const FILE_SLOT_SCALE = 0.84;
@@ -35,7 +36,7 @@ function folderRadius(rPx) {
 
 function traceCutOut(ctx, c, at, index) {
   for (const child of c.children || []) {
-    if (!child.children?.length) continue;
+    if (!isPackFolder(child)) continue;
     const i = index.get(child);
     if (i === undefined) continue;
     const p = at(i);
@@ -138,7 +139,7 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, 
   const placed = [];
   for (const { c, p } of labelCandidates({ circles, screenCoords, viewport, focusNode })) {
     const size = Math.min(LABEL_FONT_MAX, Math.max(LABEL_FONT_MIN, p.r / LABEL_FONT_DIVISOR));
-    ctx.font = `${c.children?.length ? LABEL_WEIGHT_FOLDER : LABEL_WEIGHT_FILE} ${size}px ${font}`;
+    ctx.font = `${isPackFolder(c) ? LABEL_WEIGHT_FOLDER : LABEL_WEIGHT_FILE} ${size}px ${font}`;
     const text = chainLabel(c.data.name);
     const w = ctx.measureText(text).width;
     const y = p.py - p.r - LABEL_GAP;
