@@ -14,6 +14,12 @@ test('an area shows its weighted issues per file, the measure that places it', (
   assert.equal(densityLine(riskAreaInfo(area(AREA_KIND.WATCH, 1.23456))).value, '1.23');
 });
 
-test('the measure is absolute, so a small or clean area shows it too', () => {
-  assert.equal(densityLine(riskAreaInfo(area(AREA_KIND.SMALL, 0))).value, '0.00');
+test('the measure is absolute, so a clean area shows it too', () => {
+  assert.equal(densityLine(riskAreaInfo(area(AREA_KIND.HEALTHY, 0))).value, '0.00');
+});
+
+test('an area too small to judge shows no weighted issues per file', () => {
+  const info = riskAreaInfo(area(AREA_KIND.SMALL, 1.5));
+  assert.equal(densityLine(info), undefined);
+  assert.equal(info.lines[0].value, t('map.riskKindSmall'));
 });

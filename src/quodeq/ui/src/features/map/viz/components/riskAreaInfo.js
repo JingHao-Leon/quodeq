@@ -32,6 +32,12 @@ export function riskItemText(area) {
   return t(pluralKey(count, 'map.riskAreaAriaOne', 'map.riskAreaAria'), { name: area.name, count });
 }
 
+/** Weighted issues per file, left out for an area too small to judge. */
+function densityLines(area) {
+  if (area.kind === AREA_KIND.SMALL) return [];
+  return [{ label: t('map.riskDensity'), value: (area.density || 0).toFixed(DENSITY_DECIMALS) }];
+}
+
 /** The info panel (and tooltip) content for an area. */
 export function riskAreaInfo(area) {
   const s = area.stats;
@@ -44,7 +50,7 @@ export function riskAreaInfo(area) {
       { label: t('map.riskFiles'), value: s.files },
       { label: t('map.riskIssues'), value: s.violations },
       ...severityLines({ critical: s.critical, major: s.major, minor }, { colored: true }),
-      { label: t('map.riskDensity'), value: (area.density || 0).toFixed(DENSITY_DECIMALS) },
+      ...densityLines(area),
       { label: t('map.riskChanged'), value: t('map.riskChangedValue', { pct: Math.round(area.touchedShare * PERCENT) }) },
     ],
   };
