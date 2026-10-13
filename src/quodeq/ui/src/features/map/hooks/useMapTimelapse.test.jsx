@@ -29,7 +29,7 @@ function recording(props, fake) {
   const seen = [];
   const hook = renderHook((p) => {
     const value = useMapTimelapse(p);
-    seen.push({ position: value.position, runs: value.data.runs.length });
+    seen.push({ position: value.position, runs: value.data.runs.length, past: value.past });
     return value;
   }, { initialProps: { source: 'local', active: true, ...props }, wrapper: withCachedApi(fake) });
   return { ...hook, seen };
@@ -109,6 +109,18 @@ describe('useMapTimelapse', () => {
     seen.length = 0;
     rerender({ project: 'short', source: 'local', active: true });
     expect(seen.filter((r) => r.position > Math.max(0, r.runs - 1))).toEqual([]);
+  });
+
+  it('a switch to another project on a past run shows that project\'s latest run from its first render', async () => {
+    const fake = { getMapHistory: vi.fn(() => Promise.resolve(PAYLOAD)) };
+    const { result, rerender, seen } = recording({ project: 'a' }, fake);
+    await waitFor(() => expect(result.current.status).toBe(TIMELAPSE_STATUS.READY));
+    rerender({ project: 'b', source: 'local', active: true });
+    await waitFor(() => expect(result.current.status).toBe(TIMELAPSE_STATUS.READY));
+    act(() => result.current.controls.first());
+    seen.length = 0;
+    rerender({ project: 'a', source: 'local', active: true });
+    expect(seen.filter((r) => r.past)).toEqual([]);
   });
 
   it('while blocked every render shows the latest run, even right after play is pressed', async () => {

@@ -39,3 +39,8 @@ test('only offered speeds are taken, and a reset keeps the speed', () => {
 test('a single run cannot play', () => {
   assert.equal(run(initialPlayback(1), { type: A.TOGGLE }).playing, false);
 });
+
+test('a reset names whose history it is and keeps the speed', () => {
+  const s = run(initialPlayback(3, 2, 'a'), { type: A.SEEK, position: 0 }, { type: A.RESET, runCount: 5, owner: 'b' });
+  assert.deepEqual([s.owner, s.position, s.speed], ['b', 4, 2]);
+});

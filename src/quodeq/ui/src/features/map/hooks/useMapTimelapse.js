@@ -40,10 +40,15 @@ function usePlaybackGuard(state, dispatch, { active, blocked }) {
 }
 
 /**
- * The run on screen, safe in every committed render: never past the end of
- * the history in hand (a switch to a project with a shorter cached history
- * renders once before the reset lands) and always the latest while blocked.
+ * The playback state for the history in hand. A switch to another project (or
+ * a history of another length) renders once before the reset lands; that
+ * render shows the new history's latest run, paused, never the old position.
  */
+function ownState(state, project, runCount) {
+  return state.owner === project && state.runCount === runCount ? state : initialPlayback(runCount, state.speed, project);
+}
+
+/** The run on screen: never past the end of the history, always the latest while blocked. */
 function shownPosition(state, runCount, blocked) {
   const latest = Math.max(0, runCount - 1);
   return blocked ? latest : Math.min(state.position, latest);
@@ -73,17 +78,18 @@ export default function useMapTimelapse({ project, source, active, blocked = fal
   const enabled = mapHistoryEnabled(project, source, active);
   const query = useQuery({ ...mapHistoryQuery({ api, project, source, active, frames: MAP_FRAMES.ALL }), select: decodeTimelapse });
   const data = query.data || NO_TIMELAPSE;
-  const [state, dispatch] = useReducer(playbackReducer, data.runs.length, initialPlayback);
-  useEffect(() => { dispatch({ type: PLAYBACK_ACTION.RESET, runCount: data.runs.length }); }, [data.runs.length, project]);
+  const [state, dispatch] = useReducer(playbackReducer, data.runs.length, (runCount) => initialPlayback(runCount, undefined, project));
+  useEffect(() => { dispatch({ type: PLAYBACK_ACTION.RESET, runCount: data.runs.length, owner: project }); }, [data.runs.length, project]);
   usePlaybackGuard(state, dispatch, { active, blocked });
   usePlaybackClock(state, dispatch);
   const controls = usePlaybackControls(dispatch);
   const onSettled = useCallback((position) => dispatch({ type: PLAYBACK_ACTION.SETTLED, position }), []);
   const status = timelapseStatus(enabled, query);
-  const position = shownPosition(state, data.runs.length, blocked);
+  const own = ownState(state, project, data.runs.length);
+  const position = shownPosition(own, data.runs.length, blocked);
   return {
-    status, data, position, speed: state.speed,
-    playing: state.playing && !blocked,
+    status, data, project, position, speed: state.speed,
+    playing: own.playing && !blocked,
     past: status === TIMELAPSE_STATUS.READY && position < data.runs.length - 1,
     moveMs: prefersReducedMotion() ? 0 : MOVE_MS / state.speed,
     controls, onSettled,

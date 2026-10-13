@@ -8,7 +8,7 @@ import { ACTIVITY_SOURCE } from '../mapVocab.js';
  * is shown, and the legend. `view` carries the tree, colour mode, theme,
  * labels and navigation of the normal pack.
  */
-export default function MapPackPanel({ view, pack, timelapse, past }) {
+export default function MapPackPanel({ view, pack, timelapse }) {
   const { fullTree, viewMode, dark, showLabels, resetKey, currentPath, explicitPath, onDrillDown, onFileClick } = view;
   const latest = (
     <ZoomablePackView
@@ -17,15 +17,16 @@ export default function MapPackPanel({ view, pack, timelapse, past }) {
       showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} autoOpen={!explicitPath}
     />
   );
-  const pastView = (
+  // Run and history come from the stage (held while hidden); zoom, theme and paint follow the page.
+  const renderPast = (held) => (
     <TimelapsePackView
-      timelapse={timelapse} colorMode={viewMode} weights={pack.weights} dark={dark}
+      timelapse={held} colorMode={viewMode} weights={pack.weights} dark={dark}
       showLabels={showLabels} currentPath={currentPath} onDrillDown={onDrillDown}
     />
   );
   return (
     <>
-      <MapTimelapseStage past={past} latest={latest} pastView={pastView} />
+      <MapTimelapseStage timelapse={timelapse} latest={latest} renderPast={renderPast} />
       <PackLegend mode={viewMode} activityLoading={pack.loading} activitySource={pack.failed ? ACTIVITY_SOURCE.NONE : pack.activity.source} />
     </>
   );

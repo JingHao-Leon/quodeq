@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapPage from './MapPage.jsx';
 import { stubPackCanvas } from '../../../test-utils/packFixture.js';
@@ -7,8 +7,26 @@ import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
 import { formatShortDate } from '../../../utils/formatters.js';
 import { dayDate } from '../viz/core/timelapseBarModel.js';
+import { buildTimelapseModel } from '../viz/core/timelapseModel.js';
 
-beforeEach(() => { stubPackCanvas(); });
+// Which runs the past sky computed, and how often the past pack built its model.
+const skyRunsAsked = [];
+vi.mock('../viz/core/skyTimeline.js', async (importOriginal) => {
+  const real = await importOriginal();
+  return {
+    ...real,
+    createSkyTimeline: (...args) => {
+      const timeline = real.createSkyTimeline(...args);
+      return { ...timeline, sceneAt: (k) => { skyRunsAsked.push(k); return timeline.sceneAt(k); } };
+    },
+  };
+});
+vi.mock('../viz/core/timelapseModel.js', async (importOriginal) => {
+  const real = await importOriginal();
+  return { ...real, buildTimelapseModel: vi.fn(real.buildTimelapseModel) };
+});
+
+beforeEach(() => { stubPackCanvas(); skyRunsAsked.length = 0; buildTimelapseModel.mockClear(); });
 // Unmount before the stubs go: a pack layout landing after the test would mount a canvas without them.
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -28,6 +46,7 @@ const data = (over) => ({
 });
 const api = () => ({ getMapHistory: vi.fn().mockResolvedValue(HISTORY), getGradeFormula: vi.fn().mockResolvedValue(FORMULA) });
 const page = (props) => render(<MapPage data={data(props?.data)} callbacks={{}} nav={props?.nav} />, { wrapper: withStableQueryApi(api()) });
+const button = (key) => screen.getByRole('button', { name: t(key) });
 
 describe('MapPage: the time-lapse', () => {
   it('a local project with history shows the bar under the Circle Pack', async () => {
@@ -61,6 +80,31 @@ describe('MapPage: the time-lapse', () => {
     const pastLayer = container.querySelector('.map-stage__layer--past');
     expect(pastLayer).toHaveClass('is-hidden');
     expect(pastLayer).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('seeking again for the same history reuses the past pack: its model is built once', async () => {
+    page();
+    fireEvent.click(await screen.findByRole('button', { name: t('map.timelapseFirst') }));
+    fireEvent.click(button('map.timelapseLatest'));
+    fireEvent.click(button('map.timelapseFirst'));
+    expect(buildTimelapseModel).toHaveBeenCalledTimes(1);
+  });
+
+  it('a jump to the latest run leaves the hidden past sky on its run: today never costs it a sky', async () => {
+    page({ nav: { vizStyle: 'risk' } });
+    fireEvent.click(await screen.findByRole('button', { name: t('map.timelapseFirst') }));
+    await screen.findByRole('img', { name: t('map.timelapseRiskAria', { date: formatShortDate(dayDate('2026-09-01').toISOString()) }) });
+    fireEvent.click(button('map.timelapseLatest'));
+    await act(async () => {});
+    expect(skyRunsAsked).not.toContain(1);
+  });
+
+  it('a project switch on a past run shows the new project on its latest run, with no past layer', async () => {
+    const view = page();
+    fireEvent.click(await screen.findByRole('button', { name: t('map.timelapseFirst') }));
+    view.rerender(<MapPage data={data({ projects: [{ id: 'p1', name: 'p1' }, { id: 'p2', name: 'p2' }], selectedProject: 'p2', projectName: 'p2' })} callbacks={{}} />);
+    expect(view.container.querySelector('.map-stage__layer--past')).toBeNull();
+    expect(await screen.findByRole('slider')).toHaveAttribute('aria-valuenow', '2');
   });
 
   it('the Galaxy tab has no bar', () => {

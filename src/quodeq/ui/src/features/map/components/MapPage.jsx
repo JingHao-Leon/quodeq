@@ -180,7 +180,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
         <MapPackPanel
           view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, explicitPath, onDrillDown, onFileClick }}
-          pack={pack} timelapse={timelapse} past={timelapse.past}
+          pack={pack} timelapse={timelapse}
         />
       )}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.STANDARDS && <GalaxyView dimensions={dimensions} onNavigate={onNavigate} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} standardTypes={standardTypes} />}

@@ -14,11 +14,13 @@ export const PLAYBACK_ACTION = Object.freeze({
 const NOT_SETTLED = -1;
 
 /**
- * A history of `runCount` runs, on its latest run and paused.
- * @returns {{runCount: number, position: number, playing: boolean, speed: number, settled: number}}
+ * A history of `runCount` runs, on its latest run and paused. `owner` names
+ * whose history it is (the project), so a render for another project can
+ * tell the state is not its own yet.
+ * @returns {{runCount: number, position: number, playing: boolean, speed: number, settled: number, owner: *}}
  */
-export function initialPlayback(runCount, speed = DEFAULT_SPEED) {
-  return { runCount, position: Math.max(0, runCount - 1), playing: false, speed, settled: NOT_SETTLED };
+export function initialPlayback(runCount, speed = DEFAULT_SPEED, owner = null) {
+  return { runCount, position: Math.max(0, runCount - 1), playing: false, speed, settled: NOT_SETTLED, owner };
 }
 
 const lastRun = (s) => Math.max(0, s.runCount - 1);
@@ -43,7 +45,7 @@ function tick(s) {
 }
 
 const HANDLERS = {
-  [PLAYBACK_ACTION.RESET]: (s, a) => initialPlayback(a.runCount, s.speed),
+  [PLAYBACK_ACTION.RESET]: (s, a) => initialPlayback(a.runCount, s.speed, a.owner ?? null),
   [PLAYBACK_ACTION.TOGGLE]: toggle,
   [PLAYBACK_ACTION.PAUSE]: (s) => (s.playing ? { ...s, playing: false } : s),
   [PLAYBACK_ACTION.SEEK]: (s, a) => ({ ...s, position: clampRun(s, a.position), playing: false }),
