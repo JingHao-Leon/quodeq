@@ -113,12 +113,3 @@ export function nodeStateText(node, viewMode) {
   const worst = worstSeverity(node.severity || {});
   return worst ? t(SEVERITY_STATE_KEYS[worst]) : t('map.stateClean');
 }
-
-export function nodeSize(node, viewMode) {
-  switch (viewMode) {
-    case MAP_VIEW_MODE.VIOLATIONS: return node.violations || 1;
-    case MAP_VIEW_MODE.COMPLIANCE: return node.compliance || 1;
-    case MAP_VIEW_MODE.HEALTH: return (node.violations + node.compliance) || 1;
-    default: return node.violations || 1;
-  }
-}

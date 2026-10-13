@@ -1,34 +1,29 @@
-import { hierarchy, pack } from 'd3-hierarchy';
-import { nodeSize } from './mapColors.js';
+import { hierarchy } from 'd3-hierarchy';
+import { packProportional } from './proportionalPack.js';
 
 // Layout units for the circle pack; the SVG viewBox scales them to the screen.
 export const PACK_BASE_SIZE = 600;
-// Gap d3-pack leaves between a top-level circle and the root, in layout units.
-export const PACK_PADDING = 8;
 // Trees at or above this many nodes lay out in the worker instead of the
 // render thread.
 export const PACK_WORKER_NODE_THRESHOLD = 2000;
 const XYR_STRIDE = 3;
 
-/** The d3 hierarchy for a file-tree node: leaf values from `viewMode`,
- * children sorted largest first. Cheap next to the pack itself. */
-export function buildPackRoot(node, viewMode) {
+/** Checks run on a file: its violations plus its passing checks, at least 1. */
+export function checksRun(node) {
+  return Math.max(1, (node.violations || 0) + (node.compliance || 0));
+}
+
+/** The d3 hierarchy for a file-tree node: leaf value = checks run (spec 2.3,
+ * "size = checks run"), children sorted largest first. */
+export function buildPackRoot(node) {
   return hierarchy(node, (d) => d.children || [])
-    .sum((d) => (d.children?.length ? 0 : Math.max(1, nodeSize(d, viewMode))))
+    .sum((d) => (d.children?.length ? 0 : checksRun(d)))
     .sort((a, b) => (b.value || 0) - (a.value || 0));
 }
 
-/** Padding around a folder's children, shrinking with depth. d3 scales the
- * padding by the unpadded root radius, so on deep source trees a flat value
- * dwarfs the file circles and leaves every deep folder mostly empty. */
-export function packPadding(node) {
-  return PACK_PADDING / (1 + node.depth);
-}
-
-/** Run the pack on a hierarchy in place. */
+/** Run the proportional pack on a hierarchy in place. */
 export function packInPlace(root) {
-  pack().size([PACK_BASE_SIZE, PACK_BASE_SIZE]).padding(packPadding)(root);
-  return root;
+  return packProportional(root, PACK_BASE_SIZE);
 }
 
 export function layoutCircles(root) {

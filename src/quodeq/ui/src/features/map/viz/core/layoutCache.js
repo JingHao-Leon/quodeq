@@ -36,30 +36,25 @@ export function cachedFileTree(dimensions) {
 
 const layoutCache = new WeakMap();
 
-function getLayout(node, viewMode) {
-  return layoutCache.get(node)?.get(viewMode);
+function getLayout(node) {
+  return layoutCache.get(node);
 }
 
-function setLayout(node, viewMode, layout) {
-  let byMode = layoutCache.get(node);
-  if (!byMode) {
-    byMode = new Map();
-    layoutCache.set(node, byMode);
-  }
-  byMode.set(viewMode, layout);
+function setLayout(node, layout) {
+  layoutCache.set(node, layout);
   return layout;
 }
 
-function finishLayout(node, viewMode, root) {
-  return setLayout(node, viewMode, { root, circles: layoutCircles(root), pending: false });
+function finishLayout(node, root) {
+  return setLayout(node, { root, circles: layoutCircles(root), pending: false });
 }
 
-function layoutInWorker(node, viewMode, root) {
+function layoutInWorker(node, root) {
   const reply = requestPackLayout(slimTree(root));
-  if (!reply) return finishLayout(node, viewMode, packInPlace(root));
+  if (!reply) return finishLayout(node, packInPlace(root));
   const promise = reply
-    .then((xyr) => finishLayout(node, viewMode, applyPositions(root, xyr)))
-    .catch(() => finishLayout(node, viewMode, packInPlace(root)));
+    .then((xyr) => finishLayout(node, applyPositions(root, xyr)))
+    .catch(() => finishLayout(node, packInPlace(root)));
   // No root until the positions land: the view derives its focus transform
   // from the root's radius and memoises on the root's identity, so handing
   // out the unpositioned root now would freeze NaN in that transform.
@@ -69,12 +64,12 @@ function layoutInWorker(node, viewMode, root) {
 /** The pack layout for `node`: the cached result when there is one,
  * otherwise computed now for small trees, or handed to the worker for large
  * ones (`pending: true`, with `promise` resolving to the finished layout). */
-export function resolvePackLayout(node, viewMode) {
+export function resolvePackLayout(node) {
   if (!node) return { root: null, circles: [], pending: false };
-  const hit = getLayout(node, viewMode);
+  const hit = getLayout(node);
   if (hit) return hit;
-  const root = buildPackRoot(node, viewMode);
-  if (!root.value) return setLayout(node, viewMode, { root, circles: [], pending: false });
-  if (root.descendants().length < PACK_WORKER_NODE_THRESHOLD) return finishLayout(node, viewMode, packInPlace(root));
-  return setLayout(node, viewMode, layoutInWorker(node, viewMode, root));
+  const root = buildPackRoot(node);
+  if (!root.value) return setLayout(node, { root, circles: [], pending: false });
+  if (root.descendants().length < PACK_WORKER_NODE_THRESHOLD) return finishLayout(node, packInPlace(root));
+  return setLayout(node, layoutInWorker(node, root));
 }

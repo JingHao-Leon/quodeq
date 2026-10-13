@@ -270,7 +270,7 @@ export default function ZoomablePackView({ node, viewMode, onDrillDown, onFileCl
   const mousePos = useRef({ x: 0, y: 0 });
   const containerRef = useRef(null);
 
-  const { root, circles } = usePackLayout(node, viewMode);
+  const { root, circles } = usePackLayout(node);
   const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick });
 
   if (!node) return null;
