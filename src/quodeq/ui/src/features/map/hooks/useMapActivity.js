@@ -1,10 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from '../../../api/ApiContext.jsx';
-import { projectKeys } from '../../../api/queryKeys.js';
-import { STALE_TIME_MS, refetchWhileError } from '../../../hooks/queryDefaults.js';
-import { MAP_FRAMES } from '../mapVocab.js';
 import { decodeActivity, NO_ACTIVITY } from '../model/mapActivity.js';
-import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
+import { mapHistoryQuery, mapHistoryEnabled } from './mapHistoryQuery.js';
 
 /**
  * Per-file edit counts for the Activity colour mode. Local projects only:
@@ -19,15 +16,7 @@ import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
  */
 export default function useMapActivity(project, source, active = true) {
   const api = useApi();
-  const enabled = active && Boolean(project) && source !== PROJECT_SOURCE.SHARED;
-  const query = useQuery({
-    queryKey: projectKeys.mapHistory(project, MAP_FRAMES.LATEST, source),
-    queryFn: () => api.getMapHistory(project, MAP_FRAMES.LATEST),
-    enabled,
-    staleTime: STALE_TIME_MS,
-    retry: false,
-    refetchInterval: refetchWhileError,
-    select: decodeActivity,
-  });
+  const query = useQuery({ ...mapHistoryQuery({ api, project, source, active }), select: decodeActivity });
+  const enabled = mapHistoryEnabled(project, source, active);
   return { activity: query.data || NO_ACTIVITY, loading: enabled && query.isPending, failed: query.isError };
 }
