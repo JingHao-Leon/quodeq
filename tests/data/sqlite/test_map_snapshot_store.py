@@ -99,3 +99,24 @@ def test_an_unavailable_cache_reads_empty_and_writes_nothing(monkeypatch, caplog
         assert load_map_snapshots("p", {"r1": "k"}) == RawHistory({}, {})
         _save({"r1": ("k", EMPTY)}, {"r1"})
     assert len(caplog.records) == 2
+
+
+def test_a_corrupt_record_row_is_rewritten_by_the_next_save(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"})
+    with open_score_cache() as conn:
+        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", ("[1, 2", KO))
+        conn.commit()
+    assert load_map_snapshots("p", {"r1": "k"}).runs == {}
+    _save({"r1": ("k", RUN)}, {"r1"})
+    assert load_map_snapshots("p", {"r1": "k"}) == RawHistory({"r1": RUN}, {K: REC, KO: ODD})
+
+
+def test_a_run_with_a_non_text_record_key_reads_as_a_miss(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({}, set())
+    bad = {"dims": [], "files": {"a": [0, [[1]], []]}}
+    worse = {"dims": [], "files": {"a": [0, [], [3]]}}
+    with open_score_cache() as conn:
+        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", bad), "r2": ("k", worse)})
+    assert load_map_snapshots("p", {"r1": "k", "r2": "k"}).runs == {}

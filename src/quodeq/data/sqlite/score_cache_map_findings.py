@@ -42,15 +42,16 @@ def load_map_findings(conn: sqlite3.Connection, project: str) -> dict[str, Viola
 
 def store_map_findings(conn: sqlite3.Connection, project: str, records: dict[str, ViolationRecord],
                        keep: set[str]) -> None:
-    """Insert the new *records* and drop *project*'s rows outside *keep*, in one commit.
+    """Insert the new (or undecodable) *records* and drop *project*'s rows outside *keep*, in one commit.
 
     Nothing is written when nothing changed. Raises ``sqlite3.Error``; the caller logs.
     """
     stored = {rec for (rec,) in conn.execute("SELECT rec FROM map_finding WHERE project=?", (project,))}
+    decodable = set(load_map_findings(conn, project))  # a row that does not decode is rewritten, not kept
     gone = [(project, rec) for rec in stored - keep]
-    fresh = [(project, rec, _encoded(r)) for rec, r in records.items() if rec not in stored]
+    fresh = [(project, rec, _encoded(r)) for rec, r in records.items() if rec not in decodable]
     if not gone and not fresh:
         return
     conn.executemany("DELETE FROM map_finding WHERE project=? AND rec=?", gone)
-    conn.executemany("INSERT OR IGNORE INTO map_finding (project, rec, payload) VALUES (?, ?, ?)", fresh)
+    conn.executemany("INSERT OR REPLACE INTO map_finding (project, rec, payload) VALUES (?, ?, ?)", fresh)
     conn.commit()

@@ -27,10 +27,17 @@ def _encoded(run: RawRun) -> dict:
             "files": {p: [f.compliance, list(f.violations), list(f.marks)] for p, f in run.files.items()}}
 
 
+def _texts(items: tuple) -> bool:
+    """Whether every item is text (a record key or a mark)."""
+    return all(isinstance(i, str) for i in items)
+
+
 def _decoded(payload: dict) -> RawRun | None:
     """Inverse of ``_encoded``; None when *payload* has another layout (the caller rebuilds the run)."""
     try:
         files = {p: RawFile(tuple(v), int(c), tuple(m)) for p, (c, v, m) in payload["files"].items()}
+        if not all(_texts(f.violations) and _texts(f.marks) for f in files.values()):
+            return None
         return RawRun(tuple(payload["dims"]), files)
     except (KeyError, ValueError, TypeError, AttributeError, OverflowError):
         return None
