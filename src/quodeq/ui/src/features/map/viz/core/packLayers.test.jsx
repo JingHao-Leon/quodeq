@@ -6,6 +6,8 @@ import { drawStatic, drawOverlay, strokeGhostCircle, GHOST_DASH_PX, GHOST_STROKE
 const VIEWPORT = { scale: 1, ox: 0, oy: 0 };
 const SIZE = 600;
 const indexOf = (circles) => new Map(circles.map((c, i) => [c, i]));
+/** drawStatic over the whole fixture canvas with an identity viewport. */
+const drawAll = (ctx, { circles, screenCoords, paint }) => drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
 
 function scene() {
   const root = hierarchy({ name: '', children: [{ name: 'src', path: 'src', children: [{ name: 'a.py', path: 'src/a.py' }, { name: 'sub', path: 'src/sub', children: [{ name: 'b.py', path: 'src/sub/b.py' }] }] }] });
@@ -21,7 +23,7 @@ describe('drawStatic', () => {
   it('draws every visible circle and cuts sub-folders out of solid folders', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
-    const drawn = drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    const drawn = drawAll(ctx, { circles, screenCoords, paint });
     expect(drawn).toBe(circles.length);
     // root, src, a.py, sub, b.py: solid folders fill even-odd, files plain.
     const EO = { rule: 'evenodd' };
@@ -35,7 +37,7 @@ describe('drawStatic', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
     paint[3] = { ghost: true, file: false, stroke: 'rgb(9, 9, 9)', strokeAlpha: 0.4 };
-    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    drawAll(ctx, { circles, screenCoords, paint });
     // Only src is cut out of the root; src stays whole under its ghost sub-folder.
     expect(ctx.moveTo).toHaveBeenCalledTimes(1);
   });
@@ -44,7 +46,7 @@ describe('drawStatic', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
     paint[3] = { ...paint[3], alpha: 0.5, arriving: true };
-    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    drawAll(ctx, { circles, screenCoords, paint });
     // Only src is cut out of the root; src stays whole under its arriving sub-folder.
     expect(ctx.moveTo).toHaveBeenCalledTimes(1);
   });
@@ -53,7 +55,7 @@ describe('drawStatic', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
     paint[2] = { ...paint[2], alpha: 0.4, ghostRing: { ghost: true, file: true, stroke: 'rgb(9, 9, 9)', strokeAlpha: 0.3 } };
-    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    drawAll(ctx, { circles, screenCoords, paint });
     expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
     expect(ctx.globalAlpha).toBe(1);
   });
@@ -62,7 +64,7 @@ describe('drawStatic', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
     const faint = paint.map((p) => ({ ...p, alpha: 0.3, strokeAlpha: 0.22 }));
-    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint: faint, index: indexOf(circles), width: SIZE, height: SIZE });
+    drawAll(ctx, { circles, screenCoords, paint: faint });
     expect(ctx.globalAlpha).toBe(1);
   });
 
@@ -72,7 +74,7 @@ describe('drawStatic', () => {
     ctx.fill = () => alphas.push(ctx.globalAlpha);
     const { circles, screenCoords, paint } = scene();
     paint[2] = { ...paint[2], alpha: 0.25 };
-    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    drawAll(ctx, { circles, screenCoords, paint });
     expect(alphas[2]).toBe(0.25);
     expect(alphas[4]).toBe(1);
     expect(ctx.globalAlpha).toBe(1);
@@ -82,7 +84,7 @@ describe('drawStatic', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();
     const glass = paint.map((p) => ({ ...p, cutOut: false, alpha: p.file ? 1 : 0.3 }));
-    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint: glass, index: indexOf(circles), width: SIZE, height: SIZE });
+    drawAll(ctx, { circles, screenCoords, paint: glass });
     expect(ctx.fills.every((f) => f.rule !== 'evenodd')).toBe(true);
   });
 
@@ -91,7 +93,7 @@ describe('drawStatic', () => {
     const { circles, screenCoords, paint } = scene();
     paint[2] = { ghost: true, file: true, stroke: 'rgb(9, 9, 9)', strokeAlpha: 0.4 };
     paint[4] = null;
-    const drawn = drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    const drawn = drawAll(ctx, { circles, screenCoords, paint });
     expect(drawn).toBe(circles.length - 1);
     expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
     expect(ctx.fills).toHaveLength(3);

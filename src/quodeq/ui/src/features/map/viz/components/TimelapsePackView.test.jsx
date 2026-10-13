@@ -67,8 +67,11 @@ const shortDate = (day) => formatShortDate(dayDate(day).toISOString());
 const ghostStrokes = () => ctx.setLineDash.mock.calls.filter(([dash]) => dash.length > 0).length;
 
 // No Worker in jsdom: the layouts are computed on this thread, a few promise turns after the first render.
+/** The view's props apart from the time-lapse, as every test renders it. */
+const baseProps = () => ({ colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() });
+
 async function renderView(props) {
-  const view = render(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} {...props} />);
+  const view = render(<TimelapsePackView {...baseProps()} {...props} />);
   await waitFor(() => expect(overlayOf(view.container)).not.toBeNull());
   // The palette is read after the canvases mount; let that paint land.
   await act(async () => {});
@@ -168,7 +171,7 @@ describe('TimelapsePackView background click', () => {
 describe('TimelapsePackView while playing', () => {
   it('a pause does not bring back the circle hovered before play', async () => {
     const tl = timelapse();
-    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const props = baseProps();
     const { container, rerender } = await renderView({ ...props, timelapse: tl });
     hitPath = 'src/ui/a.js';
     fireEvent.mouseMove(overlayOf(container));
@@ -192,7 +195,7 @@ describe('TimelapsePackView across runs', () => {
     const tl = timelapse({ data: DATA3, moveMs: 900 });
     const { container, rerender } = await renderView({ timelapse: tl });
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
-    rerender(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} timelapse={{ ...tl, position: 2 }} />);
+    rerender(<TimelapsePackView {...baseProps()} timelapse={{ ...tl, position: 2 }} />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     act(() => { vi.advanceTimersByTime(450); });
     const [back, front] = [...container.querySelectorAll('canvas')].slice(0, 2).map((c) => Number(c.style.opacity));
@@ -206,7 +209,7 @@ describe('TimelapsePackView across runs', () => {
     const { rerender } = await renderView({ timelapse: tl });
     paintTweenAt.mockClear();
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
-    rerender(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} timelapse={{ ...tl, position: 1 }} />);
+    rerender(<TimelapsePackView {...baseProps()} timelapse={{ ...tl, position: 1 }} />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     act(() => { vi.advanceTimersByTime(450); });
     const ts = paintTweenAt.mock.calls.map(([, t]) => t);
@@ -215,7 +218,7 @@ describe('TimelapsePackView across runs', () => {
 
   it('another history replaces the old one, settled on its own run', async () => {
     const tl = timelapse({ moveMs: 900 });
-    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const props = baseProps();
     const { container, rerender } = await renderView({ ...props, timelapse: tl });
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, data: DATA3, position: 2 }} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(2));
@@ -225,7 +228,7 @@ describe('TimelapsePackView across runs', () => {
   it('keeps its layouts when the playback goes to the latest run and back (no rebuild on a second seek)', async () => {
     createTimelapseLayouts.mockClear();
     const tl = timelapse({ data: DATA3 });
-    const props = { colorMode: 'concentration', currentPath: 'src/ui', onDrillDown: vi.fn() };
+    const props = baseProps();
     const { rerender } = await renderView({ ...props, timelapse: tl });
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 2 }} />);
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 1 }} />);
