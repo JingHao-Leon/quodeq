@@ -1,25 +1,25 @@
-import { SEVERITY } from '../../../vocab/severity.js';
 import { ROW } from './historyRows.js';
 
 /** No areas: shared projects, projects without local runs, failed fetches. */
 export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
 
 /**
- * The worst violation of a file row, or null when it has none.
+ * One file's own stats, the shape the Concentration colour reads.
  * @param {number[]} row a history frame file row
- * @returns {string|null} a SEVERITY value
+ * @returns {{violations:number, compliance:number, weight:number, files:number, critical:number, major:number}}
  */
-export function rowWorstSeverity(row) {
-  if (row[ROW.CRITICAL] > 0) return SEVERITY.CRITICAL;
-  if (row[ROW.MAJOR] > 0) return SEVERITY.MAJOR;
-  return row[ROW.VIOLATIONS] > 0 ? SEVERITY.MINOR : null;
+function rowStats(row) {
+  return {
+    violations: row[ROW.VIOLATIONS], compliance: row[ROW.COMPLIANCE], weight: row[ROW.WEIGHT],
+    files: 1, critical: row[ROW.CRITICAL], major: row[ROW.MAJOR],
+  };
 }
 
 function newArea(entry) {
   return {
     name: entry.area,
     kind: entry.kind,
-    needPct: entry.needPct || 0,
+    density: entry.density || 0,
     touchedShare: entry.touchedShare || 0,
     layers: new Set(),
     dots: [],
@@ -28,15 +28,10 @@ function newArea(entry) {
 }
 
 function addRow(area, row, path, layer) {
-  const s = area.stats;
-  s.violations += row[ROW.VIOLATIONS];
-  s.compliance += row[ROW.COMPLIANCE];
-  s.weight += row[ROW.WEIGHT];
-  s.files += 1;
-  s.critical += row[ROW.CRITICAL];
-  s.major += row[ROW.MAJOR];
+  const own = rowStats(row);
+  for (const key of Object.keys(own)) area.stats[key] += own[key];
   if (layer) area.layers.add(layer);
-  area.dots.push({ path, worst: rowWorstSeverity(row), checks: Math.max(1, row[ROW.VIOLATIONS] + row[ROW.COMPLIANCE]) });
+  area.dots.push({ path, stats: own, checks: Math.max(1, own.violations + own.compliance) });
 }
 
 function isDecodable(payload, frame) {

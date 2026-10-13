@@ -5,7 +5,7 @@ import { t } from '../../../../strings/index.js';
 import { AREA_KIND } from '../../mapVocab.js';
 import { stubResizeObserver } from '../../../../test-utils/packFixture.js';
 
-const area = (name, files, kind) => ({ name, needPct: 0.7, kind, touchedShare: 0.2, layers: ['feature'], dots: [{ path: `${name}/a.kt`, worst: null, checks: 2 }], stats: { violations: 3, compliance: 9, weight: 2, files, critical: 0, major: 1 } });
+const area = (name, files, kind) => ({ name, density: 0.9, kind, touchedShare: 0.2, layers: ['feature'], dots: [{ path: `${name}/a.kt`, stats: { violations: 0, compliance: 2, weight: 0, files: 1, critical: 0, major: 0 }, checks: 2 }], stats: { violations: 3, compliance: 9, weight: 2, files, critical: 0, major: 1 } });
 const READY = { areaSet: { areas: [area('article', 8, AREA_KIND.HOTSPOT), area('tiny', 2, AREA_KIND.SMALL)], files: [], average: 1 }, loading: false, failed: false, unavailable: false };
 const props = (areaState) => ({ areaState, dark: true, showLabels: true, resetKey: 0, onViewDetails: vi.fn(), onShowInPack: vi.fn() });
 

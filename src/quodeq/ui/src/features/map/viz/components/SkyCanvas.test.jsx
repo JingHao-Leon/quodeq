@@ -11,9 +11,9 @@ vi.mock('../core/mapPalette.js', async (importOriginal) => {
   return { ...real, readMapPalette: vi.fn(real.readMapPalette) };
 });
 
-const area = (name, needPct, kind) => ({
-  name, needPct, kind, touchedShare: 0, layers: [],
-  dots: [{ path: `${name}/a`, worst: null, checks: 3 }],
+const area = (name, density, kind) => ({
+  name, density, kind, touchedShare: 0, layers: [],
+  dots: [{ path: `${name}/a`, stats: { violations: 1, compliance: 2, weight: 1, files: 1, critical: 0, major: 0 }, checks: 3 }],
   stats: { violations: 1, compliance: 3, weight: 1, files: 6, critical: 0, major: 0 },
 });
 const AREAS = [area('article', 0.9, AREA_KIND.HOTSPOT), area('search', 0.2, AREA_KIND.HEALTHY)];

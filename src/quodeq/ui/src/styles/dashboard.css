@@ -3452,15 +3452,32 @@
   background: color-mix(in srgb, var(--color-warning) 22%, transparent);
 }
 
-/* "remote · read-only" chip on a shared project's page header (Overview).
-   Same squared-tag shape as the Badge tag variant but in the cyan/accent-info family
-   so it doesn't read as a warning — a shared project isn't a problem state,
-   just a different (read-only) one. */
+/* "remote · read-only" note on a remote project's page header. Header
+   language, not a pill: an accent dot and muted mono text on the title line,
+   so it reads as context, never as a warning or an action. */
 .badge-shared-readonly-group {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
   margin-left: 4px;
+}
+.shared-readonly-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--term-font-mono, var(--font-mono, ui-monospace, monospace));
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: default;
+}
+.shared-readonly-tag__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
 }
 .badge-shared-readonly-pub {
   font-size: 11px;

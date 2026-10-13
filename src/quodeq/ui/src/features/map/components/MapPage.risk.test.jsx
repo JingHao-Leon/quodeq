@@ -47,8 +47,8 @@ describe('MapPage: the Risk tab', () => {
     frames: [{
       files: PATHS.map((_, i) => [i, 1, 1, 2, 0, 0, 0, 0, 0]),
       areas: [
-        { area: 'checkout', files: 6, needPct: 0.8, kind: 'hotspot', touchedShare: 0.5 },
-        { area: 'docs', files: 1, needPct: 0.1, kind: 'small', touchedShare: 0 },
+        { area: 'checkout', files: 6, density: 1.2, kind: 'hotspot', touchedShare: 0.5 },
+        { area: 'docs', files: 1, density: 0.1, kind: 'small', touchedShare: 0 },
       ],
     }],
   };
@@ -100,7 +100,7 @@ describe('MapPage: Show in Circle Pack at the root', () => {
   const AREA_FILES = Array.from({ length: 6 }, (_, i) => `tools/t${i}.py`);
   const HISTORY = {
     activitySource: 'git', fileNames: AREA_FILES, fileArea: AREA_FILES.map(() => 'tools'), fileLayer: AREA_FILES.map(() => 'feature'),
-    frames: [{ files: AREA_FILES.map((_, i) => [i, 1, 1, 2, 0, 0, 0, 0, 0]), areas: [{ area: 'tools', files: 6, needPct: 0.8, kind: 'hotspot', touchedShare: 0.5 }] }],
+    frames: [{ files: AREA_FILES.map((_, i) => [i, 1, 1, 2, 0, 0, 0, 0, 0]), areas: [{ area: 'tools', files: 6, density: 1.2, kind: 'hotspot', touchedShare: 0.5 }] }],
   };
   const api = () => ({ getMapHistory: vi.fn().mockResolvedValue(HISTORY), getGradeFormula: vi.fn().mockResolvedValue(FORMULA) });
 

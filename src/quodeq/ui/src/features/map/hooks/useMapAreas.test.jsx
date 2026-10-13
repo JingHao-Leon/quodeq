@@ -6,7 +6,7 @@ import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 
 const PAYLOAD = {
   activitySource: 'git', fileNames: ['a/x.kt'], fileArea: ['article'], fileLayer: ['feature'],
-  frames: [{ files: [[0, 2, 1, 3, 0, 1, 4, 1, 0]], areas: [{ area: 'article', files: 1, needPct: 0.8, kind: 'hotspot', touchedShare: 1 }] }],
+  frames: [{ files: [[0, 2, 1, 3, 0, 1, 4, 1, 0]], areas: [{ area: 'article', files: 1, density: 1.2, kind: 'hotspot', touchedShare: 1 }] }],
 };
 
 describe('useMapAreas', () => {

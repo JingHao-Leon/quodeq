@@ -12,9 +12,6 @@ export const MAP_PALETTE_TOKENS = Object.freeze({
   glassParent: '--color-map-glass-parent',
   surface: '--color-surface',
   textMuted: '--color-text-muted',
-  sevCritical: '--color-sev-critical-text',
-  sevMajor: '--color-sev-major-text',
-  sevMinor: '--color-sev-minor-text',
 });
 
 /**

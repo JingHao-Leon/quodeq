@@ -20,7 +20,7 @@ function useMeasure(overlayRef, theme) {
 }
 
 function kbdItems(areas, onSelect) {
-  return areas.map((a, i) => [a, i]).sort((p, q) => q[0].needPct - p[0].needPct).slice(0, KBD_MAX)
+  return areas.map((a, i) => [a, i]).sort((p, q) => q[0].density - p[0].density).slice(0, KBD_MAX)
     .map(([a, i]) => ({
       key: a.name,
       text: t(pluralKey(a.stats.violations, 'map.riskAreaAriaOne', 'map.riskAreaAria'), { name: a.name, count: a.stats.violations }),
@@ -45,12 +45,12 @@ function validHover(i, bubbles) {
 
 /** Paint both layers: the static bubbles, and the overlay with veil, ring and labels. */
 function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected }) {
-  const { frame, bubbles, paints, files, labels } = scene;
+  const { frame, rings, bubbles, paints, files, labels } = scene;
   const { palette, font, fontScale } = theme;
   useEffect(() => {
     const ctx = prepareLayer(staticRef.current, size);
-    if (ctx && paints && palette) drawSkyStatic(ctx, { frame, bubbles, paints, files, palette, width: size.w, height: size.h });
-  }, [staticRef, frame, bubbles, paints, files, palette, size]);
+    if (ctx && paints && palette) drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width: size.w, height: size.h });
+  }, [staticRef, frame, rings, bubbles, paints, files, palette, size]);
   useEffect(() => {
     const ctx = prepareLayer(overlayRef.current, size);
     if (!ctx || !palette) return;

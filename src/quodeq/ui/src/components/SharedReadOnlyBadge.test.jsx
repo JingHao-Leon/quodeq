@@ -4,11 +4,13 @@ import '@testing-library/jest-dom/vitest';
 import SharedReadOnlyBadge from './SharedReadOnlyBadge.jsx';
 
 describe('SharedReadOnlyBadge', () => {
-  it('renders the exact "remote · read-only" chip as an info Badge', () => {
-    render(<SharedReadOnlyBadge />);
+  it('renders "remote · read-only" as a dot and muted text, not a boxed pill', () => {
+    const { container } = render(<SharedReadOnlyBadge />);
     const el = screen.getByText('remote · read-only');
-    expect(el).toBeInTheDocument();
-    expect(el).toHaveClass('badge', 'badge--tag', 'badge--info');
+    expect(el).toHaveClass('shared-readonly-tag');
+    expect(el).not.toHaveClass('badge');
+    expect(el).toHaveAttribute('title', 'Remote projects are read-only in this app');
+    expect(container.querySelector('.shared-readonly-tag__dot')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('uses a middle dot, not an em-dash', () => {

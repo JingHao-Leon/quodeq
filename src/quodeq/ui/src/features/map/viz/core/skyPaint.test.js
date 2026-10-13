@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { skyAreaPaint, dotColor, RING_STYLE } from './skyPaint.js';
-import { AREA_KIND } from '../../mapVocab.js';
-import { SEVERITY } from '../../../../vocab/severity.js';
+import { skyAreaPaint, fileDotColor, RING_STYLE } from './skyPaint.js';
+import { badness } from './mapBadness.js';
+import { fileConcentrationColor, rgbCss } from './mapPaint.js';
+import { AREA_KIND, NODE_KIND } from '../../mapVocab.js';
 
 const C = (r, g, b) => ({ r, g, b });
 const PALETTE = {
   bg: C(10, 10, 10), surfaceAlt: C(20, 20, 20), text: C(230, 230, 230), worse: C(240, 80, 120),
-  better: C(0, 212, 255), neutral: C(138, 143, 168), sevCritical: C(255, 74, 74), sevMajor: C(240, 80, 120), sevMinor: C(185, 138, 166),
+  better: C(0, 212, 255), neutral: C(138, 143, 168),
 };
 const area = (kind, stats) => ({ kind, stats: { violations: 0, compliance: 0, weight: 0, files: 5, critical: 0, major: 0, ...stats } });
 
@@ -28,8 +29,15 @@ test('a heavy area takes the worse hue: glass in dark, solid in light', () => {
   assert.notEqual(light.fill, 'rgb(240, 80, 120)');
 });
 
-test('dots by worst violation', () => {
-  assert.equal(dotColor(SEVERITY.CRITICAL, PALETTE), 'rgb(255, 74, 74)');
-  assert.equal(dotColor(SEVERITY.MINOR, PALETTE), 'rgb(185, 138, 166)');
-  assert.equal(dotColor(null, PALETTE), 'rgb(138, 143, 168)');
+const fileStats = (stats) => ({ violations: 0, compliance: 0, weight: 0, files: 1, critical: 0, major: 0, ...stats });
+const packFileColor = (stats, palette) => rgbCss(fileConcentrationColor(badness(stats, 1, NODE_KIND.FILE), palette));
+
+test('dots follow the Circle Pack file colour: issues against the project average', () => {
+  const light = { ...PALETTE, dark: false };
+  const heavy = fileStats({ violations: 4, compliance: 1, weight: 8, major: 2 });
+  const clean = fileStats({ compliance: 6 });
+  assert.equal(fileDotColor(heavy, 1, light), packFileColor(heavy, light));
+  assert.equal(fileDotColor(clean, 1, light), packFileColor(clean, light));
+  assert.notEqual(fileDotColor(heavy, 1, light), fileDotColor(clean, 1, light));
+  assert.equal(fileDotColor(fileStats({}), 1, light), rgbCss(fileConcentrationColor(0, light)));
 });

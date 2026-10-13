@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { layoutSky, needDistance, SKY_RIM, seededAngle } from './skyLayout.js';
+import {
+  layoutSky, densityDistance, densityTop, skyRings, SKY_RIM, seededAngle, FIX_FIRST_DENSITY, WATCH_DENSITY,
+} from './skyLayout.js';
 
 const EPS = 1e-6;
 const MANY = 300;
@@ -12,8 +14,10 @@ const SMALL_SPREAD = 6;
 const TAIL_FILES = 400;
 const TAIL_POWER = 3;
 const SEED_STEP = 0.618034;
-const HALF_NEED = 0.5;
-const area = (name, needPct, files) => ({ name, needPct, stats: { files } });
+const HALF_DENSITY = 0.5;
+const MESSY_TOP = 6;
+const CLEAN = [0, 0.08, 0.15, 0.46];
+const area = (name, density, files) => ({ name, density, stats: { files } });
 
 function overlaps(nodes) {
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
@@ -31,10 +35,35 @@ function timed(input) {
   return { nodes, ms: performance.now() - t0 };
 }
 
-test('more need sits closer to the centre', () => {
-  assert.ok(needDistance(0.9) < needDistance(0.1));
-  const [hot, calm] = layoutSky([area('hot', 0.95, 10), area('calm', 0.05, 10)]);
+test('denser areas sit closer to the centre, a clean area at the outer edge', () => {
+  assert.ok(densityDistance(2, MESSY_TOP) < densityDistance(HALF_DENSITY, MESSY_TOP));
+  assert.ok(densityDistance(0, MESSY_TOP) > densityDistance(HALF_DENSITY, MESSY_TOP));
+  assert.equal(densityDistance(MESSY_TOP * 2, MESSY_TOP), densityDistance(MESSY_TOP, MESSY_TOP));
+  const [hot, calm] = layoutSky([area('hot', 3, 10), area('calm', 0.05, 10)]);
   assert.ok(Math.hypot(hot.x, hot.y) < Math.hypot(calm.x, calm.y));
+});
+
+test('the scale tops out at the densest area, never below the fix-first floor', () => {
+  assert.equal(densityTop(CLEAN.map((d, i) => area(`c${i}`, d, 5))), FIX_FIRST_DENSITY);
+  assert.equal(densityTop([area('a', 0.2, 5), area('b', MESSY_TOP, 5)]), MESSY_TOP);
+  assert.equal(densityTop([]), FIX_FIRST_DENSITY);
+});
+
+test('a clean project: the rings shrink toward the centre and every area sits outside them', () => {
+  const areas = CLEAN.map((d, i) => area(`c${i}`, d, 5));
+  const rings = skyRings(areas);
+  const top = densityTop(areas);
+  assert.ok(areas.every((a) => densityDistance(a.density, top) > rings.watch));
+  assert.ok(rings.fixFirst < rings.watch);
+});
+
+test('a messy project: the rings widen, fix first still inside watch', () => {
+  const clean = skyRings([area('c', 0.2, 5)]);
+  const messy = skyRings([area('m', MESSY_TOP, 5), area('n', 1, 5)]);
+  assert.ok(messy.fixFirst > clean.fixFirst);
+  assert.ok(messy.watch > clean.watch);
+  assert.ok(messy.fixFirst < messy.watch);
+  assert.ok(WATCH_DENSITY < FIX_FIRST_DENSITY);
 });
 
 test('the same areas always land in the same place', () => {
@@ -44,7 +73,7 @@ test('the same areas always land in the same place', () => {
 });
 
 test('hundreds of areas: fast, no overlaps, inside the rim', () => {
-  const input = Array.from({ length: MANY }, (_, i) => area(`a${i}`, (i % 97) / 96, 5 + (i % 40)));
+  const input = Array.from({ length: MANY }, (_, i) => area(`a${i}`, (i % 97) / 24, 5 + (i % 40)));
   const { nodes, ms } = timed(input);
   assert.ok(ms < BUDGET_MS);
   assert.equal(overlaps(nodes), false);
@@ -67,8 +96,8 @@ test('six hundred heavy-tailed areas: fast, no overlaps, inside the rim', () => 
   assert.ok(inside(nodes));
 });
 
-test('hundreds of areas at the same need still separate', () => {
-  const input = Array.from({ length: MANY }, (_, i) => area(`s${i}`, HALF_NEED, SMALL_MIN + (i % SMALL_SPREAD)));
+test('hundreds of areas at the same density still separate', () => {
+  const input = Array.from({ length: MANY }, (_, i) => area(`s${i}`, HALF_DENSITY, SMALL_MIN + (i % SMALL_SPREAD)));
   assert.equal(overlaps(layoutSky(input)), false);
 });
 
