@@ -132,6 +132,26 @@ describe('TimelapsePackView while paused', () => {
 });
 
 describe('TimelapsePackView background click', () => {
+  it('the keyboard list opens a sub-folder like a click does', async () => {
+    const onDrillDown = vi.fn();
+    const view = await renderView({ timelapse: timelapse(), onDrillDown, currentPath: '' });
+    fireEvent.click(view.getByRole('button', { name: 'docs' }));
+    expect(onDrillDown).toHaveBeenCalledWith('docs');
+  });
+
+  it('the keyboard list pauses a playing time-lapse instead of zooming', async () => {
+    const tl = timelapse({ playing: true });
+    const onDrillDown = vi.fn();
+    const view = await renderView({ timelapse: tl, onDrillDown, currentPath: '' });
+    fireEvent.click(view.getByRole('button', { name: 'docs' }));
+    expect([tl.controls.pause.mock.calls.length, onDrillDown.mock.calls.length]).toEqual([1, 0]);
+  });
+
+  it('the overlay canvas is announced as an image of the run', async () => {
+    const { container } = await renderView({ timelapse: timelapse() });
+    expect(overlayOf(container)).toHaveAttribute('role', 'img');
+  });
+
   it('a click outside every circle while paused zooms out', async () => {
     const onDrillDown = vi.fn();
     const { container } = await renderView({ timelapse: timelapse(), onDrillDown });
@@ -194,5 +214,14 @@ describe('TimelapsePackView across runs', () => {
     rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 1 }} />);
     await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(1));
     expect(createTimelapseLayouts).toHaveBeenCalledTimes(1);
+  });
+
+  it('a layout that fails even on this thread leaves the view empty and says why', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const failed = () => Promise.reject(new Error('no layout'));
+    createTimelapseLayouts.mockImplementationOnce(() => ({ anchor: failed, run: failed }));
+    const { container } = render(<TimelapsePackView colorMode="concentration" currentPath="" onDrillDown={vi.fn()} timelapse={timelapse()} />);
+    await waitFor(() => expect(warn).toHaveBeenCalled());
+    expect(overlayOf(container)).toBeNull();
   });
 });

@@ -9,23 +9,32 @@ export const NO_TIMELAPSE = Object.freeze({
   activitySource: ACTIVITY_SOURCE.NONE, fileNames: [], fileArea: [], fileLayer: [], runs: [], checks: [], rowsAt: () => NO_ROWS,
 });
 
-/** The rows after `frame`: a delta frame updates `state`, a full frame replaces it. */
-function applyFrame(state, frame, delta) {
-  const next = delta ? new Map(state) : new Map();
-  if (delta) for (const file of frame.gone || []) next.delete(file);
-  for (const row of frame.files || []) next.set(row[ROW.FILE], row);
-  return next;
+/** Apply `frame` to `rows` in place: a delta frame updates them, a full frame replaces them. */
+function applyFrameInPlace(rows, frame, delta) {
+  if (delta) for (const file of frame.gone || []) rows.delete(file);
+  else rows.clear();
+  for (const row of frame.files || []) rows.set(row[ROW.FILE], row);
 }
 
-/** Rows of run k on demand, replayed from the last run asked for when it is earlier (playback walks forward). */
+/** The first frame to replay for run k: a full frame alone, a delta history from the run held when it is earlier, else from the start. */
+function replayStart(heldK, k, delta) {
+  if (!delta) return k;
+  if (heldK >= 0 && heldK < k) return heldK + 1;
+  return 0;
+}
+
+/**
+ * Rows of run k on demand, replayed from the last run asked for when it is
+ * earlier (playback walks forward). Each read builds one new Map: rows handed
+ * out before are never changed.
+ */
 function rowsReader(frames, delta) {
   let memo = { k: NOT_REPLAYED, rows: NO_ROWS };
   return (k) => {
     if (k === memo.k) return memo.rows;
-    const resume = delta && memo.k >= 0 && memo.k < k;
-    let rows = resume ? memo.rows : NO_ROWS;
-    const first = delta ? (resume ? memo.k + 1 : 0) : k;
-    for (let j = first; j <= k; j++) rows = applyFrame(rows, frames[j], delta);
+    const first = replayStart(memo.k, k, delta);
+    const rows = delta && first > 0 ? new Map(memo.rows) : new Map();
+    for (let j = first; j <= k; j++) applyFrameInPlace(rows, frames[j], delta);
     memo = { k, rows };
     return rows;
   };
@@ -56,9 +65,10 @@ export function decodeTimelapse(payload) {
   const delta = payload.frameEncoding === FRAME_ENCODING.DELTA;
   const runs = [];
   const checks = [];
-  let rows = NO_ROWS;
+  // One working Map for the whole decode: each frame's runs and checks are read from it before the next frame applies.
+  const rows = new Map();
   for (const frame of frames) {
-    rows = applyFrame(rows, frame, delta);
+    applyFrameInPlace(rows, frame, delta);
     runs.push(runOf(frame, rows));
     checks.push(checksOf(rows, payload.fileNames.length));
   }

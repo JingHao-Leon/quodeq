@@ -6,7 +6,7 @@ import { WRAPPER_STYLE } from './canvasLayer.js';
 import { LevelInfoPanel } from './galaxyViewInfo.jsx';
 import { riskAreaInfo, riskLabelText } from './riskAreaInfo.js';
 import { skyAreas } from '../core/skyLayout.js';
-import { clampTooltipToBox } from '../core/tooltipPlacement.js';
+import { hoverWithTooltipPos } from '../core/tooltipPlacement.js';
 import { t } from '../../../../strings/index.js';
 
 function stateMessage({ areaState, bubbles }) {
@@ -43,10 +43,7 @@ export default function RiskView({ areaState, dark, showLabels, resetKey, onView
   const { selected, onSelect, onEscape, skyRef, detailRef } = useRiskSelection(resetKey, bubbles);
   const [hover, setHover] = useState(null);
   useEffect(() => { setHover(null); }, [resetKey, bubbles]);
-  const onHoverAt = useCallback((h) => {
-    const el = containerRef.current;
-    setHover(h && { ...h, pos: clampTooltipToBox(h.x, h.y, el?.offsetWidth, el?.offsetHeight) });
-  }, []);
+  const onHoverAt = useCallback((h) => setHover(hoverWithTooltipPos(h, containerRef.current)), []);
   const message = stateMessage({ areaState, bubbles });
   if (message) return <div className="map-empty-note" role="status">{message}</div>;
   const chosen = selected === null ? null : bubbles[selected];

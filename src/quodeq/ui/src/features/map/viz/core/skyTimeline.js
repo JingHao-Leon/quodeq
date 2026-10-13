@@ -10,13 +10,29 @@ function ghostArea(name, density) {
   return { name, ghost: true, kind: null, density, touchedShare: 0, layers: [], dots: [], stats: NO_STATS };
 }
 
-/** The area's density in the nearest run that has it, earlier runs first on a tie. */
-function nearestDensity(present, name, k) {
-  for (let d = 1; d < present.length; d++) {
-    const hit = present[k - d]?.get(name) || present[k + d]?.get(name);
-    if (hit) return hit.density;
-  }
-  return 0;
+const NO_RUN = -1;
+
+/**
+ * Per run, the area's density in the nearest run that has it, earlier runs
+ * first on a tie (0 when no run has it): one pass each way over the runs.
+ */
+function nearestDensities(present, name) {
+  const n = present.length;
+  const before = new Int32Array(n).fill(NO_RUN);
+  for (let k = 1; k < n; k++) before[k] = present[k - 1].has(name) ? k - 1 : before[k - 1];
+  const after = new Int32Array(n).fill(NO_RUN);
+  for (let k = n - 2; k >= 0; k--) after[k] = present[k + 1].has(name) ? k + 1 : after[k + 1];
+  return Array.from(before, (b, k) => {
+    const a = after[k];
+    const nearest = b === NO_RUN || (a !== NO_RUN && a - k < k - b) ? a : b;
+    return nearest === NO_RUN ? 0 : present[nearest].get(name).density;
+  });
+}
+
+/** The dotted stand-in of an area in a run that has no file of it, densities worked out once per area. */
+function ghostAreas(present, names) {
+  const densities = new Map(names.map((name) => [name, nearestDensities(present, name)]));
+  return (name, k) => ghostArea(name, densities.get(name)[k]);
 }
 
 /**
@@ -44,12 +60,11 @@ function historyKinds(summaries, names) {
  * one top; computed up to the run asked for and kept (a few dozen per run).
  * @returns {function(number): Map<string, {x: number, y: number, r: number}>}
  */
-function settledRuns(summaries, names, top) {
-  const present = summaries.map((s) => s.areas);
+function settledRuns(present, names, top, ghostAt) {
   const nodes = [];
   return (k) => {
     for (let j = nodes.length; j <= k; j++) {
-      const areas = names.map((name) => present[j].get(name) || ghostArea(name, nearestDensity(present, name, j)));
+      const areas = names.map((name) => present[j].get(name) || ghostAt(name, j));
       const laid = j ? layoutSkyFrom(areas, nodes[j - 1], top) : layoutSky(areas, top);
       nodes.push(new Map(areas.map((a, i) => [a.name, laid[i]])));
     }
@@ -76,11 +91,12 @@ export function createSkyTimeline(areaSetAt, runs) {
   const names = [...new Set(summaries.flatMap((s) => s.bubbles))].sort();
   const top = historyTop(summaries, names);
   const rings = ringsAt(top);
-  const nodesAt = settledRuns(summaries, names, top);
+  const ghostAt = ghostAreas(present, names);
+  const nodesAt = settledRuns(present, names, top, ghostAt);
   const empty = Object.freeze({ areas: [], average: 0, rings, nodes: new Map() });
   const sceneOf = cachedRuns((k) => {
     const full = new Map(areaSetAt(k).areas.map((a) => [a.name, a]));
-    const areas = names.map((name) => full.get(name) || ghostArea(name, nearestDensity(present, name, k)));
+    const areas = names.map((name) => full.get(name) || ghostAt(name, k));
     return { areas, average: summaries[k].average, rings, nodes: nodesAt(k) };
   }, SKY_SCENE_CACHE_SIZE);
   return {

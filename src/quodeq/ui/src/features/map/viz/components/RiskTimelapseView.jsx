@@ -9,7 +9,7 @@ import { timelapseNoteText } from './timelapseNote.js';
 import { createSkyTimeline, lerpSkyNodes } from '../core/skyTimeline.js';
 import { TRANSITION } from '../core/timelapseScene.js';
 import { dayDate } from '../core/timelapseBarModel.js';
-import { clampTooltipToBox } from '../core/tooltipPlacement.js';
+import { hoverWithTooltipPos } from '../core/tooltipPlacement.js';
 import { areaSetAt } from '../../model/mapAreas.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
@@ -40,10 +40,7 @@ function useViewNodes(view) {
 function useTimelapseHover(containerRef, { playing, k }) {
   const [held, setHeld] = useState({ k, hover: null });
   if (playing && held.hover !== null) setHeld({ k, hover: null });
-  const onHover = useCallback((h) => {
-    const el = containerRef.current;
-    setHeld({ k, hover: h && { ...h, pos: clampTooltipToBox(h.x, h.y, el?.offsetWidth, el?.offsetHeight) } });
-  }, [containerRef, k]);
+  const onHover = useCallback((h) => setHeld({ k, hover: hoverWithTooltipPos(h, containerRef.current) }), [containerRef, k]);
   return [playing || held.k !== k ? null : held.hover, onHover];
 }
 

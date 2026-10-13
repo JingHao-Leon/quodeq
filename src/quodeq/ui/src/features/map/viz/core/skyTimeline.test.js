@@ -30,6 +30,26 @@ test('a dotted area keeps the density of the nearest run that has it', () => {
   assert.equal(tl.sceneAt(0).areas[2].stats.files, 0);
 });
 
+test('a dotted area between two runs that have it takes the nearer one', () => {
+  const sets = [
+    { areas: [area('alpha', 8), area('delta', 8, 1.5)], average: 1 },
+    { areas: [area('alpha', 8)], average: 1 },
+    { areas: [area('alpha', 8)], average: 1 },
+    { areas: [area('alpha', 8), area('delta', 8, 2.5)], average: 1 },
+  ];
+  const tl = createSkyTimeline((k) => sets[k], [...RUNS, { day: '2026-09-22' }]);
+  assert.deepEqual([1, 2].map((k) => tl.sceneAt(k).areas[1].density), [1.5, 2.5]);
+});
+
+test('a dotted area at the midpoint of two runs that have it takes the earlier one', () => {
+  const sets = [
+    { areas: [area('alpha', 8), area('delta', 8, 1.5)], average: 1 },
+    { areas: [area('alpha', 8)], average: 1 },
+    { areas: [area('alpha', 8), area('delta', 8, 2.5)], average: 1 },
+  ];
+  assert.equal(createSkyTimeline((k) => sets[k], RUNS).sceneAt(1).areas[1].density, 1.5);
+});
+
 test('one scale for the whole history: the rings never move between runs', () => {
   const tl = timeline();
   const top = densityTop(SETS.flatMap((s) => s.areas));

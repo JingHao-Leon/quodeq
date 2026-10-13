@@ -1,6 +1,6 @@
 import { hierarchy } from 'd3-hierarchy';
 import { buildPackPaint } from './packPaint.js';
-import { XYR_STRIDE } from './packLayout.js';
+import { XYR_STRIDE, XYR_Y as Y, XYR_R as R } from './packLayout.js';
 import { GHOST_STROKE_ALPHA } from './packLayers.js';
 import { CROSSFADE_CHURN, fileChurn } from './timelapseLayout.js';
 import { rgbCss } from './mapPaint.js';
@@ -13,8 +13,6 @@ export const TRANSITION = Object.freeze({ NONE: 'none', MOVE: 'move', FADE: 'fad
 export const ABSENCE = Object.freeze({ GONE_SINCE: 'goneSince', FIRST_APPEARS: 'firstAppears' });
 /** Runs whose node data or paint are kept per view. */
 export const RUN_SCENE_CACHE_SIZE = 12;
-const Y = 1;
-const R = 2;
 const PATH_SEP = '/';
 const NO_SEVERITY = Object.freeze({ critical: 0, major: 0, minor: 0 });
 

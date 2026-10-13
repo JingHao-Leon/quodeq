@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useCanvasSize } from './galaxyCanvasSize.js';
-import { prepareLayer, useLayerTheme, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
+import { prepareLayer, useLayerTheme, WRAPPER_STYLE, LAYER_STYLE, KBD_MAX } from './canvasLayer.js';
 import { drawStatic, drawOverlay } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle, focusTransformFor } from '../core/packCanvasGeometry.js';
 import { useTweenedTransform } from '../core/packTween.js';
 import { circleAt } from '../core/packLayout.js';
 import { runPaint, movePaint, lerpXyr, screenCoordsInto, cachedRuns, TRANSITION } from '../core/timelapseScene.js';
 import { KEY } from '../../../../vocab/keyboard.js';
+import { t } from '../../../../strings/index.js';
+import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.jsx';
 
 /** Paint per run for this mode, theme and formula, cached. */
 function usePaintAt({ model, nodeDataAt, colorMode, palette, weights }) {
@@ -88,6 +90,23 @@ function usePointer({ model, coords, viewport, focusIndex, interaction, settled 
   };
 }
 
+/**
+ * The keyboard's way in: one focusable button per sub-folder of the focused
+ * folder, doing what a click on that folder does (pause while playing, else
+ * zoom in). Escape on the canvas zooms out.
+ */
+function useFolderItems({ model, focusIndex, interaction }) {
+  const { playing, pause, onDrillDown } = interaction;
+  return useMemo(() => {
+    const folders = (model.nodes[focusIndex].children || []).filter((c) => c.children).slice(0, KBD_MAX);
+    return folders.map((c) => ({
+      key: c.data.path,
+      text: c.data.name,
+      onActivate: () => (playing ? pause() : onDrillDown(c.data.path)),
+    }));
+  }, [model, focusIndex, playing, pause, onDrillDown]);
+}
+
 /** Both static canvases, redrawn only when the run on screen, the camera or the canvas changes (never on hover). */
 function useStaticLayers({ refs, coords, layers, camera, viewport, size, model }) {
   useEffect(() => {
@@ -134,12 +153,16 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   }, [layers, camera, viewport, size, model, theme, interaction.hover, interaction.showLabels, focusIndex, settled, target]);
 
   const pointer = usePointer({ model, coords: coords.front, viewport, focusIndex, interaction, settled });
+  const folders = useFolderItems({ model, focusIndex, interaction });
   return (
-    <div style={WRAPPER_STYLE}>
-      <canvas ref={refs.back} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.backAlpha : 0 }} />
-      <canvas ref={refs.front} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.alpha : 1 }} />
-      <canvas ref={refs.overlay} className="viz-focusable" tabIndex={0} aria-label={label}
-        style={{ ...LAYER_STYLE, cursor: interaction.hover === null ? 'default' : 'pointer' }} {...pointer} />
-    </div>
+    <>
+      <div style={WRAPPER_STYLE}>
+        <canvas ref={refs.back} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.backAlpha : 0 }} />
+        <canvas ref={refs.front} aria-hidden="true" style={{ ...LAYER_STYLE, opacity: layers ? layers.alpha : 1 }} />
+        <canvas ref={refs.overlay} className="viz-focusable" tabIndex={0} role="img" aria-label={label}
+          style={{ ...LAYER_STYLE, cursor: interaction.hover === null ? 'default' : 'pointer' }} {...pointer} />
+      </div>
+      <ChartKeyboardControls label={t('map.timelapseKbdLabel')} items={folders} />
+    </>
   );
 }

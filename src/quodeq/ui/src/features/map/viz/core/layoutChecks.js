@@ -1,5 +1,5 @@
 import { forNeighbourPairs } from './circleGrid.js';
-import { PACK_BASE_SIZE, XYR_STRIDE, circleAt } from './packLayout.js';
+import { PACK_BASE_SIZE, XYR_STRIDE, XYR_R as R, circleAt } from './packLayout.js';
 
 // Invariant checks and statistics over layout arrays (x, y, r per node), for
 // the time-lapse tests, the performance budget and the real-data measurement.
@@ -7,7 +7,6 @@ import { PACK_BASE_SIZE, XYR_STRIDE, circleAt } from './packLayout.js';
 /** Sibling overlap the spec tolerates, in layout units (the map is PACK_BASE_SIZE across). */
 export const OVERLAP_TOLERANCE = 1;
 const EPS = 1e-3;
-const R = 2;
 
 /** How many drawn circles reach outside their parent. */
 export function childrenOutside(parent, xyr) {

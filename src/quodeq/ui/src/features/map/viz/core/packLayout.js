@@ -10,6 +10,10 @@ export const PACK_BASE_SIZE = 600;
 export const PACK_WORKER_NODE_THRESHOLD = 2000;
 /** Numbers per node in a layout array: x, y, r. */
 export const XYR_STRIDE = 3;
+/** Offset of a node's y within its stride of a layout array. */
+export const XYR_Y = 1;
+/** Offset of a node's radius within its stride of a layout array. */
+export const XYR_R = 2;
 
 /** Circle `i` of a layout array (x, y, r per node) as `{x, y, r}`. */
 export function circleAt(xyr, i) {

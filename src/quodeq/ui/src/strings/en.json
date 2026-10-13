@@ -1921,6 +1921,7 @@
   "map.timelapseLegendFixed": "fixed",
   "map.timelapsePackAria": "Circle pack at {date}",
   "map.timelapseRiskAria": "Risk sky at {date}",
+  "map.timelapseKbdLabel": "Folders to zoom into",
   "map.timelapseGoneSince": "Gone since {date}",
   "map.timelapseFirstAppears": "First appears {date}",
   "map.timelapseLoading": "Loading the time-lapse",

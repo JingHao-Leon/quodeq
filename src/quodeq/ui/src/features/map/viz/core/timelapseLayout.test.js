@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { anchorLayout, runLayout, fileChurn, LAYOUT_MODE, TIMELAPSE_LAYOUT_MODE, CROSSFADE_CHURN } from './timelapseLayout.js';
 import { childrenOutside, maxSiblingOverlap, folderMovements, percentile, OVERLAP_TOLERANCE } from './layoutChecks.js';
 import { syntheticModel } from './timelapseSynthetic.js';
-import { PACK_BASE_SIZE, XYR_STRIDE } from './packLayout.js';
+import { PACK_BASE_SIZE, XYR_STRIDE, XYR_R as R } from './packLayout.js';
 
 const FILES = 600;
 const RUNS = 12;
@@ -12,7 +12,6 @@ const EPS = 1e-3;
 const MOVE_P90_MAX = 0.02;
 const MODEL = syntheticModel({ files: FILES, runs: RUNS, seed: 3 });
 const ANCHOR = anchorLayout(MODEL);
-const R = 2;
 const runs = (mode) => Array.from({ length: RUNS }, (_, k) => runLayout(MODEL, ANCHOR, k, mode));
 const RELAXED = runs(LAYOUT_MODE.RELAX);
 const SLOTS = runs(LAYOUT_MODE.FIXED_SLOTS);

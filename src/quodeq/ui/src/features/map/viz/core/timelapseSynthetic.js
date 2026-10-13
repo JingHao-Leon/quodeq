@@ -74,6 +74,13 @@ function fileHistory({ files, runs, churn }, rand) {
   return (f, k) => (born[f] <= k && k < gone[f] ? base[f] + ((k + f) % SIZE_WOBBLE) : 0);
 }
 
+/** Per node, its largest size over the runs (at least 1 for a file, 0 for a folder), in one pass over the runs. */
+function largestSizes(sizes, fileOf) {
+  const max = Float32Array.from(fileOf, (f) => (f === NO_FILE ? 0 : 1));
+  for (const run of sizes) for (let i = 0; i < run.length; i++) if (run[i] > max[i]) max[i] = run[i];
+  return max;
+}
+
 /**
  * A history of `runs` runs over `files` files: files are born over the first
  * runs, a `churn` share leaves later, and check counts wobble a little.
@@ -84,8 +91,7 @@ export function syntheticModel({ files, runs, seed = 1, churn = SMALL_CHURN }) {
   const { parent, fileOf } = bfsTree(syntheticPaths(files, rand));
   const checkAt = fileHistory({ files, runs, churn }, rand);
   const sizes = Array.from({ length: runs }, (_, k) => Float32Array.from(fileOf, (f) => (f === NO_FILE ? 0 : checkAt(f, k))));
-  const maxSize = Float32Array.from(fileOf, (f, i) => (f === NO_FILE ? 0 : Math.max(1, ...sizes.map((s) => s[i]))));
-  return { parent, fileOf, sizes, maxSize };
+  return { parent, fileOf, sizes, maxSize: largestSizes(sizes, fileOf) };
 }
 
 function syntheticRow(f, checks, k) {

@@ -40,3 +40,12 @@ test('a payload without frames decodes to nothing', () => {
   assert.equal(decodeTimelapse(null), NO_TIMELAPSE);
   assert.equal(decodeTimelapse({ fileNames: [], frames: [] }), NO_TIMELAPSE);
 });
+
+test('rows handed out for a run never change when a later run is read', () => {
+  const { rowsAt } = decodeTimelapse(payload(DELTA_FRAMES, 'delta'));
+  const first = rowsAt(0);
+  const held = [...first];
+  rowsAt(1);
+  rowsAt(2);
+  assert.deepEqual([...first], held);
+});

@@ -1,5 +1,5 @@
 import { packEnclose } from 'd3-hierarchy';
-import { packSlim, XYR_STRIDE } from './packLayout.js';
+import { packSlim, XYR_STRIDE, XYR_Y as Y, XYR_R as R } from './packLayout.js';
 import { SIBLING_GAP_SCALE, SIBLING_GAP_MIN, FOLDER_MARGIN_SCALE, FOLDER_MARGIN_MIN } from './proportionalPack.js';
 import { forNeighbourPairs } from './circleGrid.js';
 
@@ -32,8 +32,6 @@ const RELAX_ITERATIONS = 40;
 const SETTLE_PASSES = 12;
 const ALL_PAIRS_MAX = 48;    // smaller sibling groups check every pair; larger ones use the grid
 const NUDGE = 1e-6;
-const Y = 1;
-const R = 2;
 
 const childCache = new WeakMap();
 
@@ -135,6 +133,11 @@ function placeRun(model, anchor, geo, scale) {
   return out;
 }
 
+/** A file's unscaled radius in a run: the root of its checks, or the small reserved size when it is absent. */
+function leafRadius(size) {
+  return size > 0 ? Math.sqrt(Math.max(1, size)) : ABSENT_LEAF_RADIUS;
+}
+
 function relaxedRun(model, anchor, k) {
   const kids = childLists(model.parent);
   const n = model.parent.length;
@@ -142,7 +145,7 @@ function relaxedRun(model, anchor, k) {
   const scale = leafScale(model, anchor);
   const size = model.sizes[k];
   for (let i = n - 1; i >= 0; i--) {
-    if (kids[i].length === 0) geo.r[i] = size[i] > 0 ? Math.sqrt(Math.max(1, size[i])) : ABSENT_LEAF_RADIUS;
+    if (kids[i].length === 0) geo.r[i] = leafRadius(size[i]);
     else geo.r[i] = settleFolder(kids[i], { i, geo, anchor, scale });
   }
   return placeRun(model, anchor, geo, scale);
@@ -156,7 +159,7 @@ function fixedSlotsRun(model, anchor, k) {
   for (let i = 0; i < model.parent.length; i++) {
     if (kids[i].length) continue;
     const o = i * XYR_STRIDE + R;
-    out[o] = Math.min(anchor[o], (size[i] > 0 ? Math.sqrt(Math.max(1, size[i])) : ABSENT_LEAF_RADIUS) * scale);
+    out[o] = Math.min(anchor[o], leafRadius(size[i]) * scale);
   }
   return out;
 }
