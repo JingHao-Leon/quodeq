@@ -44,16 +44,27 @@ function quantile(sorted, p) {
 }
 
 /**
+ * How far above the second-densest area the scale top may reach. One runaway
+ * area may not stretch the scale for every other area; with few areas the
+ * percentile sits next to the max and cannot hold it back on its own.
+ */
+export const OUTLIER_CAP = 2;
+
+/**
  * The density the sky's scale tops out at: the SKY_TOP_PERCENTILE of the
- * areas' densities, never below the fix-first floor, so a clean project keeps
+ * areas' densities, capped at OUTLIER_CAP times the second-densest area (when
+ * there is one), never below the fix-first floor, so a clean project keeps
  * its areas off the centre. Areas above it sit at the innermost distance.
+ * The live sky and the time-lapse's history-wide top both use it.
  * @param {{density: number}[]} areas
  * @returns {number} weighted findings per file
  */
 export function densityTop(areas) {
   if (!areas.length) return FIX_FIRST_DENSITY;
   const sorted = areas.map((a) => a.density || 0).sort((a, b) => a - b);
-  return Math.max(FIX_FIRST_DENSITY, quantile(sorted, SKY_TOP_PERCENTILE));
+  const percentile = quantile(sorted, SKY_TOP_PERCENTILE);
+  const capped = sorted.length > 1 ? Math.min(percentile, OUTLIER_CAP * sorted[sorted.length - 2]) : percentile;
+  return Math.max(FIX_FIRST_DENSITY, capped);
 }
 
 /**

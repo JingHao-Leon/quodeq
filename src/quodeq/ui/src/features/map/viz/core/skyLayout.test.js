@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   layoutSky, layoutSkyFrom, skyAreas, densityDistance, densityTop, skyRings, ringsAt, SKY_RIM, seededAngle,
-  FIX_FIRST_DENSITY, WATCH_DENSITY, SKY_TOP_PERCENTILE,
+  FIX_FIRST_DENSITY, WATCH_DENSITY, SKY_TOP_PERCENTILE, OUTLIER_CAP,
 } from './skyLayout.js';
 
 const EPS = 1e-6;
@@ -63,6 +63,32 @@ test('the scale tops out at a high percentile of the densities, never below the 
   assert.ok(Math.abs(densityTop(spread()) - expected) < EPS);
   assert.ok(densityTop(spread()) < SPREAD_MAX);
   assert.equal(densityTop([]), FIX_FIRST_DENSITY);
+});
+
+const BENCHMARK_LIKE = [4.41, 0.94, 0.6];
+const BENCHMARK_TOP = 1.88;
+const MID_SKY = [0.3, 0.6];
+
+test('with few areas, one runaway area is capped at twice the second densest', () => {
+  assert.equal(OUTLIER_CAP, 2);
+  const areas = BENCHMARK_LIKE.map((d, i) => area(`b${i}`, d, SMALL_MIN));
+  const top = densityTop(areas);
+  assert.ok(Math.abs(top - BENCHMARK_TOP) < EPS, `${top}`);
+  assert.equal(densityDistance(BENCHMARK_LIKE[0], top), densityDistance(top, top));
+  const second = densityDistance(BENCHMARK_LIKE[1], top);
+  assert.ok(second > MID_SKY[0] && second < MID_SKY[1], `${second}`);
+});
+
+test('without a runaway area the cap does not bite: the percentile stands', () => {
+  const sorted = spread().map((a) => a.density);
+  const at = (sorted.length - 1) * SKY_TOP_PERCENTILE;
+  const lo = Math.floor(at);
+  assert.ok(Math.abs(densityTop(spread()) - (sorted[lo] + (sorted[lo + 1] - sorted[lo]) * (at - lo))) < EPS);
+});
+
+test('a single area has no second to cap against: its own density, or the floor', () => {
+  assert.equal(densityTop([area('only', MESSY_TOP, SMALL_MIN)]), MESSY_TOP);
+  assert.equal(densityTop([area('only', HALF_DENSITY, SMALL_MIN)]), FIX_FIRST_DENSITY);
 });
 
 test('one extreme area no longer pushes every other area outward', () => {
