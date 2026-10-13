@@ -6,7 +6,7 @@ from collections.abc import Iterable, Sequence
 from datetime import date
 
 from quodeq.core.map_history.activity import first_seen_index
-from quodeq.core.map_history.snapshot import RunSnapshot, ids_in_dims, is_violation
+from quodeq.core.map_history.snapshot import RunSnapshot, is_violation
 
 # The leading characters of an ISO timestamp that make up its calendar day.
 ISO_DAY_LEN = 10
@@ -64,19 +64,34 @@ def ages_from_starts(days: list[str], starts: list[dict[str, int]]) -> list[dict
             for k, run in enumerate(starts)]
 
 
-def _flow(prev: RunSnapshot, cur: RunSnapshot, prev_ids: set[str], cur_ids: set[str]) -> tuple[int, int]:
-    """``(new, fixed)`` from *prev* to *cur*, over the dimensions both runs ran."""
-    shared = set(prev.dims) & set(cur.dims)
-    before, after = ids_in_dims(prev_ids, shared), ids_in_dims(cur_ids, shared)
-    return len(after - before), len(before - after)
+def violation_counts(snapshot: RunSnapshot, ids: set[str] | None = None) -> Counter[str]:
+    """Every violation identity in *snapshot* with how often it was found (what the issue count adds up).
 
-
-def finding_flows(snapshots: list[RunSnapshot], violations: list[set[str]], runs: list[int]) -> dict[int, tuple[int, int]]:
-    """``(new, fixed)`` violation counts of each run index in *runs* against the run before it (``(0, 0)`` for the first).
-
-    *violations* are each run's ``violation_ids``, oldest first. Only the
-    dimensions both runs ran are compared, so a run that skipped a dimension
-    neither fixes nor reintroduces its findings.
+    *ids* are the snapshot's ``violation_ids`` when already known.
     """
-    return {k: _flow(snapshots[k - 1], snapshots[k], violations[k - 1], violations[k]) if k else (0, 0)
+    counts = Counter(violation_ids(snapshot) if ids is None else ids)
+    for stat in snapshot.files.values():
+        counts.update(dict(stat.repeats))
+    return counts
+
+
+def finding_flows(snapshots: list[RunSnapshot], violations: list[set[str]],
+                  runs: list[int]) -> dict[int, tuple[int, int]]:
+    """``(new, fixed)`` violations of each run index in *runs* against the run before it (``(0, 0)`` for the first).
+
+    *snapshots* are oldest first and carry every dimension forward
+    (``carry_forward``): a dimension a run did not report still holds its
+    earlier findings, so it neither fixes nor reintroduces them, and a
+    dimension's first run brings its findings in as new. *violations* are each
+    run's ``violation_ids``. Every occurrence counts, so ``new - fixed`` is the
+    change in the run's issue count.
+    """
+    counted: dict[int, Counter[str]] = {}
+
+    def counts(k: int) -> Counter[str]:
+        if k not in counted:
+            counted[k] = violation_counts(snapshots[k], violations[k])
+        return counted[k]
+
+    return {k: ((counts(k) - counts(k - 1)).total(), (counts(k - 1) - counts(k)).total()) if k else (0, 0)
             for k in runs}

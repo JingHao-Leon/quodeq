@@ -30,6 +30,8 @@ class FileStat:
     weight: float = 0.0
     ids: frozenset[str] = field(default_factory=frozenset)   # dimension-qualified finding identities (violations + compliance)
     dims: frozenset[str] = field(default_factory=frozenset)  # dimensions with any finding in this file
+    # ``(violation id, occurrences beyond the first)`` of each violation found more than once here
+    repeats: frozenset[tuple[str, int]] = field(default_factory=frozenset)
 
     @property
     def violations(self) -> int:

@@ -9,6 +9,7 @@ rebuilds a stored run.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
@@ -157,7 +158,7 @@ def _file_stat(raw: RawFile, records: Mapping[str, ViolationRecord], hidden: Col
     """*raw* without its hidden records, weighed; None when nothing of the file is left."""
     counts = dict.fromkeys(_SEVERITIES, 0)
     weight = 0.0
-    ids = set(raw.marks)
+    found: Counter[str] = Counter()
     dims = {finding_dimension(m) for m in raw.marks}
     for key in raw.violations:
         if key in hidden:
@@ -166,12 +167,13 @@ def _file_stat(raw: RawFile, records: Mapping[str, ViolationRecord], hidden: Col
         sev = tallied_severity(record.severity, weights)
         counts[sev] += 1
         weight += weights.get(sev, 0.0)
-        ids.add(record.fid)
+        found[record.fid] += 1
         dims.add(record.subject.dimension)
-    if not ids:
+    if not found and not raw.marks:
         return None
     return FileStat(counts[Severity.CRITICAL], counts[Severity.MAJOR], counts[Severity.MINOR], sum(raw.compliance),
-                    weight, frozenset(ids), frozenset(dims))
+                    weight, frozenset(raw.marks).union(found), frozenset(dims),
+                    frozenset((fid, n - 1) for fid, n in found.items() if n > 1))
 
 
 def materialise(run: RawRun, records: Mapping[str, ViolationRecord], hidden: Collection[str],

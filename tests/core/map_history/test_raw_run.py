@@ -78,6 +78,15 @@ def test_a_repeated_finding_counts_twice_under_one_record():
     assert materialise(built.run, built.records, set()).files["a.py"].major == 2
 
 
+def test_a_repeated_finding_is_listed_as_a_repeat_unless_hidden():
+    first, again = _violation("a.py", "major"), _violation("a.py", "major", line=9)
+    built = build_raw_run([("sec", {"violations": [first, first, again]})], _subject)
+    stat = materialise(built.run, built.records, set()).files["a.py"]
+    assert stat.repeats == {(finding_id("sec", VIOLATION, first), 2)}
+    hidden = {k for k, r in built.records.items() if r.subject.line == 9}
+    assert materialise(built.run, built.records, hidden).files["a.py"].repeats == {(finding_id("sec", VIOLATION, first), 1)}
+
+
 def test_non_dict_entries_and_non_string_severities():
     reports = [("security", {"violations": ["oops", None, {**_violation("a.py", "major"), "severity": ["major"]}],
                              "compliance": [3, {"file": "b.py"}]})]

@@ -104,6 +104,9 @@ def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: Ru
                      frame_runs: list[int]) -> MapHistory:
     """The history of *snapshots* (one per day of *days*, oldest first) with frames for the run indexes *frame_runs*.
 
+    Each snapshot carries every dimension forward (``carry_forward``), so it is
+    the accumulated view as of its day.
+
     Area kinds are smoothed over every run, so every run is measured; file rows
     and flows are built only for the requested frames.
     """

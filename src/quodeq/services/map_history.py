@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from quodeq.core.map_history.activity import estimate_edits
+from quodeq.core.map_history.carry import carry_forward
 from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
 from quodeq.core.map_history.raw_run import (
     RawHistory, RawHistoryWrite, RawRun, ViolationRecord, build_raw_run, materialise, referenced_records,
@@ -181,9 +182,11 @@ def _save(rows: ProjectRows, picked: dict[str, _DayRun], keys: dict[str, str]) -
 def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
     """Oldest-first days and snapshots of the full runs, one per day (the last of that day).
 
-    Only finished runs are read from or stored in the cache, and reports are
-    read only for runs it does not hold; a run whose readable reports fall
-    short of a full run gives way to the day's previous run.
+    A run's snapshot is the accumulated view as of its day: a dimension it did
+    not report is carried from the latest earlier run that did. Only finished
+    runs are read from or stored in the cache, and reports are read only for
+    runs it does not hold; a run whose readable reports fall short of a full
+    run gives way to the day's previous run.
     """
     candidates = _candidates(rows)
     if not candidates:
@@ -195,7 +198,7 @@ def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
               if (got := _day_run(rows, group, stored, need)) is not None}
     _save(rows, picked, keys)
     records = {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}}
-    runs = [p.run for p in picked.values()]
+    runs = carry_forward([p.run for p in picked.values()], records)
     hidden = _hidden(rows, records, referenced_records(runs))
     weights: Mapping[str, float] = rows.params.severity_weight
     return list(picked), [materialise(run, records, hidden, weights) for run in runs]
