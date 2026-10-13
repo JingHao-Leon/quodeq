@@ -4,16 +4,16 @@ import { riskAreaInfo } from './riskAreaInfo.js';
 import { t } from '../../../../strings/index.js';
 import { AREA_KIND } from '../../mapVocab.js';
 
-const area = (kind) => ({
-  name: 'article', kind, needPct: 0.99, touchedShare: 0.2, layers: ['feature'],
+const area = (kind, density) => ({
+  name: 'article', kind, density, touchedShare: 0.2, layers: ['feature'],
   stats: { files: 3, violations: 2, critical: 0, major: 1 },
 });
-const hasNeedLine = (info) => info.lines.some((l) => l.label === t('map.riskNeed'));
+const densityLine = (info) => info.lines.find((l) => l.label === t('map.riskDensity'));
 
-test('a judged area says how its need compares with the other areas', () => {
-  assert.ok(hasNeedLine(riskAreaInfo(area(AREA_KIND.WATCH))));
+test('an area shows its weighted issues per file, the measure that places it', () => {
+  assert.equal(densityLine(riskAreaInfo(area(AREA_KIND.WATCH, 1.23456))).value, '1.23');
 });
 
-test('an area too small to judge leaves out the need comparison', () => {
-  assert.ok(!hasNeedLine(riskAreaInfo(area(AREA_KIND.SMALL))));
+test('the measure is absolute, so a small or clean area shows it too', () => {
+  assert.equal(densityLine(riskAreaInfo(area(AREA_KIND.SMALL, 0))).value, '0.00');
 });

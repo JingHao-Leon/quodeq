@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength,
+  mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength, fileConcentrationColor,
   activityScale, activityFileStrength, activityFolderStrength,
 } from './mapPaint.js';
 
@@ -34,6 +34,13 @@ test('file strength stays inside its band', () => {
   assert.ok(close(fileStrength(0, true), 0.45));
   assert.ok(close(fileStrength(1, true), 1));
   assert.ok(close(fileStrength(1, false), 0.92));
+});
+
+test('a file circle mixes its badness hue into the page background by its file strength', () => {
+  const light = { ...PALETTE, bg: WHITE, dark: false };
+  assert.deepEqual(fileConcentrationColor(1, light), mixRgb(WHITE, RED, fileStrength(1, false)));
+  assert.deepEqual(fileConcentrationColor(-1, { ...light, bg: BLACK, dark: true }), mixRgb(BLACK, CYAN, fileStrength(-1, true)));
+  assert.deepEqual(fileConcentrationColor(0, light), mixRgb(WHITE, GREY, fileStrength(0, false)));
 });
 
 test('activity scale is the 90th percentile of edited files, at least 2', () => {

@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decodeAreas, rowWorstSeverity, NO_AREAS } from './mapAreas.js';
-import { SEVERITY } from '../../../vocab/severity.js';
+import { decodeAreas, NO_AREAS } from './mapAreas.js';
 
 const PAYLOAD = {
   fileNames: ['a/x.kt', 'a/y.kt', 'b/z.py', 'gone.py'],
@@ -10,17 +9,24 @@ const PAYLOAD = {
   frames: [{
     files: [[0, 4, 1, 3, 1, 0, 0, 0, 0], [1, 0.25, 1, 9, 0, 0, 0, 0, 0], [2, 0, 0, 5, 0, 0, 0, 0, 0]],
     areas: [
-      { area: 'article', files: 2, needPct: 0.9, kind: 'hotspot', touchedShare: 0.5 },
-      { area: 'api', files: 1, needPct: 0.1, kind: 'small', touchedShare: 0 },
+      { area: 'article', files: 2, density: 2.125, kind: 'hotspot', touchedShare: 0.5 },
+      { area: 'api', files: 1, kind: 'small', touchedShare: 0 },
     ],
   }],
 };
 
-test('the worst violation of a row', () => {
-  assert.equal(rowWorstSeverity([0, 0, 2, 0, 1, 1]), SEVERITY.CRITICAL);
-  assert.equal(rowWorstSeverity([0, 0, 2, 0, 0, 1]), SEVERITY.MAJOR);
-  assert.equal(rowWorstSeverity([0, 0, 2, 0, 0, 0]), SEVERITY.MINOR);
-  assert.equal(rowWorstSeverity([0, 0, 0, 4, 0, 0]), null);
+test('each file dot carries its own stats, the inputs of the Circle Pack file colour', () => {
+  const article = decodeAreas(PAYLOAD).areas.find((a) => a.name === 'article');
+  assert.deepEqual(article.dots[0], {
+    path: 'a/x.kt', checks: 4,
+    stats: { violations: 1, compliance: 3, weight: 4, files: 1, critical: 1, major: 0 },
+  });
+});
+
+test('areas carry their findings per file, zero when the payload has none', () => {
+  const { areas } = decodeAreas(PAYLOAD);
+  assert.equal(areas.find((a) => a.name === 'article').density, 2.125);
+  assert.equal(areas.find((a) => a.name === 'api').density, 0);
 });
 
 test('areas carry their files, summed stats and shown layers', () => {

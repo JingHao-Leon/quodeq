@@ -1,6 +1,6 @@
 import { badness, nodeWeight } from './mapBadness.js';
 import {
-  mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength, activityScale, activityFileStrength,
+  mixRgb, rgbCss, badnessHue, badnessStrength, fileConcentrationColor, activityScale, activityFileStrength,
   activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE,
   ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
@@ -74,8 +74,7 @@ function concentrationPaint(n, ctx) {
   const b = badness(statsOf(n, ctx.agg.get(n)), ctx.average, kind);
   const hue = badnessHue(b, ctx.palette);
   if (kind === NODE_KIND.FILE) {
-    const fill = rgbCss(mixRgb(ctx.palette.bg, hue, fileStrength(b, ctx.palette.dark)));
-    return { fill, alpha: 1, cutOut: false, file: true, badness: b, hue };
+    return { fill: rgbCss(fileConcentrationColor(b, ctx.palette)), alpha: 1, cutOut: false, file: true, badness: b, hue };
   }
   const strength = badnessStrength(b, ctx.palette.dark);
   return { ...folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette }), file: false, badness: b, hue };

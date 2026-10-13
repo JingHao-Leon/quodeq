@@ -5,11 +5,13 @@ import { clamp } from './mapBadness.js';
 export const SKY_MIN_FILES = 5;
 /** The sky's edge, in units of its radius. */
 export const SKY_RIM = 0.95;
-// Distance from the centre: most need at NEED_INNER, least at NEED_INNER + NEED_SPAN.
+// Distance from the centre: densest at NEED_INNER, no findings at NEED_INNER + NEED_SPAN.
 const NEED_INNER = 0.12;
 const NEED_SPAN = 0.72;
-const FIX_FIRST_NEED = 0.6;
-const WATCH_NEED = 0.4;
+/** "Fix first" ring, weighted findings per file: mirrors FLOOR_HOTSPOT in core/map_history/area_metrics.py. */
+export const FIX_FIRST_DENSITY = 0.75;
+/** "Watch" ring, weighted findings per file: mirrors FLOOR_DORMANT in core/map_history/area_metrics.py. */
+export const WATCH_DENSITY = 0.5;
 const R_BASE = 0.014;
 const R_PER_SQRT_FILE = 0.0068;
 const GAP = 0.012;             // empty space kept between neighbouring bubbles
@@ -27,18 +29,38 @@ const HALF = 0.5;
 const SLACK = 1e-9;
 
 /**
- * How far from the centre an area with this need percentile sits.
- * @param {number} needPct need percentile, 0..1
- * @returns {number} distance in sky-radius units
+ * The density the sky's scale tops out at: the project's densest area, never
+ * below the fix-first floor, so a clean project keeps its areas off the centre.
+ * @param {{density: number}[]} areas
+ * @returns {number} weighted findings per file
  */
-export function needDistance(needPct) {
-  return NEED_INNER + (1 - clamp(needPct, 0, 1)) * NEED_SPAN;
+export function densityTop(areas) {
+  return areas.reduce((top, a) => Math.max(top, a.density || 0), FIX_FIRST_DENSITY);
 }
 
-/** Ring distance for the "fix first" band label (need 0.6). */
-export const RING_FIX_FIRST = needDistance(FIX_FIRST_NEED);
-/** Ring distance for the "watch" band label (need 0.4). */
-export const RING_WATCH = needDistance(WATCH_NEED);
+/**
+ * How far from the centre an area with this density sits. The square root
+ * spreads the many low-density areas across the outer half instead of
+ * stacking them on the rim, and still compresses a heavy tail.
+ * @param {number} density weighted findings per file
+ * @param {number} top densityTop of the project
+ * @returns {number} distance in sky-radius units
+ */
+export function densityDistance(density, top) {
+  const reach = Math.sqrt(clamp(density / top, 0, 1));
+  return NEED_INNER + (1 - reach) * NEED_SPAN;
+}
+
+/**
+ * Where the "fix first" and "watch" rings fall for these areas: they follow
+ * the project, close to the centre when it is clean, wide when it is not.
+ * @param {{density: number}[]} areas
+ * @returns {{fixFirst: number, watch: number}} distances in sky-radius units
+ */
+export function skyRings(areas) {
+  const top = densityTop(areas);
+  return { fixFirst: densityDistance(FIX_FIRST_DENSITY, top), watch: densityDistance(WATCH_DENSITY, top) };
+}
 
 /**
  * A bubble's radius from its file count.
@@ -60,9 +82,9 @@ export function seededAngle(name) {
   return ((h >>> 0) / UINT32) * TAU;
 }
 
-function targetOf(area) {
+function targetOf(area, top) {
   const angle = seededAngle(area.name);
-  const d = needDistance(area.needPct);
+  const d = densityDistance(area.density || 0, top);
   return { tx: Math.cos(angle) * d, ty: Math.sin(angle) * d };
 }
 
@@ -161,8 +183,8 @@ function startScale(areas) {
   return scale;
 }
 
-function attemptAt(areas, scale) {
-  const nodes = areas.map((a) => ({ ...targetOf(a), r: bubbleRadius(a.stats.files) * scale }));
+function attemptAt(areas, scale, top) {
+  const nodes = areas.map((a) => ({ ...targetOf(a, top), r: bubbleRadius(a.stats.files) * scale }));
   for (const n of nodes) { n.x = n.tx; n.y = n.ty; }
   relax(nodes);
   pullInside(nodes);
@@ -170,18 +192,19 @@ function attemptAt(areas, scale) {
 }
 
 /**
- * Positions for the Risk sky: each area pulled to its need ring at its own
+ * Positions for the Risk sky: each area pulled to its density ring at its own
  * angle, pushed off its neighbours, shrunk until nothing overlaps and
  * everything fits the rim. If no scale within MAX_TRIES is clean, the
  * attempt with the least total overlap wins.
- * @param {{name: string, needPct: number, stats: {files: number}}[]} areas
+ * @param {{name: string, density: number, stats: {files: number}}[]} areas
  * @returns {{x: number, y: number, r: number}[]} same order, sky-radius units
  */
 export function layoutSky(areas) {
+  const top = densityTop(areas);
   let scale = startScale(areas);
   let best = null;
   for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
-    const tried = attemptAt(areas, scale);
+    const tried = attemptAt(areas, scale, top);
     if (!best || tried.overlap < best.overlap) best = tried;
     if (tried.overlap === 0) break;
     scale *= FIT_SHRINK;

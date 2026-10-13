@@ -2,9 +2,12 @@
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
 import { skyFrame, toPixels, pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont } from './skyLayers.js';
 import { RING_STYLE } from './skyPaint.js';
+import { TAU } from './galaxyCore.js';
+import { SKY_RIM } from './skyLayout.js';
 
 const SIZE = 400;
 const C = (r, g, b) => ({ r, g, b });
+const RINGS = { fixFirst: 0.3, watch: 0.45 };
 const PALETTE = { dark: true, bg: C(0, 0, 0), surface: C(9, 9, 9), text: C(255, 255, 255), textMuted: C(120, 120, 120), worse: C(240, 80, 120) };
 
 function scene() {
@@ -29,10 +32,21 @@ describe('drawSkyStatic', () => {
   it('draws the backdrop, every bubble, a dashed ring for dormant, and the files inside', () => {
     const ctx = fakeCanvasContext();
     const s = scene();
-    drawSkyStatic(ctx, { ...s, palette: PALETTE, width: SIZE, height: SIZE });
+    drawSkyStatic(ctx, { ...s, rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE });
     expect(ctx.createRadialGradient).toHaveBeenCalledTimes(1);
     expect(ctx.setLineDash).toHaveBeenCalledWith([]);
     expect(ctx.globalAlpha).toBe(1);
+  });
+
+  it('draws the fix-first and watch lines where the layout put them, and the glow follows', () => {
+    const ctx = fakeCanvasContext();
+    const s = scene();
+    drawSkyStatic(ctx, { ...s, rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE });
+    const { cx, cy, s: radius } = s.frame;
+    expect(ctx.arc).toHaveBeenCalledWith(cx, cy, RINGS.fixFirst * radius, 0, TAU);
+    expect(ctx.arc).toHaveBeenCalledWith(cx, cy, RINGS.watch * radius, 0, TAU);
+    const stops = ctx.createRadialGradient.mock.results[0].value.addColorStop.mock.calls.map(([at]) => at);
+    expect(stops).toEqual(expect.arrayContaining([expect.closeTo(RINGS.fixFirst / SKY_RIM), expect.closeTo(RINGS.watch / SKY_RIM)]));
   });
 });
 

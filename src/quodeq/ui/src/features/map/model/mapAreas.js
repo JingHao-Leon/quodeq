@@ -1,5 +1,3 @@
-import { SEVERITY } from '../../../vocab/severity.js';
-
 // Positions in a history frame's file row (src/quodeq/api/map_history_payload.py).
 const ROW_FILE = 0;
 const ROW_WEIGHT = 1;
@@ -12,21 +10,22 @@ const ROW_MAJOR = 5;
 export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
 
 /**
- * The worst violation of a file row, or null when it has none.
+ * One file's own stats, the shape the Concentration colour reads.
  * @param {number[]} row a history frame file row
- * @returns {string|null} a SEVERITY value
+ * @returns {{violations:number, compliance:number, weight:number, files:number, critical:number, major:number}}
  */
-export function rowWorstSeverity(row) {
-  if (row[ROW_CRITICAL] > 0) return SEVERITY.CRITICAL;
-  if (row[ROW_MAJOR] > 0) return SEVERITY.MAJOR;
-  return row[ROW_VIOLATIONS] > 0 ? SEVERITY.MINOR : null;
+function rowStats(row) {
+  return {
+    violations: row[ROW_VIOLATIONS], compliance: row[ROW_COMPLIANCE], weight: row[ROW_WEIGHT],
+    files: 1, critical: row[ROW_CRITICAL], major: row[ROW_MAJOR],
+  };
 }
 
 function newArea(entry) {
   return {
     name: entry.area,
     kind: entry.kind,
-    needPct: entry.needPct || 0,
+    density: entry.density || 0,
     touchedShare: entry.touchedShare || 0,
     layers: new Set(),
     dots: [],
@@ -35,15 +34,10 @@ function newArea(entry) {
 }
 
 function addRow(area, row, path, layer) {
-  const s = area.stats;
-  s.violations += row[ROW_VIOLATIONS];
-  s.compliance += row[ROW_COMPLIANCE];
-  s.weight += row[ROW_WEIGHT];
-  s.files += 1;
-  s.critical += row[ROW_CRITICAL];
-  s.major += row[ROW_MAJOR];
+  const own = rowStats(row);
+  for (const key of Object.keys(own)) area.stats[key] += own[key];
   if (layer) area.layers.add(layer);
-  area.dots.push({ path, worst: rowWorstSeverity(row), checks: Math.max(1, row[ROW_VIOLATIONS] + row[ROW_COMPLIANCE]) });
+  area.dots.push({ path, stats: own, checks: Math.max(1, own.violations + own.compliance) });
 }
 
 function isDecodable(payload, frame) {

@@ -1,14 +1,12 @@
 import { badness } from './mapBadness.js';
-import { mixRgb, rgbCss, badnessHue, badnessStrength, GLASS_FOLDER_SCALE } from './mapPaint.js';
+import { mixRgb, rgbCss, badnessHue, badnessStrength, fileConcentrationColor, GLASS_FOLDER_SCALE } from './mapPaint.js';
 import { AREA_KIND, NODE_KIND } from '../../mapVocab.js';
-import { SEVERITY } from '../../../../vocab/severity.js';
 
 /** How an area's kind ring is drawn. */
 export const RING_STYLE = Object.freeze({ SOLID: 'solid', DASHED: 'dashed' });
 const STROKE_ALPHA = 0.3;
 
 const RING_OF = new Map([[AREA_KIND.HOTSPOT, RING_STYLE.SOLID], [AREA_KIND.DORMANT, RING_STYLE.DASHED]]);
-const DOT_KEY = new Map([[SEVERITY.CRITICAL, 'sevCritical'], [SEVERITY.MAJOR, 'sevMajor'], [SEVERITY.MINOR, 'sevMinor']]);
 
 /**
  * An area bubble's colours: its Concentration colour against the run's
@@ -35,11 +33,13 @@ export function skyAreaPaint(area, average, palette) {
 }
 
 /**
- * A file dot's colour: its worst violation, or the neutral hue when it has none.
- * @param {string|null} worst a SEVERITY value or null
- * @param {object} palette readMapPalette output
+ * A file dot's colour, the Circle Pack's file rule: its issues against the
+ * project average, capped by its worst finding.
+ * @param {{violations:number, compliance:number, weight:number, files:number, critical:number, major:number}} stats the file's own stats
+ * @param {number} average project severity weight per file
+ * @param {object} palette readMapPalette output (with `dark`)
  * @returns {string} CSS colour
  */
-export function dotColor(worst, palette) {
-  return rgbCss(palette[DOT_KEY.get(worst)] || palette.neutral);
+export function fileDotColor(stats, average, palette) {
+  return rgbCss(fileConcentrationColor(badness(stats, average, NODE_KIND.FILE), palette));
 }
