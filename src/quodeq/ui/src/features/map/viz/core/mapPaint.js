@@ -26,6 +26,8 @@ export const GLASS_FOLDER_SCALE = 0.85;
 export const GLASS_PARENT_ALPHA = 0.05;
 /** A folder whose share of changed files is below this reads as idle in Activity. */
 export const ACTIVITY_IDLE_SHARE = 0.02;
+/** Activity: a folder with sub-folders shows at most this heat, a tint and never a flood. */
+export const ACTIVITY_PARENT_HEAT_CAP = 0.25;
 /** Dark glass outlines mix the glass base with the node hue at this share. */
 export const STROKE_MIX = 0.35;
 
@@ -79,8 +81,8 @@ export function activityFileStrength(edits, scale) {
   return ACT_FILE_BASE + ACT_FILE_SPAN * Math.min(1, (edits / scale) * ACT_FILE_BOOST);
 }
 
-/** Activity fill strength of a folder from the share of its files that changed. */
-export function activityFolderStrength(share, dark) {
+/** Activity fill strength of a folder from its heat (mean per-file edits against the scale, 0..1). */
+export function activityFolderStrength(heat, dark) {
   const f = ACT_FOLDER[side(dark)];
-  return f.base + f.span * clamp(share, 0, 1) ** f.exp;
+  return f.base + f.span * clamp(heat, 0, 1) ** f.exp;
 }

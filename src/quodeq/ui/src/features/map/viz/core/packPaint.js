@@ -1,7 +1,8 @@
 import { badness, nodeWeight } from './mapBadness.js';
 import {
   mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength, activityScale, activityFileStrength,
-  activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE, STROKE_MIX,
+  activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE,
+  ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
 import { NODE_KIND, PACK_COLOR_MODE } from '../../mapVocab.js';
 
@@ -20,17 +21,22 @@ function addInto(total, part) {
   total.weight += part.weight;
   total.edits += part.edits;
   total.touched += part.touched;
+  total.heat += part.heat;
 }
 
-function aggregate(root, weights, editsByPath) {
+function fileAggregate(n, { weights, editsByPath, scale }) {
+  const edits = editsByPath.get(n.data.path) || 0;
+  return { files: 1, weight: nodeWeight(n.data, weights), edits, touched: edits > 0 ? 1 : 0, heat: Math.min(1, edits / scale) };
+}
+
+function aggregate(root, input) {
   const agg = new Map();
   root.eachAfter((n) => {
     if (isLeaf(n)) {
-      const edits = editsByPath.get(n.data.path) || 0;
-      agg.set(n, { files: 1, weight: nodeWeight(n.data, weights), edits, touched: edits > 0 ? 1 : 0 });
+      agg.set(n, fileAggregate(n, input));
       return;
     }
-    const a = { files: 0, weight: 0, edits: 0, touched: 0 };
+    const a = { files: 0, weight: 0, edits: 0, touched: 0, heat: 0 };
     for (const c of n.children) addInto(a, agg.get(c));
     agg.set(n, a);
   });
@@ -63,7 +69,10 @@ function concentrationPaint(n, ctx) {
   const kind = kindOf(n);
   const b = badness(statsOf(n, ctx.agg.get(n)), ctx.average, kind);
   const hue = badnessHue(b, ctx.palette);
-  if (kind === NODE_KIND.FILE) return { fill: rgbCss(mixRgb(ctx.palette.bg, hue, fileStrength(b, ctx.palette.dark))), alpha: 1, cutOut: false, file: true, badness: b, hue };
+  if (kind === NODE_KIND.FILE) {
+    const fill = rgbCss(mixRgb(ctx.palette.bg, hue, fileStrength(b, ctx.palette.dark)));
+    return { fill, alpha: 1, cutOut: false, file: true, badness: b, hue };
+  }
   const strength = badnessStrength(b, ctx.palette.dark);
   return { ...folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette }), file: false, badness: b, hue };
 }
@@ -75,9 +84,11 @@ function activityPaint(n, ctx) {
     const t = activityFileStrength(a.edits, ctx.scale);
     return { fill: rgbCss(mixRgb(palette.surfaceAlt, palette.activity, t)), alpha: 1, cutOut: false, file: true, badness: 0, hue: palette.activity };
   }
-  const share = a.touched / Math.max(1, a.files);
-  const hue = palette.dark && share <= ACTIVITY_IDLE_SHARE ? palette.activityIdle : palette.activity;
-  const fill = folderFill({ n, hue, strength: activityFolderStrength(share, false), glassStrength: activityFolderStrength(share, true), palette });
+  const files = Math.max(1, a.files);
+  const hue = palette.dark && a.touched / files <= ACTIVITY_IDLE_SHARE ? palette.activityIdle : palette.activity;
+  const meanHeat = a.heat / files;
+  const heat = kindOf(n) === NODE_KIND.PARENT ? Math.min(meanHeat, ACTIVITY_PARENT_HEAT_CAP) : meanHeat;
+  const fill = folderFill({ n, hue, strength: activityFolderStrength(heat, false), glassStrength: activityFolderStrength(heat, true), palette });
   return { ...fill, file: false, badness: 0, hue };
 }
 
@@ -91,16 +102,13 @@ function rootPaint(palette) {
  * @returns {object[]} one CirclePaint per circle, same order
  */
 export function buildPackPaint({ root, circles, mode, palette, weights, editsByPath }) {
-  const agg = aggregate(root, weights, editsByPath);
+  const scale = activityScale(root.leaves().map((l) => editsByPath.get(l.data.path) || 0));
+  const agg = aggregate(root, { weights, editsByPath, scale });
   const top = agg.get(root);
-  const ctx = {
-    agg, palette,
-    average: top.weight / Math.max(1, top.files),
-    scale: activityScale(root.leaves().map((l) => agg.get(l).edits)),
-  };
+  const ctx = { agg, palette, scale, average: top.weight / Math.max(1, top.files) };
   const paintOf = mode === PACK_COLOR_MODE.ACTIVITY ? activityPaint : concentrationPaint;
   return circles.map((n) => {
-    if (n === root || n.depth === 0) return rootPaint(palette);
+    if (n === root) return rootPaint(palette);
     const p = paintOf(n, ctx);
     const outlineOnly = !isLeaf(n) && n.children.length === 1 && isLeaf(n.children[0]);
     return { ...p, ...strokeFor(n, p.hue, palette), outlineOnly, edits: agg.get(n).edits };
