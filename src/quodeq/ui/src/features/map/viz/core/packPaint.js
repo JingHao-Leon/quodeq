@@ -5,6 +5,7 @@ import {
   ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
 import { NODE_KIND, PACK_COLOR_MODE } from '../../mapVocab.js';
+import { filePathKey } from '../../model/mapActivity.js';
 
 const STROKE_ALPHA = 0.22;
 const STROKE_ALPHA_TOP = 0.3;    // light: the first ring of folders reads a little stronger
@@ -24,8 +25,10 @@ function addInto(total, part) {
   total.heat += part.heat;
 }
 
+const editsOf = (n, editsByPath) => editsByPath.get(filePathKey(n.data.path || '')) || 0;
+
 function fileAggregate(n, { weights, editsByPath, scale }) {
-  const edits = editsByPath.get(n.data.path) || 0;
+  const edits = editsOf(n, editsByPath);
   return { files: 1, weight: nodeWeight(n.data, weights), edits, touched: edits > 0 ? 1 : 0, heat: Math.min(1, edits / scale) };
 }
 
@@ -102,7 +105,7 @@ function rootPaint(palette) {
  * @returns {object[]} one CirclePaint per circle, same order
  */
 export function buildPackPaint({ root, circles, mode, palette, weights, editsByPath }) {
-  const scale = activityScale(root.leaves().map((l) => editsByPath.get(l.data.path) || 0));
+  const scale = activityScale(root.leaves().map((l) => editsOf(l, editsByPath)));
   const agg = aggregate(root, { weights, editsByPath, scale });
   const top = agg.get(root);
   const ctx = { agg, palette, scale, average: top.weight / Math.max(1, top.files) };

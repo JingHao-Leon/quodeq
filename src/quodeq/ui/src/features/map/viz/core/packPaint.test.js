@@ -119,3 +119,11 @@ test('the root is painted as the page with a border outline', () => {
   assert.equal(out[0].stroke, 'rgb(60, 60, 60)');
   assert.equal(out[0].cutOut, true);
 });
+
+test('activity joins a Windows tree path to its forward-slash history key', () => {
+  const top = folder('', [folder('src', [file('src\\a.py', 1, 1), file('src\\b.py', 1, 1)])]);
+  const root = hierarchy(top, (d) => d.children).sum((d) => (d.children ? 0 : 1));
+  const circles = root.descendants();
+  const out = buildPackPaint({ root, circles, mode: PACK_COLOR_MODE.ACTIVITY, palette: { ...PALETTE, dark: true }, weights: DEFAULT_SEVERITY_WEIGHTS, editsByPath: new Map([['src/a.py', 3]]) });
+  assert.equal(out[circles.findIndex((c) => c.data.path === 'src\\a.py')].edits, 3);
+});
