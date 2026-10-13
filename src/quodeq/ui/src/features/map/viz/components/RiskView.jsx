@@ -3,7 +3,7 @@ import SkyCanvas from './SkyCanvas.jsx';
 import RiskLegend from './RiskLegend.jsx';
 import { LevelInfoPanel } from './galaxyViewInfo.jsx';
 import { riskAreaInfo, riskLabelText } from './riskAreaInfo.js';
-import { SKY_MIN_FILES } from '../core/skyLayout.js';
+import { skyAreas } from '../core/skyLayout.js';
 import { clampTooltipToBox } from '../core/tooltipPlacement.js';
 import { t } from '../../../../strings/index.js';
 
@@ -53,7 +53,7 @@ function useRiskSelection(resetKey, bubbles) {
 
 /** The Risk tab: functional areas on a sky, closer to the centre needs rework first. */
 export default function RiskView({ areaState, dark, showLabels, resetKey, onViewDetails, onShowInPack }) {
-  const bubbles = useMemo(() => areaState.areaSet.areas.filter((a) => a.stats.files >= SKY_MIN_FILES), [areaState.areaSet]);
+  const bubbles = useMemo(() => skyAreas(areaState.areaSet), [areaState.areaSet]);
   const containerRef = useRef(null);
   const { selected, onSelect, onEscape, skyRef, detailRef } = useRiskSelection(resetKey, bubbles);
   const [hover, setHover] = useState(null);
