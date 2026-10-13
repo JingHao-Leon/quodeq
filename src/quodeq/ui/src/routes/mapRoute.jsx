@@ -4,6 +4,7 @@
  */
 import { lazy } from 'react';
 import { NAV_TAB } from '../vocab/navTab.js';
+import { VIZ_STYLE } from '../features/map/mapVocab.js';
 
 const MapPage = lazy(() => import('../features/map/components/MapPage.jsx'));
 
@@ -42,6 +43,8 @@ export function mapRoute(params, props) {
     props.navigation.handleNavigate(NAV_TAB.MAP, { ...params, path });
   };
   const replaceView = (patch) => props.navigation.handleNavigateReplace(NAV_TAB.MAP, { ...params, ...patch });
+  // Risk's "Show in Circle Pack": one history entry, so back returns to Risk.
+  const showInPack = (path) => props.navigation.handleNavigate(NAV_TAB.MAP, { ...params, vizStyle: VIZ_STYLE.ZOOMPACK, path });
   return <MapPage
     data={{
       accumulated: acc,
@@ -65,6 +68,7 @@ export function mapRoute(params, props) {
       onVizStyleChange: (v) => replaceView({ vizStyle: v }),
       onViewModeChange: (v) => replaceView({ viewMode: v }),
       onGalaxyModeChange: (v) => replaceView({ galaxyMode: v }),
+      onShowInPack: showInPack,
     }}
     isDirectNav={isDirectNav}
     tabKey={params._tabKey || 0}

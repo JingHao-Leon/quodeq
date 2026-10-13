@@ -7,7 +7,21 @@ export const MAP_VIEW_MODE = Object.freeze({ HEALTH: 'health', VIOLATIONS: 'viol
 
 // The map's three layout engines (the `vizStyle` nav param): MapPage's
 // toggle and useMapPageState's nav-param default.
-export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', GALAXY: 'galaxy', RISKMATRIX: 'riskmatrix' });
+export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', GALAXY: 'galaxy', RISK: 'risk' });
+// The Risk Matrix's old nav value: entries saved before the Risk tab open it.
+const LEGACY_RISK_MATRIX = 'riskmatrix';
+const VIZ_STYLE_VALUES = new Set(Object.values(VIZ_STYLE));
+
+/**
+ * The view for a nav value: the old Risk Matrix opens Risk, anything unknown
+ * (or missing) the Circle Pack.
+ * @param {string|undefined} value the `vizStyle` nav param
+ * @returns {string} a VIZ_STYLE value
+ */
+export function normalizeVizStyle(value) {
+  if (value === LEGACY_RISK_MATRIX) return VIZ_STYLE.RISK;
+  return VIZ_STYLE_VALUES.has(value) ? value : VIZ_STYLE.ZOOMPACK;
+}
 
 // Sub-mode of VIZ_STYLE.GALAXY (the `galaxyMode` nav param): grouped by
 // folder structure or by standard/dimension.

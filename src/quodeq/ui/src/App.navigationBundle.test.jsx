@@ -124,6 +124,21 @@ describe('map/violations view state lives in the nav stack', () => {
     expect(props.navigation.handleNavigateReplace).not.toHaveBeenCalled();
   });
 
+  it('map: an old riskmatrix entry still opens the Map, its param passed through untouched', () => {
+    const el = ROUTE_RENDERERS.map({ _tabKey: 3, vizStyle: 'riskmatrix' }, mapProps());
+    expect(el.props.nav.vizStyle).toBe('riskmatrix');
+    expect(el.props.data.selectedProject).toBe('p1');
+  });
+
+  it('map: Show in Circle Pack pushes one entry on the pack at that path', () => {
+    const props = mapProps();
+    const el = ROUTE_RENDERERS.map({ _tabKey: 3, vizStyle: 'risk' }, props);
+    el.props.nav.onShowInPack('src/app');
+    expect(props.navigation.handleNavigate).toHaveBeenCalledTimes(1);
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('map', { _tabKey: 3, vizStyle: 'zoompack', path: 'src/app' });
+    expect(props.navigation.handleNavigateReplace).not.toHaveBeenCalled();
+  });
+
   // The toggles are a display preference, not a fact about the level: an
   // entry pushed while on circle pack must not flip the view back to circle
   // pack when the user, now on galaxy, climbs up into it. Unwinding through

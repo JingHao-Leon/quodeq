@@ -6,7 +6,7 @@ import { useStandardTypes } from './useStandardTypes.js';
 import { useMapDisplayPrefs } from './useMapDisplayPrefs.js';
 import { useMapDimensionFilter } from './useMapDimensionFilter.js';
 import { useMapTreeState } from './useMapTreeState.js';
-import { MAP_VIEW_MODE, VIZ_STYLE, GALAXY_MODE, normalizePackMode } from '../mapVocab.js';
+import { MAP_VIEW_MODE, VIZ_STYLE, GALAXY_MODE, normalizePackMode, normalizeVizStyle } from '../mapVocab.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 
 // Re-exported so existing importers of the tree helpers keep one seam; the
@@ -27,11 +27,12 @@ const EMPTY_DIMENSIONS = [];
 function useMapNavParams(nav) {
   const {
     path: currentPath = '',
-    vizStyle = VIZ_STYLE.ZOOMPACK,
+    vizStyle: rawVizStyle,
     viewMode = MAP_VIEW_MODE.HEALTH,
     galaxyMode = GALAXY_MODE.FILESYSTEM,
     onPathChange, onVizStyleChange, onViewModeChange, onGalaxyModeChange,
   } = nav || {};
+  const vizStyle = normalizeVizStyle(rawVizStyle);
   return {
     currentPath, vizStyle, galaxyMode,
     viewMode: vizStyle === VIZ_STYLE.ZOOMPACK ? normalizePackMode(viewMode) : viewMode,

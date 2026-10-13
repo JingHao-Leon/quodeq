@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import useMapPageState from './useMapPageState.js';
+import { VIZ_STYLE } from '../mapVocab.js';
 import { writeVisibleStandardIds } from '../../../utils/visibleStandards.js';
 import { createPageStateCache, readCachedState, clearAllCachedState } from '../../../utils/pageStateCache.js';
 
@@ -34,6 +35,23 @@ describe('useMapPageState: pack colour mode', () => {
   it('activity is kept', () => {
     const { result } = setup({ nav: { viewMode: 'activity' } });
     expect(result.current.viewState.viewMode).toBe('activity');
+  });
+});
+
+describe('useMapPageState: view style', () => {
+  it('an old riskmatrix nav entry opens Risk', () => {
+    const { result } = setup({ nav: { vizStyle: 'riskmatrix' } });
+    expect(result.current.viewState.vizStyle).toBe(VIZ_STYLE.RISK);
+  });
+
+  it('an unknown nav value opens the Circle Pack', () => {
+    const { result } = setup({ nav: { vizStyle: 'heatgrid' } });
+    expect(result.current.viewState.vizStyle).toBe(VIZ_STYLE.ZOOMPACK);
+  });
+
+  it('Galaxy is kept', () => {
+    const { result } = setup({ nav: { vizStyle: 'galaxy' } });
+    expect(result.current.vizState.vizStyle).toBe(VIZ_STYLE.GALAXY);
   });
 });
 
