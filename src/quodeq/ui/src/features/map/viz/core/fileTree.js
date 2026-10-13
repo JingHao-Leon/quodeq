@@ -160,3 +160,16 @@ export function buildFileTree(dimensions) {
   collapseSingleChildren(root);
   return root;
 }
+
+/**
+ * A bare folder tree over `paths` (no findings), with the same folder-chain
+ * collapse as buildFileTree, so its node paths and names match the Map's.
+ * @param {string[]} paths
+ * @returns {object} the root node
+ */
+export function buildPathTree(paths) {
+  const root = createNode('/', '', false);
+  for (const path of paths) ensurePath(root, path);
+  collapseSingleChildren(root);
+  return root;
+}

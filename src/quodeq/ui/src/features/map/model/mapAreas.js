@@ -1,12 +1,5 @@
 import { SEVERITY } from '../../../vocab/severity.js';
-
-// Positions in a history frame's file row (src/quodeq/api/map_history_payload.py).
-const ROW_FILE = 0;
-const ROW_WEIGHT = 1;
-const ROW_VIOLATIONS = 2;
-const ROW_COMPLIANCE = 3;
-const ROW_CRITICAL = 4;
-const ROW_MAJOR = 5;
+import { ROW } from './historyRows.js';
 
 /** No areas: shared projects, projects without local runs, failed fetches. */
 export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
@@ -17,9 +10,9 @@ export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
  * @returns {string|null} a SEVERITY value
  */
 export function rowWorstSeverity(row) {
-  if (row[ROW_CRITICAL] > 0) return SEVERITY.CRITICAL;
-  if (row[ROW_MAJOR] > 0) return SEVERITY.MAJOR;
-  return row[ROW_VIOLATIONS] > 0 ? SEVERITY.MINOR : null;
+  if (row[ROW.CRITICAL] > 0) return SEVERITY.CRITICAL;
+  if (row[ROW.MAJOR] > 0) return SEVERITY.MAJOR;
+  return row[ROW.VIOLATIONS] > 0 ? SEVERITY.MINOR : null;
 }
 
 function newArea(entry) {
@@ -36,14 +29,14 @@ function newArea(entry) {
 
 function addRow(area, row, path, layer) {
   const s = area.stats;
-  s.violations += row[ROW_VIOLATIONS];
-  s.compliance += row[ROW_COMPLIANCE];
-  s.weight += row[ROW_WEIGHT];
+  s.violations += row[ROW.VIOLATIONS];
+  s.compliance += row[ROW.COMPLIANCE];
+  s.weight += row[ROW.WEIGHT];
   s.files += 1;
-  s.critical += row[ROW_CRITICAL];
-  s.major += row[ROW_MAJOR];
+  s.critical += row[ROW.CRITICAL];
+  s.major += row[ROW.MAJOR];
   if (layer) area.layers.add(layer);
-  area.dots.push({ path, worst: rowWorstSeverity(row), checks: Math.max(1, row[ROW_VIOLATIONS] + row[ROW_COMPLIANCE]) });
+  area.dots.push({ path, worst: rowWorstSeverity(row), checks: Math.max(1, row[ROW.VIOLATIONS] + row[ROW.COMPLIANCE]) });
 }
 
 function isDecodable(payload, frame) {
@@ -63,12 +56,12 @@ export function decodeAreas(payload) {
   const files = [];
   let weight = 0;
   for (const row of frame.files) {
-    const path = payload.fileNames[row[ROW_FILE]];
-    const area = byName.get(payload.fileArea[row[ROW_FILE]]);
+    const path = payload.fileNames[row[ROW.FILE]];
+    const area = byName.get(payload.fileArea[row[ROW.FILE]]);
     if (path === undefined || !area) continue;
-    addRow(area, row, path, payload.fileLayer?.[row[ROW_FILE]]);
+    addRow(area, row, path, payload.fileLayer?.[row[ROW.FILE]]);
     files.push({ path, area: area.name });
-    weight += row[ROW_WEIGHT];
+    weight += row[ROW.WEIGHT];
   }
   const areas = [...byName.values()].filter((a) => a.dots.length).map((a) => ({ ...a, layers: [...a.layers].sort() }));
   return { areas, files, average: weight / Math.max(1, files.length) };
