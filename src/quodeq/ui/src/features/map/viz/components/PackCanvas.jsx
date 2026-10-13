@@ -17,6 +17,8 @@ import { KEY } from '../../../../vocab/keyboard.js';
 const KBD_MAX = 100;
 const NO_EVENT = { stopPropagation() {} };
 const FONT_TOKEN = '--font-sans';
+// The root font size the canvas label bounds were designed for.
+const BASE_ROOT_PX = 16;
 const WRAPPER_STYLE = { position: 'relative', width: '100%', height: '100%' };
 const LAYER_STYLE = { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' };
 
@@ -39,12 +41,13 @@ function prepareLayer(canvas, size) {
  * resolve to the new theme. Without a 2D context there is nothing to paint
  * (and no way to parse a colour), so the palette stays unread. */
 function useLayerTheme(canvasRef, dark) {
-  const [theme, setTheme] = useState({ palette: null, font: '' });
+  const [theme, setTheme] = useState({ palette: null, font: '', fontScale: 1 });
   useEffect(() => {
     const el = canvasRef.current;
     if (!el?.getContext('2d')) return;
     const style = getComputedStyle(el);
-    setTheme({ palette: readMapPalette(style, parseCSSColor, dark), font: style.getPropertyValue(FONT_TOKEN).trim() });
+    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || BASE_ROOT_PX;
+    setTheme({ palette: readMapPalette(style, parseCSSColor, dark), font: style.getPropertyValue(FONT_TOKEN).trim(), fontScale: rootPx / BASE_ROOT_PX });
   }, [canvasRef, dark]);
   return theme;
 }
@@ -73,7 +76,7 @@ function useOverlayLayer(canvasRef, frame) {
     if (!ctx) return;
     drawOverlay(ctx, {
       circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels,
-      palette: theme.palette, font: theme.font, width: size.w, height: size.h,
+      palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });
   }, [canvasRef, circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels, theme, size]);
 }
@@ -140,8 +143,16 @@ function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, in
  * is the focus target; the layers tween toward it. Only the overlay takes
  * pointer and keyboard events; keyboard users also get a focusable button
  * per child of the open folder (ChartKeyboardControls).
+ *
+ * Props are grouped: `view` (circles, transform, skipTransition, focusNode,
+ * showLabels), `paintInputs` (colorMode, weights, editsByPath, dark),
+ * `hoverState` (hover, setHover) and `handlers` (handleClick, handleBgClick).
  */
-export default function PackCanvas({ circles, transform, skipTransition, colorMode, weights, editsByPath, dark, hover, setHover, focusNode, showLabels, handleClick, handleBgClick }) {
+export default function PackCanvas({ view, paintInputs, hoverState, handlers }) {
+  const { circles, transform, skipTransition, focusNode, showLabels } = view;
+  const { colorMode, weights, editsByPath, dark } = paintInputs;
+  const { hover, setHover } = hoverState;
+  const { handleClick, handleBgClick } = handlers;
   const staticRef = useRef(null);
   const overlayRef = useRef(null);
   const size = useCanvasSize(overlayRef);
@@ -161,6 +172,10 @@ export default function PackCanvas({ circles, transform, skipTransition, colorMo
     keepIndex: keep ? indexOf.get(keep) ?? null : null,
     showLabels: showLabels && shown === transform,
   });
+  const kbd = useMemo(
+    () => kbdItems({ circles, paint, focusNode, colorMode, handleClick }),
+    [circles, paint, focusNode, colorMode, handleClick],
+  );
   const pointer = usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, indexOf, hover: hoverIndex, setHover, handleClick, handleBgClick });
 
   return (
@@ -176,7 +191,7 @@ export default function PackCanvas({ circles, transform, skipTransition, colorMo
           {...pointer}
         />
       </div>
-      <ChartKeyboardControls label={t('map.packKbdLabel')} items={kbdItems({ circles, paint, focusNode, colorMode, handleClick })} />
+      <ChartKeyboardControls label={t('map.packKbdLabel')} items={kbd} />
     </>
   );
 }

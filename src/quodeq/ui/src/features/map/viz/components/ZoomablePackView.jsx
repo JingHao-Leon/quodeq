@@ -101,12 +101,11 @@ export default function ZoomablePackView({
       <FadeIn restartKey={root} className="pack-fade">
         {ready && (
           <PackCanvas
-            circles={circles} transform={focus.transform} skipTransition={focus.skipTransition}
-            colorMode={colorMode} weights={weights} editsByPath={editsByPath} dark={dark}
-            hover={hover} setHover={setHover} focusNode={focus.focusNode} showLabels={showLabels}
-            handleClick={focus.handleClick} handleBgClick={focus.handleBgClick}
-          />
-        )}
+            view={{ circles, transform: focus.transform, skipTransition: focus.skipTransition, focusNode: focus.focusNode, showLabels }}
+            paintInputs={{ colorMode, weights, editsByPath, dark }}
+            hoverState={{ hover, setHover }}
+            handlers={{ handleClick: focus.handleClick, handleBgClick: focus.handleBgClick }}
+          />        )}
       </FadeIn>
       {ready && <PackTooltip circles={circles} hover={hover} mousePos={mousePos} containerRef={containerRef} />}
       {ready && <PackInfoPanel focusNode={focus.focusNode} root={root} onFileClick={onFileClick} />}

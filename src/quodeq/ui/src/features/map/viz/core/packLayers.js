@@ -132,13 +132,13 @@ function overlaps(a, b) {
 
 /** Labels of the focus's children, largest circle first; a label whose box
  * would overlap one already placed is skipped, so labels never collide. */
-function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font }) {
+function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font, fontScale }) {
   ctx.fillStyle = rgbCss(palette.text);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const placed = [];
   for (const { c, p } of labelCandidates({ circles, screenCoords, viewport, focusNode })) {
-    const size = Math.min(LABEL_FONT_MAX, Math.max(LABEL_FONT_MIN, p.r / LABEL_FONT_DIVISOR));
+    const size = Math.min(LABEL_FONT_MAX * fontScale, Math.max(LABEL_FONT_MIN * fontScale, p.r / LABEL_FONT_DIVISOR));
     ctx.font = `${isPackFolder(c) ? LABEL_WEIGHT_FOLDER : LABEL_WEIGHT_FILE} ${size}px ${font}`;
     const text = chainLabel(c.data.name);
     const w = ctx.measureText(text).width;
@@ -151,9 +151,9 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, 
 }
 
 /** The overlay: one veil around the kept circle, the hover ring, and labels of the focus's children. */
-export function drawOverlay(ctx, { circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels, palette, font, width, height }) {
+export function drawOverlay(ctx, { circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels, palette, font, width, height, fontScale = 1 }) {
   ctx.clearRect(0, 0, width, height);
   if (keepIndex !== null && circles[keepIndex]?.depth > 0) drawVeil(ctx, toPx(screenCoords[keepIndex], viewport), palette, { width, height });
   if (hoverIndex !== null) drawHover(ctx, toPx(screenCoords[hoverIndex], viewport), palette);
-  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font });
+  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font, fontScale });
 }

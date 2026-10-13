@@ -162,8 +162,19 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
         )}
       </div>
       {vizStyle === VIZ_STYLE.RISKMATRIX && <RiskMatrixView node={node} onDrillDown={onDrillDown} onFileClick={onFileClick} showLabels={showLabels} />}
-      {vizStyle === VIZ_STYLE.ZOOMPACK && <ZoomablePackView node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath} dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick} showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} />}
-      {vizStyle === VIZ_STYLE.ZOOMPACK && <PackLegend mode={viewMode} activitySource={pack.failed ? ACTIVITY_SOURCE.NONE : pack.activity.source} activityLoading={pack.loading} />}
+      {vizStyle === VIZ_STYLE.ZOOMPACK && (
+        <ZoomablePackView
+          node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath}
+          dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick}
+          showLabels={showLabels} resetKey={resetKey} currentPath={currentPath}
+        />
+      )}
+      {vizStyle === VIZ_STYLE.ZOOMPACK && (
+        <PackLegend
+          mode={viewMode} activityLoading={pack.loading}
+          activitySource={pack.failed ? ACTIVITY_SOURCE.NONE : pack.activity.source}
+        />
+      )}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.STANDARDS && <GalaxyView dimensions={dimensions} onNavigate={onNavigate} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} standardTypes={standardTypes} />}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.FILESYSTEM && <GalaxyFolderView node={fullTree} currentPath={currentPath} onPathChange={onPathChange} onFileClick={onFileClick} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} />}
     </div>

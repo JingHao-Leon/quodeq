@@ -80,4 +80,16 @@ describe('drawOverlay labels', () => {
     drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, keepIndex: null, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE });
     expect(ctx.fillText.mock.calls.map((c) => c[0])).toEqual(['x.py']);
   });
+
+  it('a larger fontScale yields a larger label font', () => {
+    const fontAt = (fontScale) => {
+      const ctx = fakeCanvasContext();
+      const root = hierarchy({ name: '', children: [{ name: 'x.py', path: 'x.py' }] });
+      const circles = root.descendants();
+      const screenCoords = [[300, 300, 300], [300, 300, 200]].map(([cx, cy, r]) => ({ cx, cy, r }));
+      drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, keepIndex: null, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE, fontScale });
+      return parseFloat(ctx.font.split(' ')[1]);
+    };
+    expect(fontAt(1.5)).toBeCloseTo(fontAt(1) * 1.5);
+  });
 });
