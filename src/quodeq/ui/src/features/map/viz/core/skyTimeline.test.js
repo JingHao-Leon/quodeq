@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSkyTimeline, lerpSkyNodes } from './skyTimeline.js';
-import { densityTop, ringsAt } from './skyLayout.js';
+import { densityTop, ringsAt, SKY_MIN_FILES } from './skyLayout.js';
 import { ABSENCE } from './timelapseScene.js';
 
 const SMALL_DRIFT = 0.02;
@@ -71,4 +71,28 @@ test('halfway between two runs is halfway in position and radius', () => {
   const to = new Map([['a', { x: 0.4, y: -0.2, r: 0.3 }]]);
   const [mid] = lerpSkyNodes([{ name: 'a' }], from, to, HALF);
   assert.ok(Math.abs(mid.x - 0.2) < 1e-9 && Math.abs(mid.y + 0.1) < 1e-9 && Math.abs(mid.r - 0.2) < 1e-9);
+});
+
+test('an area under the bubble size in one run is still a real bubble there, not a dotted one', () => {
+  const sets = [{ areas: [area('alpha', SKY_MIN_FILES)], average: 1 }, { areas: [area('alpha', SKY_MIN_FILES - 1)], average: 1 }];
+  const tl = createSkyTimeline((k) => sets[k], RUNS.slice(0, 2));
+  const [small] = tl.sceneAt(1).areas;
+  assert.equal(small.ghost, undefined);
+  assert.equal(small.stats.files, SKY_MIN_FILES - 1);
+  assert.equal(tl.absenceAt(1, 'alpha'), null);
+});
+
+test('a scene hands back the run\'s own areas, file dots included', () => {
+  const tl = timeline();
+  assert.equal(tl.sceneAt(1).areas[0], SETS[1].areas[0]);
+  assert.equal(tl.sceneAt(2).areas[2], SETS[2].areas[1]);
+});
+
+test('an empty history has an empty sky and never throws', () => {
+  const tl = createSkyTimeline(() => { throw new Error('no runs to read'); }, []);
+  const scene = tl.sceneAt(0);
+  assert.deepEqual(scene.areas, []);
+  assert.equal(scene.nodes.size, 0);
+  assert.equal(scene.average, 0);
+  assert.equal(tl.absenceAt(0, 'alpha'), null);
 });

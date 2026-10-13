@@ -1,7 +1,9 @@
 import { densityTop, layoutSky, layoutSkyFrom, ringsAt, skyAreas } from './skyLayout.js';
-import { absenceIn } from './timelapseScene.js';
+import { absenceIn, cachedRuns } from './timelapseScene.js';
 
 const NO_STATS = Object.freeze({ violations: 0, compliance: 0, weight: 0, files: 0, critical: 0, major: 0 });
+/** Full area sets kept at once: the two runs of a move plus a little slack for scrubbing. */
+export const SKY_SCENE_CACHE_SIZE = 4;
 
 /** An area with no file in a run: a small dotted bubble at its nearest known density. */
 function ghostArea(name, density) {
@@ -17,17 +19,45 @@ function nearestDensity(present, name, k) {
   return 0;
 }
 
-/** Every area that is a bubble in some run, by name. */
-function everyBubbleName(sets) {
-  return [...new Set(sets.flatMap((set) => skyAreas(set).map((a) => a.name)))].sort();
+/**
+ * What the layout needs of a run, without its files: each area's density and
+ * file count by name, the names that are bubbles, and the run's average.
+ */
+function runSummary(set) {
+  const areas = new Map(set.areas.map((a) => [a.name, { name: a.name, density: a.density, stats: { files: a.stats.files } }]));
+  return { areas, bubbles: skyAreas(set).map((a) => a.name), average: set.average };
+}
+
+/** The history's scale top: the densest present instance of any area on the sky. */
+function historyTop(summaries, names) {
+  return densityTop(summaries.flatMap(({ areas }) => names.filter((n) => areas.has(n)).map((n) => areas.get(n))));
+}
+
+/**
+ * Bubble positions per run, settled in order, each from the run before, under
+ * one top; computed up to the run asked for and kept (a few dozen per run).
+ * @returns {function(number): Map<string, {x: number, y: number, r: number}>}
+ */
+function settledRuns(summaries, names, top) {
+  const present = summaries.map((s) => s.areas);
+  const nodes = [];
+  return (k) => {
+    for (let j = nodes.length; j <= k; j++) {
+      const areas = names.map((name) => present[j].get(name) || ghostArea(name, nearestDensity(present, name, j)));
+      const laid = j ? layoutSkyFrom(areas, nodes[j - 1], top) : layoutSky(areas, top);
+      nodes.push(new Map(areas.map((a, i) => [a.name, laid[i]])));
+    }
+    return nodes[k];
+  };
 }
 
 /**
  * The Risk sky of every run (plan Decision 11): every area that is a bubble in
  * some run is on every run's sky, dotted where it has no file; each run
  * settles from the run before it. One scale top over the whole history keeps
- * the targets and the rings still while the runs play. Scenes are computed in
- * order, on demand, and kept.
+ * the targets and the rings still while the runs play. Only per-run area
+ * summaries and positions are kept for the whole history; a run's full area
+ * set (with its file dots) is rebuilt on demand for the last few runs asked.
  * @param {function(number): {areas: object[], average: number}} areaSetAt run k's area set
  * @param {{day: string}[]} runs the history's runs, oldest first
  * @returns {{rings: {fixFirst: number, watch: number},
@@ -35,26 +65,22 @@ function everyBubbleName(sets) {
  *   absenceAt: function(number, string): ({kind: string, day: string}|null)}}
  */
 export function createSkyTimeline(areaSetAt, runs) {
-  const sets = runs.map((_, k) => areaSetAt(k));
-  const present = sets.map((set) => new Map(set.areas.map((a) => [a.name, a])));
-  const names = everyBubbleName(sets);
-  const top = densityTop(present.flatMap((byName) => names.filter((n) => byName.has(n)).map((n) => byName.get(n))));
+  const summaries = runs.map((_, k) => runSummary(areaSetAt(k)));
+  const present = summaries.map((s) => s.areas);
+  const names = [...new Set(summaries.flatMap((s) => s.bubbles))].sort();
+  const top = historyTop(summaries, names);
   const rings = ringsAt(top);
-  const scenes = [];
-  const areasOf = (k) => names.map((name) => present[k].get(name) || ghostArea(name, nearestDensity(present, name, k)));
+  const nodesAt = settledRuns(summaries, names, top);
+  const empty = Object.freeze({ areas: [], average: 0, rings, nodes: new Map() });
+  const sceneOf = cachedRuns((k) => {
+    const full = new Map(areaSetAt(k).areas.map((a) => [a.name, a]));
+    const areas = names.map((name) => full.get(name) || ghostArea(name, nearestDensity(present, name, k)));
+    return { areas, average: summaries[k].average, rings, nodes: nodesAt(k) };
+  }, SKY_SCENE_CACHE_SIZE);
   return {
     rings,
-    sceneAt(k) {
-      for (let j = scenes.length; j <= k; j++) {
-        const areas = areasOf(j);
-        const laid = j ? layoutSkyFrom(areas, scenes[j - 1].nodes, top) : layoutSky(areas, top);
-        scenes.push({ areas, average: sets[j].average, rings, nodes: new Map(areas.map((a, i) => [a.name, laid[i]])) });
-      }
-      return scenes[k];
-    },
-    absenceAt(k, name) {
-      return absenceIn(runs, k, (j) => present[j].has(name));
-    },
+    sceneAt: (k) => (k >= 0 && k < runs.length ? sceneOf(k) : empty),
+    absenceAt: (k, name) => absenceIn(runs, k, (j) => Boolean(present[j]?.has(name))),
   };
 }
 
