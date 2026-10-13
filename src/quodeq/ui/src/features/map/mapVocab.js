@@ -26,3 +26,6 @@ export const ACTIVITY_SOURCE = Object.freeze({ GIT: 'git', ESTIMATED: 'estimated
 
 /** Which history frames to fetch. */
 export const MAP_FRAMES = Object.freeze({ LATEST: 'latest', ALL: 'all' });
+
+/** Circle Pack colour modes (spec 2.1, 2.2). */
+export const PACK_COLOR_MODE = Object.freeze({ CONCENTRATION: 'concentration', ACTIVITY: 'activity' });
