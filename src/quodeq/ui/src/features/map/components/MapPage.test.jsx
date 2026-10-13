@@ -1,8 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { useState } from 'react';
 import MapPage from './MapPage.jsx';
+import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+
+// The circle pack observes its container size.
+beforeEach(() => { stubResizeObserver(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 // Covers evaluate CTA gating for shared projects and the shared read-only
 // chip. MapPage previously never

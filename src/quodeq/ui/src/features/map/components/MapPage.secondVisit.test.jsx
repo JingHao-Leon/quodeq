@@ -1,7 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapPage from './MapPage.jsx';
+import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+
+// The circle pack observes its container size.
+beforeEach(() => { stubResizeObserver(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 // Leaving the Map and coming back with the same scores payload must not
 // rebuild the file tree: the tree is cached on the dimension objects, which

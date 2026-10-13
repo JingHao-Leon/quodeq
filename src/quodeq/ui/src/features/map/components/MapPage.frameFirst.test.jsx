@@ -1,10 +1,15 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapPage from './MapPage.jsx';
+import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+
+// The circle pack observes its container size.
+beforeEach(() => { stubResizeObserver(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 // The Map is the heaviest tab: the file tree over every finding, then the
-// pack layout, then one SVG node per circle. Its first commit must be the
+// pack layout, then its canvas paint. Its first commit must be the
 // frame alone (header, controls, an empty slot), with the tree build and
 // the visualisation following in a later commit.
 

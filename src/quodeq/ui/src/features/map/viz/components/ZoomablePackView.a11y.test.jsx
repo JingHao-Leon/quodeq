@@ -1,77 +1,61 @@
 /**
  * Accessibility tests for ZoomablePackView.
- * 6355: drill-down and open-file were wired to handleClick only. Every
- * non-root circle has to be a named, focusable button that reaches the same
- * handler from Enter and Space, not just the svg's Escape-to-go-up.
+ * 6355: drill-down and open-file were wired to handleClick only. The pack
+ * paints on canvas, so every child of the open folder gets a named, focusable
+ * button (ChartKeyboardControls) that reaches the same handler from Enter and
+ * Space, beside the overlay's Escape-to-go-up.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { packTree, stubPackCanvas } from '../../../../test-utils/packFixture.js';
 import ZoomablePackView from './ZoomablePackView.jsx';
 
-const NODE = {
-  path: 'root/',
-  name: 'root',
-  isFile: false,
-  violations: 5,
-  compliance: 3,
-  severity: {},
-  children: [
-    {
-      path: 'root/a/',
-      name: 'a',
-      isFile: false,
-      violations: 2,
-      compliance: 1,
-      severity: { critical: 1, major: 0, minor: 0 },
-      children: [
-        { path: 'root/a/foo.js', name: 'foo.js', isFile: true, violations: 1, compliance: 0, severity: { critical: 0, major: 1, minor: 0 } },
-      ],
-    },
-  ],
-};
+beforeEach(() => { stubPackCanvas(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+// Activity labels are deterministic: they read the edit count.
+const EDITS = new Map([['src/a.py', 2], ['src/ui/b.js', 1], ['docs/c.md', 1]]);
 
 function renderView(props = {}) {
   return render(
-    <ZoomablePackView
-      node={NODE}
-      viewMode="violations"
-      onDrillDown={vi.fn()}
-      onFileClick={vi.fn()}
-      {...props}
-    />
+    <ZoomablePackView node={packTree()} colorMode="activity" editsByPath={EDITS} onDrillDown={vi.fn()} onFileClick={vi.fn()} {...props} />
   );
 }
 
-describe('ZoomablePackView circle keyboard activation (6355)', () => {
-  it('Enter on a folder circle drills into it', () => {
-    const onDrillDown = vi.fn();
-    renderView({ onDrillDown });
-    fireEvent.keyDown(screen.getByLabelText('a, critical violations'), { key: 'Enter' });
-    expect(onDrillDown).toHaveBeenCalledWith('root/a/');
+describe('ZoomablePackView keyboard activation (6355)', () => {
+  it('offers one button per child of the open folder, named with its state', () => {
+    renderView();
+    const names = screen.getAllByRole('button').map((b) => b.textContent);
+    expect(names).toEqual(expect.arrayContaining(['src, changed 3 times', 'docs, changed once']));
+    expect(names.length).toBe(2);
   });
 
-  it('Space on a folder circle drills into it', () => {
+  it('Enter on a folder drills into it', () => {
     const onDrillDown = vi.fn();
     renderView({ onDrillDown });
-    fireEvent.keyDown(screen.getByLabelText('a, critical violations'), { key: ' ' });
-    expect(onDrillDown).toHaveBeenCalledWith('root/a/');
+    fireEvent.keyDown(screen.getByRole('button', { name: 'src, changed 3 times' }), { key: 'Enter' });
+    expect(onDrillDown).toHaveBeenCalledWith('src');
   });
 
-  it('Enter on a file circle opens the file', () => {
+  it('Space on a folder drills into it', () => {
+    const onDrillDown = vi.fn();
+    renderView({ onDrillDown });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'docs, changed once' }), { key: ' ' });
+    expect(onDrillDown).toHaveBeenCalledWith('docs');
+  });
+
+  it('Enter on a file inside its own folder opens it', () => {
     const onFileClick = vi.fn();
-    renderView({ onFileClick });
-    fireEvent.keyDown(screen.getByLabelText('foo.js, major violations'), { key: 'Enter' });
-    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'root/a/foo.js' }));
+    renderView({ onFileClick, currentPath: 'src/ui' });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'b.js, changed once' }), { key: 'Enter' });
+    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'src/ui/b.js' }));
   });
 
-  it('every clickable circle is focusable and named', () => {
-    const { container } = renderView();
-    const targets = container.querySelectorAll('circle[role="button"], path[role="button"]');
-    expect(targets.length).toBeGreaterThan(1);
-    for (const el of targets) {
-      expect(el).toHaveAttribute('tabindex', '0');
-      expect(el.getAttribute('aria-label')).toBeTruthy();
+  it('concentration buttons read the issue level against the average', () => {
+    renderView({ colorMode: 'concentration' });
+    for (const b of screen.getAllByRole('button')) {
+      expect(b.textContent).toMatch(/, (more|fewer) issues than average$|, about average$/);
     }
   });
 });

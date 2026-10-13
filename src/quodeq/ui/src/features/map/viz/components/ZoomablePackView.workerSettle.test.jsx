@@ -45,11 +45,9 @@ describe('ZoomablePackView when the worker reply lands after first render', () =
     await act(async () => { resolveReply(xyr); });
 
     expect(container.querySelector('canvas')).toBeInTheDocument();
-    // Folders are arcs, files are translated icons; every placement is finite.
+    // Folders and files are both arcs; every placement is finite.
     expect(ctx.arc).toHaveBeenCalled();
-    expect(ctx.translate).toHaveBeenCalled();
-    const placements = [...ctx.arc.mock.calls, ...ctx.translate.mock.calls];
-    for (const call of placements) {
+    for (const call of ctx.arc.mock.calls) {
       expect(Number.isFinite(call[0])).toBe(true);
       expect(Number.isFinite(call[1])).toBe(true);
     }
