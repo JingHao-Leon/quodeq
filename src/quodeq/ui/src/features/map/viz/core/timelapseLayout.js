@@ -179,8 +179,14 @@ function contentPerNode(model, leafArea) {
 
 const fullCache = new WeakMap();
 
-/** Run `k`'s content per node: the sum of its files' squared radii, an absent file at its reserved slot. */
-const runContent = (model, k) => contentPerNode(model, (i) => leafRadius(model.sizes[k][i]) ** 2);
+/**
+ * Run `k`'s content per node: the sum of its files' squared radii in √checks
+ * units, an absent file at its reserved slot (what scaled slots scale by).
+ * @returns {Float64Array} one value per node
+ */
+export function runContent(model, k) {
+  return contentPerNode(model, (i) => leafRadius(model.sizes[k][i]) ** 2);
+}
 
 /** Per node, how many of its files are in run `k`. */
 const presentFiles = (model, k) => contentPerNode(model, (i) => (model.sizes[k][i] > 0 ? 1 : 0));

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { anchorLayout, runLayout, fileChurn, LAYOUT_MODE, TIMELAPSE_LAYOUT_MODE, ABSENT_LEAF_RADIUS } from './timelapseLayout.js';
+import { anchorLayout, runLayout, runContent, fileChurn, LAYOUT_MODE, TIMELAPSE_LAYOUT_MODE } from './timelapseLayout.js';
 import { childrenOutside, maxSiblingOverlap, folderMovements, percentile, OVERLAP_TOLERANCE } from './layoutChecks.js';
 import { syntheticModel } from './timelapseSynthetic.js';
 import { PACK_BASE_SIZE, XYR_STRIDE, XYR_R as R } from './packLayout.js';
@@ -48,13 +48,7 @@ for (const [mode, layouts] of [[LAYOUT_MODE.RELAX, RELAXED], [LAYOUT_MODE.FIXED_
 // history their p90 is 0.023-0.026 (seeds 1-5), all of it on growth steps.
 // What the played mode must hold instead: motion follows content, and nothing
 // moves without a reason.
-const leafArea = (size) => (size > 0 ? Math.max(1, size) : ABSENT_LEAF_RADIUS ** 2);
-const contentAt = (k) => {
-  const c = Float64Array.from(MODEL.parent, (_, i) => (isLeaf(i) ? leafArea(MODEL.sizes[k][i]) : 0));
-  for (let i = c.length - 1; i > 0; i--) c[MODEL.parent[i]] += c[i];
-  return c;
-};
-const CONTENT = Array.from({ length: RUNS }, (_, k) => contentAt(k));
+const CONTENT = Array.from({ length: RUNS }, (_, k) => runContent(MODEL, k));
 const ancestry = (i) => { const out = []; for (let j = i; j >= 0; j = MODEL.parent[j]) out.push(j); return out; };
 
 test('a folder whose content and whose ancestors\' content all grow (or all shrink) never resizes the other way, in the mode the app plays', () => {
