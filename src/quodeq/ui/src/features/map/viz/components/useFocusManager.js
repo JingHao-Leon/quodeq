@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { PACK_BASE_SIZE as BASE_SIZE } from '../core/packLayout.js';
 import { isDrillableFolder } from '../core/fileTree.js';
-import { dominantFolderPath } from '../../components/mapTree.js';
+import { dominantFolderPath } from '../core/dominantFolder.js';
 
 function useFocusResetSync(resetKey, setFocus) {
   const prevResetKey = useRef(resetKey);
