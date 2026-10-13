@@ -101,6 +101,15 @@ describe('RiskTimelapseView', () => {
     expect(ctx.arc).not.toHaveBeenCalledWith(FRAME.cx, FRAME.cy, own.fixFirst * FRAME.s, 0, TAU);
   });
 
+  it('the legend lists every ring kind of the history on every run, so it never grows or shrinks while playing', async () => {
+    const data = history([
+      { day: '2026-09-01', new: 0, fixed: 0, areas: [metrics('app')], files: [0, 1, 2, 3, 4].map(row), gone: [] },
+      { day: '2026-09-08', new: 5, fixed: 0, areas: [{ ...metrics('app'), kind: 'hotspot' }, metrics('lib')], files: [5, 6, 7, 8, 9].map(row), gone: [] },
+    ]);
+    await drawn(timelapse({ data }));
+    expect(screen.getByText(t('map.riskLegendHotspot'))).toBeInTheDocument();
+  });
+
   it('a click while playing pauses', async () => {
     const tl = timelapse({ playing: true });
     const { container } = render(<RiskTimelapseView timelapse={tl} dark={false} showLabels />);

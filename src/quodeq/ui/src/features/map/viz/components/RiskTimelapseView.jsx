@@ -64,7 +64,8 @@ function useAreaTexts(timeline, k) {
 /**
  * The Risk sky on a past run (plan Decision 11): every area that is ever a
  * bubble, dotted where it has no file; bubbles drift from run to run under the
- * history's rings, which stay put while the runs play. Playing: a click
+ * history's rings, which stay put while the runs play, as do the legend's
+ * ring rows (every kind of the history). Playing: a click
  * pauses. Paused: hover shows the run's numbers (or since when a dotted area
  * is gone); there is no selection, since View Details acts on today's data.
  */
@@ -83,7 +84,6 @@ export default function RiskTimelapseView({ timelapse, dark, showLabels }) {
   const scene = view.to.state;
   const hovered = hover ? scene.areas[hover.index] : null;
   const note = hovered ? timelapseNoteText(timeline.absenceAt(k, hovered.name)) : null;
-  const kinds = [...new Set(scene.areas.map((a) => a.kind).filter(Boolean))];
   const day = data.runs[k]?.day;
   const label = day ? t('map.timelapseRiskAria', { date: formatShortDate(dayDate(day).toISOString()) }) : undefined;
   return (
@@ -92,7 +92,7 @@ export default function RiskTimelapseView({ timelapse, dark, showLabels }) {
         selected={null} onSelect={onSelect} onHover={onHover} hoverable={!playing} labelText={labelText} itemText={itemText}
         nodes={nodes} rings={timeline.rings} label={label} />
       <RiskTooltip area={hovered} at={hover} note={note} />
-      <RiskLegend kinds={kinds} />
+      <RiskLegend kinds={timeline.kinds} />
     </div>
   );
 }

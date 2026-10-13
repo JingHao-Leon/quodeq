@@ -24,13 +24,19 @@ function nearestDensity(present, name, k) {
  * file count by name, the names that are bubbles, and the run's average.
  */
 function runSummary(set) {
-  const areas = new Map(set.areas.map((a) => [a.name, { name: a.name, density: a.density, stats: { files: a.stats.files } }]));
+  const areas = new Map(set.areas.map((a) => [a.name, { name: a.name, kind: a.kind, density: a.density, stats: { files: a.stats.files } }]));
   return { areas, bubbles: skyAreas(set).map((a) => a.name), average: set.average };
 }
 
 /** The history's scale top: the densest present instance of any area on the sky. */
 function historyTop(summaries, names) {
   return densityTop(summaries.flatMap(({ areas }) => names.filter((n) => areas.has(n)).map((n) => areas.get(n))));
+}
+
+/** Every kind an area on the sky has in some run (a legend that holds still while the runs play). */
+function historyKinds(summaries, names) {
+  const kinds = summaries.flatMap(({ areas }) => names.map((n) => areas.get(n)?.kind));
+  return [...new Set(kinds.filter(Boolean))];
 }
 
 /**
@@ -60,7 +66,7 @@ function settledRuns(summaries, names, top) {
  * set (with its file dots) is rebuilt on demand for the last few runs asked.
  * @param {function(number): {areas: object[], average: number}} areaSetAt run k's area set
  * @param {{day: string}[]} runs the history's runs, oldest first
- * @returns {{rings: {fixFirst: number, watch: number},
+ * @returns {{rings: {fixFirst: number, watch: number}, kinds: string[],
  *   sceneAt: function(number): {areas: object[], average: number, rings: object, nodes: Map<string, {x: number, y: number, r: number}>},
  *   absenceAt: function(number, string): ({kind: string, day: string}|null)}}
  */
@@ -79,6 +85,7 @@ export function createSkyTimeline(areaSetAt, runs) {
   }, SKY_SCENE_CACHE_SIZE);
   return {
     rings,
+    kinds: historyKinds(summaries, names),
     sceneAt: (k) => (k >= 0 && k < runs.length ? sceneOf(k) : empty),
     absenceAt: (k, name) => absenceIn(runs, k, (j) => Boolean(present[j]?.has(name))),
   };

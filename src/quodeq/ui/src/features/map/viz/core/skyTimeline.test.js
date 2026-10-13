@@ -96,3 +96,10 @@ test('an empty history has an empty sky and never throws', () => {
   assert.equal(scene.average, 0);
   assert.equal(tl.absenceAt(0, 'alpha'), null);
 });
+
+test('the kinds of the whole history, so a legend keeps its rows from run to run', () => {
+  const sets = SETS.map((set, k) => ({ ...set, areas: set.areas.map((a) => (a.name === 'beta' && k === 0 ? { ...a, kind: 'hotspot' } : a)) }));
+  const kinds = createSkyTimeline((k) => sets[k], RUNS).kinds;
+  assert.deepEqual([...kinds].sort(), ['hotspot', 'watch']);
+  assert.deepEqual(createSkyTimeline(() => SETS[0], []).kinds, []);
+});
