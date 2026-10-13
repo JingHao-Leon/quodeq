@@ -4,7 +4,7 @@ import { useCanvasSize } from './galaxyCanvasSize.js';
 import { prepareLayer, useLayerTheme, KBD_MAX, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
 import { useSkyScene } from './useSkyScene.js';
 import { pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont } from '../core/skyLayers.js';
-import { pluralKey } from '../../../../utils/plural.js';
+import { riskItemText } from './riskAreaInfo.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 
@@ -19,13 +19,9 @@ function useMeasure(overlayRef, theme) {
   }, [overlayRef, theme]);
 }
 
-function kbdItems(areas, onSelect) {
+function kbdItems(areas, onSelect, itemText) {
   return areas.map((a, i) => [a, i]).sort((p, q) => q[0].density - p[0].density).slice(0, KBD_MAX)
-    .map(([a, i]) => ({
-      key: a.name,
-      text: t(pluralKey(a.stats.violations, 'map.riskAreaAriaOne', 'map.riskAreaAria'), { name: a.name, count: a.stats.violations }),
-      onActivate: () => onSelect(i, BY_KEYBOARD),
-    }));
+    .map(([a, i]) => ({ key: a.name, text: itemText(a), onActivate: () => onSelect(i, BY_KEYBOARD) }));
 }
 
 /** With nothing hovered, Enter or Space hands focus to the keyboard list that follows the canvas. */
@@ -41,6 +37,14 @@ function pointerAt(e) {
 /** A hover index that still points at a bubble (areas may have changed under it). */
 function validHover(i, bubbles) {
   return Number.isInteger(i) && i >= 0 && i < bubbles.length ? i : null;
+}
+
+/** The hovered bubble's index: cleared when the areas change, and none at all while not `hoverable`. */
+function useSkyHover(areas, hoverable) {
+  const [raw, setHover] = useState(null);
+  useEffect(() => { setHover(null); }, [areas]);
+  if (!hoverable && raw !== null) setHover(null);
+  return [hoverable ? validHover(raw, areas) : null, setHover];
 }
 
 /** Paint both layers: the static bubbles, and the overlay with veil, ring and labels. */
@@ -63,22 +67,29 @@ function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selec
  * The Risk sky: a static layer of bubbles and an overlay with the veil, hover ring and labels.
  * `onSelect(index, byKeyboard)` is told whether the keyboard list chose the area;
  * `canvasRef`, when given, reaches the focusable overlay canvas.
+ * `nodes` are positions aligned with `areas` and `rings` the line distances,
+ * both given by the time-lapse; without them the sky lays itself out.
+ * `label` names the canvas for assistive tech (the time-lapse gives the run's date),
+ * `itemText(area)` the keyboard list's buttons. With `hoverable` false (a
+ * playing time-lapse) the pointer hovers nothing: no ring, veil or label.
  */
-export default function SkyCanvas({ areas, average, dark, showLabels, selected, onSelect, onHover, labelText, canvasRef }) {
+export default function SkyCanvas({
+  areas, average, dark, showLabels, selected, onSelect, onHover, labelText, canvasRef, nodes, rings, label,
+  itemText = riskItemText, hoverable = true,
+}) {
   const staticRef = useRef(null);
   const ownOverlayRef = useRef(null);
   const overlayRef = canvasRef || ownOverlayRef;
   const size = useCanvasSize(overlayRef);
   const theme = useLayerTheme(overlayRef, dark);
-  const [rawHover, setHover] = useState(null);
-  useEffect(() => { setHover(null); }, [areas]);
+  const [hover, setHover] = useSkyHover(areas, hoverable);
   const measureText = useMeasure(overlayRef, theme);
   const measure = useCallback((i) => measureText(labelText(areas[i]).title), [measureText, labelText, areas]);
-  const hover = validHover(rawHover, areas);
-  const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText });
+  const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText, nodes, rings });
   useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected });
 
   const onMove = (e) => {
+    if (!hoverable) return;
     const p = pointerAt(e);
     const i = pickBubble(scene.bubbles, p.x, p.y);
     setHover(i);
@@ -98,7 +109,7 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
       else onSelect(hover);
     }
   };
-  const items = useMemo(() => kbdItems(areas, onSelect), [areas, onSelect]);
+  const items = useMemo(() => kbdItems(areas, onSelect, itemText), [areas, onSelect, itemText]);
   return (
     <>
       <div style={WRAPPER_STYLE}>
@@ -109,7 +120,7 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
           className="viz-focusable"
           tabIndex={0}
           role="img"
-          aria-label={t('map.riskSkyAria')}
+          aria-label={label || t('map.riskSkyAria')}
           onMouseMove={onMove}
           onMouseLeave={() => { setHover(null); onHover(null); }}
           onClick={onClick}

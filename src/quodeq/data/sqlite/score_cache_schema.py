@@ -46,6 +46,9 @@ SCHEMA = (
     "CREATE TABLE IF NOT EXISTS map_snapshot ("
     " project TEXT NOT NULL, run_id TEXT NOT NULL, key TEXT NOT NULL, payload TEXT NOT NULL,"
     " PRIMARY KEY (project, run_id));"
+    "CREATE TABLE IF NOT EXISTS map_finding ("
+    " project TEXT NOT NULL, rec TEXT NOT NULL, payload TEXT NOT NULL,"
+    " PRIMARY KEY (project, rec));"
     "CREATE TABLE IF NOT EXISTS cache_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);"
 )
 

@@ -1,10 +1,4 @@
-// Positions in a history frame's file row (src/quodeq/api/map_history_payload.py).
-const ROW_FILE = 0;
-const ROW_WEIGHT = 1;
-const ROW_VIOLATIONS = 2;
-const ROW_COMPLIANCE = 3;
-const ROW_CRITICAL = 4;
-const ROW_MAJOR = 5;
+import { ROW } from './historyRows.js';
 
 /** No areas: shared projects, projects without local runs, failed fetches. */
 export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
@@ -16,8 +10,8 @@ export const NO_AREAS = Object.freeze({ areas: [], files: [], average: 0 });
  */
 function rowStats(row) {
   return {
-    violations: row[ROW_VIOLATIONS], compliance: row[ROW_COMPLIANCE], weight: row[ROW_WEIGHT],
-    files: 1, critical: row[ROW_CRITICAL], major: row[ROW_MAJOR],
+    violations: row[ROW.VIOLATIONS], compliance: row[ROW.COMPLIANCE], weight: row[ROW.WEIGHT],
+    files: 1, critical: row[ROW.CRITICAL], major: row[ROW.MAJOR],
   };
 }
 
@@ -46,6 +40,29 @@ function isDecodable(payload, frame) {
 }
 
 /**
+ * One run's areas with their files, for the Risk sky.
+ * @param {{fileNames: string[], fileArea: string[], fileLayer?: string[]}} names the history's per-file names
+ * @param {object[]} frameAreas the run's area metrics
+ * @param {Iterable<number[]>} rows the run's file rows
+ * @returns {{areas: object[], files: {path: string, area: string}[], average: number}}
+ */
+export function buildAreaSet(names, frameAreas, rows) {
+  const byName = new Map(frameAreas.map((entry) => [entry.area, newArea(entry)]));
+  const files = [];
+  let weight = 0;
+  for (const row of rows) {
+    const path = names.fileNames[row[ROW.FILE]];
+    const area = byName.get(names.fileArea[row[ROW.FILE]]);
+    if (path === undefined || !area) continue;
+    addRow(area, row, path, names.fileLayer?.[row[ROW.FILE]]);
+    files.push({ path, area: area.name });
+    weight += row[ROW.WEIGHT];
+  }
+  const areas = [...byName.values()].filter((a) => a.dots.length).map((a) => ({ ...a, layers: [...a.layers].sort() }));
+  return { areas, files, average: weight / Math.max(1, files.length) };
+}
+
+/**
  * The latest frame's areas with their files, for the Risk sky.
  * @param {object|null} payload GET /api/projects/<p>/map/history
  * @returns {{areas: object[], files: {path: string, area: string}[], average: number}}
@@ -53,17 +70,16 @@ function isDecodable(payload, frame) {
 export function decodeAreas(payload) {
   const frame = payload?.frames?.at(-1);
   if (!isDecodable(payload || {}, frame)) return NO_AREAS;
-  const byName = new Map(frame.areas.map((entry) => [entry.area, newArea(entry)]));
-  const files = [];
-  let weight = 0;
-  for (const row of frame.files) {
-    const path = payload.fileNames[row[ROW_FILE]];
-    const area = byName.get(payload.fileArea[row[ROW_FILE]]);
-    if (path === undefined || !area) continue;
-    addRow(area, row, path, payload.fileLayer?.[row[ROW_FILE]]);
-    files.push({ path, area: area.name });
-    weight += row[ROW_WEIGHT];
-  }
-  const areas = [...byName.values()].filter((a) => a.dots.length).map((a) => ({ ...a, layers: [...a.layers].sort() }));
-  return { areas, files, average: weight / Math.max(1, files.length) };
+  return buildAreaSet(payload, frame.areas, frame.files);
+}
+
+/**
+ * Run `k`'s areas of a decoded history (decodeTimelapse), NO_AREAS past its end.
+ * @param {{runs: {areas: object[]}[], rowsAt: function(number): Map<number, number[]>}} data decodeTimelapse(...)
+ * @param {number} k run index
+ * @returns {{areas: object[], files: {path: string, area: string}[], average: number}}
+ */
+export function areaSetAt(data, k) {
+  const run = data.runs[k];
+  return run ? buildAreaSet(data, run.areas, data.rowsAt(k).values()) : NO_AREAS;
 }

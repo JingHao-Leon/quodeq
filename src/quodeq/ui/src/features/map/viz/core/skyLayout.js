@@ -1,5 +1,6 @@
 import { TAU } from './galaxyCore.js';
 import { clamp } from './mapBadness.js';
+import { forNeighbourPairs } from './circleGrid.js';
 
 /** Areas with fewer files than this get no bubble (spec 2.4). */
 export const SKY_MIN_FILES = 5;
@@ -17,10 +18,10 @@ const R_PER_SQRT_FILE = 0.0068;
 const GAP = 0.012;             // empty space kept between neighbouring bubbles
 const PULL = 0.12;             // share of the way back to its target per step
 const ITERATIONS = 260;
+const ANCHORED_ITERATIONS = 80; // a run that starts from the run before needs fewer steps
 const FIT_SHRINK = 0.85;       // radii shrink by this when the sky overflows
 const MAX_TRIES = 16;        // shrink steps before settling for the least-overlapping attempt
 const MAX_FILL = 0.55;       // share of the sky the padded bubbles may cover before relaxing
-const GRID_STRIDE = 65536;   // packs a cell's column and row into one Map key
 const NUDGE = 1e-4;
 const FNV_OFFSET = 2166136261;
 const FNV_PRIME = 16777619;
@@ -52,14 +53,22 @@ export function densityDistance(density, top) {
 }
 
 /**
+ * Where the "fix first" and "watch" rings fall under a scale top.
+ * @param {number} top densityTop of the areas on the sky
+ * @returns {{fixFirst: number, watch: number}} distances in sky-radius units
+ */
+export function ringsAt(top) {
+  return { fixFirst: densityDistance(FIX_FIRST_DENSITY, top), watch: densityDistance(WATCH_DENSITY, top) };
+}
+
+/**
  * Where the "fix first" and "watch" rings fall for these areas: they follow
  * the project, close to the centre when it is clean, wide when it is not.
  * @param {{density: number}[]} areas
  * @returns {{fixFirst: number, watch: number}} distances in sky-radius units
  */
 export function skyRings(areas) {
-  const top = densityTop(areas);
-  return { fixFirst: densityDistance(FIX_FIRST_DENSITY, top), watch: densityDistance(WATCH_DENSITY, top) };
+  return ringsAt(densityTop(areas));
 }
 
 /**
@@ -101,55 +110,11 @@ function pushApart(a, b) {
   b.x += ux * overlap * HALF; b.y += uy * overlap * HALF;
 }
 
-/** Cell size for the neighbour grid: twice the median radius plus the gap. */
-function cellSize(nodes) {
-  const radii = nodes.map((n) => n.r).sort((p, q) => p - q);
-  return 2 * (radii[Math.floor(radii.length * HALF)] || 0) + GAP;
-}
-
-/**
- * Uniform grid over the nodes' gap-padded boxes. A big bubble sits in every
- * cell its box covers, so the cell size can follow the typical bubble.
- */
-function buildGrid(nodes, cell) {
-  const cells = new Map();
-  const spans = nodes.map((n) => {
-    const reach = n.r + GAP;
-    return {
-      x0: Math.floor((n.x - reach) / cell), x1: Math.floor((n.x + reach) / cell),
-      y0: Math.floor((n.y - reach) / cell), y1: Math.floor((n.y + reach) / cell),
-    };
-  });
-  spans.forEach((sp, i) => {
-    for (let cx = sp.x0; cx <= sp.x1; cx++) for (let cy = sp.y0; cy <= sp.y1; cy++) {
-      const key = cx * GRID_STRIDE + cy;
-      const list = cells.get(key);
-      if (list) list.push(i); else cells.set(key, [i]);
-    }
-  });
-  return { cells, spans };
-}
-
-/** True when this cell is the first one both spans share, so a pair is visited once. */
-function ownsPair(key, a, b) {
-  return key === Math.max(a.x0, b.x0) * GRID_STRIDE + Math.max(a.y0, b.y0);
-}
-
-/** Calls visit(i, j) once for every pair of nodes whose padded boxes share a cell. */
-function forNeighbours(nodes, visit) {
-  const { cells, spans } = buildGrid(nodes, cellSize(nodes));
-  for (const [key, list] of cells) {
-    for (let p = 0; p < list.length; p++) for (let q = p + 1; q < list.length; q++) {
-      if (ownsPair(key, spans[list[p]], spans[list[q]])) visit(list[p], list[q]);
-    }
-  }
-}
-
-function relax(nodes) {
-  for (let step = 0; step < ITERATIONS; step++) {
-    const pull = PULL * (1 - step / ITERATIONS); // fades out so the last steps only separate
+function relax(nodes, iterations) {
+  for (let step = 0; step < iterations; step++) {
+    const pull = PULL * (1 - step / iterations); // fades out so the last steps only separate
     for (const n of nodes) { n.x += (n.tx - n.x) * pull; n.y += (n.ty - n.y) * pull; }
-    forNeighbours(nodes, (i, j) => pushApart(nodes[i], nodes[j]));
+    forNeighbourPairs(nodes, GAP, (i, j) => pushApart(nodes[i], nodes[j]));
     pullInside(nodes);
   }
 }
@@ -158,7 +123,7 @@ function relax(nodes) {
 function overlapOf(nodes) {
   let total = 0;
   for (const n of nodes) total += Math.max(0, Math.hypot(n.x, n.y) + n.r - SKY_RIM - SLACK);
-  forNeighbours(nodes, (i, j) => {
+  forNeighbourPairs(nodes, GAP, (i, j) => {
     const a = nodes[i];
     const b = nodes[j];
     total += Math.max(0, a.r + b.r - Math.hypot(a.x - b.x, a.y - b.y));
@@ -183,12 +148,28 @@ function startScale(areas) {
   return scale;
 }
 
-function attemptAt(areas, scale, top) {
+function attemptAt(areas, scale, { top, start, iterations }) {
   const nodes = areas.map((a) => ({ ...targetOf(a, top), r: bubbleRadius(a.stats.files) * scale }));
-  for (const n of nodes) { n.x = n.tx; n.y = n.ty; }
-  relax(nodes);
+  nodes.forEach((n, i) => {
+    const from = start?.get(areas[i].name);
+    n.x = from ? from.x : n.tx;
+    n.y = from ? from.y : n.ty;
+  });
+  relax(nodes, iterations);
   pullInside(nodes);
   return { nodes, overlap: overlapOf(nodes) };
+}
+
+function bestLayout(areas, options) {
+  let scale = startScale(areas);
+  let best = null;
+  for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+    const tried = attemptAt(areas, scale, options);
+    if (!best || tried.overlap < best.overlap) best = tried;
+    if (tried.overlap === 0) break;
+    scale *= FIT_SHRINK;
+  }
+  return (best ? best.nodes : []).map(({ x, y, r }) => ({ x, y, r }));
 }
 
 /**
@@ -197,17 +178,31 @@ function attemptAt(areas, scale, top) {
  * everything fits the rim. If no scale within MAX_TRIES is clean, the
  * attempt with the least total overlap wins.
  * @param {{name: string, density: number, stats: {files: number}}[]} areas
+ * @param {number} [top] the scale top; defaults to these areas' own densityTop
  * @returns {{x: number, y: number, r: number}[]} same order, sky-radius units
  */
-export function layoutSky(areas) {
-  const top = densityTop(areas);
-  let scale = startScale(areas);
-  let best = null;
-  for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
-    const tried = attemptAt(areas, scale, top);
-    if (!best || tried.overlap < best.overlap) best = tried;
-    if (tried.overlap === 0) break;
-    scale *= FIT_SHRINK;
-  }
-  return (best ? best.nodes : []).map(({ x, y, r }) => ({ x, y, r }));
+export function layoutSky(areas, top = densityTop(areas)) {
+  return bestLayout(areas, { top, start: null, iterations: ITERATIONS });
+}
+
+/**
+ * The sky of a run that follows another: every area starts where it was
+ * (`previous`, by name; new areas at their target) and settles from there,
+ * so bubbles drift instead of jumping.
+ * @param {{name: string, density: number, stats: {files: number}}[]} areas as for layoutSky
+ * @param {Map<string, {x: number, y: number}>} previous the run before's positions, by area name
+ * @param {number} [top] the scale top; defaults to these areas' own densityTop
+ * @returns {{x: number, y: number, r: number}[]} same order, sky-radius units
+ */
+export function layoutSkyFrom(areas, previous, top = densityTop(areas)) {
+  return bestLayout(areas, { top, start: previous, iterations: ANCHORED_ITERATIONS });
+}
+
+/**
+ * The areas of a set that get a bubble: at least SKY_MIN_FILES files.
+ * @param {{areas: {stats: {files: number}}[]}} areaSet decodeAreas or areaSetAt output
+ * @returns {object[]} the bubble areas, in the set's order
+ */
+export function skyAreas(areaSet) {
+  return areaSet.areas.filter((a) => a.stats.files >= SKY_MIN_FILES);
 }

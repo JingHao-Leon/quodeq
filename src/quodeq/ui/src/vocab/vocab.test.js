@@ -80,6 +80,7 @@ test('KEY mirrors the DOM KeyboardEvent.key spellings', () => {
   assert.deepEqual(KEY, {
     ENTER: 'Enter', SPACE: ' ', ESCAPE: 'Escape', TAB: 'Tab',
     ARROW_UP: 'ArrowUp', ARROW_DOWN: 'ArrowDown', ARROW_LEFT: 'ArrowLeft', ARROW_RIGHT: 'ArrowRight',
+    HOME: 'Home', END: 'End',
   });
   assert.equal(Object.isFrozen(KEY), true);
 });

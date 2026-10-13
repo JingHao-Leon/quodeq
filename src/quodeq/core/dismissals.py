@@ -17,8 +17,8 @@ from quodeq.core.events.models import BaseEvent, EventType
 from quodeq.core.finding_identity import (
     DismissKey,
     coerce_line,
+    dismiss_fingerprints,
     dismiss_identities,
-    snippet_fingerprint,
 )
 
 
@@ -120,10 +120,24 @@ class DismissedKeys:
         """True when this state hides the finding (no pattern rules here)."""
         if not self.entries:
             return False
+        return self.matches_fingerprints(
+            req=req, principle=principle, file=file, line=line,
+            fingerprints=dismiss_fingerprints(req, principle, snippet))
+
+    def matches_fingerprints(
+        self, *, req: str | None, principle: str | None = "", file: str | None = "",
+        line: object = 0, fingerprints: tuple[str | None, ...],
+    ) -> bool:
+        """:meth:`matches` with the snippet already reduced to ``dismiss_fingerprints(req, principle, snippet)``.
+
+        A stored map-history record keeps only these fingerprints, so it is
+        judged here by the same rules as a finding read with its snippet.
+        """
+        if not self.entries:
+            return False
         file_key = file or ""
         line_key = coerce_line(line)
-        for ident in dismiss_identities(req, principle):
-            fp = snippet_fingerprint(ident, snippet)
+        for ident, fp in zip(dismiss_identities(req, principle), fingerprints, strict=True):
             if fp is None:
                 if (ident, file_key, line_key) in self.lines:
                     return True

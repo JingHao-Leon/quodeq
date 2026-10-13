@@ -1,8 +1,5 @@
 import { ACTIVITY_SOURCE } from '../mapVocab.js';
-
-// Positions in a history frame's file row (src/quodeq/api/map_history_payload.py).
-const ROW_FILE = 0;
-const ROW_EDITS = 6;
+import { ROW } from './historyRows.js';
 
 const BACKSLASHES = /\\/g;
 const LEADING_DOT_SLASH = /^(\.\/)+/;
@@ -30,8 +27,8 @@ export function decodeActivity(payload) {
   if (!frame || !Array.isArray(payload.fileNames) || !Array.isArray(frame.files)) return NO_ACTIVITY;
   const editsByPath = new Map();
   for (const row of frame.files) {
-    const path = payload.fileNames[row[ROW_FILE]];
-    if (path !== undefined) editsByPath.set(filePathKey(path), row[ROW_EDITS] || 0);
+    const path = payload.fileNames[row[ROW.FILE]];
+    if (path !== undefined) editsByPath.set(filePathKey(path), row[ROW.EDITS] || 0);
   }
   return { source: payload.activitySource || ACTIVITY_SOURCE.NONE, editsByPath };
 }

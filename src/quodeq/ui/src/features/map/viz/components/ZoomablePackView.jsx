@@ -5,45 +5,13 @@ import { DEFAULT_SEVERITY_WEIGHTS } from '../core/mapBadness.js';
 import { PACK_COLOR_MODE } from '../../mapVocab.js';
 import PackInfoPanel from './PackInfoPanel.jsx';
 import { useFocusManager } from './useFocusManager.js';
-import { t } from '../../../../strings/index.js';
-import { PERCENT } from '../../../../constants.js';
-import MapTooltipSeverityRows from './MapTooltipSeverityRows.jsx';
-import { clampTooltipToBox } from '../core/tooltipPlacement.js';
+import PackTooltip from './PackTooltip.jsx';
 import FadeIn from '../../../../components/FadeIn.jsx';
 
 // No activity data yet: one shared empty map keeps the paint memo stable.
 // Read-only by convention (freezing a Map does not stop set()).
 const NO_EDITS = new Map();
 const CONTAINER_STYLE = { position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' };
-
-/* ---- PackTooltip: tooltip ---- */
-/** Tooltip position, clamped so it never runs off the container edge. */
-function tooltipStyle(mousePos, containerRef) {
-  const el = containerRef.current;
-  return clampTooltipToBox(mousePos.current.x, mousePos.current.y, el?.offsetWidth, el?.offsetHeight);
-}
-
-/** Per-severity rows, shown only for a node that actually has violations. */
-function TooltipSeverityRows({ hd }) {
-  if (!(hd.violations > 0)) return null;
-  return <MapTooltipSeverityRows severity={hd.severity} />;
-}
-
-/** Tooltip of the picked circle: the circle a click would select. */
-function PackTooltip({ circles, hover, mousePos, containerRef }) {
-  if (hover === null || !circles[hover] || circles[hover].depth === 0) return null;
-  const hd = circles[hover].data;
-  const total = hd.violations + hd.compliance;
-  return (
-    <div className="map-tooltip map-tooltip--floating" style={tooltipStyle(mousePos, containerRef)}>
-      <div className="map-tooltip-title">{(hd.path || hd.name || '').replace(/\/$/, '')}</div>
-      <div className="map-tooltip-row"><span>{t('map.violations')}</span><span>{hd.violations}</span></div>
-      <TooltipSeverityRows hd={hd} />
-      <div className="map-tooltip-row"><span>{t('map.compliance')}</span><span>{hd.compliance}</span></div>
-      <div className="map-tooltip-row"><span>{t('map.rate')}</span><span>{total > 0 ? ((hd.compliance / total) * PERCENT).toFixed(0) + '%' : '—'}</span></div>
-    </div>
-  );
-}
 
 /** Hover index tied to the circles and the open folder it was taken under:
  * a new tree (worker reply, new node) or a focus change (drill, Escape,
@@ -97,7 +65,7 @@ export default function ZoomablePackView({
             handlers={{ handleClick: focus.handleClick, handleBgClick: focus.handleBgClick }}
           />        )}
       </FadeIn>
-      {ready && <PackTooltip circles={circles} hover={hover} mousePos={mousePos} containerRef={containerRef} />}
+      {ready && <PackTooltip node={hover === null ? null : circles[hover]} mousePos={mousePos} containerRef={containerRef} />}
       {ready && <PackInfoPanel focusNode={focus.focusNode} root={root} onFileClick={onFileClick} />}
     </div>
   );

@@ -8,7 +8,13 @@ from typing import NamedTuple
 from quodeq.core.map_history.area_metrics import WEIGHT_DECIMALS, AreaMetrics, PathActivity, area_metrics_per_run
 from quodeq.core.map_history.areas import AreaAssignment, assign_areas, display_layer
 from quodeq.core.map_history.snapshot import RunSnapshot
-from quodeq.core.map_history.timeline import finding_flows, running_edits, violation_ages, violation_ids
+from quodeq.core.map_history.timeline import (
+    ages_from_starts,
+    finding_flows,
+    running_edits,
+    violation_age_starts,
+    violation_ids,
+)
 
 
 class FileRow(NamedTuple):
@@ -21,8 +27,7 @@ class FileRow(NamedTuple):
     critical: int
     major: int
     edits: int          # edits up to and including this run
-    touched: bool       # edited in the transition into this run
-    age_days: int       # age of the file's oldest violation
+    age_from: int       # run index where the file's oldest violation chain started, -1 without one
 
 
 @dataclass(frozen=True)
@@ -61,11 +66,10 @@ class RunActivity:
 
 
 class _RunFacts(NamedTuple):
-    """What every frame draws on, per run (oldest first): edits, violation ages, area metrics, and flows of the asked runs."""
+    """What every frame draws on, per run (oldest first): edits, violation chain starts, area metrics, and flows of the asked runs."""
 
-    running: list[Counter[str]]             # edits up to and including each run
-    transitions: tuple[Counter[str], ...]   # edits in the transition into each run
-    ages: list[dict[str, int]]
+    running: list[Counter[str]]         # edits up to and including each run
+    starts: list[dict[str, int]]        # oldest violation chain start per path
     metrics: list[list[AreaMetrics]]
     flows: dict[int, tuple[int, int]]
 
@@ -75,17 +79,19 @@ def _run_facts(days: list[str], snapshots: list[RunSnapshot], activity: RunActiv
     """Every run's timeline facts; flows only for *frame_runs*."""
     running = running_edits(activity.per_transition)
     violations = [violation_ids(s) for s in snapshots]
-    ages = violation_ages(snapshots, days, violations)
+    starts = violation_age_starts(snapshots, violations)
+    ages = ages_from_starts(days, starts)
     per_run = [PathActivity(edits, run_ages) for edits, run_ages in zip(running, ages, strict=True)]
-    return _RunFacts(running, activity.per_transition, ages, area_metrics_per_run(snapshots, assignments, per_run),
+    metrics = area_metrics_per_run(snapshots, assignments, per_run)
+    return _RunFacts(running, starts, metrics,
                      finding_flows(snapshots, violations, frame_runs))
 
 
 def _rows(k: int, snap: RunSnapshot, index: dict[str, int], facts: _RunFacts) -> tuple[FileRow, ...]:
     """Run *k*'s file rows."""
-    running, transition, ages = facts.running[k], facts.transitions[k], facts.ages[k]
+    running, starts = facts.running[k], facts.starts[k]
     return tuple(FileRow(index[p], round(s.weight, WEIGHT_DECIMALS), s.violations, s.compliance, s.critical, s.major,
-                         running.get(p, 0), bool(transition.get(p)), ages[p])
+                         running.get(p, 0), starts[p])
                  for p, s in snap.files.items())
 
 
@@ -97,6 +103,9 @@ def _frame(k: int, day: str, snap: RunSnapshot, index: dict[str, int], facts: _R
 def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: RunActivity,
                      frame_runs: list[int]) -> MapHistory:
     """The history of *snapshots* (one per day of *days*, oldest first) with frames for the run indexes *frame_runs*.
+
+    Each snapshot carries every dimension forward (``carry_forward``), so it is
+    the accumulated view as of its day.
 
     Area kinds are smoothed over every run, so every run is measured; file rows
     and flows are built only for the requested frames.

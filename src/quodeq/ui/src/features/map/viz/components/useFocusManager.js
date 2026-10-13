@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { PACK_BASE_SIZE as BASE_SIZE } from '../core/packLayout.js';
+import { focusTransformFor } from '../core/packCanvasGeometry.js';
 import { isDrillableFolder } from '../core/fileTree.js';
 import { dominantFolderPath } from '../core/dominantFolder.js';
 
@@ -53,10 +53,7 @@ function useFocusPathSync({ currentPath, circles, setFocus, skipTransition, prev
 function useFocusTransform(focusNode) {
   return useMemo(() => {
     if (!focusNode) return { k: 1, tx: 0, ty: 0 };
-    const k = BASE_SIZE / (focusNode.r * 2);
-    const tx = BASE_SIZE / 2 - focusNode.x * k;
-    const ty = BASE_SIZE / 2 - focusNode.y * k;
-    return { k, tx, ty };
+    return focusTransformFor(focusNode);
   }, [focusNode]);
 }
 

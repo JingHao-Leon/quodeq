@@ -40,3 +40,28 @@ export function clampTooltipToBox(x, y, width, height) {
     top: Math.min(y + BOX_OFFSET, (height || BOX_FALLBACK_PX) - BOX_MARGIN_Y),
   };
 }
+
+/**
+ * `clampTooltipToBox` inside a container element, measured now (a missing or
+ * unmeasured element uses the fallback size).
+ *
+ * @param {number} x - Point X relative to the element
+ * @param {number} y - Point Y relative to the element
+ * @param {HTMLElement|null|undefined} el - The tooltip's container
+ * @returns {{ left: number, top: number }} CSS pixel offsets
+ */
+export function clampTooltipToElement(x, y, el) {
+  return clampTooltipToBox(x, y, el?.offsetWidth, el?.offsetHeight);
+}
+
+/**
+ * A canvas hover (`{x, y, ...}`) with its tooltip position clamped inside
+ * `el` as `pos`, or null when nothing is hovered.
+ *
+ * @param {{x: number, y: number}|null} hover
+ * @param {HTMLElement|null|undefined} el - The tooltip's container
+ * @returns {object|null}
+ */
+export function hoverWithTooltipPos(hover, el) {
+  return hover && { ...hover, pos: clampTooltipToElement(hover.x, hover.y, el) };
+}

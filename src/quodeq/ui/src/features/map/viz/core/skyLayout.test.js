@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  layoutSky, densityDistance, densityTop, skyRings, SKY_RIM, seededAngle, FIX_FIRST_DENSITY, WATCH_DENSITY,
+  layoutSky, layoutSkyFrom, skyAreas, densityDistance, densityTop, skyRings, ringsAt, SKY_RIM, seededAngle,
+  FIX_FIRST_DENSITY, WATCH_DENSITY,
 } from './skyLayout.js';
 
 const EPS = 1e-6;
@@ -17,6 +18,8 @@ const SEED_STEP = 0.618034;
 const HALF_DENSITY = 0.5;
 const MESSY_TOP = 6;
 const CLEAN = [0, 0.08, 0.15, 0.46];
+const ANCHORED_AREAS = 40;
+const ANCHORED_DRIFT = 0.05;
 const area = (name, density, files) => ({ name, density, stats: { files } });
 
 function overlaps(nodes) {
@@ -105,4 +108,28 @@ test('one giant area still fits', () => {
   const nodes = layoutSky([area('big', 0.9, 4000), area('small', 0.2, 5)]);
   assert.ok(nodes.every((n) => Math.hypot(n.x, n.y) + n.r <= SKY_RIM + EPS));
   assert.equal(overlaps(nodes), false);
+});
+
+test('an anchored sky starts from the previous positions and stays clean', () => {
+  const areas = Array.from({ length: ANCHORED_AREAS }, (_, i) => area(`a${i}`, fraction(i), SMALL_MIN + i));
+  const before = layoutSky(areas);
+  const previous = new Map(areas.map((a, i) => [a.name, before[i]]));
+  const after = layoutSkyFrom(areas, previous);
+  const drift = Math.max(...after.map((n, i) => Math.hypot(n.x - before[i].x, n.y - before[i].y)));
+  assert.ok(drift < ANCHORED_DRIFT, `${drift}`);
+  assert.equal(overlaps(after), false);
+  assert.ok(inside(after));
+});
+
+test('a given scale top places areas against it, not against their own densest', () => {
+  const areas = [area('hot', 1, 10), area('calm', HALF_DENSITY, 10)];
+  const [own] = layoutSky(areas);
+  const [wide] = layoutSky(areas, MESSY_TOP);
+  assert.ok(Math.hypot(wide.x, wide.y) > Math.hypot(own.x, own.y));
+  assert.deepEqual(ringsAt(densityTop(areas)), skyRings(areas));
+});
+
+test('only areas with enough files are bubbles', () => {
+  const set = { areas: [area('a', HALF_DENSITY, SMALL_MIN - 1), area('b', HALF_DENSITY, SMALL_MIN)] };
+  assert.deepEqual(skyAreas(set).map((a) => a.name), ['b']);
 });

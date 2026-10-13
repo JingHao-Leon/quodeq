@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decodeAreas, NO_AREAS } from './mapAreas.js';
+import { areaSetAt, decodeAreas, NO_AREAS } from './mapAreas.js';
+import { decodeTimelapse } from './mapTimelapse.js';
 
 const PAYLOAD = {
   fileNames: ['a/x.kt', 'a/y.kt', 'b/z.py', 'gone.py'],
@@ -47,4 +48,18 @@ test('the average is the weight per present file, and every present file is list
 test('an empty or malformed payload is no areas', () => {
   assert.equal(decodeAreas(null), NO_AREAS);
   assert.equal(decodeAreas({ fileNames: [], frames: [] }), NO_AREAS);
+});
+
+test('a run of a decoded history gives the same area set as that run alone', () => {
+  const names = { fileNames: ['a/x.py', 'a/y.py', 'b/z.py'], fileArea: ['a', 'a', 'b'], fileLayer: ['', '', ''] };
+  const areas = [{ area: 'a', kind: 'hotspot', density: 0.9 }, { area: 'b', kind: 'healthy', density: 0.1 }];
+  const rows = [[0, 2, 1, 1, 0, 1, 0, 0], [1, 0.25, 1, 3, 0, 0, 0, 0], [2, 0, 0, 4, 0, 0, 0, 0]];
+  const history = decodeTimelapse({ ...names, frameEncoding: 'delta', frames: [
+    { day: '2026-09-01', areas: [], files: [rows[0]], gone: [] }, { day: '2026-09-08', areas, files: rows.slice(1), gone: [] }] });
+  const single = decodeAreas({ ...names, frames: [{ areas, files: rows }] });
+  assert.deepEqual(areaSetAt(history, 1), single);
+});
+
+test('a run past the end of the history has no areas', () => {
+  assert.equal(areaSetAt(decodeTimelapse(PAYLOAD), 1), NO_AREAS);
 });

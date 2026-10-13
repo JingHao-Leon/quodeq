@@ -269,12 +269,12 @@ describe('MapPage: Concentration and Activity', () => {
   });
 
   it('a failed history under Activity is explained in the legend', async () => {
-    let reject;
-    const api = fakeApi({ getMapHistory: vi.fn(() => new Promise((_, rej) => { reject = rej; })) });
+    const rejects = [];
+    const api = fakeApi({ getMapHistory: vi.fn(() => new Promise((_, rej) => { rejects.push(rej); })) });
     render(<NavHarness data={local()} log={[]} />, { wrapper: withStableQueryApi(api) });
     fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
     await waitFor(() => expect(api.getMapHistory).toHaveBeenCalled());
-    reject(new Error('boom'));
+    rejects.forEach((reject) => reject(new Error('boom')));
     expect(await screen.findByText(t('map.activityUnavailable'), { selector: '.pack-legend-note' })).toBeInTheDocument();
   });
 });

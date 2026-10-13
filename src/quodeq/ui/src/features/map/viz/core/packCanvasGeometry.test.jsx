@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { packViewport, toLayoutPoint, hitCircle, isDrawable, PACK_VIEW_PAD } from './packCanvasGeometry.js';
+import { packViewport, toLayoutPoint, hitCircle, isDrawable, focusTransformFor, PACK_VIEW_PAD } from './packCanvasGeometry.js';
 import { PACK_BASE_SIZE } from './packLayout.js';
 
 const SPAN = PACK_BASE_SIZE + PACK_VIEW_PAD * 2;
@@ -55,5 +55,17 @@ describe('isDrawable', () => {
     const beyondBox = { cx: PACK_BASE_SIZE + PACK_VIEW_PAD + 200, cy: 300, r: 5 };
     expect(isDrawable(beyondBox, wide, SPAN * 2, SPAN)).toBe(true);
     expect(isDrawable(beyondBox, v, SPAN, SPAN)).toBe(false);
+  });
+});
+
+describe('focusTransformFor', () => {
+  it('frames a circle in the view box: its centre at the middle, its diameter across', () => {
+    const { k, tx, ty } = focusTransformFor({ x: 100, y: 200, r: 50 });
+    expect(k).toBe(PACK_BASE_SIZE / 100);
+    expect([100 * k + tx, 200 * k + ty]).toEqual([PACK_BASE_SIZE / 2, PACK_BASE_SIZE / 2]);
+  });
+
+  it('a circle with no size keeps the whole view, never an infinite zoom', () => {
+    expect(focusTransformFor({ x: 10, y: 10, r: 0 })).toEqual({ k: 1, tx: 0, ty: 0 });
   });
 });

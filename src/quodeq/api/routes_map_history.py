@@ -10,7 +10,7 @@ from flask import Flask, Response, request
 from quodeq.api.map_history_payload import map_history_payload
 from quodeq.api._report_payload import PayloadFailure, serve_report_payload
 from quodeq.api.helpers import json_error, validate_segment
-from quodeq.services.map_history import FRAME_CHOICES, LATEST_FRAMES, build_map_history
+from quodeq.services.map_history import ALL_FRAMES, FRAME_CHOICES, LATEST_FRAMES, build_map_history
 
 _logger = logging.getLogger(__name__)
 _ROUTE = "/api/projects/<project>/map/history"
@@ -31,6 +31,7 @@ def register_map_history_routes(app: Flask) -> None:
             errors=(OSError, ValueError, sqlite3.Error), message="Failed to build the map history",
             log=lambda: _logger.exception("Failed to build the map history for %s", project))
         return serve_report_payload(
-            lambda root: map_history_payload(build_map_history(root, project, frames=frames)), failure)
+            lambda root: map_history_payload(build_map_history(root, project, frames=frames), delta=frames == ALL_FRAMES),
+            failure)
 
     app.get(_ROUTE)(map_history)

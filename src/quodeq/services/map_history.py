@@ -1,7 +1,8 @@
 """The map's history: per-run file stats, functional areas, activity and area
-kinds. Each run's snapshot is cached in the score cache's ``map_snapshot``
-table under the project's score-cache version (a dismissal or a grade-formula
-change re-keys)."""
+kinds. Each run is cached raw in the score cache (``map_snapshot`` plus the
+project's ``map_finding`` records); suppression and the grade formula's
+severity weights apply when the history is read, so neither ever rebuilds a
+cached run."""
 from __future__ import annotations
 
 from collections import Counter
@@ -12,14 +13,19 @@ from pathlib import Path
 from typing import NamedTuple
 
 from quodeq.core.map_history.activity import estimate_edits
+from quodeq.core.map_history.carry import carry_forward
 from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
-from quodeq.core.map_history.snapshot import HiddenPredicate, RunSnapshot, build_run_snapshot
+from quodeq.core.map_history.raw_run import (
+    RawHistory, RawHistoryWrite, RawRun, ViolationRecord, build_raw_run, materialise, referenced_records,
+)
+from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import ISO_DAY_LEN, full_run_dimensions
+from quodeq.core.finding_identity import SuppressionSubject
 from quodeq.core.run.state import RunState
 from quodeq.services._map_git import git_commits_per_transition
-from quodeq.services._violation_filters import is_suppressed_violation
-from quodeq.services.score_cache import score_cache_version
+from quodeq.services._violation_filters import is_suppressed_subject, suppression_subject
 from quodeq.services.scoring import ProjectRows
+from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import (
     eval_report_dimensions,
     iter_readable_eval_reports,
@@ -34,8 +40,9 @@ from quodeq.services.wiring import (
 LATEST_FRAMES = "latest"
 ALL_FRAMES = "all"
 FRAME_CHOICES = (LATEST_FRAMES, ALL_FRAMES)
-# Snapshot payload shape: bump to invalidate every cached snapshot (2: deleted and rule-hidden findings left out).
-SNAPSHOT_SHAPE = "2"
+# Snapshot payload shape: bump to invalidate every cached run (3: raw runs and records, suppression applied when
+# read; 4: compliance counted per dimension, so a run can carry a dimension it did not report).
+SNAPSHOT_SHAPE = "4"
 _SOURCE_GIT = "git"
 _SOURCE_ESTIMATED = "estimated"
 
@@ -49,12 +56,13 @@ class _Candidate(NamedTuple):
     reports: list[tuple[str, dict]] | None       # parsed reports, None until read
 
 
-class _DaySnapshot(NamedTuple):
-    """The run picked for one day and its snapshot."""
+class _DayRun(NamedTuple):
+    """The run picked for one day, raw, with the records read for it now (none when cached)."""
 
     run_id: str
-    snapshot: RunSnapshot
-    built_now: bool     # False when it came from the cache
+    run: RawRun
+    records: dict[str, ViolationRecord]
+    built_now: bool
 
 
 def _valid_day(day: str) -> bool:
@@ -117,60 +125,83 @@ def _full_by_day(candidates: list[_Candidate]) -> tuple[dict[str, list[_Candidat
 
 
 def _cache_keys(rows: ProjectRows, by_day: dict[str, list[_Candidate]]) -> dict[str, str]:
-    """The snapshot cache key of every finished candidate run.
+    """The cache key of every finished candidate run: the payload shape and the run's dimensions.
 
-    The score-cache version covers dismissals and the grade formula (its
-    severity weights included), so either change re-keys every snapshot.
+    Suppression and the grade formula apply when a run is read, so neither is
+    part of the key; a finished run's reports are never rewritten.
     """
-    version = score_cache_version(rows.reports_root / rows.project, rows.params)
     finished = {r.run_id for r in rows.runs if r.status == RunState.DONE}
-    return {c.run_id: f"{SNAPSHOT_SHAPE}|{version}|{','.join(c.dims)}"
+    return {c.run_id: f"{SNAPSHOT_SHAPE}|{','.join(c.dims)}"
             for group in by_day.values() for c in group if c.run_id in finished}
 
 
-def _hidden_predicate(rows: ProjectRows) -> HiddenPredicate:
-    """The app's suppression predicate (dismissed, deleted, pattern rules) over *rows*' project."""
-    keys = replace(rows.keys, rules=load_suppression_rules(rows.reports_root / rows.project))
-    return lambda dim, violation: is_suppressed_violation(violation, keys, dim)
+def _subject_of(dimension: str, violation: dict) -> SuppressionSubject:
+    """The suppression subject of one report violation."""
+    return suppression_subject(violation, dimension)
 
 
-def _day_snapshot(rows: ProjectRows, group: list[_Candidate], cached: dict[str, RunSnapshot],
-                  need: int, is_hidden: HiddenPredicate) -> _DaySnapshot | None:
+def _suppression_keys(rows: ProjectRows) -> SuppressionKeys:
+    """The project's dismissed, deleted and pattern-rule state."""
+    return replace(rows.keys, rules=load_suppression_rules(rows.reports_root / rows.project))
+
+
+def _hidden(rows: ProjectRows, records: dict[str, ViolationRecord], needed: set[str]) -> frozenset[str]:
+    """The record keys of *needed* the app hides, each distinct record judged once."""
+    keys = _suppression_keys(rows)
+    return frozenset(k for k in needed if is_suppressed_subject(records[k].subject, keys))
+
+
+def _day_run(rows: ProjectRows, group: list[_Candidate], stored: RawHistory, need: int) -> _DayRun | None:
     """The day's last run that is cached or reads as full, else None.
 
     *group* is newest first: an earlier run of the day stands in only when
     every later one is uncached and reads short of a full run.
     """
-    weights: Mapping[str, float] = rows.params.severity_weight
     for c in group:
-        if c.run_id in cached:
-            return _DaySnapshot(c.run_id, cached[c.run_id], False)
+        if c.run_id in stored.runs:
+            return _DayRun(c.run_id, stored.runs[c.run_id], {}, False)
         reports = c.reports if c.reports is not None else _readable_reports(rows.reports_root / rows.project / c.run_id)
         if len(reports) >= need:
-            return _DaySnapshot(c.run_id, build_run_snapshot(reports, is_hidden, weights), True)
+            built = build_raw_run(reports, _subject_of)
+            return _DayRun(c.run_id, built.run, built.records, True)
     return None
+
+
+def _save(rows: ProjectRows, picked: dict[str, _DayRun], keys: dict[str, str]) -> None:
+    """Store the fresh finished runs and their records; keep only what the picked finished runs use."""
+    kept = [p for p in picked.values() if p.run_id in keys]
+    fresh = [p for p in kept if p.built_now]
+    save_map_snapshots(rows.project, RawHistoryWrite(
+        runs={p.run_id: (keys[p.run_id], p.run) for p in fresh},
+        records={k: r for p in fresh for k, r in p.records.items()},
+        keep_runs={p.run_id for p in kept},
+        keep_records=referenced_records(p.run for p in kept),
+    ))
 
 
 def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
     """Oldest-first days and snapshots of the full runs, one per day (the last of that day).
 
-    Only finished runs are read from or stored in the cache, and reports are
-    read only for runs it does not hold; a run whose readable reports fall
-    short of a full run gives way to the day's previous run.
+    A run's snapshot is the accumulated view as of its day: a dimension it did
+    not report is carried from the latest earlier run that did. Only finished
+    runs are read from or stored in the cache, and reports are read only for
+    runs it does not hold; a run whose readable reports fall short of a full
+    run gives way to the day's previous run.
     """
     candidates = _candidates(rows)
     if not candidates:
         return [], []
     by_day, need = _full_by_day(candidates)
     keys = _cache_keys(rows, by_day)
-    cached = load_map_snapshots(rows.project, keys)
-    is_hidden = _hidden_predicate(rows)
+    stored = load_map_snapshots(rows.project, keys)
     picked = {day: got for day, group in by_day.items()
-              if (got := _day_snapshot(rows, group, cached, need, is_hidden)) is not None}
-    kept = {p.run_id for p in picked.values() if p.run_id in keys}
-    fresh = {p.run_id: (keys[p.run_id], p.snapshot) for p in picked.values() if p.built_now and p.run_id in keys}
-    save_map_snapshots(rows.project, fresh, kept)
-    return list(picked), [p.snapshot for p in picked.values()]
+              if (got := _day_run(rows, group, stored, need)) is not None}
+    _save(rows, picked, keys)
+    records = {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}}
+    runs = carry_forward([p.run for p in picked.values()], records)
+    hidden = _hidden(rows, records, referenced_records(runs))
+    weights: Mapping[str, float] = rows.params.severity_weight
+    return list(picked), [materialise(run, records, hidden, weights) for run in runs]
 
 
 def _estimated_activity(snaps: list[RunSnapshot]) -> RunActivity:

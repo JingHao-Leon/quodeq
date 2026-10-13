@@ -2,6 +2,7 @@ import { t } from '../../../../strings/index.js';
 import { PERCENT } from '../../../../constants.js';
 import { AREA_KIND } from '../../mapVocab.js';
 import { severityLines } from './levelInfoLines.js';
+import { pluralKey } from '../../../../utils/plural.js';
 
 /** Decimals shown for an area's weighted issues per file. */
 const DENSITY_DECIMALS = 2;
@@ -23,6 +24,12 @@ function issuesSub(count) {
 /** The two-line canvas label of an area: its name and its issue count. */
 export function riskLabelText(area) {
   return { title: area.name, sub: issuesSub(area.stats.violations) };
+}
+
+/** An area's keyboard-list text: its name and its issue count. */
+export function riskItemText(area) {
+  const count = area.stats.violations;
+  return t(pluralKey(count, 'map.riskAreaAriaOne', 'map.riskAreaAria'), { name: area.name, count });
 }
 
 /** The info panel (and tooltip) content for an area. */

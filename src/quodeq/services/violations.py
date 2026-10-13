@@ -23,6 +23,9 @@ from quodeq.services.violation_context import ViolationContext  # re-export
 from quodeq.services._violation_filters import (  # noqa: F401 — re-exported for tests
     deleted_key_for_violation,
     filter_dismissed_from_result,
+    is_suppressed_subject,
+    is_suppressed_violation,
+    suppression_subject,
     violation_location,
 )
 from quodeq.services.suppression_keys import SuppressionKeys
