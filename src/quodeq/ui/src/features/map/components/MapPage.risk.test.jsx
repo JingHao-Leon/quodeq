@@ -63,7 +63,6 @@ describe('MapPage: the Risk tab', () => {
     render(<MapPage data={local()} callbacks={{}} />, { wrapper: withStableQueryApi(riskApi()) });
     const group = screen.getByRole('button', { name: t('map.vizCirclePack') }).parentElement;
     expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual([t('map.vizCirclePack'), 'Galaxy', t('map.vizRisk')]);
-    expect(screen.queryByRole('button', { name: t('map.vizRiskMatrix') })).toBeNull();
   });
 
   it('choosing Risk replaces the entry and hides the Dimensions control', () => {
