@@ -30,19 +30,37 @@ const HALF = 0.5;
 const SLACK = 1e-9;
 
 /**
- * The density the sky's scale tops out at: the project's densest area, never
- * below the fix-first floor, so a clean project keeps its areas off the centre.
+ * The share of the areas the scale top covers: one extreme area cannot push
+ * every other area to the rim, it sits at the centre with the top's own.
+ */
+export const SKY_TOP_PERCENTILE = 0.9;
+
+/** The p-quantile of ascending values, interpolated between the two nearest ranks. */
+function quantile(sorted, p) {
+  const at = (sorted.length - 1) * p;
+  const below = Math.floor(at);
+  const above = Math.min(sorted.length - 1, below + 1);
+  return sorted[below] + (sorted[above] - sorted[below]) * (at - below);
+}
+
+/**
+ * The density the sky's scale tops out at: the SKY_TOP_PERCENTILE of the
+ * areas' densities, never below the fix-first floor, so a clean project keeps
+ * its areas off the centre. Areas above it sit at the innermost distance.
  * @param {{density: number}[]} areas
  * @returns {number} weighted findings per file
  */
 export function densityTop(areas) {
-  return areas.reduce((top, a) => Math.max(top, a.density || 0), FIX_FIRST_DENSITY);
+  if (!areas.length) return FIX_FIRST_DENSITY;
+  const sorted = areas.map((a) => a.density || 0).sort((a, b) => a - b);
+  return Math.max(FIX_FIRST_DENSITY, quantile(sorted, SKY_TOP_PERCENTILE));
 }
 
 /**
  * How far from the centre an area with this density sits. The square root
  * spreads the many low-density areas across the outer half instead of
- * stacking them on the rim, and still compresses a heavy tail.
+ * stacking them on the rim, and still compresses a heavy tail. A density
+ * above the top is clamped to it: the innermost distance, never beyond.
  * @param {number} density weighted findings per file
  * @param {number} top densityTop of the project
  * @returns {number} distance in sky-radius units

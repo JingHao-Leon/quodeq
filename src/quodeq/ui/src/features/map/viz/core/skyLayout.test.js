@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   layoutSky, layoutSkyFrom, skyAreas, densityDistance, densityTop, skyRings, ringsAt, SKY_RIM, seededAngle,
-  FIX_FIRST_DENSITY, WATCH_DENSITY,
+  FIX_FIRST_DENSITY, WATCH_DENSITY, SKY_TOP_PERCENTILE,
 } from './skyLayout.js';
 
 const EPS = 1e-6;
@@ -20,7 +20,14 @@ const MESSY_TOP = 6;
 const CLEAN = [0, 0.08, 0.15, 0.46];
 const ANCHORED_AREAS = 40;
 const ANCHORED_DRIFT = 0.05;
+const OUTLIER = 9;
+const SPREAD_AREAS = 20;
+const SPREAD_MAX = 2;
+const DISTANCE_TOLERANCE = 0.03;
 const area = (name, density, files) => ({ name, density, stats: { files } });
+const fromCentre = (n) => Math.hypot(n.x, n.y);
+// Twenty areas spread evenly up to SPREAD_MAX: a project with a heavy but ordinary tail.
+const spread = () => Array.from({ length: SPREAD_AREAS }, (_, i) => area(`s${i}`, ((i + 1) / SPREAD_AREAS) * SPREAD_MAX, SMALL_MIN));
 
 function overlaps(nodes) {
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
@@ -46,10 +53,34 @@ test('denser areas sit closer to the centre, a clean area at the outer edge', ()
   assert.ok(Math.hypot(hot.x, hot.y) < Math.hypot(calm.x, calm.y));
 });
 
-test('the scale tops out at the densest area, never below the fix-first floor', () => {
+test('the scale tops out at a high percentile of the densities, never below the fix-first floor', () => {
   assert.equal(densityTop(CLEAN.map((d, i) => area(`c${i}`, d, 5))), FIX_FIRST_DENSITY);
-  assert.equal(densityTop([area('a', 0.2, 5), area('b', MESSY_TOP, 5)]), MESSY_TOP);
+  assert.equal(densityTop([area('only', MESSY_TOP, 5)]), MESSY_TOP);
+  const sorted = spread().map((a) => a.density);
+  const at = (sorted.length - 1) * SKY_TOP_PERCENTILE;
+  const lo = Math.floor(at);
+  const expected = sorted[lo] + (sorted[lo + 1] - sorted[lo]) * (at - lo);
+  assert.ok(Math.abs(densityTop(spread()) - expected) < EPS);
+  assert.ok(densityTop(spread()) < SPREAD_MAX);
   assert.equal(densityTop([]), FIX_FIRST_DENSITY);
+});
+
+test('one extreme area no longer pushes every other area outward', () => {
+  const others = spread();
+  const withOutlier = [...others, area('outlier', OUTLIER, SMALL_MIN)];
+  const alone = layoutSky(others);
+  const together = layoutSky(withOutlier);
+  // On average: a neighbour of the outlier near the centre may still be nudged aside by its bubble.
+  const drift = others.reduce((sum, _, i) => sum + Math.abs(fromCentre(together[i]) - fromCentre(alone[i])), 0) / others.length;
+  assert.ok(drift < DISTANCE_TOLERANCE, `${drift}`);
+});
+
+test('an area denser than the scale top sits at the innermost distance, not beyond it', () => {
+  const top = densityTop([...spread(), area('outlier', OUTLIER, SMALL_MIN)]);
+  assert.ok(top < OUTLIER);
+  assert.equal(densityDistance(OUTLIER, top), densityDistance(top, top));
+  const nodes = layoutSky([...spread(), area('outlier', OUTLIER, SMALL_MIN)]);
+  assert.ok(Math.abs(fromCentre(nodes.at(-1)) - densityDistance(top, top)) < DISTANCE_TOLERANCE);
 });
 
 test('a clean project: the rings shrink toward the centre and every area sits outside them', () => {
