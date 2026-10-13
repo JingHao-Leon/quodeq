@@ -1,4 +1,4 @@
-from quodeq.core.map_history.areas import AreaAssignment, assign_areas
+from quodeq.core.map_history.areas import AreaAssignment, assign_areas, display_layer
 
 
 def test_android_layer_prefixed_modules_share_an_area():
@@ -61,3 +61,16 @@ def test_a_stem_takes_the_longest_area_name_it_starts_with():
     ])
     assert got["shared/util/ArticleListAdapter.kt"].area == "articlelist"
     assert got["shared/util/ArticleCache.kt"].area == "article"
+
+
+def test_only_module_prefix_layers_are_shown():
+    got = assign_areas([
+        "feature-article/src/main/kotlin/nl/x/ArticleScreen.kt",
+        "domain-data-article/src/main/kotlin/nl/x/ArticleRepo.kt",
+        "features/search/SearchView.swift",
+        "src/quodeq/api/app.py",
+    ])
+    assert display_layer(got["feature-article/src/main/kotlin/nl/x/ArticleScreen.kt"]) == "feature"
+    assert display_layer(got["domain-data-article/src/main/kotlin/nl/x/ArticleRepo.kt"]) == "domain-data"
+    assert display_layer(got["features/search/SearchView.swift"]) == ""
+    assert display_layer(got["src/quodeq/api/app.py"]) == ""

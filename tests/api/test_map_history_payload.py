@@ -5,7 +5,7 @@ from quodeq.core.map_history.history import EMPTY_HISTORY, FileRow, MapFrame, Ma
 
 def test_empty_history_shape():
     assert map_history_payload(EMPTY_HISTORY) == {
-        "activitySource": "none", "days": [], "fileNames": [], "fileArea": [], "fileTest": [], "frames": []}
+        "activitySource": "none", "days": [], "fileNames": [], "fileArea": [], "fileTest": [], "fileLayer": [], "frames": []}
 
 
 def test_rows_are_positional_and_flags_are_numbers():
@@ -17,3 +17,9 @@ def test_rows_are_positional_and_flags_are_numbers():
     assert body["fileTest"] == [1]
     assert body["frames"][0]["files"] == [[0, 2.0, 1, 0, 0, 1, 3, 1, 5]]
     assert body["frames"][0]["areas"][0]["kind"] == "small" and body["frames"][0]["areas"][0]["prodFiles"] == 1
+
+
+def test_file_layer_is_sent_parallel_to_file_names():
+    history = MapHistory("git", ("2026-10-01",), ("a.kt", "b.py"), ("article", "api"), (False, False), (),
+                         file_layer=("feature", ""))
+    assert map_history_payload(history)["fileLayer"] == ["feature", ""]

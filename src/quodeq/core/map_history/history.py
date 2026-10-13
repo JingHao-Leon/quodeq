@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import NamedTuple
 
 from quodeq.core.map_history.area_metrics import WEIGHT_DECIMALS, AreaMetrics, PathActivity, area_metrics_per_run
-from quodeq.core.map_history.areas import AreaAssignment, assign_areas
+from quodeq.core.map_history.areas import AreaAssignment, assign_areas, display_layer
 from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import finding_flows, running_edits, violation_ages, violation_ids
 
@@ -46,6 +46,7 @@ class MapHistory:
     file_area: tuple[str, ...]
     file_test: tuple[bool, ...]
     frames: tuple[MapFrame, ...]
+    file_layer: tuple[str, ...] = ()   # display layer per file ("" when none), parallel to file_names
 
 
 EMPTY_HISTORY = MapHistory("none", (), (), (), (), ())
@@ -106,4 +107,5 @@ def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: Ru
     facts = _run_facts(days, snapshots, activity, assignments, frame_runs)
     frames = tuple(_frame(k, days[k], snapshots[k], index, facts) for k in frame_runs)
     return MapHistory(activity.source, tuple(days), tuple(names), tuple(assignments[p].area for p in names),
-                      tuple(assignments[p].is_test for p in names), frames)
+                      tuple(assignments[p].is_test for p in names), frames,
+                      tuple(display_layer(assignments[p]) for p in names))

@@ -25,6 +25,8 @@ MIN_STEM = 3
 LAYER_SHARED = "shared"
 LAYER_PACKAGE = "package"
 LAYER_STEM = "stem"          # a shared or package file whose name starts with a named area
+# The layers a user recognises (build-module prefixes); the rest name how a file was matched.
+_MODULE_LAYERS = frozenset(p.rstrip("-") for p in LAYER_PREFIXES)
 JVM_SOURCE_DIRS = ("java", "kotlin")
 # The area of a file with no meaningful folder.
 ROOT_AREA = "(root)"
@@ -104,3 +106,8 @@ def assign_areas(paths: Iterable[str]) -> dict[str, AreaAssignment]:
     for a in out.values():
         spellings[_merge_key(a.area)][a.area] += 1
     return {p: replace(a, area=spellings[_merge_key(a.area)].most_common(1)[0][0]) for p, a in out.items()}
+
+
+def display_layer(assignment: AreaAssignment) -> str:
+    """The layer worth showing next to an area's name: a build-module prefix, else empty."""
+    return assignment.layer if assignment.layer in _MODULE_LAYERS else ""

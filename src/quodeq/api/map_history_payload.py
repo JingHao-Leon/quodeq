@@ -37,4 +37,5 @@ def map_history_payload(history: MapHistory) -> dict[str, Any]:
     """The JSON body of ``GET /api/projects/<project>/map/history``."""
     return {"activitySource": history.activity_source, "days": list(history.days),
             "fileNames": list(history.file_names), "fileArea": list(history.file_area),
-            "fileTest": [_flag(t) for t in history.file_test], "frames": [_frame(f) for f in history.frames]}
+            "fileTest": [_flag(t) for t in history.file_test], "fileLayer": list(history.file_layer),
+            "frames": [_frame(f) for f in history.frames]}
