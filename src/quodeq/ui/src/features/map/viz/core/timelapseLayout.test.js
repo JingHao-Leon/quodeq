@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { anchorLayout, runLayout, fileChurn, LAYOUT_MODE, TIMELAPSE_LAYOUT_MODE, CROSSFADE_CHURN } from './timelapseLayout.js';
+import { anchorLayout, runLayout, fileChurn, LAYOUT_MODE, TIMELAPSE_LAYOUT_MODE, ABSENT_LEAF_RADIUS } from './timelapseLayout.js';
 import { childrenOutside, maxSiblingOverlap, folderMovements, percentile, OVERLAP_TOLERANCE } from './layoutChecks.js';
 import { syntheticModel } from './timelapseSynthetic.js';
 import { PACK_BASE_SIZE, XYR_STRIDE, XYR_R as R } from './packLayout.js';
@@ -9,13 +9,12 @@ const FILES = 600;
 const RUNS = 12;
 const HALF = PACK_BASE_SIZE / 2;
 const EPS = 1e-3;
-const MOVE_P90_MAX = 0.02;
 const MODEL = syntheticModel({ files: FILES, runs: RUNS, seed: 3 });
 const ANCHOR = anchorLayout(MODEL);
 const runs = (mode) => Array.from({ length: RUNS }, (_, k) => runLayout(MODEL, ANCHOR, k, mode));
 const RELAXED = runs(LAYOUT_MODE.RELAX);
 const SLOTS = runs(LAYOUT_MODE.FIXED_SLOTS);
-const PLAYED = { [LAYOUT_MODE.RELAX]: RELAXED, [LAYOUT_MODE.FIXED_SLOTS]: SLOTS }[TIMELAPSE_LAYOUT_MODE];
+const PLAYED = runs(TIMELAPSE_LAYOUT_MODE);
 const isLeaf = (i) => MODEL.fileOf[i] >= 0;
 
 test('the anchor is the whole map, centred', () => {
@@ -44,13 +43,41 @@ for (const [mode, layouts] of [[LAYOUT_MODE.RELAX, RELAXED], [LAYOUT_MODE.FIXED_
   });
 }
 
-test('folders move little between runs that do not cross-fade, in the mode the app plays', () => {
-  const moves = [];
+// The 0.02 p90 movement budget was written against jitter from the relaxation.
+// Scaled slots move on purpose (folders grow with their content): on this
+// history their p90 is 0.023-0.026 (seeds 1-5), all of it on growth steps.
+// What the played mode must hold instead: motion follows content, and nothing
+// moves without a reason.
+const leafArea = (size) => (size > 0 ? Math.max(1, size) : ABSENT_LEAF_RADIUS ** 2);
+const contentAt = (k) => {
+  const c = Float64Array.from(MODEL.parent, (_, i) => (isLeaf(i) ? leafArea(MODEL.sizes[k][i]) : 0));
+  for (let i = c.length - 1; i > 0; i--) c[MODEL.parent[i]] += c[i];
+  return c;
+};
+const CONTENT = Array.from({ length: RUNS }, (_, k) => contentAt(k));
+const ancestry = (i) => { const out = []; for (let j = i; j >= 0; j = MODEL.parent[j]) out.push(j); return out; };
+
+test('a folder whose content and whose ancestors\' content all grow (or all shrink) never resizes the other way, in the mode the app plays', () => {
+  let checked = 0;
   for (let k = 1; k < RUNS; k++) {
-    if (fileChurn(MODEL, k - 1, k) <= CROSSFADE_CHURN) moves.push(...folderMovements(MODEL.parent, PLAYED[k - 1], PLAYED[k]));
+    for (const i of MODEL.parent.keys()) {
+      if (isLeaf(i)) continue;
+      const deltas = ancestry(i).map((j) => CONTENT[k][j] - CONTENT[k - 1][j]);
+      const dr = PLAYED[k][i * XYR_STRIDE + R] - PLAYED[k - 1][i * XYR_STRIDE + R];
+      if (deltas.every((d) => d >= 0)) { checked++; assert.ok(dr >= -EPS, `folder ${i} run ${k}`); }
+      if (deltas.every((d) => d <= 0)) { checked++; assert.ok(dr <= EPS, `folder ${i} run ${k}`); }
+    }
   }
-  assert.ok(moves.length > 0);
-  assert.ok(percentile(moves, 0.9) <= MOVE_P90_MAX, `p90 ${percentile(moves, 0.9)}`);
+  assert.ok(checked > 0);
+});
+
+test('folders move between runs whose content changes, and stay put when it does not, in the mode the app plays', () => {
+  for (let k = 1; k < RUNS; k++) {
+    const moves = folderMovements(MODEL.parent, PLAYED[k - 1], PLAYED[k]);
+    const changed = CONTENT[k][0] !== CONTENT[k - 1][0];
+    assert.equal(percentile(moves, 1) > 0, changed, `run ${k}`);
+  }
+  assert.deepEqual(runLayout(MODEL, ANCHOR, 1), PLAYED[1]);
 });
 
 test('fixed slots keep every circle where the anchor put it', () => {

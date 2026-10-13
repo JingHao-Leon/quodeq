@@ -11,20 +11,25 @@ import { forNeighbourPairs } from './circleGrid.js';
  * ones to the middle), which closes the holes left by files that shrank to
  * their slot, then wraps the folder around them, so a child never leaves its
  * parent. FIXED_SLOTS keeps every circle at its anchor place and only resizes
- * files. Both return x, y, r per node, with r > 0 for every node.
+ * files. SCALED_SLOTS keeps every circle at its anchor place inside its
+ * parent but scales each folder, with its whole subtree, by its content in
+ * the run, so folders grow and shrink and their content drifts with them.
+ * All return x, y, r per node, with r > 0 for every node.
  *
  * A model is `{ parent: Int32Array (breadth-first, -1 at the root),
  * sizes: Float32Array[] (per run, per node: a leaf's checks, 0 = absent),
  * maxSize: Float32Array (per node: a leaf's largest checks, at least 1) }`.
  */
-export const LAYOUT_MODE = Object.freeze({ RELAX: 'relax', FIXED_SLOTS: 'fixed-slots' });
-/** The layout the app plays back: fixed slots until the relaxation meets its invariants on real data. */
-export const TIMELAPSE_LAYOUT_MODE = LAYOUT_MODE.FIXED_SLOTS;
+export const LAYOUT_MODE = Object.freeze({ RELAX: 'relax', FIXED_SLOTS: 'fixed-slots', SCALED_SLOTS: 'scaled-slots' });
+/** The layout the app plays back: scaled slots, whose invariants hold by construction. */
+export const TIMELAPSE_LAYOUT_MODE = LAYOUT_MODE.SCALED_SLOTS;
 /** More than this share of files appearing or leaving between two runs cross-fades instead of moving. */
 export const CROSSFADE_CHURN = 0.2;
 
 /** The reserved slot of a file absent from a run, in √checks units (a present file is at least 1). */
 export const ABSENT_LEAF_RADIUS = 0.5;
+/** Scaled slots: the smallest share of its anchor radius a folder keeps, so one of absent files stays visible. */
+export const MIN_FOLDER_SCALE = 0.2;
 const PULL_BASE = 0.004;     // every child drifts gently toward the folder centre
 const PULL_SIZE = 0.05;      // big children are pulled harder, so they take the middle
 const PULL_EXP = 1.2;
@@ -164,6 +169,71 @@ function fixedSlotsRun(model, anchor, k) {
   return out;
 }
 
+/** Per node, the sum of `leafArea(i)` over the files under it (children follow their parent in node order). */
+function contentPerNode(model, leafArea) {
+  const kids = childLists(model.parent);
+  const out = Float64Array.from(model.parent, (_, i) => (kids[i].length ? 0 : leafArea(i)));
+  for (let i = out.length - 1; i > 0; i--) out[model.parent[i]] += out[i];
+  return out;
+}
+
+const peakCache = new WeakMap();
+
+/** Run `k`'s content per node: the sum of its files' squared radii, an absent file at its reserved slot. */
+const runContent = (model, k) => contentPerNode(model, (i) => leafRadius(model.sizes[k][i]) ** 2);
+
+/** Per node, its largest content in any one run (cached per history). */
+function peakContent(model) {
+  let peak = peakCache.get(model.sizes);
+  if (!peak) {
+    peak = new Float64Array(model.parent.length);
+    for (let k = 0; k < model.sizes.length; k++) {
+      const run = runContent(model, k);
+      for (let i = 0; i < peak.length; i++) if (run[i] > peak[i]) peak[i] = run[i];
+    }
+    peakCache.set(model.sizes, peak);
+  }
+  return peak;
+}
+
+/**
+ * Scaled slots. A folder's scale is S = min(S of its parent,
+ * max(MIN_FOLDER_SCALE, √(run content / peak content))), content being the
+ * sum of its files' squared radii (an absent file at its reserved slot, so
+ * area follows checks run), peak content its largest in any run (so a folder
+ * is drawn full size in its fullest run), and the root's parent scale 1.
+ * A node sits at its anchor offset from
+ * its parent times the parent's S, from the parent's run centre; a folder's
+ * radius is its anchor radius times its own S, a file's its run radius in
+ * √checks units times its parent's S. Each child's circle is its anchor
+ * circle relative to the parent, scaled by the parent's S and then shrunk in
+ * place (own S <= parent's S, run size <= largest size), so the anchor's
+ * containment and sibling gaps carry over: nothing leaves its parent, no
+ * siblings overlap, and no circle outgrows its anchor (every S <= 1).
+ */
+function scaledSlotsRun(model, anchor, k) {
+  const kids = childLists(model.parent);
+  const unit = leafScale(model, anchor);
+  const size = model.sizes[k];
+  const run = runContent(model, k);
+  const peak = peakContent(model);
+  const scale = new Float64Array(model.parent.length);
+  const out = new Float32Array(model.parent.length * XYR_STRIDE);
+  for (let i = 0; i < model.parent.length; i++) {
+    const o = i * XYR_STRIDE;
+    const p = model.parent[i] * XYR_STRIDE;
+    const up = i === 0 ? 1 : scale[model.parent[i]];
+    out[o] = i === 0 ? anchor[o] : out[p] + (anchor[o] - anchor[p]) * up;
+    out[o + Y] = i === 0 ? anchor[o + Y] : out[p + Y] + (anchor[o + Y] - anchor[p + Y]) * up;
+    if (kids[i].length === 0) { out[o + R] = leafRadius(size[i]) * unit * up; continue; }
+    scale[i] = Math.min(up, Math.max(MIN_FOLDER_SCALE, Math.sqrt(run[i] / peak[i])));
+    out[o + R] = anchor[o + R] * scale[i];
+  }
+  return out;
+}
+
+const RUN_OF_MODE = { [LAYOUT_MODE.RELAX]: relaxedRun, [LAYOUT_MODE.FIXED_SLOTS]: fixedSlotsRun, [LAYOUT_MODE.SCALED_SLOTS]: scaledSlotsRun };
+
 /**
  * Run `k`'s layout from the anchor.
  * @param {{parent: Int32Array, sizes: Float32Array[], maxSize: Float32Array}} model
@@ -173,7 +243,7 @@ function fixedSlotsRun(model, anchor, k) {
  * @returns {Float32Array} x, y, r per node (absent files at their reserved slot)
  */
 export function runLayout(model, anchor, k, mode = TIMELAPSE_LAYOUT_MODE) {
-  return mode === LAYOUT_MODE.FIXED_SLOTS ? fixedSlotsRun(model, anchor, k) : relaxedRun(model, anchor, k);
+  return (RUN_OF_MODE[mode] || relaxedRun)(model, anchor, k);
 }
 
 /**
