@@ -550,6 +550,10 @@
   bottom: var(--space-2);
   left: var(--space-3);
   z-index: 2;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
@@ -563,5 +567,5 @@
   background: linear-gradient(90deg, var(--color-map-better), var(--color-surface-alt), var(--color-map-worse));
 }
 .pack-legend-bar--activity {
-  background: linear-gradient(90deg, var(--color-map-activity-idle), var(--color-map-activity));
+  background: linear-gradient(90deg, var(--color-surface-alt), var(--color-map-activity));
 }

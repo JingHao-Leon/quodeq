@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { useState } from 'react';
 import MapPage from './MapPage.jsx';
@@ -250,9 +250,12 @@ describe('MapPage: Concentration and Activity', () => {
   });
 
   it('a failed history under Activity is explained in the legend', async () => {
-    const api = fakeApi({ getMapHistory: vi.fn().mockRejectedValue(new Error('boom')) });
+    let reject;
+    const api = fakeApi({ getMapHistory: vi.fn(() => new Promise((_, rej) => { reject = rej; })) });
     render(<NavHarness data={local()} log={[]} />, { wrapper: withStableQueryApi(api) });
     fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
+    await waitFor(() => expect(api.getMapHistory).toHaveBeenCalled());
+    reject(new Error('boom'));
     expect(await screen.findByText(t('map.activityUnavailable'), { selector: '.pack-legend-note' })).toBeInTheDocument();
   });
 });

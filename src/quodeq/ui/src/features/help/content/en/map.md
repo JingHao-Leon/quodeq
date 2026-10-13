@@ -11,7 +11,7 @@ The **Map** tab draws your codebase as shapes you can scan at a glance: three la
 
 | Key | Value |
 | --- | --- |
-| Circle Pack | Nested circles sized by line count. Best for spotting heavy files at a glance. |
+| Circle Pack | Nested circles sized by checks run. Best for spotting heavy files at a glance. |
 | Galaxy | Force-directed cluster view. Two sub-modes: filesystem (by directory) or standards (by violated principle). |
 | Risk Matrix | Files plotted by complexity (size) vs. issue density. Top-right quadrant is your priority list. |
 
