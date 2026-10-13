@@ -177,46 +177,56 @@ function contentPerNode(model, leafArea) {
   return out;
 }
 
-const peakCache = new WeakMap();
+const fullCache = new WeakMap();
 
 /** Run `k`'s content per node: the sum of its files' squared radii, an absent file at its reserved slot. */
 const runContent = (model, k) => contentPerNode(model, (i) => leafRadius(model.sizes[k][i]) ** 2);
 
-/** Per node, its largest content in any one run (cached per history). */
-function peakContent(model) {
-  let peak = peakCache.get(model.sizes);
-  if (!peak) {
-    peak = new Float64Array(model.parent.length);
-    for (let k = 0; k < model.sizes.length; k++) {
-      const run = runContent(model, k);
-      for (let i = 0; i < peak.length; i++) if (run[i] > peak[i]) peak[i] = run[i];
-    }
-    peakCache.set(model.sizes, peak);
+/** Per node, how many of its files are in run `k`. */
+const presentFiles = (model, k) => contentPerNode(model, (i) => (model.sizes[k][i] > 0 ? 1 : 0));
+
+/**
+ * Per node, the content it is drawn full size at: its content in the latest
+ * run (today) when it has a file there, else its largest in any run (cached
+ * per history).
+ */
+function fullContent(model) {
+  let full = fullCache.get(model.sizes);
+  if (full) return full;
+  const latest = model.sizes.length - 1;
+  full = runContent(model, latest);
+  const today = presentFiles(model, latest);
+  for (let k = 0; k < latest; k++) {
+    const run = runContent(model, k);
+    for (let i = 0; i < full.length; i++) if (!today[i] && run[i] > full[i]) full[i] = run[i];
   }
-  return peak;
+  fullCache.set(model.sizes, full);
+  return full;
 }
 
 /**
  * Scaled slots. A folder's scale is S = min(S of its parent,
- * max(MIN_FOLDER_SCALE, √(run content / peak content))), content being the
- * sum of its files' squared radii (an absent file at its reserved slot, so
- * area follows checks run), peak content its largest in any run (so a folder
- * is drawn full size in its fullest run), and the root's parent scale 1.
+ * max(MIN_FOLDER_SCALE, √(run content / full content))), capped at 1 for the
+ * root. Content is the sum of its files' squared radii (an absent file at its
+ * reserved slot, so area follows checks run); full content is its content
+ * today (the latest run) when it has a file today, so the latest run is the
+ * anchor and hands back to today's map without a jump, and its largest in any
+ * run when it is gone by today. A run bigger than today fills the anchor.
  * A node sits at its anchor offset from its parent times the parent's S,
  * from the parent's run centre; a folder's radius is its anchor radius times
  * its own S, a file's its run radius in √checks units times its parent's S.
- * Each child's circle is its anchor
- * circle relative to the parent, scaled by the parent's S and then shrunk in
- * place (own S <= parent's S, run size <= largest size), so the anchor's
- * containment and sibling gaps carry over: nothing leaves its parent, no
- * siblings overlap, and no circle outgrows its anchor (every S <= 1).
+ * Each child's circle is its anchor circle relative to the parent, scaled by
+ * the parent's S and then shrunk in place (own S <= parent's S, run size <=
+ * largest size), so the anchor's containment and sibling gaps carry over:
+ * nothing leaves its parent, no siblings overlap, and no circle outgrows its
+ * anchor (every S <= 1).
  */
 function scaledSlotsRun(model, anchor, k) {
   const kids = childLists(model.parent);
   const unit = leafScale(model, anchor);
   const size = model.sizes[k];
   const run = runContent(model, k);
-  const peak = peakContent(model);
+  const full = fullContent(model);
   // The root's parent is a virtual one at scale 1, centred where the anchor is.
   const scale = new Float64Array(model.parent.length + 1).fill(1);
   const out = new Float32Array(model.parent.length * XYR_STRIDE);
@@ -230,7 +240,7 @@ function scaledSlotsRun(model, anchor, k) {
       out[o + Y] = out[p + Y] + (anchor[o + Y] - anchor[p + Y]) * up;
     }
     if (kids[i].length === 0) { out[o + R] = leafRadius(size[i]) * unit * up; continue; }
-    scale[i + 1] = Math.min(up, Math.max(MIN_FOLDER_SCALE, Math.sqrt(run[i] / peak[i])));
+    scale[i + 1] = Math.min(up, Math.max(MIN_FOLDER_SCALE, Math.sqrt(run[i] / full[i])));
     out[o + R] = anchor[o + R] * scale[i + 1];
   }
   return out;

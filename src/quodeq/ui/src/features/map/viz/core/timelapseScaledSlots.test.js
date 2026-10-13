@@ -61,11 +61,30 @@ test('scaled slots: a sub-folder is never scaled above its parent, and a file is
   }
 });
 
+test('scaled slots: in the latest run every circle whose folders are all in today\'s run sits on its anchor, folders and full-size files at their anchor size', () => {
+  const last = RUNS - 1;
+  const live = new Uint8Array(MODEL.parent.length);
+  for (const i of nodes) if (isLeaf(i) && MODEL.sizes[last][i] > 0) for (let j = i; j >= 0; j = MODEL.parent[j]) live[j] = 1;
+  const xyr = SCALED[last];
+  let same = 0;
+  for (const i of nodes) {
+    const onAnchor = (o) => Math.abs(xyr[i * XYR_STRIDE + o] - ANCHOR[i * XYR_STRIDE + o]) <= NO_OVERLAP;
+    let parentsLive = true;
+    for (let j = MODEL.parent[i]; j >= 0; j = MODEL.parent[j]) parentsLive = parentsLive && live[j] === 1;
+    if (!parentsLive) continue;
+    assert.ok(onAnchor(0) && onAnchor(Y), `node ${i} position`);
+    const full = isLeaf(i) ? MODEL.sizes[last][i] === MODEL.maxSize[i] : live[i] === 1;
+    if (full) { assert.ok(onAnchor(R), `node ${i} radius`); same++; }
+  }
+  assert.ok(same >= nodes.filter((i) => !isLeaf(i) && live[i]).length, `${same} on their anchor`);
+});
+
 test('scaled slots: the earliest run is visibly smaller than the latest', () => {
   assert.ok(SCALED[0][R] < SCALED[RUNS - 1][R] * VISIBLY_SMALLER, `${SCALED[0][R]} vs ${SCALED[RUNS - 1][R]}`);
 });
 
-// root -> folders A (files 4, 5), B (file 6), C (file 7); run 1 moves content from B to A, the total holds.
+// root -> folders A (files 4, 5), B (file 6), C (file 7); run 1 moves content from B to A, the total holds;
+// run 3 has nothing; run 4 is bigger than today; the latest run (5) is today: A and B full, C gone.
 const SMALL = {
   parent: Int32Array.from([-1, 0, 0, 0, 1, 1, 2, 3]),
   maxSize: Float32Array.from([0, 0, 0, 0, 9, 9, 9, 4]),
@@ -74,27 +93,36 @@ const SMALL = {
     Float32Array.from([0, 0, 0, 0, 9, 9, 4, 4]),
     Float32Array.from([0, 0, 0, 0, 9, 9, 4, 4]),
     Float32Array.from([0, 0, 0, 0, 0, 0, 0, 0]),
-    Float32Array.from([0, 0, 0, 0, 4, 0, 9, 4]),
+    Float32Array.from([0, 0, 0, 0, 9, 9, 9, 4]),
+    Float32Array.from([0, 0, 0, 0, 9, 9, 9, 0]),
   ],
 };
 const SMALL_ANCHOR = anchorLayout(SMALL);
 const smallRun = (k) => runLayout(SMALL, SMALL_ANCHOR, k, LAYOUT_MODE.SCALED_SLOTS);
+const TODAY = 18 + 9 + ABSENT_LEAF_RADIUS ** 2;
 
 const scaleIn = (xyr, i) => xyr[i * XYR_STRIDE + R] / SMALL_ANCHOR[i * XYR_STRIDE + R];
 const close = (a, b) => Math.abs(a - b) < EPS;
 
-test('scaled slots: a folder\'s scale is the root of its run content over its peak content in any run', () => {
-  const xyr = smallRun(0);
-  assert.ok(close(scaleIn(xyr, 0), 1), 'the root is full size in its fullest run');
-  assert.ok(close(scaleIn(xyr, 1), Math.sqrt(13 / 18)));
-  assert.ok(close(scaleIn(xyr, 2), 1));
+test('scaled slots: the root\'s scale is the root of its run content over today\'s, capped at 1', () => {
+  assert.ok(close(scaleIn(smallRun(0), 0), Math.sqrt(26 / TODAY)));
+  assert.ok(close(scaleIn(smallRun(4), 0), 1), 'a run bigger than today fills the anchor');
+  assert.ok(close(scaleIn(smallRun(5), 0), 1));
 });
 
-test('scaled slots: a full folder in a shrunk parent takes the parent\'s scale', () => {
-  const xyr = smallRun(4);
-  const root = Math.sqrt((4 + ABSENT_LEAF_RADIUS ** 2 + 9 + 4) / 26);
-  assert.ok(close(scaleIn(xyr, 0), root));
-  assert.ok(close(scaleIn(xyr, 2), root));
+test('scaled slots: a folder in today\'s run is scaled against its content today, one gone by today against its peak, both capped by the parent', () => {
+  const xyr = smallRun(0);
+  const root = Math.sqrt(26 / TODAY);
+  assert.ok(close(scaleIn(xyr, 1), Math.sqrt(13 / 18)));
+  assert.ok(close(scaleIn(xyr, 2), root), 'B is as full as today, so it takes its parent\'s scale');
+  assert.ok(close(scaleIn(xyr, 3), root), 'C is at its peak, capped by its parent');
+  assert.ok(close(scaleIn(smallRun(5), 3), Math.sqrt(ABSENT_LEAF_RADIUS ** 2 / 4)));
+});
+
+test('scaled slots: the latest run is the anchor, except what is smaller or gone today', () => {
+  const xyr = smallRun(5);
+  for (const i of [0, 1, 2, 4, 5, 6]) assert.deepEqual([...xyr.subarray(i * XYR_STRIDE, (i + 1) * XYR_STRIDE)], [...SMALL_ANCHOR.subarray(i * XYR_STRIDE, (i + 1) * XYR_STRIDE)]);
+  assert.ok(xyr[3 * XYR_STRIDE + R] < SMALL_ANCHOR[3 * XYR_STRIDE + R]);
 });
 
 test('scaled slots: when content moves between folders but the total holds, an unchanged folder does not move at all', () => {
