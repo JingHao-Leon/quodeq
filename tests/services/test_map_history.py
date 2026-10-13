@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -167,7 +168,7 @@ def test_a_day_is_cached_under_its_last_run(env, cached_runs):
     assert cached_runs == {"r2"}
 
 
-def test_cancelled_runs_count_only_when_no_run_is_done_like_in_the_header(env):
+def test_cancelled_runs_count_only_when_no_run_is_done(env):
     p = env / "proj"
     write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]}, state="cancelled")
     assert build_map_history(env, "proj").days == ("2026-09-01",)
@@ -184,7 +185,48 @@ def test_a_day_whose_cancelled_run_still_drains_is_not_cached(env, cached_runs):
     assert cached_runs == set()
 
 
-def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier_run(env, cached_runs):
+def test_a_pid_left_long_after_a_cancel_is_a_reused_one_and_the_day_is_cached(env, cached_runs):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-08", {"security": [violation("x/a.py")]}, state="cancelled")
+    (p / "r1" / ".pid").write_text(str(os.getpid()))
+    long_ago = time.time() - 24 * 3600
+    os.utime(p / "r1" / "status.json", (long_ago, long_ago))
+    build_map_history(env, "proj")
+    assert cached_runs == {"r1"}
+
+
+def _reads(monkeypatch) -> list:
+    reads = []
+    real = map_history.iter_readable_eval_reports
+    monkeypatch.setattr(map_history, "iter_readable_eval_reports", lambda d: reads.append(d) or real(d))
+    return reads
+
+
+def test_a_cached_day_of_several_runs_reads_back_the_same_frames_without_a_report(env, monkeypatch):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]})
+    write_run(p, "r2", "2026-09-08", {"security": [violation("x/a.py")]}, at="08:00:00")
+    write_run(p, "r3", "2026-09-08", {"maintainability": [violation("x/b.py", snip="b()")]},
+              dims=("maintainability",), at="20:00:00")
+    first = build_map_history(env, "proj", frames="all")
+    reads = _reads(monkeypatch)
+    assert build_map_history(env, "proj", frames="all") == first
+    assert reads == []
+    assert {first.file_names[r.file] for r in first.frames[-1].files} == {"x/a.py", "x/b.py"}
+
+
+def test_a_run_joining_a_cached_day_rebuilds_the_day_under_its_new_last_run(env, cached_runs):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-08", {"security": [violation("x/a.py")]}, at="08:00:00")
+    build_map_history(env, "proj")
+    write_run(p, "r2", "2026-09-08", {"maintainability": [violation("x/b.py", snip="b()")]},
+              dims=("maintainability",), at="20:00:00")
+    out = build_map_history(env, "proj")
+    assert cached_runs == {"r2"}
+    assert {out.file_names[r.file] for r in out.frames[-1].files} == {"x/a.py", "x/b.py"}
+
+
+def test_an_unreadable_report_leaves_the_day_as_its_readable_reports_left_it(env, cached_runs):
     p = env / "proj"
     write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]})
     write_run(p, "r2", "2026-09-08", {"security": [violation("x/morning.py")]}, at="08:00:00")
@@ -194,7 +236,7 @@ def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier
     out = build_map_history(env, "proj")
     assert list(out.days) == ["2026-09-01", "2026-09-08"]
     assert "x/morning.py" in out.file_names and "x/evening.py" not in out.file_names
-    assert cached_runs == {"r1"}
+    assert cached_runs == {"r1", "r3"}
 
 
 def _latest_files(env) -> dict[str, int]:

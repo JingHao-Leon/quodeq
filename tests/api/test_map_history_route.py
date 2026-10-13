@@ -1,9 +1,9 @@
-import json
 from http import HTTPStatus
 
 import pytest
 
 from quodeq.api.app import create_app
+from tests.services._map_history_fixtures import violation, write_run
 
 
 @pytest.fixture(autouse=True)
@@ -15,12 +15,7 @@ def _no_auth(monkeypatch):
 def client(tmp_path, monkeypatch):
     evals = tmp_path / "evaluations"
     for run_id, day in (("r1", "2026-09-01"), ("r2", "2026-09-08")):
-        ev = evals / "proj" / run_id / "evaluation"
-        ev.mkdir(parents=True)
-        ev.joinpath("security.json").write_text(json.dumps({"dimension": "security", "date": f"{day}T10:00:00+00:00", "principles": [],
-            "overallScore": "7.0/10", "filesRead": 10,
-            "violations": [{"req": "R1", "file": "a.py", "line": 1, "snippet": "x()", "severity": "major"}], "compliance": []}))
-        (evals / "proj" / run_id / "status.json").write_text(json.dumps({"state": "done", "started_at": f"{day}T10:00:00Z"}))
+        write_run(evals / "proj", run_id, day, {"security": [violation("a.py")]}, dims=("security",))
     monkeypatch.setenv("QUODEQ_EVALUATIONS_DIR", str(evals))
     monkeypatch.setenv("QUODEQ_INDEX_DB_PATH", str(tmp_path / "index.db"))
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))

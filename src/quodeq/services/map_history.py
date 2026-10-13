@@ -1,8 +1,8 @@
-"""The map's history: per-run file stats, functional areas, activity and area
-kinds. Each run is cached raw in the score cache (``map_snapshot`` plus the
-project's ``map_finding`` records); suppression and the grade formula's
-severity weights apply when the history is read, so neither ever rebuilds a
-cached run."""
+"""The map's history: per-day file stats, functional areas, activity and area
+kinds. Each day, its runs folded, is cached raw in the score cache
+(``map_snapshot`` plus the project's ``map_finding`` records); suppression and
+the grade formula's severity weights apply when the history is read, so
+neither ever rebuilds a cached day."""
 from __future__ import annotations
 
 from collections import Counter
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from quodeq.core.map_history.activity import estimate_edits
-from quodeq.core.map_history.carry import carry_forward
+from quodeq.core.map_history.carry import carry_forward, fold_runs
 from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
 from quodeq.core.map_history.raw_run import (
     RawHistory, RawHistoryWrite, RawRun, ViolationRecord, build_raw_run, materialise, referenced_records,
@@ -21,10 +21,11 @@ from quodeq.core.map_history.raw_run import (
 from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.core.finding_identity import SuppressionSubject
-from quodeq.core.run.state import TERMINAL_STATES
+from quodeq.core.run.state import RunState
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import has_valid_score
 from quodeq.services._map_git import git_commits_per_transition
+from quodeq.services._run_liveness import run_still_writing
 from quodeq.services._violation_filters import is_suppressed_subject, suppression_subject
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.scoring_view import select_default_view_runs
@@ -36,7 +37,6 @@ from quodeq.services.wiring import (
     load_suppression_rules,
     project_dir_exists,
     read_repository_info,
-    resolve_external_pid,
     save_map_snapshots,
 )
 
@@ -48,7 +48,8 @@ FRAME_CHOICES = (LATEST_FRAMES, ALL_FRAMES)
 # read; 4: compliance counted per dimension, so a run can carry a dimension it did not report; 5: a row is one day,
 # every run of it folded oldest first).
 SNAPSHOT_SHAPE = "5"
-# Separators of a day's cache key: between its runs, and between a run's id and its dimensions.
+# Separators of a day's cache key: between its runs, and between a run's id and its dimensions (neither can
+# appear in a run id, a validated path segment, nor in a dimension name).
 _KEY_RUN_SEP = ";"
 _KEY_DIMS_SEP = "="
 _SOURCE_GIT = "git"
@@ -56,12 +57,13 @@ _SOURCE_ESTIMATED = "estimated"
 
 
 class _Candidate(NamedTuple):
-    """A run that may stand for its day on the timeline."""
+    """A run the page header counts, with the day its reports fold into on the timeline."""
 
     day: str
     run_id: str
     dims: list[str]                              # report dimensions
     reports: list[tuple[str, dict]] | None       # parsed reports, None until read
+    cancelled: bool = False                      # a cancelled run may still drain after its state flips
 
 
 class _DayRun(NamedTuple):
@@ -70,7 +72,7 @@ class _DayRun(NamedTuple):
     row_id: str                          # the day's last run, the cache row the day is stored under
     run: RawRun
     records: dict[str, ViolationRecord]
-    fresh: bool                          # built now from every report of the day, so worth storing
+    built_now: bool
 
 
 def _valid_day(day: str) -> bool:
@@ -98,13 +100,13 @@ def _readable_reports(run_dir: Path) -> list[tuple[str, dict]]:
     return [(dim, data) for dim, data in iter_readable_eval_reports(run_dir) if isinstance(data, dict)]
 
 
-def _undated_candidate(run_id: str, run_dir: Path) -> _Candidate | None:
+def _undated_candidate(run_id: str, run_dir: Path, cancelled: bool) -> _Candidate | None:
     """A run without a date, dated by its reports' latest date; None when none is readable."""
     reports = _readable_reports(run_dir)
     if not reports:
         return None
     day = max(str(d.get("date") or "")[:ISO_DAY_LEN] for _, d in reports)
-    return _Candidate(day, run_id, sorted(dim for dim, _ in reports), reports)
+    return _Candidate(day, run_id, sorted(dim for dim, _ in reports), reports, cancelled)
 
 
 def _candidates(rows: ProjectRows) -> list[_Candidate]:
@@ -121,10 +123,11 @@ def _candidates(rows: ProjectRows) -> list[_Candidate]:
         dims = eval_report_dimensions(run_dir)
         if not dims:
             continue
+        cancelled = run.status is RunState.CANCELLED
         if run.date_iso:
-            cand: _Candidate | None = _Candidate(run.date_iso[:ISO_DAY_LEN], run.run_id, dims, None)
+            cand: _Candidate | None = _Candidate(run.date_iso[:ISO_DAY_LEN], run.run_id, dims, None, cancelled)
         else:
-            cand = _undated_candidate(run.run_id, run_dir)
+            cand = _undated_candidate(run.run_id, run_dir, cancelled)
         if cand is not None and _valid_day(cand.day):
             out.append(cand)
     return out
@@ -148,19 +151,17 @@ def _day_key(group: list[_Candidate]) -> str:
 
 
 def _cache_keys(rows: ProjectRows, by_day: dict[str, list[_Candidate]]) -> dict[str, str]:
-    """The cache key of every day whose runs have all ended, under the day's last run.
+    """The cache key of every day no process still writes, under the day's last run.
 
-    A run has ended when its state is final and no process still writes it (a
-    cancelled run drains after its state flips). Suppression and the grade
-    formula apply when a day is read, so neither is part of the key; an ended
-    run's reports are never rewritten, and a run added to or removed from the
-    day changes the key.
+    The header counts only done runs, or cancelled ones, and a cancelled run
+    drains after its state flips, so only a cancelled run's ``.pid`` is
+    checked. Suppression and the grade formula apply when a day is read, so
+    neither is part of the key; an ended run's reports are never rewritten,
+    and a run added to or removed from the day changes the key.
     """
     project_dir = rows.reports_root / rows.project
-    ended = {r.run_id for r in rows.runs
-             if r.status in TERMINAL_STATES and resolve_external_pid(project_dir, r.run_id) is None}
-    return {group[-1].run_id: _day_key(group)
-            for group in by_day.values() if all(c.run_id in ended for c in group)}
+    return {group[-1].run_id: _day_key(group) for group in by_day.values()
+            if not any(c.cancelled and run_still_writing(project_dir, c.run_id) for c in group)}
 
 
 def _subject_of(dimension: str, violation: dict) -> SuppressionSubject:
@@ -182,31 +183,29 @@ def _hidden(rows: ProjectRows, records: dict[str, ViolationRecord], needed: set[
 def _day_run(rows: ProjectRows, group: list[_Candidate], stored: RawHistory) -> _DayRun | None:
     """The day as its last run left it: its runs (oldest first) folded, each dimension as last reported that day.
 
-    Only reports the page header counts are folded (``_counted``). None when
-    the day has none. A day with an unreadable report is not worth storing,
-    so it is read again next time.
+    Only reports the page header counts are folded (``_counted``), and only
+    the records the folded day refers to are kept. None when the day has none.
     """
     row_id = group[-1].run_id
     if row_id in stored.runs:
         return _DayRun(row_id, stored.runs[row_id], {}, False)
     runs: list[RawRun] = []
     records: dict[str, ViolationRecord] = {}
-    complete = True
     for c in group:
         reports = c.reports if c.reports is not None else _readable_reports(rows.reports_root / rows.project / c.run_id)
-        complete = complete and len(reports) == len(c.dims)
         built = build_raw_run([(dim, report) for dim, report in reports if _counted(dim, report)], _subject_of)
         runs.append(built.run)
         records.update(built.records)
     if not any(run.dims for run in runs):
         return None
-    return _DayRun(row_id, carry_forward(runs, records)[-1], records, complete)
+    day = fold_runs(runs, records)
+    return _DayRun(row_id, day, {k: records[k] for k in referenced_records([day])}, True)
 
 
 def _save(rows: ProjectRows, picked: dict[str, _DayRun], keys: dict[str, str]) -> None:
-    """Store the fresh ended days and their records; keep only what the ended days use."""
+    """Store the fresh cacheable days and their records; keep only what the cacheable days use."""
     kept = [p for p in picked.values() if p.row_id in keys]
-    fresh = [p for p in kept if p.fresh]
+    fresh = [p for p in kept if p.built_now]
     save_map_snapshots(rows.project, RawHistoryWrite(
         runs={p.row_id: (keys[p.row_id], p.run) for p in fresh},
         records={k: r for p in fresh for k, r in p.records.items()},
@@ -215,24 +214,32 @@ def _save(rows: ProjectRows, picked: dict[str, _DayRun], keys: dict[str, str]) -
     ))
 
 
-def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
-    """Oldest-first days with reports and their snapshots, the accumulated view as of each day's end.
+def _days(rows: ProjectRows) -> tuple[dict[str, _DayRun], dict[str, ViolationRecord]]:
+    """Each day with a counted report (oldest first) and the records the days refer to.
 
-    Every run counts, as in the page header: a day folds its runs oldest
-    first, and a dimension the day did not report is carried from the latest
-    earlier day that did. Only days whose runs have all ended are read from or
-    stored in the cache, and reports are read only for days it does not hold.
+    Days are read from the cache where it holds them, and the fresh ones are
+    stored; reports are read only for days it does not hold.
     """
     candidates = _candidates(rows)
     if not candidates:
-        return [], []
+        return {}, {}
     by_day = _by_day(candidates)
     keys = _cache_keys(rows, by_day)
     stored = load_map_snapshots(rows.project, keys)
     picked = {day: got for day, group in by_day.items()
               if (got := _day_run(rows, group, stored)) is not None}
     _save(rows, picked, keys)
-    records = {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}}
+    return picked, {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}}
+
+
+def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
+    """Oldest-first days with reports and their snapshots, the accumulated view as of each day's end.
+
+    Every run the page header counts counts here: a day folds its runs oldest
+    first, and a dimension the day did not report is carried from the latest
+    earlier day that did.
+    """
+    picked, records = _days(rows)
     runs = carry_forward([p.run for p in picked.values()], records)
     hidden = _hidden(rows, records, referenced_records(runs))
     weights: Mapping[str, float] = rows.params.severity_weight
