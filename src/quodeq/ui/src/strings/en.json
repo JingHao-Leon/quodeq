@@ -1858,6 +1858,7 @@
   "map.galaxyKbdLabel": "Contents of this folder",
   "map.riskSkyAria": "Risk sky: functional areas, closer to the centre needs rework first",
   "map.riskKbdLabel": "Areas, most need first",
+  "map.riskPanelAria": "{name} area",
   "map.riskAreaAria": "{name}, {count} issues",
   "map.riskAreaAriaOne": "{name}, 1 issue",
   "map.vizRisk": "Risk",

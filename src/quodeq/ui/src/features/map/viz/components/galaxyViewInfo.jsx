@@ -1,6 +1,7 @@
 import { t } from '../../../../strings/index.js';
 import { countKnownSeverities } from '../../../../utils/severity.js';
 import { NAV_TAB } from '../../../../vocab/navTab.js';
+import { KEY } from '../../../../vocab/keyboard.js';
 
 // The overlay's fixed styling: one object per element for the whole module
 // instead of a fresh one on every panel render, and each property readable
@@ -52,11 +53,26 @@ const SECONDARY_BUTTON_STYLE = {
 };
 const DETAIL_BUTTON_HOVER_BG = 'color-mix(in srgb, var(--color-accent) 35%, transparent)';
 
-/** Presentational component for the level info panel overlay */
-export function LevelInfoPanel({ levelInfo }) {
+/** A keydown handler that runs `onEscape` on Escape, or undefined without one. */
+function escapeHandler(onEscape) {
+  if (!onEscape) return undefined;
+  return (e) => {
+    if (e.key !== KEY.ESCAPE) return;
+    e.preventDefault();
+    onEscape();
+  };
+}
+
+/**
+ * Presentational component for the level info panel overlay.
+ * With `label` it is a named region; `detailRef` reaches the View Details
+ * button, and `onEscape` runs when Escape is pressed on one of its buttons.
+ */
+export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape }) {
   if (!levelInfo) return null;
+  const onKeyDown = escapeHandler(onEscape);
   return (
-    <div style={PANEL_STYLE}>
+    <div style={PANEL_STYLE} role={label ? 'region' : undefined} aria-label={label}>
       <div style={TITLE_STYLE}>{levelInfo.title}</div>
       {levelInfo.tag && <div style={TAG_STYLE}>{levelInfo.tag}</div>}
       {levelInfo.lines.map((l, i) => (
@@ -70,8 +86,10 @@ export function LevelInfoPanel({ levelInfo }) {
       )}
       {levelInfo.detailAction && (
         <button
+          ref={detailRef}
           type="button"
           onClick={levelInfo.detailAction}
+          onKeyDown={onKeyDown}
           style={DETAIL_BUTTON_STYLE}
           onMouseEnter={e => { e.target.style.background = DETAIL_BUTTON_HOVER_BG; }}
           onMouseLeave={e => { e.target.style.background = DETAIL_BUTTON_STYLE.background; }}
@@ -79,7 +97,7 @@ export function LevelInfoPanel({ levelInfo }) {
       )}
       {levelInfo.secondaryAction && (
         <div>
-          <button type="button" onClick={levelInfo.secondaryAction.onClick} style={SECONDARY_BUTTON_STYLE}>
+          <button type="button" onClick={levelInfo.secondaryAction.onClick} onKeyDown={onKeyDown} style={SECONDARY_BUTTON_STYLE}>
             {levelInfo.secondaryAction.label}
           </button>
         </div>

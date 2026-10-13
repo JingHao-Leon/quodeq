@@ -13,6 +13,7 @@ const WRAPPER_STYLE = { position: 'relative', width: '100%', height: '100%' };
 const LAYER_STYLE = { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' };
 const MEASURE_FONT_PX = 11.5;
 const MEASURE_WEIGHT = 600;
+const BY_KEYBOARD = true;
 
 function useMeasure(overlayRef, theme) {
   return useCallback((text) => {
@@ -28,7 +29,7 @@ function kbdItems(areas, onSelect) {
     .map(([a, i]) => ({
       key: a.name,
       text: t(pluralKey(a.stats.violations, 'map.riskAreaAriaOne', 'map.riskAreaAria'), { name: a.name, count: a.stats.violations }),
-      onActivate: () => onSelect(i),
+      onActivate: () => onSelect(i, BY_KEYBOARD),
     }));
 }
 
@@ -58,10 +59,15 @@ function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selec
   }, [overlayRef, bubbles, labels, hover, selected, palette, font, fontScale, size]);
 }
 
-/** The Risk sky: a static layer of bubbles and an overlay with the veil, hover ring and labels. */
-export default function SkyCanvas({ areas, average, dark, showLabels, selected, onSelect, onHover, labelText }) {
+/**
+ * The Risk sky: a static layer of bubbles and an overlay with the veil, hover ring and labels.
+ * `onSelect(index, byKeyboard)` is told whether the keyboard list chose the area;
+ * `canvasRef`, when given, reaches the focusable overlay canvas.
+ */
+export default function SkyCanvas({ areas, average, dark, showLabels, selected, onSelect, onHover, labelText, canvasRef }) {
   const staticRef = useRef(null);
-  const overlayRef = useRef(null);
+  const ownOverlayRef = useRef(null);
+  const overlayRef = canvasRef || ownOverlayRef;
   const size = useCanvasSize(overlayRef);
   const theme = useLayerTheme(overlayRef, dark);
   const [rawHover, setHover] = useState(null);

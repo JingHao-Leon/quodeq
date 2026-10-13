@@ -40,11 +40,11 @@ describe('SkyCanvas', () => {
     expect(ctx.arc).toHaveBeenCalled();
   });
 
-  it('activating an area selects it; Escape clears the selection', () => {
+  it('activating an area selects it, flagged as a keyboard choice; Escape clears the selection', () => {
     const onSelect = vi.fn();
     render(sky({ selected: 0, onSelect }));
     fireEvent.click(screen.getAllByRole('button')[1]);
-    expect(onSelect).toHaveBeenCalledWith(1);
+    expect(onSelect).toHaveBeenCalledWith(1, true);
     fireEvent.keyDown(screen.getByLabelText(/risk/i), { key: 'Escape' });
     expect(onSelect).toHaveBeenLastCalledWith(null);
   });

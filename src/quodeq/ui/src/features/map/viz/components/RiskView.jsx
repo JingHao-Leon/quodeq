@@ -31,13 +31,33 @@ function RiskTooltip({ area, at }) {
   );
 }
 
+/**
+ * Selection plus keyboard focus: an area chosen from the keyboard list sends
+ * focus to the panel's View Details button; Escape there clears the
+ * selection and hands focus back to the sky canvas.
+ */
+function useRiskSelection(resetKey, bubbles) {
+  const [selected, setSelected] = useState(null);
+  const [focusRequest, setFocusRequest] = useState(0);
+  const skyRef = useRef(null);
+  const detailRef = useRef(null);
+  useEffect(() => { setSelected(null); }, [resetKey, bubbles]);
+  useEffect(() => { if (focusRequest) detailRef.current?.focus(); }, [focusRequest]);
+  const onSelect = useCallback((i, byKeyboard) => {
+    setSelected(i);
+    if (byKeyboard && i !== null) setFocusRequest((n) => n + 1);
+  }, []);
+  const onEscape = useCallback(() => { setSelected(null); skyRef.current?.focus(); }, []);
+  return { selected, onSelect, onEscape, skyRef, detailRef };
+}
+
 /** The Risk tab: functional areas on a sky, closer to the centre needs rework first. */
 export default function RiskView({ areaState, dark, showLabels, resetKey, onViewDetails, onShowInPack }) {
   const bubbles = useMemo(() => areaState.areaSet.areas.filter((a) => a.stats.files >= SKY_MIN_FILES), [areaState.areaSet]);
   const containerRef = useRef(null);
-  const [selected, setSelected] = useState(null);
+  const { selected, onSelect, onEscape, skyRef, detailRef } = useRiskSelection(resetKey, bubbles);
   const [hover, setHover] = useState(null);
-  useEffect(() => { setSelected(null); setHover(null); }, [resetKey, bubbles]);
+  useEffect(() => { setHover(null); }, [resetKey, bubbles]);
   const onHoverAt = useCallback((h) => {
     const el = containerRef.current;
     setHover(h && { ...h, pos: clampTooltipToBox(h.x, h.y, el?.offsetWidth, el?.offsetHeight) });
@@ -54,9 +74,10 @@ export default function RiskView({ areaState, dark, showLabels, resetKey, onView
   return (
     <div ref={containerRef} style={CONTAINER_STYLE}>
       <SkyCanvas areas={bubbles} average={areaState.areaSet.average} dark={dark} showLabels={showLabels}
-        selected={selected} onSelect={setSelected} onHover={onHoverAt} labelText={riskLabelText} />
+        selected={selected} onSelect={onSelect} onHover={onHoverAt} labelText={riskLabelText} canvasRef={skyRef} />
       <RiskTooltip area={hover && bubbles[hover.index]} at={hover} />
-      <LevelInfoPanel levelInfo={panel} />
+      <LevelInfoPanel levelInfo={panel} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined}
+        detailRef={detailRef} onEscape={onEscape} />
       <RiskLegend kinds={kinds} />
     </div>
   );

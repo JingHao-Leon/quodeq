@@ -50,3 +50,21 @@ describe('RiskView selection', () => {
     expect(screen.getByText('feature')).toBeInTheDocument();
   });
 });
+
+describe('RiskView keyboard selection', () => {
+  it('choosing an area from the keyboard list moves focus to View Details in a region named for the area', () => {
+    render(<RiskView {...props(READY)} />);
+    fireEvent.click(screen.getByRole('button', { name: /article/ }));
+    const region = screen.getByRole('region', { name: t('map.riskPanelAria', { name: 'article' }) });
+    expect(region).toContainElement(document.activeElement);
+    expect(document.activeElement).toHaveAccessibleName(t('map.viewDetails'));
+  });
+
+  it('Escape in the panel clears the selection and returns focus to the sky', () => {
+    render(<RiskView {...props(READY)} />);
+    fireEvent.click(screen.getByRole('button', { name: /article/ }));
+    fireEvent.keyDown(document.activeElement, { key: 'Escape' });
+    expect(screen.queryByRole('region')).toBeNull();
+    expect(document.activeElement).toHaveAccessibleName(t('map.riskSkyAria'));
+  });
+});
