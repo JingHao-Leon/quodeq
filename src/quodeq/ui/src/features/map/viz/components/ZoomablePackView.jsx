@@ -20,12 +20,7 @@ const CONTAINER_STYLE = { position: 'relative', width: '100%', height: '100%', d
 /** Tooltip position, clamped so it never runs off the container edge. */
 function tooltipStyle(mousePos, containerRef) {
   const el = containerRef.current;
-  return {
-    position: 'absolute',
-    ...clampTooltipToBox(mousePos.current.x, mousePos.current.y, el?.offsetWidth, el?.offsetHeight),
-    pointerEvents: 'none',
-    zIndex: 10,
-  };
+  return clampTooltipToBox(mousePos.current.x, mousePos.current.y, el?.offsetWidth, el?.offsetHeight);
 }
 
 /** Per-severity rows, shown only for a node that actually has violations. */
@@ -40,7 +35,7 @@ function PackTooltip({ circles, hover, mousePos, containerRef }) {
   const hd = circles[hover].data;
   const total = hd.violations + hd.compliance;
   return (
-    <div className="map-tooltip" style={tooltipStyle(mousePos, containerRef)}>
+    <div className="map-tooltip map-tooltip--floating" style={tooltipStyle(mousePos, containerRef)}>
       <div className="map-tooltip-title">{(hd.path || hd.name || '').replace(/\/$/, '')}</div>
       <div className="map-tooltip-row"><span>{t('map.violations')}</span><span>{hd.violations}</span></div>
       <TooltipSeverityRows hd={hd} />

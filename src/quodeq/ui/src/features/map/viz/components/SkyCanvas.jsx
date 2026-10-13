@@ -1,25 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.jsx';
 import { useCanvasSize } from './galaxyCanvasSize.js';
-import { prepareLayer, useLayerTheme } from './canvasLayer.js';
+import { prepareLayer, useLayerTheme, KBD_MAX, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
 import { useSkyScene } from './useSkyScene.js';
-import { pickBubble, drawSkyStatic, drawSkyOverlay } from '../core/skyLayers.js';
+import { pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont } from '../core/skyLayers.js';
 import { pluralKey } from '../../../../utils/plural.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 
-const KBD_MAX = 100;
-const WRAPPER_STYLE = { position: 'relative', width: '100%', height: '100%' };
-const LAYER_STYLE = { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' };
-const MEASURE_FONT_PX = 11.5;
-const MEASURE_WEIGHT = 600;
 const BY_KEYBOARD = true;
 
 function useMeasure(overlayRef, theme) {
   return useCallback((text) => {
     const ctx = overlayRef.current?.getContext('2d');
     if (!ctx) return 0;
-    ctx.font = `${MEASURE_WEIGHT} ${MEASURE_FONT_PX * theme.fontScale}px ${theme.font}`;
+    ctx.font = skyTitleFont(theme.font, theme.fontScale);
     return ctx.measureText(text).width;
   }, [overlayRef, theme]);
 }

@@ -171,11 +171,22 @@ function drawHover(ctx, b, palette) {
   ctx.globalAlpha = 1;
 }
 
+/**
+ * The canvas font of a label's title line. Label widths are measured with it
+ * too, so placement and drawing always agree.
+ * @param {string} font font family
+ * @param {number} fontScale root font size relative to 16px
+ * @returns {string} a CSS font shorthand
+ */
+export function skyTitleFont(font, fontScale) {
+  return `${TITLE_WEIGHT} ${TITLE_PX * fontScale}px ${font}`;
+}
+
 function drawLabel(ctx, label, { palette, font, fontScale }) {
   const halo = rgbCss(palette.bg);
   ctx.lineWidth = HALO_WIDTH;
   ctx.strokeStyle = halo;
-  ctx.font = `${TITLE_WEIGHT} ${TITLE_PX * fontScale}px ${font}`;
+  ctx.font = skyTitleFont(font, fontScale);
   ctx.strokeText(label.title, label.x, label.y);
   ctx.fillStyle = rgbCss(palette.text);
   ctx.fillText(label.title, label.x, label.y);

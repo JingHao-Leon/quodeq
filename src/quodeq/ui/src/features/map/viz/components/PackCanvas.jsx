@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.jsx';
 import { useCanvasSize } from './galaxyCanvasSize.js';
-import { prepareLayer, useLayerTheme } from './canvasLayer.js';
+import { prepareLayer, useLayerTheme, KBD_MAX, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
 import { drawStatic, drawOverlay } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle, screenCoordsFor } from '../core/packCanvasGeometry.js';
 import { useTweenedTransform } from '../core/packTween.js';
@@ -11,12 +11,9 @@ import { packStateText } from '../core/packStateText.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 
-// Keyboard stand-ins cover the current level only, capped like the galaxy
-// views: one button per child of the focused folder.
-const KBD_MAX = 100;
+// Keyboard stand-ins cover the current level only (KBD_MAX of them): one
+// button per child of the focused folder.
 const NO_EVENT = { stopPropagation() {} };
-const WRAPPER_STYLE = { position: 'relative', width: '100%', height: '100%' };
-const LAYER_STYLE = { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' };
 
 function usePackPaint({ circles, colorMode, palette, weights, editsByPath }) {
   return useMemo(() => {

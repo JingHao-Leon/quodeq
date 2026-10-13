@@ -3,6 +3,13 @@ import { readMapPalette } from '../core/mapPalette.js';
 import { parseCSSColor } from '../core/galaxyCore.js';
 
 const FONT_TOKEN = '--font-sans';
+
+/** Keyboard stand-ins per canvas view, capped like the galaxy views. */
+export const KBD_MAX = 100;
+/** The positioned box that stacks a view's canvas layers. */
+export const WRAPPER_STYLE = { position: 'relative', width: '100%', height: '100%' };
+/** One canvas layer filling the wrapper. */
+export const LAYER_STYLE = { position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' };
 // The root font size the canvas label bounds were designed for.
 const BASE_ROOT_PX = 16;
 

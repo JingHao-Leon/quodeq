@@ -1,6 +1,6 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLayers.test.jsx
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
-import { skyFrame, toPixels, pickBubble, drawSkyStatic, drawSkyOverlay } from './skyLayers.js';
+import { skyFrame, toPixels, pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont } from './skyLayers.js';
 import { RING_STYLE } from './skyPaint.js';
 
 const SIZE = 400;
@@ -51,5 +51,11 @@ describe('drawSkyOverlay', () => {
     const { bubbles } = scene();
     drawSkyOverlay(ctx, { bubbles, keepIndex: null, hoverIndex: null, labels: [], palette: PALETTE, font: 'sans', fontScale: 1, width: SIZE, height: SIZE });
     expect(ctx.rect).not.toHaveBeenCalled();
+  });
+});
+
+describe('skyTitleFont', () => {
+  it('scales the title size with the root font, so measuring and drawing agree', () => {
+    expect(skyTitleFont('Inter', 2)).toBe('600 23px Inter');
   });
 });
