@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { layoutSky } from '../core/skyLayout.js';
+import { cachedLayoutSky } from '../core/skyLayoutCache.js';
 import { packAreaFiles } from '../core/skyMiniPack.js';
 import { skyAreaPaint, dotColor } from '../core/skyPaint.js';
 import { skyFrame, toPixels } from '../core/skyLayers.js';
@@ -10,7 +10,7 @@ const isIndex = (i) => i !== null && i !== undefined;
 
 /** Layout and file packs depend only on the areas; colours on the palette too. */
 function useSkyModel(areas, average, palette) {
-  const nodes = useMemo(() => layoutSky(areas), [areas]);
+  const nodes = useMemo(() => cachedLayoutSky(areas), [areas]);
   const packs = useMemo(() => areas.map((a) => packAreaFiles(a.dots)), [areas]);
   const paints = useMemo(() => (palette ? areas.map((a) => skyAreaPaint(a, average, palette)) : null), [areas, average, palette]);
   const files = useMemo(
