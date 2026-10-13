@@ -76,3 +76,4 @@ export { getMenubar, setMenubar } from './menubar.js';
 export { probeGit, getGithubAccount, startDeviceFlow, getDeviceFlow, pasteGithubToken, signOutGithub } from './githubAccess.js';
 
 export { getRunLog } from './runLog.js';
+export { getMapHistory } from './mapHistory.js';

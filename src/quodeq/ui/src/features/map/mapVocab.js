@@ -20,3 +20,9 @@ export const GALAXY_MODE = Object.freeze({ FILESYSTEM: 'filesystem', STANDARDS: 
 
 /** How a pack node is judged: a file, a folder holding only files, or a folder with sub-folders. */
 export const NODE_KIND = Object.freeze({ FILE: 'file', FOLDER: 'folder', PARENT: 'parent' });
+
+/** Where the Map's activity came from (map history payload `activitySource`). */
+export const ACTIVITY_SOURCE = Object.freeze({ GIT: 'git', ESTIMATED: 'estimated', NONE: 'none' });
+
+/** Which history frames to fetch. */
+export const MAP_FRAMES = Object.freeze({ LATEST: 'latest', ALL: 'all' });

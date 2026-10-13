@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getGradeFormula } from '../../../api/index.js';
+import { gradeFormulaKeys } from '../../../api/queryKeys.js';
 import { RESCORE_STATE } from '../../../vocab/rescoreState.js';
 import { t } from '../../../strings/index.js';
 
@@ -7,11 +9,14 @@ import { t } from '../../../strings/index.js';
 // A server response (initial load, apply, reset) is authoritative for both
 // the saved formula and the draft on screen, so the draft stops being dirty.
 function useFormulaIntents({ setSaved, setDraft, setIsCustom, setPreview, setBusy, setError, setPartialNotice }) {
+  const queryClient = useQueryClient();
+  // The Map's severity weights read the same formula: keep that cache entry current.
   const adoptServerFormula = useCallback((formula, custom) => {
     setSaved(formula);
     setDraft(formula);
     setIsCustom(custom);
-  }, [setSaved, setDraft, setIsCustom]);
+    queryClient.setQueryData(gradeFormulaKeys.current(), (prev) => ({ ...prev, current: formula, isCustom: custom }));
+  }, [setSaved, setDraft, setIsCustom, queryClient]);
 
   // Start an apply/reset: busy on, last error and partial notice cleared.
   const beginRequest = useCallback(() => {

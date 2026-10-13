@@ -83,6 +83,7 @@ export const projectKeys = {
     projectScope(projectId, source, DASHBOARD_KIND, run || LATEST_RUN_ID),
   runs: (projectId, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runs"),
   runLog: (projectId, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runLog"),
+  mapHistory: (projectId, frames, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "mapHistory", frames),
   // The help page's worked example. Inside the project subtree so dismiss and
   // formula invalidations reach it like every other per-run read.
   gradeExplain: (projectId, run, dimension, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "gradeExplain", run || LATEST_RUN_ID, dimension),
@@ -206,4 +207,5 @@ export const sharedKeys = {
 // and that must not also refetch the poll that noticed it.
 export const gradeFormulaKeys = {
   rescore: () => ["gradeFormula", "rescore"],
+  current: () => ["gradeFormula", "current"],
 };
