@@ -22,6 +22,12 @@ const PARENT_GOOD_FLOOR = -0.2;    // a big healthy parent: a tint, never a floo
 const FILE_GOOD_FLOOR = -0.6;      // a file with violations never reads as clean
 const EPSILON = 1e-9;
 
+/**
+ * |badness| at or below this reads as "about average": the neutral hue and the
+ * spoken state both use it, so colour and text always agree.
+ */
+export const AVERAGE_BAND = 0.02;
+
 /** `v` limited to `[lo, hi]`. */
 export function clamp(v, lo, hi) {
   return Math.min(hi, Math.max(lo, v));

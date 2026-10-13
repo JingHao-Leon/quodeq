@@ -1,6 +1,5 @@
-import { clamp } from './mapBadness.js';
+import { clamp, AVERAGE_BAND } from './mapBadness.js';
 
-const SIDE_BAND = 0.02;              // |badness| below this reads as "about average"
 const WORSE_EXP = 1.35;
 const WORSE_BASE = { dark: 0.06, light: 0.04 };
 const WORSE_SPAN = { dark: 0.46, light: 0.5 };
@@ -49,8 +48,8 @@ export function rgbCss({ r, g, b }) {
 
 /** The hue of a badness value: worse, better, or neutral near zero. */
 export function badnessHue(b, palette) {
-  if (b > SIDE_BAND) return palette.worse;
-  return b < -SIDE_BAND ? palette.better : palette.neutral;
+  if (b > AVERAGE_BAND) return palette.worse;
+  return b < -AVERAGE_BAND ? palette.better : palette.neutral;
 }
 
 /** Folder fill strength for a badness value; the worse side grows faster so problems lead. */
