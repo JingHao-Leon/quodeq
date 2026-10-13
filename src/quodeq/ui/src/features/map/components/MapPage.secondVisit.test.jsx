@@ -1,7 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapPage from './MapPage.jsx';
+import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
+
+const API = { getMapHistory: vi.fn(() => new Promise(() => {})), getGradeFormula: vi.fn(() => new Promise(() => {})) };
+const WRAP = { wrapper: withStableQueryApi(API) };
+
+// The circle pack observes its container size.
+beforeEach(() => { stubResizeObserver(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 // Leaving the Map and coming back with the same scores payload must not
 // rebuild the file tree: the tree is cached on the dimension objects, which
@@ -32,19 +41,19 @@ const realBuilds = () => buildFileTree.mock.calls.filter(([dims]) => dims.length
 describe('MapPage second visit', () => {
   it('builds the tree once across two visits with the same payload', () => {
     buildFileTree.mockClear();
-    const first = render(<MapPage data={data(DIMS)} callbacks={{}} />);
+    const first = render(<MapPage data={data(DIMS)} callbacks={{}} />, WRAP);
     expect(first.container.querySelector('.map-viz-container')).toBeInTheDocument();
     expect(realBuilds()).toBe(1);
     first.unmount();
 
-    render(<MapPage data={data(DIMS)} callbacks={{}} />);
+    render(<MapPage data={data(DIMS)} callbacks={{}} />, WRAP);
     expect(realBuilds()).toBe(1);
   });
 
   it('rebuilds when the payload changes', () => {
     buildFileTree.mockClear();
     const fresh = [{ ...DIMS[0], violations: [...DIMS[0].violations] }];
-    render(<MapPage data={data(fresh)} callbacks={{}} />);
+    render(<MapPage data={data(fresh)} callbacks={{}} />, WRAP);
     expect(realBuilds()).toBe(1);
   });
 });

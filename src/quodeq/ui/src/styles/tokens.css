@@ -88,6 +88,12 @@
   --primitive-slate-700: #4a4a4a;
   --primitive-slate-900: #1a1a1a;
 
+  /* Map (Circle Pack) hues */
+  --primitive-steel-600: #3d5a78;   /* light Activity hue */
+  --primitive-steel-300: #8a9bb0;   /* Activity, folder with nothing changed (dark) */
+  --primitive-mauve-100: #c8c3d8;   /* dark glass: parent veil and outline base */
+  --primitive-slate-350: #8a8fa8;   /* dark: about-average hue */
+
   /* Horizon palette (cool whites, indigo accent) */
   --primitive-horizon-50:  #f8f9fc;
   --primitive-horizon-100: #eef1f8;
@@ -301,6 +307,14 @@
   --color-danger:  var(--primitive-red-600);
   --color-success: var(--primitive-green-700);
 
+  /* Map */
+  --color-map-worse: var(--color-sev-critical-text);
+  --color-map-better: color-mix(in srgb, var(--color-text) 35%, var(--color-surface-alt));
+  --color-map-neutral: color-mix(in srgb, var(--color-text) 20%, var(--color-surface-alt));
+  --color-map-activity: var(--primitive-steel-600);
+  --color-map-activity-idle: var(--primitive-steel-300);
+  --color-map-glass-parent: var(--primitive-mauve-100);
+
   /* Severity bands — traditional: red=critical, amber=major, green=minor */
   --color-sev-critical-text:   var(--primitive-crimson-600);
   --color-sev-critical-bg:     color-mix(in srgb, var(--primitive-crimson-600) 4%, transparent);
@@ -435,6 +449,14 @@
     --color-danger:  #e05c4b;
     --color-success: #4caf7d;
 
+    /* Map (keep in step with the shared [data-theme$="dark"] Map set below) */
+    --color-map-worse: var(--color-sev-critical-text);
+    --color-map-better: var(--color-accent);
+    --color-map-neutral: var(--primitive-slate-350);
+    --color-map-activity: var(--color-accent);
+    --color-map-activity-idle: var(--primitive-steel-300);
+    --color-map-glass-parent: var(--primitive-mauve-100);
+
     --color-sev-critical-text:   var(--primitive-flynn-sev-critical-dark);
     --color-sev-critical-bg:     color-mix(in srgb, var(--primitive-flynn-sev-critical-dark) 4%, transparent);
     --color-sev-critical-border: color-mix(in srgb, var(--primitive-flynn-sev-critical-dark) 42%, transparent);
@@ -539,6 +561,27 @@ html[data-theme$="dark"]:root, [data-theme$="dark"] {
   --tty-ansi-bright-cyan:    #67e3f9;
   --tty-ansi-bright-white:   #ffffff;
   --tty-selection:           rgba(255, 255, 255, 0.22);
+}
+
+/* Map colours: shared dark and light sets for every family (each resolves
+   its own accent and severity tokens). The dark set repeats the one in the
+   prefers-color-scheme: dark block above; keep the two in step. */
+html[data-theme$="dark"]:root, [data-theme$="dark"] {
+  --color-map-worse: var(--color-sev-critical-text);
+  --color-map-better: var(--color-accent);
+  --color-map-neutral: var(--primitive-slate-350);
+  --color-map-activity: var(--color-accent);
+  --color-map-activity-idle: var(--primitive-steel-300);
+  --color-map-glass-parent: var(--primitive-mauve-100);
+}
+
+html[data-theme$="light"]:root, [data-theme$="light"] {
+  --color-map-worse: var(--color-sev-critical-text);
+  --color-map-better: color-mix(in srgb, var(--color-text) 35%, var(--color-surface-alt));
+  --color-map-neutral: color-mix(in srgb, var(--color-text) 20%, var(--color-surface-alt));
+  --color-map-activity: var(--primitive-steel-600);
+  --color-map-activity-idle: var(--primitive-steel-300);
+  --color-map-glass-parent: var(--primitive-mauve-100);
 }
 
 /* ── 4. Explicit theme overrides (user preference) ────────

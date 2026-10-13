@@ -42,7 +42,7 @@ test('computeLevelInfo: the detail action hands the node data to the click handl
   const data = { name: 'pkg/mod', violations: 0, compliance: 1 };
   const clicked = [];
   const info = computeLevelInfo(node(data, { parent: root }), root, (d) => clicked.push(d));
-  assert.equal(info.title, 'pkg');
+  assert.equal(info.title, 'pkg/mod');
   info.detailAction();
   assert.deepEqual(clicked, [data]);
 });

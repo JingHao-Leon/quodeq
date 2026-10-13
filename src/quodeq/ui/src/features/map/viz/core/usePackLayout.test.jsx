@@ -5,8 +5,8 @@ import { usePackLayout } from './usePackLayout.js';
 vi.mock('./layoutCache.js', () => ({ resolvePackLayout: vi.fn() }));
 import { resolvePackLayout } from './layoutCache.js';
 
-function Probe({ node, mode }) {
-  const { circles } = usePackLayout(node, mode);
+function Probe({ node }) {
+  const { circles } = usePackLayout(node);
   return <output>{circles.length}</output>;
 }
 
@@ -18,7 +18,7 @@ describe('usePackLayout', () => {
     const promise = new Promise((r) => { resolve = r; });
     resolvePackLayout.mockReturnValue({ root: {}, circles: [], pending: true, promise });
     const node = {};
-    const { container } = render(<Probe node={node} mode="health" />);
+    const { container } = render(<Probe node={node} />);
     expect(container.textContent).toBe('0');
     await act(async () => { resolve(layoutOf(5)); await promise; });
     expect(container.textContent).toBe('5');
@@ -28,9 +28,9 @@ describe('usePackLayout', () => {
     let resolveOld;
     const old = new Promise((r) => { resolveOld = r; });
     resolvePackLayout.mockReturnValueOnce({ root: {}, circles: [], pending: true, promise: old });
-    const { container, rerender } = render(<Probe node={{}} mode="health" />);
+    const { container, rerender } = render(<Probe node={{}} />);
     resolvePackLayout.mockReturnValueOnce(layoutOf(2));
-    rerender(<Probe node={{}} mode="health" />);
+    rerender(<Probe node={{}} />);
     expect(container.textContent).toBe('2');
     await act(async () => { resolveOld(layoutOf(9)); await old; });
     expect(container.textContent).toBe('2');

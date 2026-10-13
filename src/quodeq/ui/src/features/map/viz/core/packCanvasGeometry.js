@@ -1,10 +1,8 @@
 import { withinRadius } from './hitTest.js';
 import { PACK_BASE_SIZE } from './packLayout.js';
 
-// The SVG view box the pack is authored in: a PAD margin around BASE_SIZE
-// layout units, fitted to the container with the aspect ratio kept
-// (xMidYMid meet). The canvas reproduces the same mapping so the two
-// renderers place every circle identically.
+// The view box the pack is authored in: a PAD margin around BASE_SIZE layout
+// units, fitted to the canvas with the aspect ratio kept and centred.
 export const PACK_VIEW_PAD = 20;
 const VIEW_SPAN = PACK_BASE_SIZE + PACK_VIEW_PAD * 2;
 
@@ -44,11 +42,10 @@ export function hitCircle(circles, screenCoords, x, y) {
 
 /** Whether a circle touches the canvas. Culling is against the canvas
  * pixels, not the square view box: a wide or tall canvas shows content in
- * the letterbox either side of the box (the SVG view clips to its element
- * too), and after zooming in the siblings of the focused folder live there.
+ * the letterbox either side of the box, and after zooming in the siblings
+ * of the focused folder live there.
  * Sub-pixel circles are kept: the 1px stroke still paints them, and that
- * texture is what makes a zoomed-out folder read as full rather than empty
- * (the SVG view gets the same from its non-scaling stroke). */
+ * texture is what makes a zoomed-out folder read as full rather than empty. */
 export function isDrawable(sc, viewport, width, height) {
   const px = viewport.ox + sc.cx * viewport.scale;
   const py = viewport.oy + sc.cy * viewport.scale;

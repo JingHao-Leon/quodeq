@@ -1,9 +1,9 @@
 /**
- * Value-level characterization for the SVG geometry of FileShape,
- * RiskMatrixView and ZoomablePackView: the file-icon path coordinates and
- * opacities, the risk matrix's plot box, gridlines, axis labels, bubble
- * radii, critical ring radii, label font sizes and tooltip offsets, and the
- * pack view's label thresholds and tooltip clamp margins.
+ * Value-level characterization for the SVG geometry of FileShape and
+ * RiskMatrixView: the file-icon path coordinates and opacities, the risk
+ * matrix's plot box, gridlines, axis labels, bubble radii, critical ring
+ * radii, label font sizes and tooltip offsets. (The zoomable pack paints on
+ * canvas; its tooltip clamp is covered in PackCanvas.test.jsx.)
  *
  * Snapshotting the rendered markup is the cheapest way to catch a typo in
  * any of those numbers, because every one of them ends up in an attribute.
@@ -14,7 +14,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
 import FileShape from './FileShape.jsx';
 import RiskMatrixView from './RiskMatrixView.jsx';
-import ZoomablePackView from './ZoomablePackView.jsx';
 
 const NODE = {
   path: 'root/', name: 'root', isFile: false, violations: 0, compliance: 0, severity: {},
@@ -82,34 +81,5 @@ describe('RiskMatrixView geometry', () => {
     fireEvent.mouseMove(bubble, { clientX: window.innerWidth - 20, clientY: window.innerHeight - 20 });
     expect(container.querySelector('.map-tooltip').getAttribute('style'))
       .toMatchSnapshot('risk-matrix-tooltip-style-flipped');
-  });
-});
-
-describe('ZoomablePackView geometry', () => {
-  it('sizes the viewBox, padding and pack layout from the recorded constants', () => {
-    const { container } = render(
-      <ZoomablePackView node={NODE} viewMode="violations" onDrillDown={vi.fn()} />,
-    );
-    expect(container.querySelector('svg').getAttribute('viewBox'))
-      .toMatchSnapshot('pack-view-viewbox');
-    expect(container.innerHTML).toMatchSnapshot('pack-view-markup');
-  });
-
-  it('clamps the tooltip inside the container margins', () => {
-    const { container } = render(
-      <ZoomablePackView node={NODE} viewMode="violations" onDrillDown={vi.fn()} />,
-    );
-    const circle = container.querySelectorAll('circle')[1];
-    fireEvent.mouseOver(circle);
-    fireEvent.mouseEnter(circle);
-    const tip = container.querySelector('.map-tooltip');
-    expect(tip && tip.getAttribute('style')).toMatchSnapshot('pack-view-tooltip-style');
-    // Past the container edge the tooltip clamps to the right/bottom margins
-    // measured off the fallback container size.
-    fireEvent.mouseMove(container.firstChild, { clientX: 1000, clientY: 1000 });
-    fireEvent.mouseOut(circle);
-    fireEvent.mouseOver(circle);
-    expect(container.querySelector('.map-tooltip').getAttribute('style'))
-      .toMatchSnapshot('pack-view-tooltip-style-clamped');
   });
 });

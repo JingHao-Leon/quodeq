@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildPackRoot, packInPlace, slimTree, applyPositions, handlePackMessage, packPadding, PACK_PADDING } from './packLayout.js';
-import { MAP_VIEW_MODE } from '../../mapVocab.js';
+import { buildPackRoot, packInPlace, slimTree, applyPositions, handlePackMessage, checksRun, PACK_BASE_SIZE } from './packLayout.js';
 
 const FIXTURE = {
   name: '/', path: '', isFile: false, violations: 6, compliance: 2, severity: {},
@@ -14,9 +13,9 @@ const FIXTURE = {
 };
 
 describe('pack layout: worker path matches the render-thread path', () => {
-  it.each(Object.values(MAP_VIEW_MODE))('in %s mode', (mode) => {
-    const sync = packInPlace(buildPackRoot(FIXTURE, mode));
-    const viaWorker = buildPackRoot(FIXTURE, mode);
+  it('positions every node identically', () => {
+    const sync = packInPlace(buildPackRoot(FIXTURE));
+    const viaWorker = buildPackRoot(FIXTURE);
     const { id, xyr } = handlePackMessage({ id: 7, slim: slimTree(viaWorker) });
     applyPositions(viaWorker, xyr);
 
@@ -26,34 +25,25 @@ describe('pack layout: worker path matches the render-thread path', () => {
   });
 
   it('slim trees carry no file data', () => {
-    const slim = slimTree(buildPackRoot(FIXTURE, MAP_VIEW_MODE.HEALTH));
+    const slim = slimTree(buildPackRoot(FIXTURE));
     expect(JSON.stringify(slim)).not.toContain('a1.py');
     expect(Object.keys(slim).sort()).toEqual(['c', 'v']);
   });
 });
 
-describe('pack padding shrinks with depth', () => {
-  const file = (path) => ({ name: path, path, isFile: true, violations: 1, compliance: 0, severity: {} });
-  const folder = (path, children) => ({ name: path, path, isFile: false, violations: 0, compliance: 0, severity: {}, children });
-  // A deep, sparse tree like a real source repo: each nesting level wastes
-  // area, which inflates d3's padding relative to the tiny file circles.
-  function deepTree(prefix, depth) {
-    if (depth === 0) return [file(`${prefix}/a.py`), file(`${prefix}/b.py`)];
-    return [0, 1].map((i) => folder(`${prefix}/d${i}`, deepTree(`${prefix}/d${i}`, depth - 1)));
-  }
-  const DEEP_LEVELS = 6;
-  const TREE = folder('', [...deepTree('', DEEP_LEVELS), folder('x', [folder('x/y', [file('x/y/one.py')])])]);
-
-  it('a deep single-file folder is mostly filled by its file', () => {
-    const root = packInPlace(buildPackRoot(TREE, MAP_VIEW_MODE.VIOLATIONS));
-    const byPath = new Map(root.descendants().map((n) => [n.data.path, n]));
-    const fill = byPath.get('x/y/one.py').r / byPath.get('x/y').r;
-    // Flat padding leaves this at ~0.23.
-    expect(fill).toBeGreaterThan(0.4);
+describe('pack layout geometry', () => {
+  it('centres the root with radius half the base size', () => {
+    const root = packInPlace(buildPackRoot(FIXTURE));
+    expect([root.x, root.y, root.r]).toEqual([PACK_BASE_SIZE / 2, PACK_BASE_SIZE / 2, PACK_BASE_SIZE / 2]);
   });
 
-  it('padding at the top level stays at the base value', () => {
-    expect(packPadding({ depth: 0 })).toBe(PACK_PADDING);
-    expect(packPadding({ depth: 3 })).toBeLessThan(PACK_PADDING / 2);
+  it('sizes a file by its checks run', () => {
+    const root = buildPackRoot(FIXTURE);
+    const a2 = root.descendants().find((n) => n.data.path === 'a/a2.py');
+    expect(a2.value).toBe(checksRun(a2.data));
+  });
+
+  it('counts at least one check for an empty file', () => {
+    expect(checksRun({ violations: 0, compliance: 0 })).toBe(1);
   });
 });

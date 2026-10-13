@@ -38,34 +38,33 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('ZoomablePackView when the worker reply lands after first render', () => {
   it('draws every circle at finite coordinates once the layout settles', async () => {
     const tree = bigTree();
-    const { container } = render(<ZoomablePackView node={tree} viewMode="health" />);
+    const { container } = render(<ZoomablePackView node={tree} />);
     expect(container.querySelector('canvas')).toBeNull();
 
-    const xyr = packSlim(slimTree(buildPackRoot(tree, 'health')));
+    const xyr = packSlim(slimTree(buildPackRoot(tree)));
     await act(async () => { resolveReply(xyr); });
 
     expect(container.querySelector('canvas')).toBeInTheDocument();
-    // Folders are arcs, files are translated icons; every placement is finite.
+    // Folders and files are both arcs; every placement is finite.
     expect(ctx.arc).toHaveBeenCalled();
-    expect(ctx.translate).toHaveBeenCalled();
-    const placements = [...ctx.arc.mock.calls, ...ctx.translate.mock.calls];
-    for (const call of placements) {
+    for (const call of ctx.arc.mock.calls) {
       expect(Number.isFinite(call[0])).toBe(true);
       expect(Number.isFinite(call[1])).toBe(true);
     }
   });
 
-  it('fades the circles in when the layout lands and again on a view-mode switch', async () => {
+  it('fades the circles in when the layout lands and again when a different tree arrives', async () => {
     const tree = bigTree();
-    const { container, rerender } = render(<ZoomablePackView node={tree} viewMode="health" />);
+    const { container, rerender } = render(<ZoomablePackView node={tree} />);
     const fade = container.querySelector('.pack-fade');
     expect(fade).toHaveAttribute('data-fade', 'a');
-    await act(async () => { resolveReply(packSlim(slimTree(buildPackRoot(tree, 'health')))); });
+    await act(async () => { resolveReply(packSlim(slimTree(buildPackRoot(tree)))); });
     expect(container.querySelector('.pack-fade')).toBe(fade);
     expect(fade).toHaveAttribute('data-fade', 'b');
 
-    rerender(<ZoomablePackView node={tree} viewMode="violations" />);
-    await act(async () => { resolveReply(packSlim(slimTree(buildPackRoot(tree, 'violations')))); });
+    const other = bigTree();
+    rerender(<ZoomablePackView node={other} />);
+    await act(async () => { resolveReply(packSlim(slimTree(buildPackRoot(other)))); });
     expect(container.querySelector('.pack-fade')).toBe(fade);
     expect(fade).toHaveAttribute('data-fade', 'a');
   });
@@ -75,9 +74,9 @@ describe('ZoomablePackView when the worker reply lands after first render', () =
   // the zoom as settled and draw labels right away.
   it('draws labels as soon as the layout lands', async () => {
     const tree = bigTree();
-    render(<ZoomablePackView node={tree} viewMode="health" showLabels />);
+    render(<ZoomablePackView node={tree} showLabels />);
     ctx.fillText.mockClear();
-    await act(async () => { resolveReply(packSlim(slimTree(buildPackRoot(tree, 'health')))); });
+    await act(async () => { resolveReply(packSlim(slimTree(buildPackRoot(tree)))); });
     expect(ctx.fillText).toHaveBeenCalled();
   });
 });

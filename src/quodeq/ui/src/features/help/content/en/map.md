@@ -1,17 +1,17 @@
 ## Code Map
 
-The **Map** tab draws your codebase as shapes you can scan at a glance: two metrics crossed with three layouts.
+The **Map** tab draws your codebase as shapes you can scan at a glance: three layouts, and for the Circle Pack two ways to color it.
 
-### Pick a metric
+### Pick a color mode (Circle Pack)
 
-- **Health** color encodes the dimension grade of each file. Greener is healthier.
-- **Violations** color encodes raw violation density, weighted by severity.
+- **Concentration** colors a circle by its issues compared with the project's average for the same size, capped by the worst severity inside it. Size is checks run.
+- **Activity** colors a circle by how often its files changed, from git history or, without it, estimated from finding changes. It is unavailable for remote projects and projects with no local history.
 
 ### Pick a layout
 
 | Key | Value |
 | --- | --- |
-| Circle Pack | Nested circles sized by line count. Best for spotting heavy files at a glance. |
+| Circle Pack | Nested circles sized by checks run. Best for spotting heavy files at a glance. |
 | Galaxy | Force-directed cluster view. Two sub-modes: filesystem (by directory) or standards (by violated principle). |
 | Risk Matrix | Files plotted by complexity (size) vs. issue density. Top-right quadrant is your priority list. |
 
