@@ -127,6 +127,7 @@ class _ImportTarget:
     target_uuid: str
     identity: ProjectIdentity
     replace_existing: bool = False
+    extract_budget: int | None = None  # bytes extraction may write in total
 
 
 def _stage_and_commit(
@@ -143,7 +144,7 @@ def _stage_and_commit(
     staging = Path(tempfile.mkdtemp(prefix="quodeq_import_", dir=str(target.reports_root)))
     keep_staging = False  # set when the staging dir holds the only copy of the old project
     try:
-        safe_extract(zf, members, staging)
+        safe_extract(zf, members, staging, max_total_bytes=target.extract_budget)
         staged_project = staging / target.top_dir
         if not staged_project.is_dir():
             raise bad_request("Archive missing top-level project directory.", "BAD_LAYOUT")
@@ -209,14 +210,15 @@ def _plan_import(
     """Validate the archive and resolve where it lands, or the collision outcome."""
     # An OSError reading the archive here is not caught: it propagates as a
     # read failure, not the write failure of ``_commit_import``.
-    top_dir, members = validate_archive(zf, max_total_bytes=size_limit * EXTRACT_HEADROOM)
+    extract_budget = size_limit * EXTRACT_HEADROOM
+    top_dir, members = validate_archive(zf, max_total_bytes=extract_budget)
     repo_info = _read_and_validate_member_payloads(zf, members, top_dir, log)
     identity = identity_from_info(repo_info)
     resolution = _resolve_import_conflict(reports_root, top_dir, action, identity, log)
     if isinstance(resolution, ImportOutcome):
         return resolution
     target_uuid, replace_existing = resolution
-    return _ImportTarget(reports_root, top_dir, target_uuid, identity, replace_existing), members
+    return _ImportTarget(reports_root, top_dir, target_uuid, identity, replace_existing, extract_budget), members
 
 
 def _commit_import(

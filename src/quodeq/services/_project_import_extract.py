@@ -3,12 +3,13 @@
 ``safe_extract`` runs after
 ``_project_import_validation.validate_archive`` has already rejected traversal,
 symlinks, and oversize members; it still double-checks each target path
-before writing, as a second line of defense. ``swap_into_place`` moves a
-staged project over an existing one without ever leaving neither on disk.
+before writing and counts the bytes it actually writes, as a second line of
+defense: the validators only ever saw the sizes the headers declared.
+``swap_into_place`` moves a staged project over an existing one without ever
+leaving neither on disk.
 """
 from __future__ import annotations
 
-import shutil
 import zipfile
 from pathlib import Path
 
@@ -17,16 +18,44 @@ from quodeq.core.observability import NULL_LOG, LogSink
 from ._project_import_validation import bad_request
 
 
-def safe_extract(zf: zipfile.ZipFile, members: dict[str, zipfile.ZipInfo], dest: Path) -> None:
-    """Extract validated members into *dest*, double-checking each target path."""
+_COPY_CHUNK = 64 * 1024
+
+
+def safe_extract(
+    zf: zipfile.ZipFile, members: dict[str, zipfile.ZipInfo], dest: Path,
+    *, max_total_bytes: int | None = None,
+) -> None:
+    """Extract validated members into *dest*, double-checking each target path.
+
+    Bytes are counted as they are written, not as the headers declare them: a
+    member stops at its declared ``file_size`` and the archive as a whole at
+    *max_total_bytes* (the budget ``validate_archive`` checked the headers
+    against), so a header that lies cannot inflate the extraction.
+    """
     dest_resolved = dest.resolve()
+    remaining = max_total_bytes
     for arcname, info in members.items():
         target = (dest / arcname).resolve()
         if target != dest_resolved and not target.is_relative_to(dest_resolved):
             raise bad_request(f"Archive member would escape target dir: {arcname!r}", "PATH_ESCAPE")
         target.parent.mkdir(parents=True, exist_ok=True)
+        limit = info.file_size if remaining is None else min(info.file_size, remaining)
         with zf.open(info) as src, open(target, "wb") as dst:
-            shutil.copyfileobj(src, dst, length=64 * 1024)
+            written = _copy_bounded(src, dst, limit, arcname)
+        if remaining is not None:
+            remaining -= written
+
+
+def _copy_bounded(src, dst, limit: int, arcname: str) -> int:
+    """Copy *src* to *dst* and return the bytes written; the first byte past
+    *limit* rejects the archive before it reaches disk."""
+    written = 0
+    while chunk := src.read(_COPY_CHUNK):
+        written += len(chunk)
+        if written > limit:
+            raise bad_request(f"Archive member extracts past its validated size: {arcname!r}", "TOO_LARGE")
+        dst.write(chunk)
+    return written
 
 
 _REPLACED_BACKUP = ".replaced"

@@ -89,7 +89,19 @@ def _promote_index_only(db: sqlite3.Connection, job_id: str) -> None:
 def force_promote_to_cancelled_stale(
     db: sqlite3.Connection, job_id: str, *, run_dir: Path | None = None,
 ) -> bool:
-    """Mark a non-terminal index row as ``cancelled(stale_detected)``.
+    """Mark a non-terminal index row as ``cancelled(stale_detected)``, in one transaction.
+
+    The transaction is owned here, not by the caller: the service that asks
+    for the promotion should not know that the index is SQLite.
+    """
+    with db:
+        return _force_promote_to_cancelled_stale(db, job_id, run_dir=run_dir)
+
+
+def _force_promote_to_cancelled_stale(
+    db: sqlite3.Connection, job_id: str, *, run_dir: Path | None,
+) -> bool:
+    """The promotion itself, inside the caller's transaction.
 
     Called from the cancel path when SIGTERM has nothing to signal (PID is
     dead). The row stays in the index — history is preserved. State flips

@@ -177,3 +177,28 @@ def test_force_promote_preserves_provider_model_deadline(tmp_path: Path) -> None
         assert disk["deadline_at"] == "2026-01-01T00:00:00+00:00"
     finally:
         db.close()
+
+
+def test_force_promote_commits_its_own_transaction(tmp_path: Path) -> None:
+    """The adapter owns the transaction: the promoted state is visible from a
+    second connection without the caller committing anything."""
+    path = tmp_path / "idx.db"
+    db = open_index(path)
+    try:
+        run = _make_run_dir(tmp_path, "p", "r12")
+        write_status(run, RunStatus(state=RunState.RUNNING, job_id="ext-r12",
+                                    started_at="2026-04-20T00:00:00+00:00", dimensions=[], pid=999999999))
+        upsert_from_status(db, run, project_uuid="p", run_id="r12")
+        db.commit()
+
+        assert force_promote_to_cancelled_stale(db, "ext-r12", run_dir=run) is True
+        assert db.in_transaction is False
+    finally:
+        db.close()
+
+    other = open_index(path)
+    try:
+        row = other.execute("SELECT state FROM runs WHERE job_id = ?", ("ext-r12",)).fetchone()
+        assert row[0] == "cancelled"
+    finally:
+        other.close()
