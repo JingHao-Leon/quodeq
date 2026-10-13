@@ -53,3 +53,32 @@ describe('ZoomablePackView theme', () => {
     expect(readMapPalette).toHaveBeenLastCalledWith(expect.anything(), expect.any(Function), true);
   });
 });
+
+// A wrapper folder that holds nearly every file: the pack opens inside it,
+// once per visit (resetKey), so a way back to the root stays at the root.
+describe('ZoomablePackView opens inside a dominant folder', () => {
+  const file = (path) => ({ path, name: path.split('/').at(-1), isFile: true, violations: 1, compliance: 1, severity: { minor: 1 } });
+  const dominantTree = () => {
+    const files = Array.from({ length: 9 }, (_, i) => file(`app/f${i}.js`));
+    const app = { path: 'app', name: 'app', isFile: false, violations: 9, compliance: 9, severity: {}, children: files };
+    return { path: '', name: '', isFile: false, violations: 10, compliance: 10, severity: {}, children: [app, file('README.md')] };
+  };
+
+  it('drills into the folder once, and not again at the root', () => {
+    const onDrillDown = vi.fn();
+    const tree = dominantTree();
+    const { rerender } = render(<ZoomablePackView node={tree} currentPath="" onDrillDown={onDrillDown} />);
+    rerender(<ZoomablePackView node={tree} currentPath="app" onDrillDown={onDrillDown} />);
+    rerender(<ZoomablePackView node={tree} currentPath="" onDrillDown={onDrillDown} />);
+    expect(onDrillDown).toHaveBeenCalledTimes(1);
+    expect(onDrillDown).toHaveBeenCalledWith('app');
+  });
+
+  it('opens again for a new resetKey', () => {
+    const onDrillDown = vi.fn();
+    const tree = dominantTree();
+    const { rerender } = render(<ZoomablePackView node={tree} resetKey={1} onDrillDown={onDrillDown} />);
+    rerender(<ZoomablePackView node={tree} resetKey={2} onDrillDown={onDrillDown} />);
+    expect(onDrillDown).toHaveBeenCalledTimes(2);
+  });
+});

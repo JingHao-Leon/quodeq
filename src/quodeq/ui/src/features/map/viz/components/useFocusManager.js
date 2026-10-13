@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { PACK_BASE_SIZE as BASE_SIZE } from '../core/packLayout.js';
 import { isDrillableFolder } from '../core/fileTree.js';
+import { dominantFolderPath } from '../../components/mapTree.js';
 
 function useFocusResetSync(resetKey, setFocus) {
   const prevResetKey = useRef(resetKey);
@@ -10,6 +11,19 @@ function useFocusResetSync(resetKey, setFocus) {
       setFocus(null);
     }
   }, [resetKey]);
+}
+
+/** Once per resetKey, at the root, open the folder that holds most of the
+ * files. The drill goes through `onDrillDown` like a user's, so the page's
+ * breadcrumb follows; the ref keeps a later way back to the root there. */
+function useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown }) {
+  const openedFor = useRef(null);
+  useEffect(() => {
+    if (!circles.length || openedFor.current === resetKey) return;
+    openedFor.current = resetKey;
+    const path = currentPath ? null : dominantFolderPath(root?.data);
+    if (path) onDrillDown?.(path);
+  }, [circles, resetKey]);
 }
 
 /** Focus `next` without the zoom tween (a jump from outside: breadcrumb,
@@ -106,6 +120,7 @@ export function useFocusManager({ root, circles, resetKey, currentPath, onDrillD
 
   useFocusResetSync(resetKey, setFocus);
   useFocusPathSync({ currentPath, circles, setFocus, skipTransition, prevPathRef });
+  useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown });
 
   // Enable transitions after first paint
   useEffect(() => {
