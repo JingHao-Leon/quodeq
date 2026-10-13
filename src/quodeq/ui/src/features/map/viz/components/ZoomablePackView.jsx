@@ -8,14 +8,9 @@ import { useFocusManager } from './useFocusManager.js';
 import { t } from '../../../../strings/index.js';
 import { PERCENT } from '../../../../constants.js';
 import MapTooltipSeverityRows from './MapTooltipSeverityRows.jsx';
+import { clampTooltipToBox } from '../core/tooltipPlacement.js';
 import FadeIn from '../../../../components/FadeIn.jsx';
 
-const TOOLTIP_OFFSET = 16;
-const TOOLTIP_MAX_MARGIN = 180;
-const TOOLTIP_MAX_MARGIN_Y = 160;
-// Container size assumed while the element has not been measured yet, so
-// the tooltip still clamps to something sane on the first hover.
-const CONTAINER_FALLBACK_PX = 300;
 // No activity data yet: one shared empty map keeps the paint memo stable.
 // Read-only by convention (freezing a Map does not stop set()).
 const NO_EDITS = new Map();
@@ -27,8 +22,7 @@ function tooltipStyle(mousePos, containerRef) {
   const el = containerRef.current;
   return {
     position: 'absolute',
-    left: Math.min(mousePos.current.x + TOOLTIP_OFFSET, (el?.offsetWidth || CONTAINER_FALLBACK_PX) - TOOLTIP_MAX_MARGIN),
-    top: Math.min(mousePos.current.y + TOOLTIP_OFFSET, (el?.offsetHeight || CONTAINER_FALLBACK_PX) - TOOLTIP_MAX_MARGIN_Y),
+    ...clampTooltipToBox(mousePos.current.x, mousePos.current.y, el?.offsetWidth, el?.offsetHeight),
     pointerEvents: 'none',
     zIndex: 10,
   };

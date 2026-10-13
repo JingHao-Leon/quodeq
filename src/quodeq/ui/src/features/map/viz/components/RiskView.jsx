@@ -1,16 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import SkyCanvas from './SkyCanvas.jsx';
 import RiskLegend from './RiskLegend.jsx';
 import { LevelInfoPanel } from './galaxyViewInfo.jsx';
 import { riskAreaInfo, riskLabelText } from './riskAreaInfo.js';
 import { SKY_MIN_FILES } from '../core/skyLayout.js';
+import { clampTooltipToBox } from '../core/tooltipPlacement.js';
 import { t } from '../../../../strings/index.js';
 
 const CONTAINER_STYLE = { position: 'relative', width: '100%', height: '100%' };
-const TOOLTIP_OFFSET = 16;
-const TOOLTIP_MAX_MARGIN = 180;
-const TOOLTIP_MAX_MARGIN_Y = 160;
-const CONTAINER_FALLBACK_PX = 300;
 const TOOLTIP_ROWS = 3;
 
 function stateMessage({ areaState, bubbles }) {
@@ -20,19 +17,11 @@ function stateMessage({ areaState, bubbles }) {
   return bubbles.length ? null : t('map.riskEmpty');
 }
 
-/** Tooltip position, kept inside the container the way the pack tooltip is. */
-function tooltipPosition(at, el) {
-  return {
-    left: Math.min(at.x + TOOLTIP_OFFSET, (el?.offsetWidth || CONTAINER_FALLBACK_PX) - TOOLTIP_MAX_MARGIN),
-    top: Math.min(at.y + TOOLTIP_OFFSET, (el?.offsetHeight || CONTAINER_FALLBACK_PX) - TOOLTIP_MAX_MARGIN_Y),
-  };
-}
-
-function RiskTooltip({ area, at, container }) {
+function RiskTooltip({ area, at }) {
   if (!area || !at) return null;
   const info = riskAreaInfo(area);
   return (
-    <div className="map-tooltip map-tooltip--floating" style={tooltipPosition(at, container)}>
+    <div className="map-tooltip map-tooltip--floating" style={at.pos}>
       <div className="map-tooltip-title">{info.title}</div>
       {info.tag && <div className="map-tooltip-tag">{info.tag}</div>}
       {info.lines.slice(0, TOOLTIP_ROWS).map((l) => (
@@ -49,6 +38,10 @@ export default function RiskView({ areaState, dark, showLabels, resetKey, onView
   const [selected, setSelected] = useState(null);
   const [hover, setHover] = useState(null);
   useEffect(() => { setSelected(null); setHover(null); }, [resetKey, bubbles]);
+  const onHoverAt = useCallback((h) => {
+    const el = containerRef.current;
+    setHover(h && { ...h, pos: clampTooltipToBox(h.x, h.y, el?.offsetWidth, el?.offsetHeight) });
+  }, []);
   const message = stateMessage({ areaState, bubbles });
   if (message) return <div className="map-empty-note" role="status">{message}</div>;
   const chosen = selected === null ? null : bubbles[selected];
@@ -61,8 +54,8 @@ export default function RiskView({ areaState, dark, showLabels, resetKey, onView
   return (
     <div ref={containerRef} style={CONTAINER_STYLE}>
       <SkyCanvas areas={bubbles} average={areaState.areaSet.average} dark={dark} showLabels={showLabels}
-        selected={selected} onSelect={setSelected} onHover={setHover} labelText={riskLabelText} />
-      <RiskTooltip area={hover && bubbles[hover.index]} at={hover} container={containerRef.current} />
+        selected={selected} onSelect={setSelected} onHover={onHoverAt} labelText={riskLabelText} />
+      <RiskTooltip area={hover && bubbles[hover.index]} at={hover} />
       <LevelInfoPanel levelInfo={panel} />
       <RiskLegend kinds={kinds} />
     </div>

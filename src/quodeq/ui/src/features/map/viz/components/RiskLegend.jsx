@@ -20,7 +20,7 @@ export default function RiskLegend({ kinds }) {
       {KIND_ROWS.filter((r) => kinds.includes(r.kind)).map((r) => (
         <div key={r.kind} className="pack-legend-row"><span className={r.className} aria-hidden="true" />{t(r.key)}</div>
       ))}
-      <div>{t('map.riskLegendDots')}</div>
+      <div className="pack-legend-note">{t('map.riskLegendDots')}</div>
     </div>
   );
 }
