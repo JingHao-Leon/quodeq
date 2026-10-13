@@ -8,7 +8,7 @@ AREA = AreaMetrics(area="x", files=1, prod_files=1, violations=1, weight=2.0, de
 
 
 def _row(file: int, violations: int = 1, edits: int = 0) -> FileRow:
-    return FileRow(file, 2.0, violations, 0, 0, 1, edits, False, 0)
+    return FileRow(file, 2.0, violations, 0, 0, 1, edits, 0)
 
 
 def _history(*frames: MapFrame) -> MapHistory:
@@ -21,8 +21,8 @@ def test_empty_history_shape():
         "frameEncoding": "full", "frames": []}
 
 
-def test_rows_are_positional_without_touch_and_with_age_from():
-    frame = MapFrame("2026-09-01", 1, 0, (FileRow(0, 2.0, 1, 0, 0, 1, 3, True, 5),), (AREA,))
+def test_rows_are_positional_and_end_with_age_from():
+    frame = MapFrame("2026-09-01", 1, 0, (FileRow(0, 2.0, 1, 0, 0, 1, 3, 5),), (AREA,))
     body = map_history_payload(MapHistory("git", ("2026-09-01",), ("x/a.py",), ("x",), (True,), (frame,)))
     assert body["fileTest"] == [1]
     assert body["frames"][0]["files"] == [[0, 2.0, 1, 0, 0, 1, 3, 5]]

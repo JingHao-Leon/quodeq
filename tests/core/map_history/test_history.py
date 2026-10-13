@@ -19,10 +19,10 @@ def test_only_the_asked_frames_are_built():
     assert [f.day for f in _history([0, 1]).frames] == ["2026-09-01", "2026-09-08"]
 
 
-def test_rows_carry_running_edits_touch_and_age():
+def test_rows_carry_running_edits_and_age_from():
     history = _history([1])
     assert history.file_names == ("x/a.py", "x/tests/a_test.py")
     assert history.file_test == (False, True)
     rows = {r.file: r for r in history.frames[0].files}
-    assert rows[0] == FileRow(0, 2.0, 1, 0, 0, 1, 2, True, 0)
-    assert (rows[1].touched, rows[1].age_from) == (False, -1)
+    assert rows[0] == FileRow(0, 2.0, 1, 0, 0, 1, 2, 0)
+    assert (rows[1].edits, rows[1].age_from) == (0, -1)

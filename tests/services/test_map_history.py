@@ -25,7 +25,7 @@ def test_estimated_history_with_a_new_dimension_midway(env):
     assert list(out.days) == ["2026-09-01", "2026-09-08", "2026-09-15"]
     a = out.file_names.index("feature-a/src/A.kt")
     assert out.file_area[a] == "a"
-    assert [next(r for r in f.files if r.file == a).touched for f in out.frames] == [False, True, False]
+    assert [next(r for r in f.files if r.file == a).edits for f in out.frames] == [0, 1, 1]
 
 
 def test_latest_frame_only_by_default(env):

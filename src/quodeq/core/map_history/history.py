@@ -27,7 +27,6 @@ class FileRow(NamedTuple):
     critical: int
     major: int
     edits: int          # edits up to and including this run
-    touched: bool       # edited in the transition into this run
     age_from: int       # run index where the file's oldest violation chain started, -1 without one
 
 
@@ -67,12 +66,10 @@ class RunActivity:
 
 
 class _RunFacts(NamedTuple):
-    """What every frame draws on, per run (oldest first): edits, violation ages, area metrics, and flows of the asked runs."""
+    """What every frame draws on, per run (oldest first): edits, violation chain starts, area metrics, and flows of the asked runs."""
 
-    running: list[Counter[str]]             # edits up to and including each run
-    transitions: tuple[Counter[str], ...]   # edits in the transition into each run
-    ages: list[dict[str, int]]
-    starts: list[dict[str, int]]   # oldest violation chain start per path
+    running: list[Counter[str]]         # edits up to and including each run
+    starts: list[dict[str, int]]        # oldest violation chain start per path
     metrics: list[list[AreaMetrics]]
     flows: dict[int, tuple[int, int]]
 
@@ -86,15 +83,15 @@ def _run_facts(days: list[str], snapshots: list[RunSnapshot], activity: RunActiv
     ages = ages_from_starts(days, starts)
     per_run = [PathActivity(edits, run_ages) for edits, run_ages in zip(running, ages, strict=True)]
     metrics = area_metrics_per_run(snapshots, assignments, per_run)
-    return _RunFacts(running, activity.per_transition, ages, starts, metrics,
+    return _RunFacts(running, starts, metrics,
                      finding_flows(snapshots, violations, frame_runs))
 
 
 def _rows(k: int, snap: RunSnapshot, index: dict[str, int], facts: _RunFacts) -> tuple[FileRow, ...]:
     """Run *k*'s file rows."""
-    running, transition, starts = facts.running[k], facts.transitions[k], facts.starts[k]
+    running, starts = facts.running[k], facts.starts[k]
     return tuple(FileRow(index[p], round(s.weight, WEIGHT_DECIMALS), s.violations, s.compliance, s.critical, s.major,
-                         running.get(p, 0), bool(transition.get(p)), starts[p])
+                         running.get(p, 0), starts[p])
                  for p, s in snap.files.items())
 
 

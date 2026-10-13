@@ -320,6 +320,3 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 _.workflow
 _.run_url
 
-
-# core/map_history/history.py: FileRow.touched left the wire (derivable from edits); the row field is kept and read by the history tests.
-_.touched
