@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../api/ApiContext.jsx';
 import { projectsKeys } from '../api/queryKeys.js';
 import { invalidateProjects } from './invalidateProjects.js';
-import { recordWarmupSnapshot } from '../features/rebuild/warmupSnapshot.js';
+import { recordWarmupSnapshot, warmupIsActive } from '../features/rebuild/warmupSnapshot.js';
 import {
   DEFAULT_SOURCE, persistProject, persistSource, readStoredProject, readStoredSource, resolveInitialProject,
 } from './projectStateStorage.js';
@@ -26,11 +26,14 @@ const PROJECTS_STALE_MS = 5000;
 // The poll cadence of the project-list query. While the list is in a failed
 // state it retries quietly in the background, so a recovered backend clears
 // the failure screen without the user clicking Retry; while any summary is
-// still being computed it refreshes every few seconds so grades fill in as
-// they land; otherwise it does not poll.
-function projectsRefetchInterval(query, { summaryPollMs, autoRetryMs }) {
+// still being computed, or the server's warm-up is still rebuilding scores
+// (the rebuild strip reads its progress from this list's responses), it
+// refreshes every few seconds so grades fill in as they land and the strip
+// sees the queue finish; otherwise it does not poll.
+function projectsRefetchInterval(query, { summaryPollMs, autoRetryMs, warming }) {
   if (query.state.error) return autoRetryMs;
-  return query.state.data?.some((p) => p.summaryPending) ? summaryPollMs : false;
+  const pending = query.state.data?.some((p) => p.summaryPending);
+  return pending || warming() ? summaryPollMs : false;
 }
 
 // Retries back off with jitter. The retry count falls back to the
@@ -58,7 +61,9 @@ function useProjectsQuery({ listProjects, queryClient, maxRetries, retryDelayMs,
     },
     staleTime: PROJECTS_STALE_MS,
     refetchOnWindowFocus: false,
-    refetchInterval: (query) => projectsRefetchInterval(query, { summaryPollMs, autoRetryMs }),
+    refetchInterval: (query) => projectsRefetchInterval(
+      query, { summaryPollMs, autoRetryMs, warming: () => warmupIsActive(queryClient) },
+    ),
     ...projectsRetryOptions(maxRetries, retryDelayMs),
   });
 }
@@ -143,7 +148,8 @@ function useProjectListHandles(queryClient, query) {
  * @param {number} [params.maxRetries] - Retries for a failed project-list fetch before giving up
  *   and setting projectsLoadFailed; defaults to the QueryClient's retry setting.
  * @param {number} [params.retryDelayMs=400] - Base of the jittered backoff between those retries, in milliseconds.
- * @param {number} [params.summaryPollMs=3000] - Poll interval while any project's summary is pending.
+ * @param {number} [params.summaryPollMs=3000] - Poll interval while any project's summary is pending
+ *   or the server's warm-up is still rebuilding scores.
  * @param {number} [params.autoRetryMs=30000] - Interval for the background retry that runs while
  *   the list is in a failed state.
  * @returns {{ projects: Array, projectsLoaded: boolean, projectsLoadFailed: boolean,

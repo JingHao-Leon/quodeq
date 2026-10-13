@@ -6,9 +6,22 @@ import { projectsKeys } from '../../api/queryKeys.js';
  * `{active, projectsDone, projectsTotal, currentProjectName}` (see
  * services/warmup.py snapshot), or null before the first list or when the
  * server sent none. The list writes it (hooks/useProjectState.js) on every
- * fetch, and the list already polls every few seconds while any card is
- * pending, which is exactly while the warm-up runs: no request of its own.
+ * fetch, and the list polls every few seconds while any card is pending or
+ * this snapshot says the warm-up is active: no request of its own.
  */
+
+/**
+ * True while the last recorded snapshot says the server is still rebuilding
+ * scores. The list's poll cadence asks this so it keeps re-asking (and so
+ * keeps recording) until the warm-up finishes, not only while a card is
+ * pending: the worker writes a project's card summary first and spends the
+ * rest of its time on scores, so pending cards end long before the queue.
+ * @param {import('@tanstack/react-query').QueryClient} queryClient
+ * @returns {boolean}
+ */
+export function warmupIsActive(queryClient) {
+  return queryClient.getQueryData(projectsKeys.warmup())?.active === true;
+}
 
 /**
  * Record the snapshot that rode on a project list response.
