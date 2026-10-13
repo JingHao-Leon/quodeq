@@ -1,8 +1,8 @@
 """One run's findings as stored: raw, before the app's suppression and the grade weights apply.
 
 A run keeps, per file, the keys of its violation records (each record is held
-once per project), its compliance count and one compliance mark per
-dimension. ``materialise`` applies the hidden set and the severity weights,
+once per project) and, per dimension with compliance there, one compliance
+mark and its count of judgments. ``materialise`` applies the hidden set and the severity weights,
 so a dismissal, a deletion, a pattern rule or a grade-formula change never
 rebuilds a stored run.
 """
@@ -48,7 +48,7 @@ class RawFile:
     """One file in one stored run."""
 
     violations: tuple[str, ...] = ()   # record keys, sorted; a repeated finding is listed once per occurrence
-    compliance: int = 0
+    compliance: tuple[int, ...] = ()   # compliance judgments per mark, aligned with ``marks``
     marks: tuple[str, ...] = ()        # one ``compliance_mark`` per dimension with compliance here, sorted
 
 
@@ -92,13 +92,12 @@ class _Tally:
     """Mutable per-file raw findings while one run's reports are read."""
 
     violations: list[str] = field(default_factory=list)
-    compliance: int = 0
     by_dim: dict[str, list[dict]] = field(default_factory=dict)
 
     def frozen(self) -> RawFile:
         """The finished, immutable file."""
-        marks = tuple(sorted(compliance_mark(dim, found) for dim, found in self.by_dim.items()))
-        return RawFile(tuple(sorted(self.violations)), self.compliance, marks)
+        marks = sorted((compliance_mark(dim, found), len(found)) for dim, found in self.by_dim.items())
+        return RawFile(tuple(sorted(self.violations)), tuple(n for _, n in marks), tuple(m for m, _ in marks))
 
 
 def _entries(report: dict, key: str) -> list[dict]:
@@ -130,9 +129,7 @@ class _RunReader:
             self.records[key] = record
             self.files.setdefault(str(v["file"]), _Tally()).violations.append(key)
         for c in _entries(report, "compliance"):
-            tally = self.files.setdefault(str(c["file"]), _Tally())
-            tally.compliance += 1
-            tally.by_dim.setdefault(dim, []).append(c)
+            self.files.setdefault(str(c["file"]), _Tally()).by_dim.setdefault(dim, []).append(c)
 
 
 def build_raw_run(reports: Iterable[tuple[str, object]], subject_of: SubjectOf) -> RawRunBuild:
@@ -173,7 +170,7 @@ def _file_stat(raw: RawFile, records: Mapping[str, ViolationRecord], hidden: Col
         dims.add(record.subject.dimension)
     if not ids:
         return None
-    return FileStat(counts[Severity.CRITICAL], counts[Severity.MAJOR], counts[Severity.MINOR], raw.compliance,
+    return FileStat(counts[Severity.CRITICAL], counts[Severity.MAJOR], counts[Severity.MINOR], sum(raw.compliance),
                     weight, frozenset(ids), frozenset(dims))
 
 

@@ -39,8 +39,9 @@ from quodeq.services.wiring import (
 LATEST_FRAMES = "latest"
 ALL_FRAMES = "all"
 FRAME_CHOICES = (LATEST_FRAMES, ALL_FRAMES)
-# Snapshot payload shape: bump to invalidate every cached run (3: raw runs and records, suppression applied when read).
-SNAPSHOT_SHAPE = "3"
+# Snapshot payload shape: bump to invalidate every cached run (3: raw runs and records, suppression applied when
+# read; 4: compliance counted per dimension, so a run can carry a dimension it did not report).
+SNAPSHOT_SHAPE = "4"
 _SOURCE_GIT = "git"
 _SOURCE_ESTIMATED = "estimated"
 

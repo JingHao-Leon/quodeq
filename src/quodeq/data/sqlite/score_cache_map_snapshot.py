@@ -22,9 +22,9 @@ _EMPTY = RawHistory({}, {})
 
 
 def _encoded(run: RawRun) -> dict:
-    """The stored form of *run*: ``{dims, files: {path: [compliance, [record keys], [marks]]}}``."""
+    """The stored form of *run*: ``{dims, files: {path: [[compliance per mark], [record keys], [marks]]}}``."""
     return {"dims": list(run.dims),
-            "files": {p: [f.compliance, list(f.violations), list(f.marks)] for p, f in run.files.items()}}
+            "files": {p: [list(f.compliance), list(f.violations), list(f.marks)] for p, f in run.files.items()}}
 
 
 def _texts(items: tuple) -> bool:
@@ -32,11 +32,17 @@ def _texts(items: tuple) -> bool:
     return all(isinstance(i, str) for i in items)
 
 
+def _well_formed(f: RawFile) -> bool:
+    """Whether *f* holds text keys and marks and one integer count per mark."""
+    return (_texts(f.violations) and _texts(f.marks) and len(f.compliance) == len(f.marks)
+            and all(isinstance(n, int) for n in f.compliance))
+
+
 def _decoded(payload: dict) -> RawRun | None:
     """Inverse of ``_encoded``; None when *payload* has another layout (the caller rebuilds the run)."""
     try:
-        files = {p: RawFile(tuple(v), int(c), tuple(m)) for p, (c, v, m) in payload["files"].items()}
-        if not all(_texts(f.violations) and _texts(f.marks) for f in files.values()):
+        files = {p: RawFile(tuple(v), tuple(c), tuple(m)) for p, (c, v, m) in payload["files"].items()}
+        if not all(_well_formed(f) for f in files.values()):
             return None
         return RawRun(tuple(payload["dims"]), files)
     except (KeyError, ValueError, TypeError, AttributeError, OverflowError):

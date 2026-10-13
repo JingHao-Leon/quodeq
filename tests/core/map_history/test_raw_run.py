@@ -92,3 +92,13 @@ def test_record_keys_are_content_keys_and_runs_are_read_only():
     with pytest.raises(TypeError):
         built.run.files["new.py"] = built.run.files["a.py"]
     assert isinstance(built.run, RawRun)
+
+
+def test_compliance_is_kept_per_dimension_aligned_with_the_marks():
+    judged = [{"req": "R8", "file": "b.py", "line": 1}, {"req": "R9", "file": "b.py", "line": 2}]
+    reports = [("security", {"compliance": judged}),
+               ("maintainability", {"compliance": [{"req": "M1", "file": "b.py", "line": 1}]})]
+    raw = build_raw_run(reports, _subject).run.files["b.py"]
+    per_dim = {finding_dimension(m): n for m, n in zip(raw.marks, raw.compliance, strict=True)}
+    assert per_dim == {"security": 2, "maintainability": 1}
+    assert materialise(build_raw_run(reports, _subject).run, {}, set()).files["b.py"].compliance == 3

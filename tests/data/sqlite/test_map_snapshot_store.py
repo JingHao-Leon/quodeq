@@ -14,7 +14,7 @@ from quodeq.data.sqlite.score_cache_store import load_map_snapshots, save_map_sn
 REC = ViolationRecord(SuppressionSubject("sec", "R1", "P", "a.py", 3, ("f" * 64,), "a.py"), "major", "sec:v:0123456789ab")
 ODD = ViolationRecord(SuppressionSubject("sec", "", "P", "b.py", 0, (None, "e" * 64), "b.py:tail"), "", "sec:v:ba9876543210")
 K, KO = record_key(REC), record_key(ODD)
-RUN = RawRun(("sec",), {"a.py": RawFile((K, K), 2, ("sec:c:aaaaaaaaaaaa",)), "b.py": RawFile((KO,))})
+RUN = RawRun(("sec",), {"a.py": RawFile((K, K), (2,), ("sec:c:aaaaaaaaaaaa",)), "b.py": RawFile((KO,))})
 EMPTY = RawRun((), {})
 
 
@@ -58,12 +58,24 @@ def test_runs_and_records_outside_the_keep_sets_are_dropped(tmp_path, monkeypatc
     assert got.runs.keys() == {"r2"} and got.records == {}
 
 
-def test_rows_of_the_previous_shape_read_as_misses(tmp_path, monkeypatch):
+def test_rows_of_the_previous_shapes_read_as_misses(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
-    old = {"dims": ["sec"], "files": {"a.py": [1, 2, 3, 4, 5.5, ["sec:v:1"], ["sec"]]}}
+    _save({}, set())
+    two = {"dims": ["sec"], "files": {"a.py": [1, 2, 3, 4, 5.5, ["sec:v:1"], ["sec"]]}}
+    three = {"dims": ["sec"], "files": {"a.py": [2, [K], ["sec:c:aaaaaaaaaaaa"]]}}
     with open_score_cache() as conn:
-        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("3|sec", old), "r2": ("3|sec", {"nope": 1})})
-    assert load_map_snapshots("p", {"r1": "3|sec", "r2": "3|sec"}).runs == {}
+        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", two), "r2": ("k", {"nope": 1}), "r3": ("k", three)})
+    assert load_map_snapshots("p", {"r1": "k", "r2": "k", "r3": "k"}).runs == {}
+
+
+def test_a_run_whose_compliance_counts_do_not_match_its_marks_reads_as_a_miss(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({}, set())
+    short = {"dims": ["sec"], "files": {"a.py": [[], [], ["sec:c:aaaaaaaaaaaa"]]}}
+    text = {"dims": ["sec"], "files": {"a.py": [["2"], [], ["sec:c:aaaaaaaaaaaa"]]}}
+    with open_score_cache() as conn:
+        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", short), "r2": ("k", text)})
+    assert load_map_snapshots("p", {"r1": "k", "r2": "k"}).runs == {}
 
 
 def test_a_cache_of_the_previous_release_reads_as_misses_without_finding_rows(tmp_path, monkeypatch):
@@ -118,8 +130,8 @@ def test_a_corrupt_record_row_is_rewritten_by_the_next_save(tmp_path, monkeypatc
 def test_a_run_with_a_non_text_record_key_reads_as_a_miss(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     _save({}, set())
-    bad = {"dims": [], "files": {"a": [0, [[1]], []]}}
-    worse = {"dims": [], "files": {"a": [0, [], [3]]}}
+    bad = {"dims": [], "files": {"a": [[], [[1]], []]}}
+    worse = {"dims": [], "files": {"a": [[1], [], [3]]}}
     with open_score_cache() as conn:
         store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", bad), "r2": ("k", worse)})
     assert load_map_snapshots("p", {"r1": "k", "r2": "k"}).runs == {}
@@ -149,7 +161,6 @@ def test_a_record_with_a_non_text_field_reads_as_a_miss(tmp_path, monkeypatch, f
     payload[field] = 7
     _garble_record(K, payload)
     assert load_map_snapshots("p", {"r1": "k"}).runs == {}
-
 
 
 def test_a_warm_save_with_nothing_fresh_reads_no_record_row(tmp_path, monkeypatch):
