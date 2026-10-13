@@ -6,22 +6,22 @@ import pytest
 from quodeq.services import map_history
 from quodeq.services.map_history import build_map_history
 from quodeq.services.scoring import ProjectRows
-from tests.services._map_history_fixtures import _run, _violation, env  # noqa: F401 -- env is a pytest fixture
+from tests.services._map_history_fixtures import write_run, violation, env  # noqa: F401 -- env is a pytest fixture
 
 THREE = ("security", "maintainability", "reliability")
 
 
 def _findings(dim: str, *ns: int) -> list[dict]:
-    return [_violation(f"x/{dim}{n}.py", req=f"R{n}", snip=f"{dim}{n}()") for n in ns]
+    return [violation(f"x/{dim}{n}.py", req=f"R{n}", snip=f"{dim}{n}()") for n in ns]
 
 
 def _drop_out(env) -> None:
     """r2 skips reliability and changes security; r3 reports reliability again with two more and repeats one."""
     p = env / "proj"
-    _run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE)
-    _run(p, "r2", "2026-09-02", {"security": _findings("security", 1, 2, 3, 4),
+    write_run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE)
+    write_run(p, "r2", "2026-09-02", {"security": _findings("security", 1, 2, 3, 4),
                                  "maintainability": _findings("maintainability", 0, 1, 2)}, dims=THREE[:2])
-    _run(p, "r3", "2026-09-03", {"security": _findings("security", 1, 1, 2, 3, 4),
+    write_run(p, "r3", "2026-09-03", {"security": _findings("security", 1, 1, 2, 3, 4),
                                  "maintainability": _findings("maintainability", 0, 1, 2),
                                  "reliability": _findings("reliability", 0, 1, 2, 3, 4)}, dims=THREE)
 
@@ -51,8 +51,8 @@ def _graded(env, run_id: str, dims: tuple[str, ...]) -> None:
 
 def test_the_latest_frame_counts_what_the_dashboard_header_counts_when_the_latest_run_lacks_a_dimension(env):
     p = env / "proj"
-    _run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE)
-    _run(p, "r2", "2026-09-02", {"security": _findings("security", 0),
+    write_run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE)
+    write_run(p, "r2", "2026-09-02", {"security": _findings("security", 0),
                                  "maintainability": _findings("maintainability", 5)}, dims=THREE[:2])
     _graded(env, "r1", THREE)
     _graded(env, "r2", THREE[:2])

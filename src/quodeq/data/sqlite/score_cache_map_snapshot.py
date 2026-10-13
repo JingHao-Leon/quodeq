@@ -10,9 +10,11 @@ from __future__ import annotations
 import logging
 import sqlite3
 
-from quodeq.core.map_history.raw_run import RawFile, RawHistory, RawHistoryWrite, RawRun, ViolationRecord
+from quodeq.core.map_history.raw_run import (
+    RawFile, RawHistory, RawHistoryWrite, RawRun, ViolationRecord, referenced_records,
+)
 from quodeq.data.sqlite.score_cache_db import open_score_cache
-from quodeq.data.sqlite.score_cache_map_findings import load_map_findings, store_map_findings
+from quodeq.data.sqlite.score_cache_map_findings import all_text, load_map_findings, store_map_findings
 from quodeq.data.sqlite.score_cache_run_payloads import (
     MAP_SNAPSHOT, load_run_payloads, prune_run_payloads, store_run_payloads,
 )
@@ -27,14 +29,9 @@ def _encoded(run: RawRun) -> dict:
             "files": {p: [list(f.compliance), list(f.violations), list(f.marks)] for p, f in run.files.items()}}
 
 
-def _texts(items: tuple) -> bool:
-    """Whether every item is text (a record key or a mark)."""
-    return all(isinstance(i, str) for i in items)
-
-
 def _well_formed(f: RawFile) -> bool:
     """Whether *f* holds text keys and marks and one integer count per mark."""
-    return (_texts(f.violations) and _texts(f.marks) and len(f.compliance) == len(f.marks)
+    return (all_text(f.violations) and all_text(f.marks) and len(f.compliance) == len(f.marks)
             and all(isinstance(n, int) for n in f.compliance))
 
 
@@ -64,11 +61,11 @@ def load_map_snapshots(project: str, keys: dict[str, str]) -> RawHistory:
     try:
         with open_score_cache() as conn:
             payloads = load_run_payloads(conn, MAP_SNAPSHOT, project, keys)
-            records = load_map_findings(conn, project) if payloads else {}
+            runs = {run_id: run for run_id, payload in payloads.items() if (run := _decoded(payload)) is not None}
+            records = load_map_findings(conn, project, referenced_records(runs.values())) if runs else {}
     except (sqlite3.Error, OSError):
         _logger.warning("map snapshot cache unavailable for %s", project, exc_info=True)
         return _EMPTY
-    runs = {run_id: run for run_id, payload in payloads.items() if (run := _decoded(payload)) is not None}
     return RawHistory(_complete(runs, records), records)
 
 

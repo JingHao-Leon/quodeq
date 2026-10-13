@@ -1,7 +1,7 @@
 import pytest
 
 from quodeq.core.finding_identity import SuppressionSubject
-from quodeq.core.map_history.raw_run import RawRun, build_raw_run, materialise, record_key, referenced_records
+from quodeq.core.map_history.raw_run import build_raw_run, materialise, record_key, referenced_records
 from quodeq.core.map_history.snapshot import COMPLIANCE, VIOLATION, finding_dimension, finding_id, is_violation
 
 
@@ -94,13 +94,20 @@ def test_non_dict_entries_and_non_string_severities():
     assert (snap.files["a.py"].minor, snap.files["b.py"].compliance) == (1, 1)
 
 
-def test_record_keys_are_content_keys_and_runs_are_read_only():
+def test_record_keys_are_content_keys():
     built = build_raw_run(_reports(), _subject)
     assert all(record_key(r) == k for k, r in built.records.items())
+
+
+def test_a_built_run_refers_to_every_record_it_built():
+    built = build_raw_run(_reports(), _subject)
     assert referenced_records([built.run]) == set(built.records)
+
+
+def test_a_built_run_is_read_only():
+    built = build_raw_run(_reports(), _subject)
     with pytest.raises(TypeError):
         built.run.files["new.py"] = built.run.files["a.py"]
-    assert isinstance(built.run, RawRun)
 
 
 def test_compliance_is_kept_per_dimension_aligned_with_the_marks():

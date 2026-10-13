@@ -2,6 +2,7 @@ import sqlite3
 
 import pytest
 
+from quodeq.data.sqlite.score_cache_db import open_score_cache
 from quodeq.data.sqlite.score_cache_run_payloads import (
     MAP_SNAPSHOT, RUN_CHANGE, RunPayloadTable, load_run_payloads, store_run_payloads,
 )
@@ -38,8 +39,6 @@ def test_an_unserialisable_payload_is_skipped_and_the_rest_stored():
 
 
 def test_a_compressed_table_round_trips(tmp_path, monkeypatch):
-    from quodeq.data.sqlite.score_cache_db import open_score_cache
-    from quodeq.data.sqlite.score_cache_run_payloads import MAP_SNAPSHOT, load_run_payloads, store_run_payloads
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
     payload = {"dims": ["sec"], "files": {"a.py": [1, ["k"] * 50, []]}}
     with open_score_cache() as conn:

@@ -11,7 +11,7 @@ from quodeq.services import map_history
 DIMS = ("security", "maintainability")
 
 
-def _run(project_dir: Path, run_id: str, day: str, violations: dict[str, list[dict]], dims=DIMS, state="done",
+def write_run(project_dir: Path, run_id: str, day: str, violations: dict[str, list[dict]], dims=DIMS, state="done",
          at: str = "10:00:00") -> None:
     run = project_dir / run_id
     (run / "evaluation").mkdir(parents=True, exist_ok=True)
@@ -31,14 +31,14 @@ def env(tmp_path, monkeypatch):
     return evals
 
 
-def _violation(file: str, sev: str = "major", req: str = "R1", snip: str = "x()") -> dict:
+def violation(file: str, sev: str = "major", req: str = "R1", snip: str = "x()") -> dict:
     return {"req": req, "file": file, "line": 1, "snippet": snip, "severity": sev}
 
 
-def _two_runs(env) -> None:
+def write_two_runs(env) -> None:
     p = env / "proj"
-    _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
-    _run(p, "r2", "2026-09-08", {"security": [_violation("x/a.py")]})
+    write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]})
+    write_run(p, "r2", "2026-09-08", {"security": [violation("x/a.py")]})
 
 
 @pytest.fixture

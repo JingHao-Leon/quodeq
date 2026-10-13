@@ -7,7 +7,7 @@ import pytest
 from quodeq.core.finding_identity import SuppressionSubject
 from quodeq.core.map_history.raw_run import RawFile, RawHistory, RawHistoryWrite, RawRun, ViolationRecord, record_key
 from quodeq.data.sqlite import score_cache_map_snapshot
-from quodeq.data.sqlite.score_cache_db import open_score_cache
+from quodeq.data.sqlite.score_cache_db import open_score_cache, score_cache_session
 from quodeq.data.sqlite.score_cache_run_payloads import MAP_SNAPSHOT, store_run_payloads
 from quodeq.data.sqlite.score_cache_store import load_map_snapshots, save_map_snapshots
 
@@ -34,6 +34,17 @@ def test_runs_and_records_round_trip_and_respect_the_key(tmp_path, monkeypatch):
     assert got == RawHistory({"r1": RUN}, {K: REC, KO: ODD})
 
 
+def _set_record_payload(rec: str, text: str) -> None:
+    """Overwrite the stored row of record *rec* with *text* (a garbled or foreign layout)."""
+    with open_score_cache() as conn:
+        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", (text, rec))
+        conn.commit()
+
+
+def _garble_record(rec: str, payload: list) -> None:
+    _set_record_payload(rec, json.dumps(payload))
+
+
 def test_a_run_whose_record_is_missing_reads_as_a_miss(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     _save({"r1": ("k", RUN)}, {"r1"}, keep_records={K}, records={K: REC})
@@ -43,9 +54,7 @@ def test_a_run_whose_record_is_missing_reads_as_a_miss(tmp_path, monkeypatch):
 def test_a_run_whose_record_row_does_not_decode_reads_as_a_miss(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     _save({"r1": ("k", RUN), "r2": ("k", EMPTY)}, {"r1", "r2"})
-    with open_score_cache() as conn:
-        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", ("[1, 2", KO))
-        conn.commit()
+    _set_record_payload(KO, "[1, 2")
     got = load_map_snapshots("p", {"r1": "k", "r2": "k"})
     assert got.runs == {"r2": EMPTY} and got.records == {K: REC}
 
@@ -96,7 +105,6 @@ def test_run_payloads_are_stored_compressed(tmp_path, monkeypatch):
 
 
 def test_a_fresh_save_commits_records_then_runs(tmp_path, monkeypatch):
-    from quodeq.data.sqlite.score_cache_db import score_cache_session
     _env(tmp_path, monkeypatch)
     commits = []
     with score_cache_session():
@@ -119,9 +127,7 @@ def test_an_unavailable_cache_reads_empty_and_writes_nothing(monkeypatch, caplog
 def test_a_corrupt_record_row_is_rewritten_by_the_next_save(tmp_path, monkeypatch):
     _env(tmp_path, monkeypatch)
     _save({"r1": ("k", RUN)}, {"r1"})
-    with open_score_cache() as conn:
-        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", ("[1, 2", KO))
-        conn.commit()
+    _set_record_payload(KO, "[1, 2")
     assert load_map_snapshots("p", {"r1": "k"}).runs == {}
     _save({"r1": ("k", RUN)}, {"r1"})
     assert load_map_snapshots("p", {"r1": "k"}) == RawHistory({"r1": RUN}, {K: REC, KO: ODD})
@@ -135,12 +141,6 @@ def test_a_run_with_a_non_text_record_key_reads_as_a_miss(tmp_path, monkeypatch)
     with open_score_cache() as conn:
         store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", bad), "r2": ("k", worse)})
     assert load_map_snapshots("p", {"r1": "k", "r2": "k"}).runs == {}
-
-
-def _garble_record(rec: str, payload: list) -> None:
-    with open_score_cache() as conn:
-        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", (json.dumps(payload), rec))
-        conn.commit()
 
 
 @pytest.mark.parametrize("fps", [[], "ffff", ["f" * 64, "f" * 64], [3]])
@@ -164,7 +164,6 @@ def test_a_record_with_a_non_text_field_reads_as_a_miss(tmp_path, monkeypatch, f
 
 
 def test_a_warm_save_with_nothing_fresh_reads_no_record_row(tmp_path, monkeypatch):
-    from quodeq.data.sqlite.score_cache_db import score_cache_session
     _env(tmp_path, monkeypatch)
     _save({"r1": ("k", RUN)}, {"r1"})
     reads = []
@@ -173,3 +172,20 @@ def test_a_warm_save_with_nothing_fresh_reads_no_record_row(tmp_path, monkeypatc
             conn.set_trace_callback(lambda sql: reads.append(sql) if "payload FROM map_finding" in sql else None)
         _save({}, {"r1"}, records={})
     assert reads == []
+
+
+def test_only_the_records_of_the_loaded_runs_are_read(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN), "r2": ("k", EMPTY)}, {"r1", "r2"})
+    assert load_map_snapshots("p", {"r2": "k"}) == RawHistory({"r2": EMPTY}, {})
+
+
+def test_a_fresh_save_reads_the_record_table_once(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"})
+    reads = []
+    with score_cache_session():
+        with open_score_cache() as conn:
+            conn.set_trace_callback(lambda sql: reads.append(sql) if "FROM map_finding" in sql else None)
+        _save({"r1": ("k", RUN)}, {"r1"})
+    assert len(reads) == 1
