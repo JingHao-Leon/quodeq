@@ -73,13 +73,13 @@ def test_unknown_project_is_empty(env):
     assert build_map_history(env, "nope") == EMPTY_HISTORY
 
 
-def test_unfinished_runs_are_not_cached_and_new_dimensions_show_up(env, cached_runs):
+def test_a_running_run_shows_up_once_it_is_done_like_in_the_header(env, cached_runs):
     p = env / "proj"
     write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]})
     write_run(p, "r2", "2026-09-08", {"security": [violation("x/a.py")]}, dims=("security",), state="running")
     (p / "r2" / ".pid").write_text(str(os.getpid()))  # a live process keeps the run RUNNING
     out = build_map_history(env, "proj")
-    assert list(out.days) == ["2026-09-01", "2026-09-08"]
+    assert list(out.days) == ["2026-09-01"]
     assert cached_runs == {"r1"}
     (p / "r2" / ".pid").unlink()
     write_run(p, "r2", "2026-09-08", {"security": [violation("x/a.py")], "maintainability": [violation("x/b.py", snip="b()")]})
@@ -152,14 +152,39 @@ def test_the_run_is_dated_by_its_start_like_history(env):
     assert build_map_history(env, "proj").days == ("2026-09-01",)
 
 
-def test_the_days_last_run_stands_for_the_day(env):
+def test_the_days_last_run_replaces_what_its_earlier_runs_reported(env):
     p = env / "proj"
     write_run(p, "b-morning", "2026-09-08", {"security": [violation("x/morning.py")]}, at="08:00:00")
     write_run(p, "a-evening", "2026-09-08", {"security": [violation("x/evening.py")]}, at="20:00:00")
     assert build_map_history(env, "proj").file_names == ("x/evening.py",)
 
 
-def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier_run(env):
+def test_a_day_is_cached_under_its_last_run(env, cached_runs):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-08", {"security": [violation("x/a.py")]}, at="08:00:00")
+    write_run(p, "r2", "2026-09-08", {"security": [violation("x/b.py", snip="b()")]}, dims=("security",), at="20:00:00")
+    build_map_history(env, "proj")
+    assert cached_runs == {"r2"}
+
+
+def test_cancelled_runs_count_only_when_no_run_is_done_like_in_the_header(env):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]}, state="cancelled")
+    assert build_map_history(env, "proj").days == ("2026-09-01",)
+    write_run(p, "r2", "2026-09-08", {"security": [violation("x/b.py", snip="b()")]})
+    out = build_map_history(env, "proj")
+    assert (out.days, out.file_names) == (("2026-09-08",), ("x/b.py",))
+
+
+def test_a_day_whose_cancelled_run_still_drains_is_not_cached(env, cached_runs):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-08", {"security": [violation("x/a.py")]}, state="cancelled")
+    (p / "r1" / ".pid").write_text(str(os.getpid()))  # the cancelled run's process still writes
+    build_map_history(env, "proj")
+    assert cached_runs == set()
+
+
+def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier_run(env, cached_runs):
     p = env / "proj"
     write_run(p, "r1", "2026-09-01", {"security": [violation("x/a.py")]})
     write_run(p, "r2", "2026-09-08", {"security": [violation("x/morning.py")]}, at="08:00:00")
@@ -169,6 +194,7 @@ def test_a_cache_miss_whose_reports_are_unreadable_gives_way_to_the_days_earlier
     out = build_map_history(env, "proj")
     assert list(out.days) == ["2026-09-01", "2026-09-08"]
     assert "x/morning.py" in out.file_names and "x/evening.py" not in out.file_names
+    assert cached_runs == {"r1"}
 
 
 def _latest_files(env) -> dict[str, int]:

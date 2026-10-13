@@ -18,6 +18,7 @@ def client(tmp_path, monkeypatch):
         ev = evals / "proj" / run_id / "evaluation"
         ev.mkdir(parents=True)
         ev.joinpath("security.json").write_text(json.dumps({"dimension": "security", "date": f"{day}T10:00:00+00:00", "principles": [],
+            "overallScore": "7.0/10", "filesRead": 10,
             "violations": [{"req": "R1", "file": "a.py", "line": 1, "snippet": "x()", "severity": "major"}], "compliance": []}))
         (evals / "proj" / run_id / "status.json").write_text(json.dumps({"state": "done", "started_at": f"{day}T10:00:00Z"}))
     monkeypatch.setenv("QUODEQ_EVALUATIONS_DIR", str(evals))

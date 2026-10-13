@@ -60,6 +60,38 @@ def test_the_latest_frame_counts_what_the_dashboard_header_counts_when_the_lates
     assert _issues(build_map_history(env, "proj").frames[-1]) == header == 5
 
 
+def test_a_later_partial_run_of_the_day_keeps_what_the_days_earlier_runs_reported(env):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE, at="05:00:00")
+    write_run(p, "r2", "2026-09-01", {"security": _findings("security", 0)}, dims=("security",), at="09:00:00")
+    write_run(p, "r3", "2026-09-02", {"security": _findings("security", 0, 1)}, dims=("security",))
+    for run_id, dims in (("r1", THREE), ("r2", THREE[:1]), ("r3", THREE[:1])):
+        _graded(env, run_id, dims)
+    header = ProjectRows.load(env, "proj").accumulated()["summary"]["totalViolations"]
+    out = build_map_history(env, "proj", frames="all")
+    assert [_issues(f) for f in out.frames] == [7, 8]
+    assert _issues(out.frames[-1]) == header
+
+
+def test_a_day_with_only_a_partial_run_gets_its_own_frame(env):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE)
+    write_run(p, "r2", "2026-09-02", {"reliability": _findings("reliability", 0)}, dims=("reliability",))
+    out = build_map_history(env, "proj", frames="all")
+    assert out.days == ("2026-09-01", "2026-09-02")
+    assert [_issues(f) for f in out.frames] == [9, 7]
+
+
+def test_a_report_the_header_does_not_count_keeps_the_dimension_as_last_counted(env):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-01", {d: _findings(d, 0, 1, 2) for d in THREE}, dims=THREE)
+    write_run(p, "r2", "2026-09-02", {"security": _findings("security", 0)}, dims=("security",))
+    stub = p / "r2" / "evaluation" / "security.json"
+    stub.write_text(json.dumps({**json.loads(stub.read_text()), "filesRead": 0}))
+    out = build_map_history(env, "proj", frames="all")
+    assert [_issues(f) for f in out.frames] == [9]
+
+
 def test_the_readout_delta_matches_new_less_fixed_across_a_dimension_drop_out(env):
     _drop_out(env)
     frames = build_map_history(env, "proj", frames="all").frames
@@ -67,7 +99,7 @@ def test_the_readout_delta_matches_new_less_fixed_across_a_dimension_drop_out(en
     assert deltas == [f.new - f.fixed for f in frames[1:]] == [1, 3]
 
 
-@pytest.mark.parametrize("old_shape", ["2", "3"])
+@pytest.mark.parametrize("old_shape", ["2", "3", "4"])
 def test_runs_cached_under_an_older_shape_are_rebuilt_carried(env, monkeypatch, old_shape):
     shape = map_history.SNAPSHOT_SHAPE
     monkeypatch.setattr(map_history, "SNAPSHOT_SHAPE", old_shape)
