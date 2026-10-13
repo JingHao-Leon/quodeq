@@ -164,6 +164,16 @@ describe('buildDashboardDataBundle', () => {
     granularity: 'day', onGranularityChange: () => {},
   });
 
+  it('names a remote project by its published name, never its id', () => {
+    const state = { ...stubState(), selectedProject: '648a0719', selectedSource: 'shared', selectedDisplayName: '648a0719', sharedProjectInfo: { name: 'payments-api' } };
+    expect(buildDashboardDataBundle({ state }).selectedDisplayName).toBe('payments-api');
+  });
+
+  it('keeps the local display name for a local project', () => {
+    const state = { ...stubState(), selectedDisplayName: 'My Project', sharedProjectInfo: { name: 'other' } };
+    expect(buildDashboardDataBundle({ state }).selectedDisplayName).toBe('My Project');
+  });
+
   it('forwards scoresPending (the dimension cards look settled while stale without it)', () => {
     const bundle = buildDashboardDataBundle({ state: stubState(), sharedHasContent: false });
     expect(bundle.scoresPending).toBe(true);

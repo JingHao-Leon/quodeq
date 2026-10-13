@@ -25,6 +25,10 @@ function Harness({ initial = null, dims = makeDims(), dismissed = makeDismissed(
 const manyDims = () => [{ dimension: 'reliability', fromRunId: 'r', violations: Array.from({ length: LIST_CAP * 2 + 10 },
   (_, i) => ({ title: `Finding ${i}`, severity: 'minor', file: `f${i}.py`, line: 1, req: 'R-1' })) }];
 
+// manyDims() renders 600 rows once the cap is lifted: under 1 s alone, but
+// past the 5 s default under the full suite's load on CI.
+const MANY_ROWS_TIMEOUT_MS = 20_000;
+
 describe('FindingsWorkbench', () => {
   it('opens on the open findings, most severe selected', () => {
     render(<Harness />);
@@ -95,7 +99,7 @@ describe('FindingsWorkbench', () => {
     await userEvent.click(screen.getByRole('button', { name: /^status/ }));
     await userEvent.click(screen.getByRole('menuitemradio', { name: /all/ }));
     expect(screen.getByRole('button', { name: `show ${LIST_CAP} more` })).toBeInTheDocument();
-  });
+  }, MANY_ROWS_TIMEOUT_MS);
 
   it('a selected finding past the row cap is rendered', () => {
     const dims = manyDims();
