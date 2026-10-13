@@ -3,8 +3,7 @@ import { cachedLayoutSky } from '../core/skyLayoutCache.js';
 import { packAreaFiles } from '../core/skyMiniPack.js';
 import { skyAreaPaint, dotColor } from '../core/skyPaint.js';
 import { skyFrame, toPixels } from '../core/skyLayers.js';
-import { chooseLabelled, placeSkyLabels } from '../core/skyLabels.js';
-import { RING_KINDS } from '../../mapVocab.js';
+import { chooseLabelled, mustLabelled, placeSkyLabels } from '../core/skyLabels.js';
 
 const isIndex = (i) => i !== null && i !== undefined;
 
@@ -23,9 +22,10 @@ function useSkyModel(areas, average, palette) {
 function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, labelText }) {
   return useMemo(() => {
     const inRange = (i) => isIndex(i) && i >= 0 && i < bubbles.length;
-    const must = new Set([hover, selected].filter(inRange));
-    areas.forEach((a, i) => { if (RING_KINDS.includes(a.kind) && i < bubbles.length) must.add(i); });
-    const wanted = showLabels ? chooseLabelled({ areas, hovered: inRange(hover) ? hover : null, selected: inRange(selected) ? selected : null }) : must;
+    const placeable = areas.slice(0, bubbles.length);
+    const picks = { areas: placeable, hovered: inRange(hover) ? hover : null, selected: inRange(selected) ? selected : null };
+    const must = mustLabelled({ ...picks, showLabels });
+    const wanted = showLabels ? chooseLabelled(picks) : must;
     const placed = placeSkyLabels({ bubbles, wanted, must, measure });
     return placed.map((p) => ({ ...p, ...labelText(areas[p.index]) }));
   }, [areas, bubbles, hover, selected, showLabels, measure, labelText]);

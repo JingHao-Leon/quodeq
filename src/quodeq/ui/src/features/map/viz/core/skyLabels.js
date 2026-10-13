@@ -11,14 +11,39 @@ const SIDE_GAP = 6;
 const PAD = 4;
 const BUBBLE_GRACE = 2;   // a label may graze a bubble's edge by this much
 
-/** Which areas show a label: action kinds always, the ten heaviest, hovered and selected. */
-export function chooseLabelled({ areas, hovered, selected }) {
+const isIndex = (i) => i !== null && i !== undefined;
+
+/** Indices of the ten heaviest areas by weight. */
+function heaviest(areas) {
+  return areas.map((a, i) => [a.stats.weight, i]).sort((p, q) => q[0] - p[0]).slice(0, TOP_BY_WEIGHT).map(([, i]) => i);
+}
+
+/** Action kinds, plus the hovered and selected areas. */
+function alwaysLabelled({ areas, hovered, selected }) {
   const chosen = new Set();
   areas.forEach((a, i) => { if (RING_KINDS.includes(a.kind)) chosen.add(i); });
-  areas.map((a, i) => [a.stats.weight, i]).sort((p, q) => q[0] - p[0]).slice(0, TOP_BY_WEIGHT).forEach(([, i]) => chosen.add(i));
-  if (hovered !== null && hovered !== undefined) chosen.add(hovered);
-  if (selected !== null && selected !== undefined) chosen.add(selected);
+  if (isIndex(hovered)) chosen.add(hovered);
+  if (isIndex(selected)) chosen.add(selected);
   return chosen;
+}
+
+/** Which areas show a label: action kinds always, the ten heaviest, hovered and selected. */
+export function chooseLabelled({ areas, hovered, selected }) {
+  const chosen = alwaysLabelled({ areas, hovered, selected });
+  heaviest(areas).forEach((i) => chosen.add(i));
+  return chosen;
+}
+
+/**
+ * Labels that are kept even without a clear spot (they avoid other labels and
+ * may graze bubbles): action kinds, hover and selection, and with labels on,
+ * the ten heaviest areas, so a dense sky still names its biggest areas.
+ * @returns {Set<number>}
+ */
+export function mustLabelled({ areas, hovered, selected, showLabels }) {
+  const must = alwaysLabelled({ areas, hovered, selected });
+  if (showLabels) heaviest(areas).forEach((i) => must.add(i));
+  return must;
 }
 
 function candidates(b, w) {

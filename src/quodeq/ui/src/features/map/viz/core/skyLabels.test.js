@@ -1,7 +1,7 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLabels.test.js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseLabelled, placeSkyLabels } from './skyLabels.js';
+import { chooseLabelled, mustLabelled, placeSkyLabels } from './skyLabels.js';
 import { AREA_KIND } from '../../mapVocab.js';
 
 const TOP = 10;
@@ -23,10 +23,25 @@ test('a label never sits on another bubble or label', () => {
   assert.ok(first.y < 100);   // below would hit bubble 1, so it goes above
 });
 
-test('a wanted label with no free spot is dropped, a must label is kept', () => {
+test('a wanted label (outside the ten heaviest) with no free spot is dropped, a must label is kept', () => {
   const bubbles = [{ px: 50, py: 50, R: 10 }, { px: 50, py: 50, R: 200 }];
   const wantedOnly = placeSkyLabels({ bubbles, wanted: new Set([0]), must: new Set(), measure: () => 40 });
   const mustToo = placeSkyLabels({ bubbles, wanted: new Set([0]), must: new Set([0]), measure: () => 40 });
   assert.equal(wantedOnly.length, 0);
   assert.equal(mustToo.length, 1);
+});
+
+const watchAreas = (n) => Array.from({ length: n }, (_, i) => areaOf(AREA_KIND.WATCH, i));
+
+test('with labels on, the ten heaviest areas must show', () => {
+  const must = mustLabelled({ areas: watchAreas(TOP + 1), hovered: null, selected: null, showLabels: true });
+  assert.equal(must.size, TOP);
+  assert.ok(!must.has(0));
+});
+
+test('with labels off, only ring kinds, hover and selection must show', () => {
+  const areas = watchAreas(TOP + 1);
+  areas[0] = areaOf(AREA_KIND.HOTSPOT, 0);
+  const must = mustLabelled({ areas, hovered: 3, selected: null, showLabels: false });
+  assert.deepEqual([...must].sort((a, b) => a - b), [0, 3]);
 });
