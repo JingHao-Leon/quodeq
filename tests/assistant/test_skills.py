@@ -116,3 +116,18 @@ def test_create_standard_skill_interviews_before_drafting():
     assert "outline" in body.lower()
     assert "Do not call `draft_action` until the user has confirmed the outline" in body
     assert "infer" not in body.lower()
+
+
+def test_create_standard_skill_attaches_source_refs():
+    body = load_skills()["create-standard"].instructions
+    assert "`refs`" in body
+    assert '"url"' in body
+
+
+def test_create_standard_skill_keeps_labels_out_of_requirement_text():
+    """A drafted Android standard came back with every requirement titled
+    "Explicit: ..." or "Recommended: ...". Strength lives in the sentence
+    (must/should) and the source's own label in the description."""
+    body = load_skills()["create-standard"].instructions
+    assert "Never prefix the text with a label" in body
+    assert "must" in body and "should" in body

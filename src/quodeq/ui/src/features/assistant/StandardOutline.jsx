@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { t } from '../../strings/index.js';
 
+// A requirement's source references. The server keeps the url only for
+// http(s) links, so a ref without one renders as plain text.
+function RequirementRefs({ refs }) {
+  if (!Array.isArray(refs) || refs.length === 0) return null;
+  return (
+    <span className="assistant-outline-refs">
+      {refs.map((ref, index) => (ref.url
+        ? <a key={`${index}-${ref.url}`} className="assistant-outline-ref" href={ref.url} target="_blank" rel="noopener noreferrer">{ref.name}</a>
+        : <span key={`${index}-${ref.name}`} className="assistant-outline-ref">{ref.name}</span>))}
+    </span>
+  );
+}
+
 // One principle of a drafted standard: its name as a toggle, its requirements
 // listed underneath while expanded. Expanded by default so the whole draft is
 // readable without a click; collapsing is for long standards.
@@ -26,7 +39,10 @@ function PrincipleOutline({ principle }) {
           {requirements.map((req) => (
             <li key={req.id} className="assistant-outline-requirement">
               <span className="assistant-outline-req-id">{req.id}</span>
-              <span className="assistant-outline-req-text">{req.text}</span>
+              <span className="assistant-outline-req-text">
+                {req.text}
+                <RequirementRefs refs={req.refs} />
+              </span>
             </li>
           ))}
         </ul>

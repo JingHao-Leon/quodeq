@@ -270,5 +270,26 @@ def test_draft_create_standard_summary_carries_outline(ctx):
     draft = next(f for f in frames if f["type"] == "action_draft")
     assert draft["summary"]["principleCount"] == 1
     assert draft["summary"]["principles"] == [
-        {"name": "P1", "requirements": [{"id": "r1", "text": "Endpoints return RFC7807"}]},
+        {"name": "P1", "requirements": [{"id": "r1", "text": "Endpoints return RFC7807", "refs": []}]},
+    ]
+
+
+def test_draft_create_standard_summary_carries_http_refs_only(ctx):
+    """Requirement refs reach the card as links, so only http(s) urls pass;
+    a javascript: url is dropped while its name survives."""
+    payload = _standard_with([{
+        "id": "r1", "text": "Activities release listeners in onPause", "refs": [
+            {"source": "url", "name": "Android lifecycle guide",
+             "url": "https://developer.android.com/guide/components/activities/activity-lifecycle"},
+            {"source": "url", "name": "evil", "url": "javascript:alert(1)"},
+            {"source": "cwe", "id": "79"},
+        ]}])
+    assert build_registry(ctx).dispatch("draft_action", {
+        "action_type": "create_standard", "payload": payload})["ok"] is True
+    draft = next(f for _, f in ctx.repository.events_after("s1", 0) if f["type"] == "action_draft")
+    assert draft["summary"]["principles"][0]["requirements"][0]["refs"] == [
+        {"name": "Android lifecycle guide",
+         "url": "https://developer.android.com/guide/components/activities/activity-lifecycle"},
+        {"name": "evil", "url": None},
+        {"name": "cwe 79", "url": None},
     ]
