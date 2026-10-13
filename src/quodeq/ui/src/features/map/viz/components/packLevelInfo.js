@@ -21,7 +21,7 @@ export function computeLevelInfo(focusNode, root, onFileClick) {
   if (!fn || !fn.data) return null;
   const d = fn.data;
   const isRoot = fn === root;
-  const shortName = d.name?.includes('/') ? d.name.split('/')[0] : d.name;
+  const shortName = d.name;
   return {
     title: isRoot ? (d.name === '/' ? 'Project' : shortName) : shortName,
     lines: folderLines({
