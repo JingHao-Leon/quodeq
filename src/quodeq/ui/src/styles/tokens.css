@@ -338,12 +338,12 @@
   --color-grade-top-bg:      color-mix(in srgb, #e0a800 14%, transparent);
   --color-grade-high-text:   #9ca0a8;
   --color-grade-high-bg:     color-mix(in srgb, #9ca0a8 12%, transparent);
-  --color-grade-mid-text:    #c0502a;
-  --color-grade-mid-bg:      color-mix(in srgb, #c0502a 12%, transparent);
+  --color-grade-mid-text:    #eb691b;
+  --color-grade-mid-bg:      color-mix(in srgb, #eb691b 12%, transparent);
   --color-grade-low-text:    var(--primitive-ired-900);
   --color-grade-low-bg:      color-mix(in srgb, var(--primitive-ired-900) 12%, transparent);
-  --color-grade-bottom-text: var(--primitive-crimson-600);
-  --color-grade-bottom-bg:   color-mix(in srgb, var(--primitive-crimson-600) 12%, transparent);
+  --color-grade-bottom-text: #7e0b21;
+  --color-grade-bottom-bg:   color-mix(in srgb, #7e0b21 12%, transparent);
 
   /* Trend — default is light; dark themes override below */
   --color-trend-strong-up:   #e0a800;
@@ -469,14 +469,14 @@
 
     --color-grade-top-text:    var(--primitive-flynn-accent);
     --color-grade-top-bg:      color-mix(in srgb, var(--primitive-flynn-accent) 12%, transparent);
-    --color-grade-high-text:   #8aafcc;
-    --color-grade-high-bg:     color-mix(in srgb, #8aafcc 12%, transparent);
-    --color-grade-mid-text:    var(--primitive-ired-300);
-    --color-grade-mid-bg:      color-mix(in srgb, var(--primitive-ired-300) 12%, transparent);
-    --color-grade-low-text:    var(--primitive-ired-400);
-    --color-grade-low-bg:      color-mix(in srgb, var(--primitive-ired-400) 13%, transparent);
+    --color-grade-high-text:   #1e89bb;
+    --color-grade-high-bg:     color-mix(in srgb, #1e89bb 12%, transparent);
+    --color-grade-mid-text:    #c86432;
+    --color-grade-mid-bg:      color-mix(in srgb, #c86432 12%, transparent);
+    --color-grade-low-text:    #c8418d;
+    --color-grade-low-bg:      color-mix(in srgb, #c8418d 13%, transparent);
     --color-grade-bottom-text: var(--primitive-crimson-200);
-    --color-grade-bottom-bg:   color-mix(in srgb, var(--primitive-crimson-200) 4%, transparent);
+    --color-grade-bottom-bg:   color-mix(in srgb, var(--primitive-crimson-200) 12%, transparent);
 
     --color-warning:      var(--primitive-amber-400);
     --color-info:         var(--primitive-cyan-400);
@@ -621,14 +621,14 @@ html[data-theme="dark"]:root, [data-theme="dark"] {
 
   --color-grade-top-text:    var(--primitive-flynn-accent);
   --color-grade-top-bg:      color-mix(in srgb, var(--primitive-flynn-accent) 12%, transparent);
-  --color-grade-high-text:   #8aafcc;
-  --color-grade-high-bg:     color-mix(in srgb, #8aafcc 12%, transparent);
-  --color-grade-mid-text:    #ff8a8a;
-  --color-grade-mid-bg:      color-mix(in srgb, #ff8a8a 12%, transparent);
-  --color-grade-low-text:    var(--primitive-ired-400);
-  --color-grade-low-bg:      color-mix(in srgb, var(--primitive-ired-400) 13%, transparent);
-  --color-grade-bottom-text: #e6182a;
-  --color-grade-bottom-bg:   color-mix(in srgb, #e6182a 12%, transparent);
+  --color-grade-high-text:   #1e89bb;
+  --color-grade-high-bg:     color-mix(in srgb, #1e89bb 12%, transparent);
+  --color-grade-mid-text:    #c86432;
+  --color-grade-mid-bg:      color-mix(in srgb, #c86432 12%, transparent);
+  --color-grade-low-text:    #c8418d;
+  --color-grade-low-bg:      color-mix(in srgb, #c8418d 13%, transparent);
+  --color-grade-bottom-text: var(--primitive-crimson-200);
+  --color-grade-bottom-bg:   color-mix(in srgb, var(--primitive-crimson-200) 12%, transparent);
 
   --color-warning:      var(--primitive-amber-400);
   --color-info:         var(--primitive-cyan-400);
@@ -710,12 +710,12 @@ html[data-theme="light"]:root, [data-theme="light"] {
   --color-grade-top-bg:      color-mix(in srgb, #e0a800 14%, transparent);
   --color-grade-high-text:   #9ca0a8;
   --color-grade-high-bg:     color-mix(in srgb, #9ca0a8 12%, transparent);
-  --color-grade-mid-text:    #c0502a;
-  --color-grade-mid-bg:      color-mix(in srgb, #c0502a 12%, transparent);
+  --color-grade-mid-text:    #eb691b;
+  --color-grade-mid-bg:      color-mix(in srgb, #eb691b 12%, transparent);
   --color-grade-low-text:    var(--primitive-ired-900);
   --color-grade-low-bg:      color-mix(in srgb, var(--primitive-ired-900) 12%, transparent);
-  --color-grade-bottom-text: var(--primitive-crimson-600);
-  --color-grade-bottom-bg:   color-mix(in srgb, var(--primitive-crimson-600) 12%, transparent);
+  --color-grade-bottom-text: #7e0b21;
+  --color-grade-bottom-bg:   color-mix(in srgb, #7e0b21 12%, transparent);
 
   /* Warning */
   --color-warning:      var(--primitive-amber-700);
