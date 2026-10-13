@@ -8,6 +8,7 @@ import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { ABSENCE } from '../core/timelapseScene.js';
 import { GHOST_DASH_PX } from '../core/packLayers.js';
 import { createTimelapseLayouts } from '../core/timelapseLayouts.js';
+import { paintTweenAt } from '../core/timelapseTween.js';
 import { dayDate } from '../core/timelapseBarModel.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
@@ -24,6 +25,10 @@ vi.mock('../core/packCanvasGeometry.js', async (importOriginal) => {
       return i < 0 ? null : i;
     },
   };
+});
+vi.mock('../core/timelapseTween.js', async (importOriginal) => {
+  const real = await importOriginal();
+  return { ...real, paintTweenAt: vi.fn(real.paintTweenAt) };
 });
 vi.mock('../core/timelapseLayouts.js', async (importOriginal) => {
   const real = await importOriginal();
@@ -194,6 +199,18 @@ describe('TimelapsePackView across runs', () => {
     expect(front).toBeGreaterThan(0);
     expect(front).toBeLessThan(1);
     expect(back).toBeCloseTo(1 - front);
+  });
+
+  it('a one-run move paints through the colour tween at the move\'s eased t, not the target run\'s paint at once', async () => {
+    const tl = timelapse({ data: DATA3, moveMs: 900 });
+    const { rerender } = await renderView({ timelapse: tl });
+    paintTweenAt.mockClear();
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+    rerender(<TimelapsePackView colorMode="concentration" currentPath="src/ui" onDrillDown={vi.fn()} timelapse={{ ...tl, position: 1 }} />);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    act(() => { vi.advanceTimersByTime(450); });
+    const ts = paintTweenAt.mock.calls.map(([, t]) => t);
+    expect(ts.some((t) => t > 0 && t < 1)).toBe(true);
   });
 
   it('another history replaces the old one, settled on its own run', async () => {

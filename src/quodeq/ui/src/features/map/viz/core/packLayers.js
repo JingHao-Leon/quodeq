@@ -73,12 +73,14 @@ function drawFolder(ctx, { c, p, paint, at, index, paints }) {
   ctx.globalAlpha = 1;
 }
 
+/** A file's fill at its paint's opacity (1 except while it fades in during a time-lapse move). */
 function drawFile(ctx, p, paint) {
   ctx.beginPath();
   ctx.arc(p.px, p.py, p.r * FILE_SLOT_SCALE, 0, TAU);
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = paint.alpha ?? 1;
   ctx.fillStyle = paint.fill;
   ctx.fill();
+  ctx.globalAlpha = 1;
 }
 
 /**

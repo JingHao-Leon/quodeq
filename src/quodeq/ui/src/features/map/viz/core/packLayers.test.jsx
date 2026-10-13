@@ -48,6 +48,18 @@ describe('drawStatic', () => {
     expect(ctx.globalAlpha).toBe(1);
   });
 
+  it('fills a file at its paint\'s opacity, so an arriving file can fade in', () => {
+    const ctx = fakeCanvasContext();
+    const alphas = [];
+    ctx.fill = () => alphas.push(ctx.globalAlpha);
+    const { circles, screenCoords, paint } = scene();
+    paint[2] = { ...paint[2], alpha: 0.25 };
+    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    expect(alphas[2]).toBe(0.25);
+    expect(alphas[4]).toBe(1);
+    expect(ctx.globalAlpha).toBe(1);
+  });
+
   it('glass folders are translucent fills without cut-outs', () => {
     const ctx = fakeCanvasContext();
     const { circles, screenCoords, paint } = scene();

@@ -5,7 +5,8 @@ import { drawStatic, drawOverlay } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle, focusTransformFor } from '../core/packCanvasGeometry.js';
 import { useTweenedTransform } from '../core/packTween.js';
 import { circleAt } from '../core/packLayout.js';
-import { runPaint, movePaint, lerpXyr, screenCoordsInto, cachedRuns, TRANSITION } from '../core/timelapseScene.js';
+import { runPaint, lerpXyr, screenCoordsInto, cachedRuns, TRANSITION } from '../core/timelapseScene.js';
+import { createPaintTween, paintTweenAt } from '../core/timelapseTween.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 import { t } from '../../../../strings/index.js';
 import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.jsx';
@@ -17,22 +18,22 @@ function usePaintAt({ model, nodeDataAt, colorMode, palette, weights }) {
     : null), [model, nodeDataAt, colorMode, palette, weights]);
 }
 
-/** The paint of a move between two runs (leaving circles keep their old paint), kept for the move in progress. */
-function useMovePaintAt(paintAt) {
+/** The paint tween of a move between two runs, kept for the move in progress. */
+function useMoveTweenAt(paintAt) {
   return useMemo(() => {
     if (!paintAt) return null;
-    let last = { from: null, to: null, paint: null };
+    let last = { from: null, to: null, tween: null };
     return (from, to) => {
-      if (last.from !== from || last.to !== to) last = { from, to, paint: movePaint(paintAt(from), paintAt(to)) };
-      return last.paint;
+      if (last.from !== from || last.to !== to) last = { from, to, tween: createPaintTween(paintAt(from), paintAt(to)) };
+      return last.tween;
     };
   }, [paintAt]);
 }
 
-/** What each static canvas shows this frame, and how opaque: a move interpolates, a fade crosses both runs. */
+/** What each static canvas shows this frame, and how opaque: a move blends positions and paint, a fade crosses both runs. */
 function useLayers(view, paintAt) {
   const buffer = useRef(new Float32Array(0));
-  const movePaintAt = useMovePaintAt(paintAt);
+  const tweenAt = useMoveTweenAt(paintAt);
   return useMemo(() => {
     if (!view || !paintAt) return null;
     const { from, to, kind, t } = view;
@@ -41,8 +42,9 @@ function useLayers(view, paintAt) {
     // Neither run is opaque (cut-outs, translucent fills, dotted ghosts), so the old one fades out as the new one fades in.
     if (kind === TRANSITION.FADE) return { front, back: { xyr: from.state, paint: paintAt(from.k) }, alpha: t, backAlpha: 1 - t };
     if (buffer.current.length !== to.state.length) buffer.current = new Float32Array(to.state.length);
-    return { front: { xyr: lerpXyr(from.state, to.state, t, buffer.current), paint: movePaintAt(from.k, to.k) }, back: null, alpha: 1, backAlpha: 0 };
-  }, [view, paintAt, movePaintAt]);
+    const paint = paintTweenAt(tweenAt(from.k, to.k), t);
+    return { front: { xyr: lerpXyr(from.state, to.state, t, buffer.current), paint }, back: null, alpha: 1, backAlpha: 0 };
+  }, [view, paintAt, tweenAt]);
 }
 
 /** One static canvas: the layer's circles through the camera (screen coordinates kept in `coords`), or blank. */
