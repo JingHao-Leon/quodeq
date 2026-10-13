@@ -120,7 +120,7 @@ function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, in
   };
   const onClick = (e) => {
     const hit = hitAt(e);
-    if (hit !== null && hit === focusNode) return;
+    if (hit === focusNode) return;
     const picked = hit && pickAtFocusLevel(hit, focusNode);
     if (picked) handleClick(e, picked);
     else handleBgClick();

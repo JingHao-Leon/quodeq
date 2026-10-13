@@ -111,6 +111,16 @@ describe('PackCanvas hover', () => {
     expect(container.querySelector('.map-tooltip')).toHaveStyle({ left: '120px', top: '140px' });
   });
 
+  it('a drill clears the hover until the pointer moves again', () => {
+    const { container, overlay, clickOn } = renderAt('');
+    hitPath = 'src';
+    fireEvent.mouseMove(overlay);
+    expect(container.querySelector('.map-tooltip')).not.toBeNull();
+    clickOn('src');
+    expect(container.querySelector('.map-tooltip')).toBeNull();
+    expect(overlay.style.cursor).toBe('default');
+  });
+
   it('hovering the open folder itself selects nothing', () => {
     const { container, overlay } = renderAt('src');
     hitPath = 'src';

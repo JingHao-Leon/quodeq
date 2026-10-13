@@ -69,13 +69,10 @@ function useFocusHandlers({ focusNode, setFocus, onFileClick, onDrillDown, prevP
   const handleClick = useCallback((e, c) => {
     e.stopPropagation();
     const nav = { setFocus, onDrillDown, prevPathRef };
-    if (c.data.isFile) {
-      onFileClick?.(c.data);
-    } else if (isDrillableFolder(c.data) && c !== focusNode) {
-      focusFolder(c, nav);
-    } else if (c === focusNode) {
-      focusParent(focusNode, nav);
-    }
+    // The open folder itself never arrives here: the pointer ignores a hit
+    // on it and the keyboard offers only its children.
+    if (c.data.isFile) onFileClick?.(c.data);
+    else if (isDrillableFolder(c.data) && c !== focusNode) focusFolder(c, nav);
   }, [focusNode, onFileClick, onDrillDown]);
 
   const handleBgClick = useCallback(() => {

@@ -17,7 +17,8 @@ const TOOLTIP_MAX_MARGIN_Y = 160;
 // the tooltip still clamps to something sane on the first hover.
 const CONTAINER_FALLBACK_PX = 300;
 // No activity data yet: one shared empty map keeps the paint memo stable.
-const NO_EDITS = Object.freeze(new Map());
+// Read-only by convention (freezing a Map does not stop set()).
+const NO_EDITS = new Map();
 const CONTAINER_STYLE = { position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' };
 
 /* ---- PackTooltip: tooltip ---- */
@@ -55,12 +56,16 @@ function PackTooltip({ circles, hover, mousePos, containerRef }) {
   );
 }
 
-/** Hover index tied to the circles it was taken from: a new tree (worker
- * reply, new node) reads as "no hover" instead of indexing the wrong circle. */
-function useHover(circles) {
-  const [state, setState] = useState({ circles: null, index: null });
-  const setHover = useCallback((index) => setState({ circles, index }), [circles]);
-  return [state.circles === circles ? state.index : null, setHover];
+/** Hover index tied to the circles and the open folder it was taken under:
+ * a new tree (worker reply, new node) or a focus change (drill, Escape,
+ * keyboard activation) reads as "no hover" until the pointer moves again,
+ * so the tween never shows a ring or tooltip on a circle a click would not
+ * select. */
+function useHover(circles, focusNode) {
+  const [state, setState] = useState({ circles: null, focusNode: null, index: null });
+  const setHover = useCallback((index) => setState({ circles, focusNode, index }), [circles, focusNode]);
+  const current = state.circles === circles && state.focusNode === focusNode;
+  return [current ? state.index : null, setHover];
 }
 
 /* ---- Main orchestrator ---- */
@@ -77,8 +82,8 @@ export default function ZoomablePackView({
   const containerRef = useRef(null);
 
   const { root, circles } = usePackLayout(node);
-  const [hover, setHover] = useHover(circles);
   const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick });
+  const [hover, setHover] = useHover(circles, focus.focusNode);
 
   if (!node) return null;
   const ready = circles.length > 0;
