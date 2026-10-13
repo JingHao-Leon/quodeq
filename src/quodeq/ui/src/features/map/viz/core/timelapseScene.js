@@ -82,6 +82,19 @@ export function runPaint({ model, nodeData, mode, palette, weights }) {
 }
 
 /**
+ * The paint of a move from one run to the next (Decision 6): the target
+ * run's, except a circle that leaves (painted in `from`, dotted in `to`)
+ * keeps its `from` paint while it shrinks back to its slot; it is drawn
+ * dotted once the move settles on the target run's own paint.
+ * @param {object[]} fromPaint runPaint of the run the move starts from
+ * @param {object[]} toPaint runPaint of the target run
+ * @returns {object[]} one CirclePaint per history node
+ */
+export function movePaint(fromPaint, toPaint) {
+  return toPaint.map((p, i) => (p?.ghost && fromPaint[i] && !fromPaint[i].ghost ? fromPaint[i] : p));
+}
+
+/**
  * Why something is absent from run `k`: gone since the run after the last
  * one it was in, or first appearing in a later run; null when it is present
  * in `k` or in no run at all. Shared by the Pack and Risk time-lapses.

@@ -6,7 +6,7 @@ import { anchorLayout, runLayout } from './timelapseLayout.js';
 import { focusTransformFor } from './packCanvasGeometry.js';
 import { XYR_STRIDE } from './packLayout.js';
 import {
-  runNodeData, runPaint, absenceNote, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, cachedRuns, TRANSITION, ABSENCE,
+  runNodeData, runPaint, movePaint, absenceNote, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, cachedRuns, TRANSITION, ABSENCE,
 } from './timelapseScene.js';
 import { PACK_COLOR_MODE } from '../../mapVocab.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from './mapBadness.js';
@@ -121,4 +121,13 @@ test('cachedRuns computes each run once and forgets the oldest', () => {
   const get = cachedRuns((k) => { calls += 1; return k * 2; }, 2);
   assert.deepEqual([get(1), get(1), get(2), get(3), get(1)], [2, 2, 4, 6, 2]);
   assert.equal(calls, 4);
+});
+
+test('a move keeps a leaving circle painted as it was; one that arrives or stays takes the target paint', () => {
+  const solid = (fill) => ({ ghost: false, fill });
+  const ghost = { ghost: true };
+  const from = [solid('a0'), solid('a1'), ghost, solid('a3')];
+  const to = [solid('b0'), ghost, solid('b2'), ghost];
+  assert.deepEqual(movePaint(from, to), [to[0], from[1], to[2], from[3]]);
+  assert.equal(movePaint([ghost], [ghost])[0], ghost);
 });
