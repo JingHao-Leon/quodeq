@@ -1,5 +1,6 @@
 import { TAU } from './galaxyCore.js';
 import { clamp } from './mapBadness.js';
+import { forNeighbourPairs } from './circleGrid.js';
 
 /** Areas with fewer files than this get no bubble (spec 2.4). */
 export const SKY_MIN_FILES = 5;
@@ -18,7 +19,6 @@ const ITERATIONS = 260;
 const FIT_SHRINK = 0.85;       // radii shrink by this when the sky overflows
 const MAX_TRIES = 16;        // shrink steps before settling for the least-overlapping attempt
 const MAX_FILL = 0.55;       // share of the sky the padded bubbles may cover before relaxing
-const GRID_STRIDE = 65536;   // packs a cell's column and row into one Map key
 const NUDGE = 1e-4;
 const FNV_OFFSET = 2166136261;
 const FNV_PRIME = 16777619;
@@ -79,55 +79,11 @@ function pushApart(a, b) {
   b.x += ux * overlap * HALF; b.y += uy * overlap * HALF;
 }
 
-/** Cell size for the neighbour grid: twice the median radius plus the gap. */
-function cellSize(nodes) {
-  const radii = nodes.map((n) => n.r).sort((p, q) => p - q);
-  return 2 * (radii[Math.floor(radii.length * HALF)] || 0) + GAP;
-}
-
-/**
- * Uniform grid over the nodes' gap-padded boxes. A big bubble sits in every
- * cell its box covers, so the cell size can follow the typical bubble.
- */
-function buildGrid(nodes, cell) {
-  const cells = new Map();
-  const spans = nodes.map((n) => {
-    const reach = n.r + GAP;
-    return {
-      x0: Math.floor((n.x - reach) / cell), x1: Math.floor((n.x + reach) / cell),
-      y0: Math.floor((n.y - reach) / cell), y1: Math.floor((n.y + reach) / cell),
-    };
-  });
-  spans.forEach((sp, i) => {
-    for (let cx = sp.x0; cx <= sp.x1; cx++) for (let cy = sp.y0; cy <= sp.y1; cy++) {
-      const key = cx * GRID_STRIDE + cy;
-      const list = cells.get(key);
-      if (list) list.push(i); else cells.set(key, [i]);
-    }
-  });
-  return { cells, spans };
-}
-
-/** True when this cell is the first one both spans share, so a pair is visited once. */
-function ownsPair(key, a, b) {
-  return key === Math.max(a.x0, b.x0) * GRID_STRIDE + Math.max(a.y0, b.y0);
-}
-
-/** Calls visit(i, j) once for every pair of nodes whose padded boxes share a cell. */
-function forNeighbours(nodes, visit) {
-  const { cells, spans } = buildGrid(nodes, cellSize(nodes));
-  for (const [key, list] of cells) {
-    for (let p = 0; p < list.length; p++) for (let q = p + 1; q < list.length; q++) {
-      if (ownsPair(key, spans[list[p]], spans[list[q]])) visit(list[p], list[q]);
-    }
-  }
-}
-
 function relax(nodes) {
   for (let step = 0; step < ITERATIONS; step++) {
     const pull = PULL * (1 - step / ITERATIONS); // fades out so the last steps only separate
     for (const n of nodes) { n.x += (n.tx - n.x) * pull; n.y += (n.ty - n.y) * pull; }
-    forNeighbours(nodes, (i, j) => pushApart(nodes[i], nodes[j]));
+    forNeighbourPairs(nodes, GAP, (i, j) => pushApart(nodes[i], nodes[j]));
     pullInside(nodes);
   }
 }
@@ -136,7 +92,7 @@ function relax(nodes) {
 function overlapOf(nodes) {
   let total = 0;
   for (const n of nodes) total += Math.max(0, Math.hypot(n.x, n.y) + n.r - SKY_RIM - SLACK);
-  forNeighbours(nodes, (i, j) => {
+  forNeighbourPairs(nodes, GAP, (i, j) => {
     const a = nodes[i];
     const b = nodes[j];
     total += Math.max(0, a.r + b.r - Math.hypot(a.x - b.x, a.y - b.y));

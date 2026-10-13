@@ -8,7 +8,8 @@ export const PACK_BASE_SIZE = 600;
 // Trees at or above this many nodes lay out in the worker instead of the
 // render thread.
 export const PACK_WORKER_NODE_THRESHOLD = 2000;
-const XYR_STRIDE = 3;
+/** Numbers per node in a layout array: x, y, r. */
+export const XYR_STRIDE = 3;
 
 /** Checks run on a file: its violations plus its passing checks, at least 1. */
 export function checksRun(node) {
