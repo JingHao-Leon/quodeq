@@ -46,6 +46,8 @@ class FindingRef:
     file: str | None = ""
     line: object = 0
     snippet: str | None = None
+    fingerprints: tuple[str | None, ...] | None = None
+    """``dismiss_fingerprints(req, principle, snippet)`` already computed; when set, ``snippet`` is not read."""
 
 
 def as_dismissed_keys(dismissed: "DismissedKeys | frozenset | set | None") -> DismissedKeys:
@@ -105,9 +107,11 @@ def is_dismissed(
         return True
     if not dismissed:
         return False
-    return as_dismissed_keys(dismissed).matches(
-        req=ref.req, principle=ref.principle, file=file_key, line=ref.line,
-        snippet=ref.snippet)
+    keys = as_dismissed_keys(dismissed)
+    if ref.fingerprints is None:
+        return keys.matches(req=ref.req, principle=ref.principle, file=file_key, line=ref.line, snippet=ref.snippet)
+    return keys.matches_fingerprints(
+        req=ref.req, principle=ref.principle, file=file_key, line=ref.line, fingerprints=ref.fingerprints)
 
 
 def is_deleted(

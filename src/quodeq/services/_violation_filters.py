@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from quodeq.core.dismissals import DismissedKeys
-from quodeq.core.finding_identity import coerce_line
+from quodeq.core.finding_identity import SuppressionSubject, coerce_line, dismiss_fingerprints
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.types import ViolationResponse
 from quodeq.core.types.suppression_rule import SuppressionRule
@@ -77,6 +77,31 @@ def is_suppressed_violation(
     if _violation_dismissed(v, keys.dismissed, principle, keys.rules):
         return True
     return bool(keys.deleted) and deleted_key_for_violation(v, dimension, principle) in keys.deleted
+
+
+def suppression_subject(v: dict, dimension: str) -> SuppressionSubject:
+    """What :func:`is_suppressed_violation` reads of the top-level violation *v*, kept without its snippet.
+
+    The map history stores this per distinct violation and judges it later
+    with :func:`is_suppressed_subject`, so a dismissal never needs the report.
+    """
+    file, line = violation_location(v)
+    req = str(v.get("req") or "")
+    principle = str(v.get("practiceId") or v.get("principle") or "")
+    return SuppressionSubject(
+        dimension or "", req, principle, file, line,
+        dismiss_fingerprints(req, principle, v.get("snippet")),
+        deleted_key_for_violation(v, dimension)[2],
+    )
+
+
+def is_suppressed_subject(subject: SuppressionSubject, keys: SuppressionKeys) -> bool:
+    """:func:`is_suppressed_violation` for a stored subject: the same dismiss, rule and delete checks."""
+    ref = FindingRef(req=subject.req, principle=subject.principle, file=subject.file,
+                     line=subject.line, fingerprints=subject.fingerprints)
+    if is_dismissed(keys.dismissed, ref, rules=keys.rules):
+        return True
+    return bool(keys.deleted) and (subject.dimension, subject.principle, subject.deleted_file) in keys.deleted
 
 
 def unsuppressed(

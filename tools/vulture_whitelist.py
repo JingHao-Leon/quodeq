@@ -195,6 +195,7 @@ _.get_run_dir  # shared/env_paths.py: old-name shim for ensure_run_dir; referenc
 _.get_valid_categories  # config/disciplines.py: Referenced only from tests/, which this scan does not cover (4 refs).
 _.grade_for_score  # core/scoring/engine.py: Referenced only from tests/, which this scan does not cover (6 refs).
 _.is_subpath  # shared/paths.py: Referenced only from tests/, which this scan does not cover (3 refs).
+_.is_suppressed_subject  # services/_violation_filters.py: Referenced only from tests/ until the map-history read path lands (the time-lapse series); not dead.
 _.is_turn_claimed  # api/assistant_turn_state.py: Referenced only from tests/, which this scan does not cover (6 refs).
 _.is_violation  # core/events/models.py: Referenced only from tests/, which this scan does not cover (1 refs).
 _.line_keys  # core/dismissals.py: Referenced only from tests/, which this scan does not cover (12 refs).
@@ -211,6 +212,7 @@ _.reset_for_tests  # services/warmup.py: Referenced only from tests/, which this
 _.reset_hash_caches  # analysis/fingerprint.py: Referenced only from tests/, which this scan does not cover (2 refs).
 _.reset_provider_config_cache  # analysis/provider_cache.py: Referenced only from tests/, which this scan does not cover (3 refs).
 _.store_api_key_secure  # config/ai_provider.py: Referenced only from tests/, which this scan does not cover (21 refs).
+_.suppression_subject  # services/_violation_filters.py: Referenced only from tests/ until the map-history writer lands (the time-lapse series); not dead.
 _.tb  # shared/run_log.py: Referenced only from tests/, which this scan does not cover (2 refs).
 _.tool_uses  # assistant/adapters/_stream.py: Referenced only from tests/, which this scan does not cover (6 refs).
 _.update_verdict  # data/sqlite/state_store.py: Referenced only from tests/, which this scan does not cover (12 refs).
