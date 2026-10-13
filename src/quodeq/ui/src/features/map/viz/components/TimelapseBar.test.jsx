@@ -1,4 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import TimelapseBar from './TimelapseBar.jsx';
@@ -68,5 +71,15 @@ describe('TimelapseBar', () => {
     slider.getBoundingClientRect = () => ({ left: 0, width: 300, top: 0, height: 40 });
     fireEvent.mouseMove(slider, { clientX: 290 });
     expect(screen.getByText(/12 issues · 1 new · 3 fixed/)).toBeInTheDocument();
+  });
+});
+
+describe('time-lapse bar stylesheet', () => {
+  const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../../styles/mapTimelapse.css'), 'utf8');
+  const rule = (selector) => css.match(new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`))[1];
+
+  it('gives the readout a fixed width, so the track keeps its size while the readout changes run to run', () => {
+    expect(rule('.map-timelapse__info')).toMatch(/flex:\s*none/);
+    expect(rule('.map-timelapse__info')).toMatch(/(^|[\s;])width:\s*\d+(\.\d+)?em/);
   });
 });

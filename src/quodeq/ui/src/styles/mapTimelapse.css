@@ -45,11 +45,14 @@
   white-space: nowrap;
   pointer-events: none;
 }
-.map-timelapse__info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* A fixed width, so the track keeps its size while the readout changes from run to run. */
+.map-timelapse__info { display: flex; flex-direction: column; gap: 2px; flex: none; width: 25em; min-width: 0; }
 .map-timelapse__readout {
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .map-timelapse__legend {
   display: flex;
