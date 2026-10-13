@@ -1,6 +1,6 @@
 /**
- * The Map tab's route renderer, moved out of routes/renderers.jsx verbatim
- * (move-only refactor).
+ * The Map tab's route renderer: lazy-loads MapPage and carries the display
+ * toggles (viz style and modes) across the nav stack.
  */
 import { lazy } from 'react';
 import { NAV_TAB } from '../vocab/navTab.js';

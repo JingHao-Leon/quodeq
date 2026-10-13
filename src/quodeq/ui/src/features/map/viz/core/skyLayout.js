@@ -93,11 +93,10 @@ function buildGrid(nodes, cell) {
   const cells = new Map();
   const spans = nodes.map((n) => {
     const reach = n.r + GAP;
-    const span = {
+    return {
       x0: Math.floor((n.x - reach) / cell), x1: Math.floor((n.x + reach) / cell),
       y0: Math.floor((n.y - reach) / cell), y1: Math.floor((n.y + reach) / cell),
     };
-    return span;
   });
   spans.forEach((sp, i) => {
     for (let cx = sp.x0; cx <= sp.x1; cx++) for (let cy = sp.y0; cy <= sp.y1; cy++) {

@@ -42,7 +42,7 @@ export function riskAreaInfo(area) {
       { label: t('map.riskIssues'), value: s.violations },
       ...severityLines({ critical: s.critical, major: s.major, minor }, { colored: true }),
       ...needLines(area),
-      { label: t('map.riskChanged'), value: `${Math.round(area.touchedShare * PERCENT)}%` },
+      { label: t('map.riskChanged'), value: t('map.riskChangedValue', { pct: Math.round(area.touchedShare * PERCENT) }) },
     ],
   };
 }

@@ -2,6 +2,7 @@
 // names, never localised.
 export const KEY = Object.freeze({
   ENTER: 'Enter',
+  SPACE: ' ',
   ESCAPE: 'Escape',
   TAB: 'Tab',
   ARROW_UP: 'ArrowUp',

@@ -28,6 +28,11 @@ function kbdItems(areas, onSelect) {
     }));
 }
 
+/** With nothing hovered, Enter or Space hands focus to the keyboard list that follows the canvas. */
+function focusFirstKeyboardItem(canvas) {
+  canvas.parentElement?.nextElementSibling?.querySelector('button')?.focus();
+}
+
 function pointerAt(e) {
   const rect = e.currentTarget.getBoundingClientRect();
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -69,7 +74,7 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
   useEffect(() => { setHover(null); }, [areas]);
   const measureText = useMeasure(overlayRef, theme);
   const measure = useCallback((i) => measureText(labelText(areas[i]).title), [measureText, labelText, areas]);
-  const hover = rawHover !== null && rawHover < areas.length ? rawHover : null;
+  const hover = validHover(rawHover, areas);
   const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText });
   useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected });
 
@@ -84,9 +89,14 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
     onSelect(pickBubble(scene.bubbles, p.x, p.y));
   };
   const onKeyDown = (e) => {
-    if (e.key !== KEY.ESCAPE) return;
-    e.preventDefault();
-    onSelect(null);
+    if (e.key === KEY.ESCAPE) {
+      e.preventDefault();
+      onSelect(null);
+    } else if (e.key === KEY.ENTER || e.key === KEY.SPACE) {
+      e.preventDefault();
+      if (hover === null) focusFirstKeyboardItem(e.currentTarget);
+      else onSelect(hover);
+    }
   };
   const items = useMemo(() => kbdItems(areas, onSelect), [areas, onSelect]);
   return (
@@ -98,6 +108,7 @@ export default function SkyCanvas({ areas, average, dark, showLabels, selected, 
           style={{ ...LAYER_STYLE, cursor: hover === null ? 'default' : 'pointer' }}
           className="viz-focusable"
           tabIndex={0}
+          role="img"
           aria-label={t('map.riskSkyAria')}
           onMouseMove={onMove}
           onMouseLeave={() => { setHover(null); onHover(null); }}

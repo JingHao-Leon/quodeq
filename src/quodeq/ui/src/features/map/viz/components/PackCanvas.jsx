@@ -11,8 +11,6 @@ import { packStateText } from '../core/packStateText.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 
-// Keyboard stand-ins cover the current level only (KBD_MAX of them): one
-// button per child of the focused folder.
 const NO_EVENT = { stopPropagation() {} };
 
 function usePackPaint({ circles, colorMode, palette, weights, editsByPath }) {

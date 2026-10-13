@@ -4,7 +4,7 @@ import { rgbCss, mixRgb } from './mapPaint.js';
 import { SKY_RIM, RING_FIX_FIRST, RING_WATCH } from './skyLayout.js';
 import { RING_STYLE } from './skyPaint.js';
 import { LABEL_LINE_PX } from './skyLabels.js';
-import { drawVeilWithHole } from './packLayers.js';
+import { drawVeilWithHole, drawHoverRing } from './packLayers.js';
 
 /** The sky uses 90 % of the shorter side's half as its radius. */
 export const SKY_SCALE = 0.9;
@@ -16,10 +16,16 @@ const RING_GAP_PX = 4;
 const BAND_DASH = [BAND_DASH_PX, BAND_DASH_PX];
 const RING_DASH = [RING_DASH_PX, RING_GAP_PX];
 const NO_DASH = [];
+const BAND_ALPHA_FAINT = 0.3;
+const BAND_ALPHA_STRONG = 0.5;
+const BAND_WIDTH_RIM = 1;
+const BAND_WIDTH_WATCH = 1.1;
+const BAND_WIDTH_FIX = 1.3;
+const BUBBLE_STROKE_WIDTH = 1;
 const BANDS = [
-  { at: SKY_RIM, muted: true, alpha: 0.3, width: 1 },
-  { at: RING_WATCH, muted: false, alpha: 0.3, width: 1.1 },
-  { at: RING_FIX_FIRST, muted: false, alpha: 0.5, width: 1.3 },
+  { at: SKY_RIM, muted: true, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_RIM },
+  { at: RING_WATCH, muted: false, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_WATCH },
+  { at: RING_FIX_FIRST, muted: false, alpha: BAND_ALPHA_STRONG, width: BAND_WIDTH_FIX },
 ];
 const CENTRE_RING_PX = 7;
 const CENTRE_DOT_PX = 2.5;
@@ -31,8 +37,7 @@ const MIN_DOT_BUBBLE_PX = 6;   // smaller bubbles show no files inside
 const MIN_DOT_PX = 0.5;
 const PICK_GRACE_PX = 3;
 const VEIL_GAP_PX = 4;
-const HOVER_WIDTH = 1.6;
-const HOVER_ALPHA = 0.8;
+const HOVER_GAP_PX = 1;
 const TITLE_PX = 11.5;
 const SUB_PX = 10;
 const HALO_WIDTH = 3.5;
@@ -140,7 +145,7 @@ function drawBubble(ctx, b, paint, files) {
   ctx.fill();
   ctx.globalAlpha = paint.strokeAlpha;
   ctx.strokeStyle = paint.stroke;
-  ctx.lineWidth = 1;
+  ctx.lineWidth = BUBBLE_STROKE_WIDTH;
   ctx.stroke();
   ctx.globalAlpha = 1;
   drawKindRing(ctx, b, paint);
@@ -162,13 +167,7 @@ function drawVeil(ctx, b, palette, size) {
 }
 
 function drawHover(ctx, b, palette) {
-  ctx.beginPath();
-  ctx.arc(b.px, b.py, b.R + 1, 0, TAU);
-  ctx.globalAlpha = HOVER_ALPHA;
-  ctx.lineWidth = HOVER_WIDTH;
-  ctx.strokeStyle = rgbCss(palette.text);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
+  drawHoverRing(ctx, { px: b.px, py: b.py, r: b.R + HOVER_GAP_PX }, palette);
 }
 
 /**

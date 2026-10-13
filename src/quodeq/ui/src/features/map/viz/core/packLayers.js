@@ -111,14 +111,19 @@ function drawVeil(ctx, p, palette, size) {
   drawVeilWithHole(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette, size);
 }
 
-function drawHover(ctx, p, palette) {
+/** The hover ring both vizzes draw: a thin text-coloured circle of radius `r` at (px, py). */
+export function drawHoverRing(ctx, { px, py, r }, palette) {
   ctx.beginPath();
-  ctx.arc(p.px, p.py, folderRadius(p.r), 0, TAU);
+  ctx.arc(px, py, r, 0, TAU);
   ctx.globalAlpha = HOVER_STROKE_ALPHA;
   ctx.lineWidth = HOVER_STROKE_PX;
   ctx.strokeStyle = rgbCss(palette.text);
   ctx.stroke();
   ctx.globalAlpha = 1;
+}
+
+function drawHover(ctx, p, palette) {
+  drawHoverRing(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette);
 }
 
 function labelCandidates({ circles, screenCoords, viewport, focusNode }) {

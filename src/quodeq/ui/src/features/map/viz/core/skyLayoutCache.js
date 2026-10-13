@@ -6,8 +6,6 @@ export const SKY_LAYOUT_CACHE_SIZE = 4;
 const FIELD_SEP = '\u0000';
 const AREA_SEP = '\u0001';
 
-const recent = new Map();
-
 /**
  * The inputs the layout depends on, as one string: name, need and file count per area.
  * @param {{name: string, needPct: number, stats: {files: number}}[]} areas
@@ -18,17 +16,23 @@ export function skyLayoutSignature(areas) {
 }
 
 /**
- * `layoutSky(areas)`, memoised on the areas' signature across mounts. Keeps
- * the last SKY_LAYOUT_CACHE_SIZE layouts, dropping the least recently used.
- * @param {{name: string, needPct: number, stats: {files: number}}[]} areas
- * @returns {{x: number, y: number, r: number}[]} shared result; callers must not mutate it
+ * A least-recently-used cache of sky layouts, keyed on the areas' signature.
+ * The caller owns the instance, so its lifetime (and tests) are explicit.
+ * @param {number} [limit] how many layouts to keep
+ * @returns {{layout: function(object[]): object[], clear: function(): void}} `layout(areas)`
+ *   returns a shared result that callers must not mutate
  */
-export function cachedLayoutSky(areas) {
-  const key = skyLayoutSignature(areas);
-  const hit = recent.get(key);
-  recent.delete(key);
-  const nodes = hit || layoutSky(areas);
-  recent.set(key, nodes);
-  if (recent.size > SKY_LAYOUT_CACHE_SIZE) recent.delete(recent.keys().next().value);
-  return nodes;
+export function createLayoutCache(limit = SKY_LAYOUT_CACHE_SIZE) {
+  const recent = new Map();
+  return {
+    layout(areas) {
+      const key = skyLayoutSignature(areas);
+      const nodes = recent.get(key) || layoutSky(areas);
+      recent.delete(key);
+      recent.set(key, nodes);
+      if (recent.size > limit) recent.delete(recent.keys().next().value);
+      return nodes;
+    },
+    clear() { recent.clear(); },
+  };
 }
