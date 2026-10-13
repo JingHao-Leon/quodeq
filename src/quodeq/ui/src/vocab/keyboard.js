@@ -9,6 +9,8 @@ export const KEY = Object.freeze({
   ARROW_DOWN: 'ArrowDown',
   ARROW_LEFT: 'ArrowLeft',
   ARROW_RIGHT: 'ArrowRight',
+  HOME: 'Home',
+  END: 'End',
 });
 
 // KeyboardEvent.code values the UI branches on: physical-key identity
