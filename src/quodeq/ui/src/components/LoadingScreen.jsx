@@ -12,7 +12,7 @@ import { renderRich } from '../strings/rich.jsx';
 const TIP_KEYS = [
   'loading.tips.warmup', 'loading.tips.incremental', 'loading.tips.cleanScan',
   'loading.tips.fixplans', 'loading.tips.dismiss', 'loading.tips.ignore',
-  'loading.tips.assistant', 'loading.tips.riskMatrix', 'loading.tips.architecture',
+  'loading.tips.assistant', 'loading.tips.riskTab', 'loading.tips.architecture',
   'loading.tips.compliance', 'loading.tips.stale', 'loading.tips.matrix',
   'loading.tips.duel', 'loading.tips.standards', 'loading.tips.customStandard',
   'loading.tips.prReview', 'loading.tips.ollama', 'loading.tips.monorepo',

@@ -928,7 +928,7 @@
   "loading.tips.ollama": "Private code? Use **Ollama** and the analysis runs entirely on your machine.",
   "loading.tips.prReview": "Run `quodeq review` on a branch to post its findings on the pull request.",
   "loading.tips.reviewDryRun": "Add `--dry-run` to `quodeq review` to **preview the comments** before anything gets posted.",
-  "loading.tips.riskMatrix": "Not sure where to start? In Map, the top\u2011right corner of the **Risk Matrix** is your to\u2011do list.",
+  "loading.tips.riskTab": "Not sure where to start? On the Map's **Risk** tab, the areas near the centre need rework first.",
   "loading.tips.sarif": "In CI, `--sarif` writes findings that **GitHub code scanning** can show.",
   "loading.tips.shareAssistant": "Remote projects are read\u2011only, but **the assistant still explains** their scores and findings.",
   "loading.tips.shareBareRepo": "No GitHub needed: a local `git init --bare` folder **works as an evaluations repository**.",
