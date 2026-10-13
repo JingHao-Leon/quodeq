@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+import zlib
 from dataclasses import dataclass
 from typing import NamedTuple
 
@@ -18,6 +19,8 @@ _logger = logging.getLogger(__name__)
 _TABLES = frozenset({"run_change", "map_snapshot"})
 # Run ids bound per SELECT, well under SQLite's smallest host-parameter limit (999).
 _MAX_BOUND_IDS = 500
+# zlib level for compressed payload tables: most of the gain of 9 at a fraction of its time.
+_COMPRESS_LEVEL = 6
 
 
 @dataclass(frozen=True)
@@ -26,6 +29,7 @@ class RunPayloadTable:
 
     table: str
     separators: tuple[str, str] | None = None  # passed to json.dumps; None keeps its default spacing
+    compressed: bool = False                   # stored as zlib-deflated JSON bytes
 
     def __post_init__(self) -> None:
         """Refuse any table outside the fixed allow-list."""
@@ -42,15 +46,24 @@ class RunKey(NamedTuple):
 
 
 RUN_CHANGE = RunPayloadTable("run_change")
-MAP_SNAPSHOT = RunPayloadTable("map_snapshot", separators=(",", ":"))
+MAP_SNAPSHOT = RunPayloadTable("map_snapshot", separators=(",", ":"), compressed=True)
 
 
-def _serialised(table: RunPayloadTable, project: str, run_id: str, payload: dict) -> str | None:
-    """*payload* as stored JSON, or None (logged) when it cannot be serialised."""
+def _serialised(table: RunPayloadTable, project: str, run_id: str, payload: dict) -> str | bytes | None:
+    """*payload* as stored (JSON text, or its deflated bytes), or None (logged) when it cannot be serialised."""
     try:
-        return json.dumps(payload, separators=table.separators)
+        text = json.dumps(payload, separators=table.separators)
     except (TypeError, ValueError):
         _logger.warning("%s payload for %s/%s is not JSON-serialisable", table.table, project, run_id, exc_info=True)
+        return None
+    return zlib.compress(text.encode(), _COMPRESS_LEVEL) if table.compressed else text
+
+
+def _parsed(stored: str | bytes) -> dict | None:
+    """A stored payload read back; None when it is corrupt (the caller recomputes)."""
+    try:
+        return json.loads(zlib.decompress(stored).decode() if isinstance(stored, bytes) else stored)
+    except (ValueError, zlib.error):
         return None
 
 
@@ -82,9 +95,9 @@ def _chunks(run_ids: list[str]) -> list[list[str]]:
 
 
 def _matching_rows(conn: sqlite3.Connection, table: RunPayloadTable, project: str,
-                   keys: dict[str, str]) -> list[tuple[str, str, str]]:
+                   keys: dict[str, str]) -> list[tuple[str, str, str | bytes]]:
     """``(run_id, key, payload)`` rows of *keys*' runs only (the key is checked by the caller)."""
-    rows: list[tuple[str, str, str]] = []
+    rows: list[tuple[str, str, str | bytes]] = []
     for chunk in _chunks(sorted(keys)):
         marks = ",".join("?" * len(chunk))
         rows.extend(conn.execute(
@@ -104,10 +117,9 @@ def load_run_payloads(conn: sqlite3.Connection, table: RunPayloadTable, project:
     for run_id, key, payload in rows:
         if keys.get(run_id) != key:
             continue
-        try:
-            out[run_id] = json.loads(payload)
-        except ValueError:
-            continue  # a corrupt row reads as a miss and is rewritten by the caller
+        parsed = _parsed(payload)
+        if parsed is not None:
+            out[run_id] = parsed  # a corrupt row reads as a miss and is rewritten by the caller
     return out
 
 

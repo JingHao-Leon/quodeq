@@ -1,49 +1,94 @@
 import logging
 import sqlite3
 
-from quodeq.core.map_history.snapshot import FileStat, RunSnapshot
+from quodeq.core.finding_identity import SuppressionSubject
+from quodeq.core.map_history.raw_run import RawFile, RawHistory, RawHistoryWrite, RawRun, ViolationRecord, record_key
 from quodeq.data.sqlite import score_cache_map_snapshot
 from quodeq.data.sqlite.score_cache_db import open_score_cache
 from quodeq.data.sqlite.score_cache_run_payloads import MAP_SNAPSHOT, store_run_payloads
 from quodeq.data.sqlite.score_cache_store import load_map_snapshots, save_map_snapshots
 
-SEC = RunSnapshot(("sec",), {"a.py": FileStat(1, 2, 3, 4, 5.5, frozenset({"sec:v:1", "sec:c:2"}), frozenset({"sec"}))})
-EMPTY = RunSnapshot((), {})
+REC = ViolationRecord(SuppressionSubject("sec", "R1", "P", "a.py", 3, ("f" * 64,), "a.py"), "major", "sec:v:0123456789ab")
+ODD = ViolationRecord(SuppressionSubject("sec", "", "P", "b.py", 0, (None, "e" * 64), "b.py:tail"), "", "sec:v:ba9876543210")
+K, KO = record_key(REC), record_key(ODD)
+RUN = RawRun(("sec",), {"a.py": RawFile((K, K), 2, ("sec:c:aaaaaaaaaaaa",)), "b.py": RawFile((KO,))})
+EMPTY = RawRun((), {})
 
 
-def test_save_load_respects_key_and_prune(tmp_path, monkeypatch):
+def _env(tmp_path, monkeypatch):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
-    save_map_snapshots("p", {"r1": ("k1", SEC), "r2": ("k2", EMPTY)}, {"r1", "r2"})
-    assert load_map_snapshots("p", {"r1": "k1", "r2": "stale"}) == {"r1": SEC}
-    save_map_snapshots("p", {}, {"r1"})
-    assert load_map_snapshots("p", {"r1": "k1", "r2": "k2"}).keys() == {"r1"}
 
 
-def test_a_row_in_another_layout_reads_as_a_miss(tmp_path, monkeypatch):
-    monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
+def _save(runs, keep_runs, keep_records=frozenset({K, KO}), records=None):
+    save_map_snapshots("p", RawHistoryWrite(runs, {K: REC, KO: ODD} if records is None else records,
+                                            set(keep_runs), set(keep_records)))
+
+
+def test_runs_and_records_round_trip_and_respect_the_key(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k1", RUN), "r2": ("k2", EMPTY)}, {"r1", "r2"})
+    got = load_map_snapshots("p", {"r1": "k1", "r2": "stale"})
+    assert got == RawHistory({"r1": RUN}, {K: REC, KO: ODD})
+
+
+def test_a_run_whose_record_is_missing_reads_as_a_miss(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"}, keep_records={K}, records={K: REC})
+    assert load_map_snapshots("p", {"r1": "k"}).runs == {}
+
+
+def test_a_run_whose_record_row_does_not_decode_reads_as_a_miss(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN), "r2": ("k", EMPTY)}, {"r1", "r2"})
     with open_score_cache() as conn:
-        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", {"nope": 1}), "r2": ("k", {"dims": [], "files": {"a": [1]}})})
-    assert load_map_snapshots("p", {"r1": "k", "r2": "k"}) == {}
+        conn.execute("UPDATE map_finding SET payload=? WHERE project='p' AND rec=?", ("[1, 2", KO))
+        conn.commit()
+    got = load_map_snapshots("p", {"r1": "k", "r2": "k"})
+    assert got.runs == {"r2": EMPTY} and got.records == {K: REC}
 
 
-def test_every_saved_snapshot_loads_back(tmp_path, monkeypatch):
-    monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
-    save_map_snapshots("p", {f"r{i}": ("k", SEC) for i in range(5)}, {f"r{i}" for i in range(5)})
-    assert load_map_snapshots("p", {f"r{i}": "k" for i in range(5)}) == {f"r{i}": SEC for i in range(5)}
+def test_runs_and_records_outside_the_keep_sets_are_dropped(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN), "r2": ("k", EMPTY)}, {"r1", "r2"})
+    _save({}, {"r2"}, keep_records=set(), records={})
+    got = load_map_snapshots("p", {"r1": "k", "r2": "k"})
+    assert got.runs.keys() == {"r2"} and got.records == {}
 
 
-def test_fresh_rows_are_stored_with_one_commit(tmp_path, monkeypatch):
-    monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
+def test_rows_of_the_previous_shape_read_as_misses(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    old = {"dims": ["sec"], "files": {"a.py": [1, 2, 3, 4, 5.5, ["sec:v:1"], ["sec"]]}}
+    with open_score_cache() as conn:
+        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("3|sec", old), "r2": ("3|sec", {"nope": 1})})
+    assert load_map_snapshots("p", {"r1": "3|sec", "r2": "3|sec"}).runs == {}
+
+
+def test_a_cache_of_the_previous_release_reads_as_misses_without_finding_rows(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    old = {"dims": ["sec"], "files": {"a.py": [1, 2, 3, 4, 5.5, ["sec:v:1"], ["sec"]]}}
+    with open_score_cache() as conn:
+        conn.execute("DROP TABLE map_finding")
+        store_run_payloads(conn, MAP_SNAPSHOT, "p", {"r1": ("k", old)})
+    assert load_map_snapshots("p", {"r1": "k"}) == RawHistory({}, {})
+
+
+def test_run_payloads_are_stored_compressed(tmp_path, monkeypatch):
+    _env(tmp_path, monkeypatch)
+    _save({"r1": ("k", RUN)}, {"r1"})
+    with open_score_cache() as conn:
+        (payload,) = conn.execute("SELECT payload FROM map_snapshot WHERE project='p'").fetchone()
+    assert isinstance(payload, bytes)
+
+
+def test_a_fresh_save_commits_records_then_runs(tmp_path, monkeypatch):
+    from quodeq.data.sqlite.score_cache_db import score_cache_session
+    _env(tmp_path, monkeypatch)
     commits = []
-    real = score_cache_map_snapshot.store_run_payloads
-
-    def spy(conn, *a):
-        traced = conn.set_trace_callback(lambda sql: commits.append(sql) if sql.strip().upper() == "COMMIT" else None)
-        real(conn, *a)
-        conn.set_trace_callback(traced)
-    monkeypatch.setattr(score_cache_map_snapshot, "store_run_payloads", spy)
-    save_map_snapshots("p", {f"r{i}": ("k", SEC) for i in range(5)}, {f"r{i}" for i in range(5)})
-    assert len(commits) == 1
+    with score_cache_session():
+        with open_score_cache() as conn:  # inside a session every open yields this one connection
+            conn.set_trace_callback(lambda sql: commits.append(sql) if sql.strip().upper() == "COMMIT" else None)
+        _save({f"r{i}": ("k", RUN) for i in range(5)}, {f"r{i}" for i in range(5)})
+    assert len(commits) == 2
 
 
 def test_an_unavailable_cache_reads_empty_and_writes_nothing(monkeypatch, caplog):
@@ -51,6 +96,6 @@ def test_an_unavailable_cache_reads_empty_and_writes_nothing(monkeypatch, caplog
         raise sqlite3.OperationalError("unable to open database file")
     monkeypatch.setattr(score_cache_map_snapshot, "open_score_cache", broken)
     with caplog.at_level(logging.WARNING):
-        assert load_map_snapshots("p", {"r1": "k"}) == {}
-        save_map_snapshots("p", {"r1": ("k", EMPTY)}, {"r1"})
+        assert load_map_snapshots("p", {"r1": "k"}) == RawHistory({}, {})
+        _save({"r1": ("k", EMPTY)}, {"r1"})
     assert len(caplog.records) == 2
