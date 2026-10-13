@@ -135,8 +135,16 @@ describe('map/violations view state lives in the nav stack', () => {
     const el = ROUTE_RENDERERS.map({ _tabKey: 3, vizStyle: 'risk' }, props);
     el.props.nav.onShowInPack('src/app');
     expect(props.navigation.handleNavigate).toHaveBeenCalledTimes(1);
-    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('map', { _tabKey: 3, vizStyle: 'zoompack', path: 'src/app' });
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('map', { _tabKey: 3, vizStyle: 'zoompack', path: 'src/app', explicitPath: true });
     expect(props.navigation.handleNavigateReplace).not.toHaveBeenCalled();
+  });
+
+  it('map: the Show in Circle Pack mark reaches the page and is not carried into a drill', () => {
+    const props = mapProps();
+    const el = ROUTE_RENDERERS.map({ _tabKey: 3, vizStyle: 'zoompack', path: '', explicitPath: true }, props);
+    expect(el.props.nav.explicitPath).toBe(true);
+    el.props.nav.onPathChange('src');
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('map', { _tabKey: 3, vizStyle: 'zoompack', path: 'src' });
   });
 
   // The toggles are a display preference, not a fact about the level: an

@@ -197,18 +197,21 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
     fireEvent.click(screen.getByRole('button', { name: t('map.vizCirclePack') }));
     expect(log).toEqual([['replace', 'vizStyle', 'risk'], ['replace', 'vizStyle', 'zoompack']]);
 
+    // A non-default pack colour, so the unwind below can show it kept.
+    fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
+
     // Drill into the `src` folder (its keyboard stand-in): a push.
-    fireEvent.keyDown(screen.getByRole('button', { name: 'src' }), { key: 'Enter' });
-    expect(log[2]).toEqual(['push', 'src']);
+    fireEvent.keyDown(screen.getByRole('button', { name: /^src\b/ }), { key: 'Enter' });
+    expect(log[3]).toEqual(['push', 'src']);
     // The controlled path round-tripped: breadcrumb now shows the folder.
     expect(screen.getAllByText('src').length).toBeGreaterThan(0);
 
     // Breadcrumb back to the project root: unwinds to the earlier entry
     // (the browser-back equivalent), never a fresh push.
     fireEvent.click(screen.getByRole('button', { name: 'proj' }));
-    expect(log[3]).toEqual(['goTo', 0]);
-    // The unwound entry still carries the style set by the replace.
-    expect(screen.getByRole('button', { name: t('map.vizCirclePack') })).toHaveAttribute('aria-pressed', 'true');
+    expect(log[4]).toEqual(['goTo', 0]);
+    // The unwound entry still carries the colour set by the replace.
+    expect(screen.getByRole('button', { name: t('map.colorActivity') })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('view-mode toggle on the circle pack replaces in place', () => {

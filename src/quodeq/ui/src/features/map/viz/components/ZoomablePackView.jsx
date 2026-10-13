@@ -66,17 +66,18 @@ function useHover(circles, focusNode) {
 /**
  * The Map's zoomable circle pack. `colorMode` is a PACK_COLOR_MODE (anything
  * else paints as concentration); `weights` are the severity weights of the
- * grade formula and `editsByPath` the activity per file path.
+ * grade formula and `editsByPath` the activity per file path. `autoOpen`
+ * false keeps the pack where `currentPath` puts it (no dominant-folder open).
  */
 export default function ZoomablePackView({
   node, colorMode = PACK_COLOR_MODE.CONCENTRATION, weights = DEFAULT_SEVERITY_WEIGHTS, editsByPath = NO_EDITS, dark = false,
-  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '',
+  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '', autoOpen = true,
 }) {
   const mousePos = useRef({ x: 0, y: 0 });
   const containerRef = useRef(null);
 
   const { root, circles } = usePackLayout(node);
-  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick });
+  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick, autoOpen });
   const [hover, setHover] = useHover(circles, focus.focusNode);
 
   if (!node) return null;

@@ -30,11 +30,12 @@ function useMapNavParams(nav) {
     vizStyle: rawVizStyle,
     viewMode = MAP_VIEW_MODE.HEALTH,
     galaxyMode = GALAXY_MODE.FILESYSTEM,
+    explicitPath = false,
     onPathChange, onVizStyleChange, onViewModeChange, onGalaxyModeChange,
   } = nav || {};
   const vizStyle = normalizeVizStyle(rawVizStyle);
   return {
-    currentPath, vizStyle, galaxyMode,
+    currentPath, vizStyle, galaxyMode, explicitPath,
     viewMode: vizStyle === VIZ_STYLE.ZOOMPACK ? normalizePackMode(viewMode) : viewMode,
     setCurrentPath: (p) => onPathChange?.(p),
     setVizStyle: (v) => onVizStyleChange?.(v),
@@ -58,7 +59,7 @@ function useMapTabCache(selectedProject, tabKey, cache) {
  * for every consumer of useMapPageState. */
 function buildMapPageResult({
   allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-  dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
+  dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath, explicitPath,
   setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
   showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName, standardTypes,
 }) {
@@ -68,7 +69,7 @@ function buildMapPageResult({
     galaxyState: { galaxyMode, setGalaxyMode },
     dimensionState: { allDimensions: dimensionNames, selectedDimensions: effectiveSelected, onToggleDimension: handleToggleDimension },
     vizState: { vizStyle, viewMode, galaxyMode, setGalaxyMode },
-    treeState: { node: currentNode, fullTree, currentPath, onPathChange: setCurrentPath },
+    treeState: { node: currentNode, fullTree, currentPath, explicitPath, onPathChange: setCurrentPath },
     dimensions: filteredDimensions,
     callbacks: {
       onDrillDown: handleDrillDown,
@@ -124,7 +125,7 @@ function treeDimensions(filteredDimensions, deferTree) {
 export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cache, deferTree = false }) {
   const selectedProject = data?.projectName || data?.selectedProject || '__map__';
   const {
-    currentPath, vizStyle, viewMode, galaxyMode,
+    currentPath, vizStyle, viewMode, galaxyMode, explicitPath,
     setCurrentPath, setVizStyle, setViewMode, setGalaxyMode,
   } = useMapNavParams(nav);
   const { cached, standardTypes } = useMapPageLifecycle({ selectedProject, tabKey, cache });
@@ -146,7 +147,7 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
 
   return buildMapPageResult({
     allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-    dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
+    dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath, explicitPath,
     setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
     showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName: data?.projectName, standardTypes,
   });

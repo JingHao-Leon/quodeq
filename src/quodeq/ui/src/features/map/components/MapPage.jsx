@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useId } from 'react';
-import { ZoomablePackView, GalaxyView, GalaxyFolderView, VizBreadcrumb } from '../viz/index.js';
-import RiskView from '../viz/components/RiskView.jsx';
+import { ZoomablePackView, GalaxyView, GalaxyFolderView, VizBreadcrumb, RiskView } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
 import { TermHeader } from '../../../components/terminal/index.js';
@@ -148,7 +147,7 @@ function hasBreadcrumb(vizStyle) {
 function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk }) {
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
-  const { fullTree, currentPath, onPathChange } = treeState;
+  const { fullTree, currentPath, onPathChange, explicitPath } = treeState;
   const { onDrillDown, onFileClick, onNavigate, onBreadcrumbNav } = callbacks;
   const { showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
   const riskActions = useRiskActions({ areaState: risk.areaState, fullTree, onNavigate, onShowInPack: risk.onShowInPack });
@@ -177,7 +176,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
         <ZoomablePackView
           node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath}
           dark={darkMode || appIsDark} onDrillDown={onDrillDown} onFileClick={onFileClick}
-          showLabels={showLabels} resetKey={resetKey} currentPath={currentPath}
+          showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} autoOpen={!explicitPath}
         />
       )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (

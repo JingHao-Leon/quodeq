@@ -91,3 +91,43 @@ describe('MapPage: the Risk tab', () => {
     expect(onShowInPack).toHaveBeenCalledWith('src/app');
   });
 });
+
+// Show in Circle Pack can snap to the root (the area's folders are not in
+// the tree). The pack must stay there: the dominant-folder auto-open would
+// land elsewhere and push a second history entry.
+describe('MapPage: Show in Circle Pack at the root', () => {
+  const TREE_FILES = [...Array.from({ length: 9 }, (_, i) => `app/f${i}.py`), 'README.md'];
+  const DIMS = [{ dimension: 'security', violations: TREE_FILES.map((file) => ({ file, severity: 'minor', principle: 'P1' })), compliance: [] }];
+  const AREA_FILES = Array.from({ length: 6 }, (_, i) => `tools/t${i}.py`);
+  const HISTORY = {
+    activitySource: 'git', fileNames: AREA_FILES, fileArea: AREA_FILES.map(() => 'tools'), fileLayer: AREA_FILES.map(() => 'feature'),
+    frames: [{ files: AREA_FILES.map((_, i) => [i, 1, 1, 2, 0, 0, 0, 0, 0]), areas: [{ area: 'tools', files: 6, needPct: 0.8, kind: 'hotspot', touchedShare: 0.5 }] }],
+  };
+  const api = () => ({ getMapHistory: vi.fn().mockResolvedValue(HISTORY), getGradeFormula: vi.fn().mockResolvedValue(FORMULA) });
+
+  // Mirrors mapRoute: Show in Circle Pack pushes a marked pack entry, a drill pushes an unmarked one.
+  function LandingHarness({ start, log }) {
+    const [entry, setEntry] = useState(start);
+    const nav = {
+      ...entry,
+      onShowInPack: (path) => { log.push(['showInPack', path]); setEntry({ vizStyle: 'zoompack', path, explicitPath: true }); },
+      onPathChange: (path) => { log.push(['push', path]); setEntry((e) => ({ vizStyle: e.vizStyle, path })); },
+    };
+    return <MapPage data={baseData({ accumulated: { dimensions: DIMS } })} callbacks={{}} nav={nav} />;
+  }
+
+  it('lands on the root with one history entry and no auto-open', async () => {
+    const log = [];
+    render(<LandingHarness start={{ vizStyle: 'risk' }} log={log} />, { wrapper: withStableQueryApi(api()) });
+    fireEvent.click(await screen.findByRole('button', { name: /tools/ }));
+    fireEvent.click(screen.getByRole('button', { name: t('map.riskShowInPack') }));
+    expect(screen.getByRole('button', { name: t('map.vizCirclePack') })).toHaveAttribute('aria-pressed', 'true');
+    expect(log).toEqual([['showInPack', '']]);
+  });
+
+  it('a normal visit to the pack still opens the dominant folder', () => {
+    const log = [];
+    render(<LandingHarness start={{ vizStyle: 'zoompack' }} log={log} />, { wrapper: withStableQueryApi(api()) });
+    expect(log).toEqual([['push', 'app']]);
+  });
+});
