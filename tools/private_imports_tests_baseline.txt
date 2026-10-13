@@ -898,8 +898,8 @@ tests/services/test_evaluation_mixin_build.py:11:private-module:quodeq.services.
 tests/services/test_evaluation_mixin_register_clone.py:118:private-module:quodeq.services._fs_clone.CloneError
 tests/services/test_evaluation_mixin_scoring.py:16:private-name:quodeq.services.score_run._read_project_source_file_count
 tests/services/test_evaluation_mixin_scoring.py:16:private-name:quodeq.services.score_run._read_queue_files_count
-tests/services/test_evaluations_index_bounds.py:15:private-module:quodeq.services._evaluations_index.EvaluationsIndex
-tests/services/test_evaluations_index_bounds.py:16:private-module:quodeq.services._job_model.InMemoryJobStore
+tests/services/test_evaluations_index_bounds.py:17:private-module:quodeq.services._evaluations_index.EvaluationsIndex
+tests/services/test_evaluations_index_bounds.py:18:private-module:quodeq.services._job_model.InMemoryJobStore
 tests/services/test_evaluations_index_dedup.py:21:private-module:quodeq.services._evaluations_index.EvaluationsIndex
 tests/services/test_evaluations_index_dedup.py:22:private-module:quodeq.services._job_model.InMemoryJobStore
 tests/services/test_evaluations_index_dedup.py:22:private-module:quodeq.services._job_model.Job
