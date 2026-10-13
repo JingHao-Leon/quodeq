@@ -6,34 +6,12 @@ from pathlib import Path
 import pytest
 
 from quodeq.core.map_history.history import EMPTY_HISTORY
+from quodeq.core.map_history.raw_run import RawHistory
 from quodeq.services import map_history
 from quodeq.services.map_history import build_map_history
-
-DIMS = ("security", "maintainability")
-
-
-def _run(project_dir: Path, run_id: str, day: str, violations: dict[str, list[dict]], dims=DIMS, state="done",
-         at: str = "10:00:00") -> None:
-    run = project_dir / run_id
-    (run / "evaluation").mkdir(parents=True, exist_ok=True)
-    for dim in dims:
-        (run / "evaluation" / f"{dim}.json").write_text(json.dumps({
-            "dimension": dim, "date": f"{day}T{at}+00:00", "principles": [],
-            "violations": violations.get(dim, []), "compliance": []}))
-    (run / "status.json").write_text(json.dumps({"state": state, "started_at": f"{day}T{at}Z"}))
-
-
-@pytest.fixture
-def env(tmp_path, monkeypatch):
-    evals = tmp_path / "evaluations"
-    monkeypatch.setenv("QUODEQ_EVALUATIONS_DIR", str(evals))
-    monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "score_cache.db"))
-    monkeypatch.setenv("QUODEQ_INDEX_DB_PATH", str(tmp_path / "index.db"))
-    return evals
-
-
-def _violation(file: str, sev: str = "major", req: str = "R1", snip: str = "x()") -> dict:
-    return {"req": req, "file": file, "line": 1, "snippet": snip, "severity": sev}
+from tests.services._map_history_fixtures import (  # noqa: F401 -- env/cached_runs are pytest fixtures
+    DIMS, _run, _two_runs, _violation, cached_runs, env,
+)
 
 
 def test_estimated_history_with_a_new_dimension_midway(env):
@@ -48,12 +26,6 @@ def test_estimated_history_with_a_new_dimension_midway(env):
     a = out.file_names.index("feature-a/src/A.kt")
     assert out.file_area[a] == "a"
     assert [next(r for r in f.files if r.file == a).touched for f in out.frames] == [False, True, False]
-
-
-def _two_runs(env) -> None:
-    p = env / "proj"
-    _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
-    _run(p, "r2", "2026-09-08", {"security": [_violation("x/a.py")]})
 
 
 def test_latest_frame_only_by_default(env):
@@ -71,8 +43,8 @@ def test_the_second_call_builds_no_snapshot(env, monkeypatch):
     _two_runs(env)
     first = build_map_history(env, "proj")
     calls = []
-    real = map_history.build_run_snapshot
-    monkeypatch.setattr(map_history, "build_run_snapshot", lambda *a, **kw: calls.append(1) or real(*a, **kw))
+    real = map_history.build_raw_run
+    monkeypatch.setattr(map_history, "build_raw_run", lambda *a, **kw: calls.append(1) or real(*a, **kw))
     assert build_map_history(env, "proj") == first
     assert calls == []
 
@@ -101,20 +73,6 @@ def test_unknown_project_is_empty(env):
     assert build_map_history(env, "nope") == EMPTY_HISTORY
 
 
-@pytest.fixture
-def cached_runs(monkeypatch):
-    """The run ids the map snapshot store holds, tracked through its save function (prune, then store)."""
-    held: set[str] = set()
-    real = map_history.save_map_snapshots
-
-    def spy(project, snapshots, keep_run_ids):
-        held.intersection_update(keep_run_ids)
-        held.update(snapshots)
-        real(project, snapshots, keep_run_ids)
-    monkeypatch.setattr(map_history, "save_map_snapshots", spy)
-    return held
-
-
 def test_unfinished_runs_are_not_cached_and_new_dimensions_show_up(env, cached_runs):
     p = env / "proj"
     _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
@@ -141,7 +99,7 @@ def test_a_cache_miss_is_rebuilt_to_the_same_history(env, monkeypatch):
     p = env / "proj"
     _run(p, "r1", "2026-09-01", {"security": [_violation("x/a.py")]})
     first = build_map_history(env, "proj")
-    monkeypatch.setattr(map_history, "load_map_snapshots", lambda project, keys: {})
+    monkeypatch.setattr(map_history, "load_map_snapshots", lambda project, keys: RawHistory({}, {}))
     assert build_map_history(env, "proj") == first
 
 
@@ -243,3 +201,4 @@ def test_a_run_missing_a_dimension_neither_fixes_nor_ages_its_findings(env):
     out = build_map_history(env, "proj", frames="all")
     assert [(f.new, f.fixed) for f in out.frames] == [(0, 0)] * 3
     assert {r.age_days for r in out.frames[-1].files} == {2}
+
