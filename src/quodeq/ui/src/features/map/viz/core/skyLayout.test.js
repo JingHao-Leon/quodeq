@@ -53,14 +53,17 @@ test('denser areas sit closer to the centre, a clean area at the outer edge', ()
   assert.ok(Math.hypot(hot.x, hot.y) < Math.hypot(calm.x, calm.y));
 });
 
-test('the scale tops out at a high percentile of the densities, never below the fix-first floor', () => {
-  assert.equal(densityTop(CLEAN.map((d, i) => area(`c${i}`, d, 5))), FIX_FIRST_DENSITY);
-  assert.equal(densityTop([area('only', MESSY_TOP, 5)]), MESSY_TOP);
+/** The linearly interpolated SKY_TOP_PERCENTILE of the spread fixture, computed independently of densityTop. */
+function spreadPercentile() {
   const sorted = spread().map((a) => a.density);
   const at = (sorted.length - 1) * SKY_TOP_PERCENTILE;
   const lo = Math.floor(at);
-  const expected = sorted[lo] + (sorted[lo + 1] - sorted[lo]) * (at - lo);
-  assert.ok(Math.abs(densityTop(spread()) - expected) < EPS);
+  return sorted[lo] + (sorted[lo + 1] - sorted[lo]) * (at - lo);
+}
+
+test('the scale tops out at a high percentile of the densities, never below the fix-first floor', () => {
+  assert.equal(densityTop(CLEAN.map((d, i) => area(`c${i}`, d, 5))), FIX_FIRST_DENSITY);
+  assert.ok(Math.abs(densityTop(spread()) - spreadPercentile()) < EPS);
   assert.ok(densityTop(spread()) < SPREAD_MAX);
   assert.equal(densityTop([]), FIX_FIRST_DENSITY);
 });
@@ -80,10 +83,7 @@ test('with few areas, one runaway area is capped at twice the second densest', (
 });
 
 test('without a runaway area the cap does not bite: the percentile stands', () => {
-  const sorted = spread().map((a) => a.density);
-  const at = (sorted.length - 1) * SKY_TOP_PERCENTILE;
-  const lo = Math.floor(at);
-  assert.ok(Math.abs(densityTop(spread()) - (sorted[lo] + (sorted[lo + 1] - sorted[lo]) * (at - lo))) < EPS);
+  assert.ok(Math.abs(densityTop(spread()) - spreadPercentile()) < EPS);
 });
 
 test('a single area has no second to cap against: its own density, or the floor', () => {
