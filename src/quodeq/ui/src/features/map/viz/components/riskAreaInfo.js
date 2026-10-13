@@ -23,6 +23,12 @@ export function riskLabelText(area) {
   return { title: area.name, sub: issuesSub(area.stats.violations) };
 }
 
+/** The need comparison, left out for an area too small to judge. */
+function needLines(area) {
+  if (area.kind === AREA_KIND.SMALL) return [];
+  return [{ label: t('map.riskNeed'), value: t('map.riskNeedValue', { pct: Math.round(area.needPct * PERCENT) }) }];
+}
+
 /** The info panel (and tooltip) content for an area. */
 export function riskAreaInfo(area) {
   const s = area.stats;
@@ -35,7 +41,7 @@ export function riskAreaInfo(area) {
       { label: t('map.riskFiles'), value: s.files },
       { label: t('map.riskIssues'), value: s.violations },
       ...severityLines({ critical: s.critical, major: s.major, minor }, { colored: true }),
-      { label: t('map.riskNeed'), value: t('map.riskNeedValue', { pct: Math.round(area.needPct * PERCENT) }) },
+      ...needLines(area),
       { label: t('map.riskChanged'), value: `${Math.round(area.touchedShare * PERCENT)}%` },
     ],
   };
