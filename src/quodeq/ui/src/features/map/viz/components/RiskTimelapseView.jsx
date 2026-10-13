@@ -3,7 +3,7 @@ import SkyCanvas from './SkyCanvas.jsx';
 import RiskLegend from './RiskLegend.jsx';
 import RiskTooltip from './RiskTooltip.jsx';
 import { WRAPPER_STYLE } from './canvasLayer.js';
-import { riskLabelText } from './riskAreaInfo.js';
+import { riskLabelText, riskItemText } from './riskAreaInfo.js';
 import { useRunTransition } from './useRunTransition.js';
 import { timelapseNoteText } from './timelapseNote.js';
 import { createSkyTimeline, lerpSkyNodes } from '../core/skyTimeline.js';
@@ -14,7 +14,6 @@ import { areaSetAt } from '../../model/mapAreas.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
 
-const NOTHING = () => {};
 /** Between runs the sky only moves: bubbles tween by name, there is no cross-fade. */
 const alwaysMove = () => TRANSITION.MOVE;
 
@@ -33,15 +32,33 @@ function useViewNodes(view) {
   }, [view]);
 }
 
-/** Hover with its clamped tooltip box; play drops it, so a pause never brings back the area hovered before play. */
-function useTimelapseHover(containerRef, playing) {
-  const [hover, setHover] = useState(null);
-  if (playing && hover !== null) setHover(null);
+/**
+ * Hover with its clamped tooltip box, tied to the run it was taken on: a step
+ * to another run clears it (as the sky clears its ring), and play drops it,
+ * so a pause never brings back the area hovered before play.
+ */
+function useTimelapseHover(containerRef, { playing, k }) {
+  const [held, setHeld] = useState({ k, hover: null });
+  if (playing && held.hover !== null) setHeld({ k, hover: null });
   const onHover = useCallback((h) => {
     const el = containerRef.current;
-    setHover(h && { ...h, pos: clampTooltipToBox(h.x, h.y, el?.offsetWidth, el?.offsetHeight) });
-  }, [containerRef]);
-  return [playing ? null : hover, playing ? NOTHING : onHover];
+    setHeld({ k, hover: h && { ...h, pos: clampTooltipToBox(h.x, h.y, el?.offsetWidth, el?.offsetHeight) } });
+  }, [containerRef, k]);
+  return [playing || held.k !== k ? null : held.hover, onHover];
+}
+
+/**
+ * Canvas label and keyboard-list text for run k: a dotted area says since
+ * when it is gone (or when it first appears) instead of reading as clean.
+ */
+function useAreaTexts(timeline, k) {
+  return useMemo(() => {
+    const noteOf = (a) => (a.ghost ? timelapseNoteText(timeline.absenceAt(k, a.name)) : null);
+    return {
+      labelText: (a) => { const note = noteOf(a); return note ? { title: a.name, sub: note } : riskLabelText(a); },
+      itemText: (a) => { const note = noteOf(a); return note ? t('map.riskAreaAbsentAria', { name: a.name, note }) : riskItemText(a); },
+    };
+  }, [timeline, k]);
 }
 
 /**
@@ -58,19 +75,21 @@ export default function RiskTimelapseView({ timelapse, dark, showLabels }) {
   const view = useRunTransition({ target: position, load, kindOf: alwaysMove, durationMs: moveMs, onSettled });
   const nodes = useViewNodes(view);
   const containerRef = useRef(null);
-  const [hover, onHover] = useTimelapseHover(containerRef, playing);
+  const k = view ? view.to.k : null;
+  const [hover, onHover] = useTimelapseHover(containerRef, { playing, k });
+  const { labelText, itemText } = useAreaTexts(timeline, k);
   const onSelect = useCallback(() => { if (playing) controls.pause(); }, [playing, controls]);
   if (!view) return null;
   const scene = view.to.state;
   const hovered = hover ? scene.areas[hover.index] : null;
-  const note = hovered ? timelapseNoteText(timeline.absenceAt(view.to.k, hovered.name)) : null;
+  const note = hovered ? timelapseNoteText(timeline.absenceAt(k, hovered.name)) : null;
   const kinds = [...new Set(scene.areas.map((a) => a.kind).filter(Boolean))];
-  const day = data.runs[view.to.k]?.day;
+  const day = data.runs[k]?.day;
   const label = day ? t('map.timelapseRiskAria', { date: formatShortDate(dayDate(day).toISOString()) }) : undefined;
   return (
     <div ref={containerRef} style={WRAPPER_STYLE}>
       <SkyCanvas areas={scene.areas} average={scene.average} dark={dark} showLabels={showLabels && !view.from}
-        selected={null} onSelect={onSelect} onHover={onHover} labelText={riskLabelText}
+        selected={null} onSelect={onSelect} onHover={onHover} hoverable={!playing} labelText={labelText} itemText={itemText}
         nodes={nodes} rings={timeline.rings} label={label} />
       <RiskTooltip area={hovered} at={hover} note={note} />
       <RiskLegend kinds={kinds} />

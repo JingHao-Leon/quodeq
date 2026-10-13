@@ -1863,6 +1863,7 @@
   "map.riskPanelAria": "{name} area",
   "map.riskAreaAria": "{name}, {count} issues",
   "map.riskAreaAriaOne": "{name}, 1 issue",
+  "map.riskAreaAbsentAria": "{name}, {note}",
   "map.vizRisk": "Risk",
   "map.riskLoading": "Loading areas",
   "map.riskFailed": "Areas could not be loaded. Retrying.",

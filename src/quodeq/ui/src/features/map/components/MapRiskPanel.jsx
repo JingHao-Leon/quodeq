@@ -3,8 +3,9 @@ import MapTimelapseStage from './MapTimelapseStage.jsx';
 
 /**
  * The Risk tab: today's sky, and the time-lapse sky when a past run is shown.
- * Back on the latest run the stage cross-fades to today's sky, whose scale
- * top is today's alone, so the last played run hands over without a jump.
+ * Back on the latest run the stage cross-fades to today's sky, which has its
+ * own scale top: its rings and bubbles can sit elsewhere than the last played
+ * run's, and the change shows as a fade, not a jump.
  */
 export default function MapRiskPanel({ risk, riskActions, view, timelapse }) {
   const { dark, showLabels, resetKey } = view;
