@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { hierarchy } from 'd3-hierarchy';
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
-import { drawStatic, drawOverlay } from './packLayers.js';
+import { drawStatic, drawOverlay, strokeGhostCircle, GHOST_DASH_PX, GHOST_STROKE_ALPHA } from './packLayers.js';
 
 const VIEWPORT = { scale: 1, ox: 0, oy: 0 };
 const SIZE = 600;
@@ -45,6 +45,27 @@ describe('drawStatic', () => {
     const glass = paint.map((p) => ({ ...p, cutOut: false, alpha: p.file ? 1 : 0.3 }));
     drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint: glass, index: indexOf(circles), width: SIZE, height: SIZE });
     expect(ctx.fills.every((f) => f.rule !== 'evenodd')).toBe(true);
+  });
+
+  it('draws a ghost (absent) circle as a dotted outline and skips circles without paint', () => {
+    const ctx = fakeCanvasContext();
+    const { circles, screenCoords, paint } = scene();
+    paint[2] = { ghost: true, file: true, stroke: 'rgb(9, 9, 9)', strokeAlpha: 0.4 };
+    paint[4] = null;
+    const drawn = drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE });
+    expect(drawn).toBe(circles.length - 1);
+    expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
+    expect(ctx.fills).toHaveLength(3);
+  });
+});
+
+describe('strokeGhostCircle', () => {
+  it('strokes a dotted circle and leaves the dash and alpha reset', () => {
+    const ctx = fakeCanvasContext();
+    strokeGhostCircle(ctx, { px: 10, py: 20, r: 5 }, { stroke: 'rgb(1, 1, 1)', strokeAlpha: GHOST_STROKE_ALPHA }, 2);
+    expect(ctx.arc).toHaveBeenCalledWith(10, 20, 5, 0, expect.any(Number));
+    expect(ctx.stroke).toHaveBeenCalledTimes(1);
+    expect([ctx.lineWidth, ctx.globalAlpha, ctx.setLineDash.mock.calls.at(-1)[0]]).toEqual([2, 1, []]);
   });
 });
 

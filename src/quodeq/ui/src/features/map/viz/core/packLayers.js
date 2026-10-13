@@ -24,6 +24,12 @@ const LABEL_GAP = 4;
 const LABEL_WEIGHT_FOLDER = '600';
 const LABEL_WEIGHT_FILE = '400';
 const EVEN_ODD = 'evenodd';
+/** Dash and gap of an absent (ghost) circle's outline, in pixels. */
+export const GHOST_DASH_PX = 2;
+/** Outline opacity of an absent (ghost) circle. */
+export const GHOST_STROKE_ALPHA = 0.45;
+const GHOST_DASH = [GHOST_DASH_PX, GHOST_DASH_PX];
+const NO_DASH = [];
 
 function toPx(sc, viewport) {
   return { px: viewport.ox + sc.cx * viewport.scale, py: viewport.oy + sc.cy * viewport.scale, r: sc.r * viewport.scale };
@@ -75,9 +81,35 @@ function drawFile(ctx, p, paint) {
 }
 
 /**
+ * A dotted, unfilled circle of radius `r` at (px, py): how both vizzes draw
+ * something absent from the run shown (time-lapse). Leaves the dash off and
+ * globalAlpha back at 1.
+ * @param {{stroke: string, strokeAlpha: number}} paint
+ */
+export function strokeGhostCircle(ctx, { px, py, r }, paint, lineWidth) {
+  ctx.beginPath();
+  ctx.arc(px, py, r, 0, TAU);
+  ctx.setLineDash(GHOST_DASH);
+  ctx.globalAlpha = paint.strokeAlpha;
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = paint.stroke;
+  ctx.stroke();
+  ctx.setLineDash(NO_DASH);
+  ctx.globalAlpha = 1;
+}
+
+/** A circle absent from the run shown, at the radius a file or folder would be drawn at. */
+function drawGhost(ctx, p, paint) {
+  const r = paint.file ? p.r * FILE_SLOT_SCALE : folderRadius(p.r);
+  strokeGhostCircle(ctx, { px: p.px, py: p.py, r }, paint, STROKE_PX);
+}
+
+/**
  * The static layer: every visible circle, parents before children.
  * `index` maps each circle to its position in `circles`; the caller builds it
  * once per circles array, so a tween frame does not rebuild it.
+ * A ghost paint (time-lapse: absent from the run shown) draws a dotted
+ * outline; a circle without paint is not drawn.
  * @returns {number} circles drawn
  */
 export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index, width, height }) {
@@ -85,9 +117,10 @@ export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index,
   const at = (i) => toPx(screenCoords[i], viewport);
   let drawn = 0;
   circles.forEach((c, i) => {
-    if (!isDrawable(screenCoords[i], viewport, width, height)) return;
+    if (!paint[i] || screenCoords[i].r <= 0 || !isDrawable(screenCoords[i], viewport, width, height)) return;
     const p = at(i);
-    if (paint[i].file) drawFile(ctx, p, paint[i]);
+    if (paint[i].ghost) drawGhost(ctx, p, paint[i]);
+    else if (paint[i].file) drawFile(ctx, p, paint[i]);
     else drawFolder(ctx, { c, p, paint: paint[i], at, index });
     drawn++;
   });

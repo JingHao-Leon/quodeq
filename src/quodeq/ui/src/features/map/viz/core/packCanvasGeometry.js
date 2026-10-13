@@ -52,3 +52,13 @@ export function isDrawable(sc, viewport, width, height) {
   const r = sc.r * viewport.scale;
   return px + r > 0 && px - r < width && py + r > 0 && py - r < height;
 }
+
+const IDENTITY = Object.freeze({ k: 1, tx: 0, ty: 0 });
+
+/** The focus transform that frames circle `{x, y, r}` in the view box; the
+ * whole view when the circle has no size, so the camera is never infinite. */
+export function focusTransformFor({ x, y, r }) {
+  if (!(r > 0)) return { ...IDENTITY };
+  const k = PACK_BASE_SIZE / (r * 2);
+  return { k, tx: PACK_BASE_SIZE / 2 - x * k, ty: PACK_BASE_SIZE / 2 - y * k };
+}
