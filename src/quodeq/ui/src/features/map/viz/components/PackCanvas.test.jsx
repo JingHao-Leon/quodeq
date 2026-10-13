@@ -48,17 +48,17 @@ describe('PackCanvas layers', () => {
   });
 });
 
-describe('PackCanvas selection inside the folder', () => {
-  it('a click on a file two levels down drills into its top folder', () => {
+describe('PackCanvas selection goes straight to the circle under the pointer', () => {
+  it('a click on a file two levels down opens it', () => {
     const { clickOn, onDrillDown, onFileClick } = renderAt('');
     clickOn('src/ui/b.js');
-    expect(onDrillDown).toHaveBeenCalledWith('src');
-    expect(onFileClick).not.toHaveBeenCalled();
+    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'src/ui/b.js' }));
+    expect(onDrillDown).not.toHaveBeenCalled();
   });
 
-  it('a click on a file one level down selects its folder', () => {
-    const { clickOn, onDrillDown } = renderAt('src');
-    clickOn('src/ui/b.js');
+  it('a click on a folder two levels down drills straight into it', () => {
+    const { clickOn, onDrillDown } = renderAt('');
+    clickOn('src/ui');
     expect(onDrillDown).toHaveBeenCalledWith('src/ui');
   });
 
@@ -75,10 +75,11 @@ describe('PackCanvas selection inside the folder', () => {
     expect(onFileClick).not.toHaveBeenCalled();
   });
 
-  it('a click outside the open folder goes to the parent', () => {
-    const { clickOn, onDrillDown } = renderAt('src');
+  it('a click on a circle outside the open folder goes straight to it', () => {
+    const { clickOn, onDrillDown, onFileClick } = renderAt('src');
     clickOn('docs/c.md');
-    expect(onDrillDown).toHaveBeenCalledWith('');
+    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'docs/c.md' }));
+    expect(onDrillDown).not.toHaveBeenCalled();
   });
 
   it('a click outside every circle goes to the parent', () => {
@@ -89,12 +90,12 @@ describe('PackCanvas selection inside the folder', () => {
 });
 
 describe('PackCanvas hover', () => {
-  it('hovering a deep file shows the folder it would select', () => {
+  it('hovering a deep file shows that file', () => {
     const { container, overlay } = renderAt('');
     hitPath = 'src/ui/b.js';
     fireEvent.mouseMove(overlay);
     expect(overlay.style.cursor).toBe('pointer');
-    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^src$/);
+    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^src\/ui\/b\.js$/);
   });
 
   // Values carried over from the SVG-era snapshot: 16 px offset, clamped
