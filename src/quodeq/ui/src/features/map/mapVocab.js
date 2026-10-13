@@ -40,3 +40,8 @@ export const PACK_COLOR_MODES = Object.freeze([
 export function normalizePackMode(mode) {
   return mode === PACK_COLOR_MODE.ACTIVITY ? PACK_COLOR_MODE.ACTIVITY : PACK_COLOR_MODE.CONCENTRATION;
 }
+
+/** Area kinds from the map history (backend `AreaKind`). */
+export const AREA_KIND = Object.freeze({ HOTSPOT: 'hotspot', DORMANT: 'dormant', WATCH: 'watch', HEALTHY: 'healthy', SMALL: 'small' });
+/** Kinds that wear a ring on the Risk sky: hotspot solid, dormant dashed (spec 2.4). */
+export const RING_KINDS = Object.freeze([AREA_KIND.HOTSPOT, AREA_KIND.DORMANT]);
