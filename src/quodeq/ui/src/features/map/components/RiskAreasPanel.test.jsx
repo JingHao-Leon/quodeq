@@ -72,7 +72,7 @@ describe('RiskAreasPanel over a dimension', () => {
     areaSet = { areas: [area('hot', 0.9)] };
     render(<RiskAreasPanel project="p" source="local" />);
     expect(asked.selection).toBeNull();
-    expect(screen.queryByText(/this dimension's avg/)).toBeNull();
+    expect(screen.queryByText(/avg/)).toBeNull();
   });
 
   it('lists the healthy areas after the two zones over a dimension, by lift, as its findings seldom reach the lines', () => {
