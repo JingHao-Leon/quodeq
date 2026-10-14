@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, shouldSyncIdFromName, applyNameChange } from './standard.js';
+import { slugify, shouldSyncIdFromName, applyNameChange, standardSourceNames, standardOriginParts, STANDARD_TYPES } from './standard.js';
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -57,4 +57,24 @@ test('applyNameChange: does not include id once the user has diverged it', () =>
 test('applyNameChange: renaming an existing standard keeps its id', () => {
   const updates = applyNameChange({ id: 'accessibility', name: 'Accessibility' }, 'Accessibility v2', false);
   assert.deepEqual(updates, { name: 'Accessibility v2' });
+});
+
+// ---------------------------------------------------------------------------
+// where a standard comes from
+// ---------------------------------------------------------------------------
+
+test('standardSourceNames writes the bodies\' names and keeps anything else as written', () => {
+  assert.equal(standardSourceNames('iso25010, cisq, asvs'), 'ISO 25010, CISQ, ASVS');
+  assert.equal(standardSourceNames('Robert C. Martin'), 'Robert C. Martin');
+  assert.equal(standardSourceNames(''), '');
+});
+
+test('standardOriginParts: family and edition, version, sources, each left out when unknown', () => {
+  assert.deepEqual(
+    standardOriginParts({ type: STANDARD_TYPES.ISO, subtype: '25010', version: '2023.11', source: 'iso25010, cisq' }),
+    ['iso-25010', 'v2023.11', 'based on ISO 25010, CISQ'],
+  );
+  assert.deepEqual(standardOriginParts({ type: STANDARD_TYPES.QUODEQ, version: '', source: '' }), ['quodeq']);
+  assert.deepEqual(standardOriginParts({ type: 'mystery' }), []);
+  assert.deepEqual(standardOriginParts(null), []);
 });
