@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { easeInOut, lerpTransform, useTweenedTransform, useFollowingTransform, PACK_TWEEN_MS } from './packTween.js';
+import { easeInOut, lerpTransform, useTweenedTransform, useFollowingTransform, useFadeTween, PACK_TWEEN_MS, FADE_TWEEN_MS } from './packTween.js';
 
 const A = { k: 1, tx: 0, ty: 0 };
 const B = { k: 3, tx: -100, ty: -50 };
@@ -124,6 +124,35 @@ describe('useFollowingTransform', () => {
     const { result, rerender } = follow({ target: A, key: 0 });
     rerender({ target: B, key: 1 });
     expect(result.current).toBe(B);
+    expect(frames.hasFrame()).toBe(false);
+  });
+});
+
+describe('useFadeTween', () => {
+  const LOW = Float32Array.from([1, 0.15]);
+  const HIGH = Float32Array.from([1, 1]);
+  const fade = (target) => renderHook(({ t }) => useFadeTween(t), { initialProps: { t: target } });
+
+  it('eases each opacity toward the new target', () => {
+    const frames = fakeFrames();
+    const { result, rerender } = fade(LOW);
+    rerender({ t: HIGH });
+    act(() => frames.tick(FADE_TWEEN_MS / 2));
+    expect(result.current[1]).toBeGreaterThan(0.15);
+    expect(result.current[1]).toBeLessThan(1);
+    act(() => frames.tick(FADE_TWEEN_MS));
+    expect(result.current).toBe(HIGH);
+  });
+
+  it('snaps under reduced motion and when the circles change', () => {
+    const frames = fakeFrames();
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { result, rerender } = fade(LOW);
+    rerender({ t: HIGH });
+    expect(result.current).toBe(HIGH);
+    const more = Float32Array.from([1, 1, 0.15]);
+    rerender({ t: more });
+    expect(result.current).toBe(more);
     expect(frames.hasFrame()).toBe(false);
   });
 });

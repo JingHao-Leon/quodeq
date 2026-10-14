@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { packTree, stubPackCanvas } from '../../../../test-utils/packFixture.js';
 import ZoomablePackView from './ZoomablePackView.jsx';
+import { t } from '../../../../strings/index.js';
 
 // The pack paints on two stacked canvases; the pointer goes to the top one.
 // hitCircle is stubbed to "the circle at `hitPath`" so each test names what
@@ -49,11 +50,11 @@ describe('PackCanvas layers', () => {
 });
 
 describe('PackCanvas selection goes straight to the circle under the pointer', () => {
-  it('a click on a file two levels down opens it', () => {
+  it('a click on a file two levels down opens its folder, not the file', () => {
     const { clickOn, onDrillDown, onFileClick } = renderAt('');
     clickOn('src/ui/b.js');
-    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'src/ui/b.js' }));
-    expect(onDrillDown).not.toHaveBeenCalled();
+    expect(onDrillDown).toHaveBeenCalledWith('src/ui');
+    expect(onFileClick).not.toHaveBeenCalled();
   });
 
   it('a click on a folder two levels down drills straight into it', () => {
@@ -62,9 +63,12 @@ describe('PackCanvas selection goes straight to the circle under the pointer', (
     expect(onDrillDown).toHaveBeenCalledWith('src/ui');
   });
 
-  it('a click on a file inside its own folder opens it', () => {
-    const { clickOn, onFileClick } = renderAt('src/ui');
+  it('a click on a file inside its own folder selects it; View details opens it', () => {
+    const { clickOn, onFileClick, container } = renderAt('src/ui');
     clickOn('src/ui/b.js');
+    expect(onFileClick).not.toHaveBeenCalled();
+    expect(container).toHaveTextContent('b.js');
+    fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
     expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'src/ui/b.js' }));
   });
 
@@ -75,41 +79,30 @@ describe('PackCanvas selection goes straight to the circle under the pointer', (
     expect(onFileClick).not.toHaveBeenCalled();
   });
 
-  it('a click on a circle outside the open folder goes straight to it', () => {
+  it('a click on a file outside the open folder goes straight to its folder', () => {
     const { clickOn, onDrillDown, onFileClick } = renderAt('src');
     clickOn('docs/c.md');
-    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'docs/c.md' }));
-    expect(onDrillDown).not.toHaveBeenCalled();
+    expect(onDrillDown).toHaveBeenCalledWith('docs');
+    expect(onFileClick).not.toHaveBeenCalled();
   });
 
-  it('a click outside every circle goes to the parent', () => {
-    const { clickOn, onDrillDown } = renderAt('src/ui');
+  it('a click outside every circle goes to the top; Escape goes up one level', () => {
+    const { clickOn, onDrillDown, overlay } = renderAt('src/ui');
+    fireEvent.keyDown(overlay, { key: 'Escape' });
+    expect(onDrillDown).toHaveBeenLastCalledWith('src');
     clickOn(null);
-    expect(onDrillDown).toHaveBeenCalledWith('src');
+    expect(onDrillDown).toHaveBeenLastCalledWith('');
   });
 });
 
 describe('PackCanvas hover', () => {
-  it('hovering a deep file shows that file', () => {
+  it('hovering a deep file shows its folder, in the card docked in the corner', () => {
     const { container, overlay } = renderAt('');
     hitPath = 'src/ui/b.js';
     fireEvent.mouseMove(overlay);
     expect(overlay.style.cursor).toBe('pointer');
-    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^src\/ui\/b\.js$/);
-  });
-
-  // Values carried over from the SVG-era snapshot: 16 px offset, clamped
-  // 180/160 px inside the 300 px fallback container.
-  it('clamps the tooltip inside the container margins', () => {
-    const { container, overlay } = renderAt('');
-    hitPath = 'src';
-    fireEvent.mouseMove(overlay, { clientX: 0, clientY: 0 });
-    expect(container.querySelector('.map-tooltip')).toHaveStyle({ left: '16px', top: '16px' });
-    hitPath = null;
-    fireEvent.mouseMove(overlay);
-    hitPath = 'src';
-    fireEvent.mouseMove(overlay, { clientX: 1000, clientY: 1000 });
-    expect(container.querySelector('.map-tooltip')).toHaveStyle({ left: '120px', top: '140px' });
+    expect(container.querySelector('.map-tooltip--docked .map-tooltip-title')).toHaveTextContent(/^ui$/);
+    expect(container.querySelector('.map-tooltip-path')).toHaveTextContent(/^src\/ui$/);
   });
 
   it('a drill clears the hover until the pointer moves again', () => {

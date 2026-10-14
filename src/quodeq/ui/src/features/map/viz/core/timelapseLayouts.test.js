@@ -10,6 +10,6 @@ test('without a worker the layouts are computed on this thread and cached', asyn
   const layouts = createTimelapseLayouts(MODEL);
   const anchor = await layouts.anchor();
   assert.deepEqual(anchor, anchorLayout(layoutModelOf(MODEL)));
-  assert.deepEqual(await layouts.run(2), runLayout(layoutModelOf(MODEL), anchor, 2));
+  assert.deepEqual(await layouts.run(2), runLayout(layoutModelOf(MODEL), 2));
   assert.equal(layouts.run(2), layouts.run(2));
 });

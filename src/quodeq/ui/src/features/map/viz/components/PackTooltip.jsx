@@ -1,7 +1,7 @@
 import { t } from '../../../../strings/index.js';
 import { PERCENT } from '../../../../constants.js';
 import MapTooltipSeverityRows from './MapTooltipSeverityRows.jsx';
-import { clampTooltipToElement } from '../core/tooltipPlacement.js';
+import { circlePath, circleTitle } from '../core/chainLabel.js';
 
 /** A folder's or file's findings: violations (with per-severity rows when there are any), compliance and rate. */
 function FindingCounts({ counts }) {
@@ -16,19 +16,16 @@ function FindingCounts({ counts }) {
   );
 }
 
-/**
- * Tooltip of the picked pack circle (`node` is `{depth, data}`). With a
- * `note` (time-lapse: the circle is absent from the run shown) the note
- * replaces the numbers.
- */
-export default function PackTooltip({ node, note = null, mousePos, containerRef }) {
+
+/** Tooltip of the picked pack circle (`node` is `{depth, data}`), docked in the map's corner. */
+export default function PackTooltip({ node }) {
   if (!node || node.depth === 0) return null;
   const circle = node.data;
-  const style = clampTooltipToElement(mousePos.current.x, mousePos.current.y, containerRef.current);
   return (
-    <div className="map-tooltip map-tooltip--floating" style={style}>
-      <div className="map-tooltip-title">{(circle.path || circle.name || '').replace(/\/$/, '')}</div>
-      {note ? <div className="map-tooltip-row"><span>{note}</span></div> : <FindingCounts counts={circle} />}
+    <div className="map-tooltip map-tooltip--docked">
+      <div className="map-tooltip-title">{circleTitle(circle)}</div>
+      <div className="map-tooltip-path">{circlePath(circle)}</div>
+      <FindingCounts counts={circle} />
     </div>
   );
 }

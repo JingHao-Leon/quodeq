@@ -12,7 +12,7 @@ test('the handler lays out the anchor once and any run after it', () => {
   const anchor = handle({ id: 9, type: TIMELAPSE_MESSAGE.MODEL, model: LAYOUT });
   assert.deepEqual(anchor, { id: 9, xyr: anchorLayout(LAYOUT) });
   const run = handle({ id: 10, type: TIMELAPSE_MESSAGE.RUN, modelId: 9, run: 3 });
-  assert.deepEqual(run.xyr, runLayout(LAYOUT, anchorLayout(LAYOUT), 3));
+  assert.deepEqual(run.xyr, runLayout(LAYOUT, 3));
 });
 
 test('a run for a model the worker does not hold is an error, not a guess', () => {

@@ -35,12 +35,12 @@ describe('ZoomablePackView container Escape key (#1907)', () => {
 describe('ZoomablePackView focus across colour modes', () => {
   const labels = () => ctx.fillText.mock.calls.map((call) => call[0]);
 
-  it('keeps the focused folder and its labels after a colour-mode switch', () => {
+  it('keeps the focused folder (its name on top) after a colour-mode switch', () => {
     const { rerender } = render(<ZoomablePackView node={packTree()} colorMode="concentration" currentPath="src/ui" />);
-    expect(new Set(labels())).toEqual(new Set(['b.js']));
+    expect(new Set(labels())).toEqual(new Set(['ui']));
     ctx.fillText.mockClear();
     rerender(<ZoomablePackView node={packTree()} colorMode="activity" currentPath="src/ui" />);
-    expect(new Set(labels())).toEqual(new Set(['b.js']));
+    expect(new Set(labels())).toEqual(new Set(['ui']));
   });
 });
 
