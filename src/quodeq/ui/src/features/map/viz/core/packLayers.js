@@ -10,6 +10,11 @@ export const FILE_SLOT_SCALE = 0.84;
 /** The dimming veil: page colour over everything but the kept circle. */
 export const VEIL_ALPHA_DARK = 0.62;
 export const VEIL_ALPHA_LIGHT = 0.6;
+/**
+ * The pack's three brightness levels: what you are in or about to go to,
+ * what steps back, and the context outside the open folder.
+ */
+export const FADE = Object.freeze({ ACTIVE: 1, RECEDED: 0.65, CONTEXT: 0.15 });
 const INSET_SHARE = 0.02;          // folders drawn 2 % inside their slot
 const INSET_MIN_PX = 0.5;
 const INSET_MAX_PX = 2.5;
@@ -22,7 +27,6 @@ const LABEL_FONT_MIN = 8;
 const LABEL_FONT_DIVISOR = 4;
 const LABEL_GAP = 4;
 const LABEL_WEIGHT_FOLDER = '600';
-const LABEL_WEIGHT_FILE = '400';
 const EVEN_ODD = 'evenodd';
 /** Dash and gap of an absent (ghost) circle's outline, in pixels. */
 export const GHOST_DASH_PX = 2;
@@ -55,30 +59,30 @@ function traceCutOut(ctx, { c, at, index, paints }) {
   }
 }
 
-function drawFolder(ctx, { c, p, paint, at, index, paints }) {
+function drawFolder(ctx, { c, p, paint, at, index, paints, fade = 1 }) {
   const r = folderRadius(p.r);
   ctx.beginPath();
   ctx.arc(p.px, p.py, r, 0, TAU);
   if (!paint.outlineOnly) {
     if (paint.cutOut) traceCutOut(ctx, { c, at, index, paints });
-    ctx.globalAlpha = paint.alpha;
+    ctx.globalAlpha = paint.alpha * fade;
     ctx.fillStyle = paint.fill;
     ctx.fill(paint.cutOut ? EVEN_ODD : undefined);
   }
   ctx.beginPath();
   ctx.arc(p.px, p.py, r, 0, TAU);
-  ctx.globalAlpha = paint.strokeAlpha;
+  ctx.globalAlpha = paint.strokeAlpha * fade;
   ctx.lineWidth = STROKE_PX;
   ctx.strokeStyle = paint.stroke;
   ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
-/** A file's fill at its paint's opacity (1 except while it fades in during a time-lapse move). */
-function drawFile(ctx, p, paint) {
+/** A file's fill at its paint's opacity (1 except while it fades in during a time-lapse move), times `fade`. */
+function drawFile(ctx, p, paint, fade = 1) {
   ctx.beginPath();
   ctx.arc(p.px, p.py, p.r * FILE_SLOT_SCALE, 0, TAU);
-  ctx.globalAlpha = paint.alpha ?? 1;
+  ctx.globalAlpha = (paint.alpha ?? 1) * fade;
   ctx.fillStyle = paint.fill;
   ctx.fill();
   ctx.globalAlpha = 1;
@@ -108,8 +112,53 @@ function drawGhost(ctx, p, paint) {
   strokeGhostCircle(ctx, { px: p.px, py: p.py, r }, paint, STROKE_PX);
 }
 
+/** Circles that are `top` or inside it (circles come parents first). */
+function subtreeMask(circles, index, top) {
+  const mask = new Uint8Array(circles.length);
+  circles.forEach((c, i) => {
+    const p = c.parent ? index.get(c.parent) : undefined;
+    mask[i] = c === top || (p !== undefined && mask[p]) ? 1 : 0;
+  });
+  return mask;
+}
+
+/** What the brightness depends on: the open folder's subtree, a previewed circle's, a selected file's. */
+function fadeState(circles, index, { focusNode, hoverNode, selectedNode }) {
+  const atRoot = !(focusNode?.depth > 0);
+  const inFocus = atRoot ? null : subtreeMask(circles, index, focusNode);
+  const hoverInside = Boolean(hoverNode) && (atRoot || inFocus[index.get(hoverNode)] === 1);
+  const preview = hoverNode && !hoverInside ? subtreeMask(circles, index, hoverNode) : null;
+  const selected = !preview && selectedNode ? subtreeMask(circles, index, selectedNode) : null;
+  return { atRoot, inFocus, preview, selected, openDepth: atRoot ? 0 : focusNode.depth };
+}
+
+function fadeAt(i, circle, st) {
+  const inside = st.atRoot || st.inFocus[i] === 1;
+  if (st.preview) {
+    if (inside) return FADE.RECEDED;
+    return st.preview[i] ? FADE.ACTIVE : FADE.CONTEXT;
+  }
+  if (!inside) return FADE.CONTEXT;
+  return st.selected && !st.selected[i] && circle.depth > st.openDepth ? FADE.RECEDED : FADE.ACTIVE;
+}
+
 /**
- * The static layer: every visible circle, parents before children.
+ * The opacity each circle is drawn at, one FADE level per circle. Inside the
+ * open folder: active; outside it: context. Hovering a circle outside the
+ * open folder, or above it, previews it: it and its content go active and the
+ * open folder steps back. A selected file steps the rest of the open folder
+ * back. Hovering inside the open folder changes nothing.
+ * @param {{focusNode?: object, hoverNode?: object, selectedNode?: object}} state
+ * @returns {Float32Array}
+ */
+export function fadesFor(circles, index, state = {}) {
+  const st = fadeState(circles, index, state);
+  return Float32Array.from(circles, (c, i) => fadeAt(i, c, st));
+}
+
+/**
+ * The static layer: every visible circle, parents before children, each at
+ * its `fades` opacity (all active without it).
  * `index` maps each circle to its position in `circles`; the caller builds it
  * once per circles array, so a tween frame does not rebuild it.
  * A ghost paint (time-lapse: absent from the run shown) draws a dotted
@@ -117,23 +166,24 @@ function drawGhost(ctx, p, paint) {
  * under the fill; a circle without paint is not drawn.
  * @returns {number} circles drawn
  */
-export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index, width, height }) {
+export function drawStatic(ctx, { circles, screenCoords, viewport, paint, index, width, height, fades = null }) {
   ctx.clearRect(0, 0, width, height);
   const at = (i) => toPx(screenCoords[i], viewport);
   let drawn = 0;
   circles.forEach((c, i) => {
     if (!paint[i] || screenCoords[i].r <= 0 || !isDrawable(screenCoords[i], viewport, width, height)) return;
     const p = at(i);
+    const fade = fades ? fades[i] : FADE.ACTIVE;
     if (paint[i].ghostRing) drawGhost(ctx, p, paint[i].ghostRing);
     if (paint[i].ghost) drawGhost(ctx, p, paint[i]);
-    else if (paint[i].file) drawFile(ctx, p, paint[i]);
-    else drawFolder(ctx, { c, p, paint: paint[i], at, index, paints: paint });
+    else if (paint[i].file) drawFile(ctx, p, paint[i], fade);
+    else drawFolder(ctx, { c, p, paint: paint[i], at, index, paints: paint, fade });
     drawn++;
   });
   return drawn;
 }
 
-/** Fills the canvas with the themed veil, leaving a round hole at (px, py). */
+/** Fills the canvas with the themed veil, leaving a round hole at (px, py) (the Risk sky's selection). */
 export function drawVeilWithHole(ctx, { px, py, r }, palette, size) {
   ctx.beginPath();
   ctx.rect(0, 0, size.width, size.height);
@@ -144,10 +194,6 @@ export function drawVeilWithHole(ctx, { px, py, r }, palette, size) {
   ctx.fillStyle = rgbCss(palette.bg);
   ctx.fill(EVEN_ODD);
   ctx.globalAlpha = 1;
-}
-
-function drawVeil(ctx, p, palette, size) {
-  drawVeilWithHole(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette, size);
 }
 
 /** The hover ring both vizzes draw: a thin text-coloured circle of radius `r` at (px, py). */
@@ -165,11 +211,12 @@ function drawHover(ctx, p, palette) {
   drawHoverRing(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette);
 }
 
+/** The open folder's sub-folders big enough to label, largest first (a file's name lives in the hover card). */
 function labelCandidates({ circles, screenCoords, viewport, focusNode }) {
   const out = [];
   circles.forEach((c, i) => {
     const p = toPx(screenCoords[i], viewport);
-    if (c.parent === focusNode && p.r > LABEL_MIN_R) out.push({ c, p });
+    if (c.parent === focusNode && isPackFolder(c) && p.r > LABEL_MIN_R) out.push({ c, p, i });
   });
   return out.sort((a, b) => b.p.r - a.p.r);
 }
@@ -178,16 +225,44 @@ function overlaps(a, b) {
   return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-/** Labels of the focus's children, largest circle first; a label whose box
- * would overlap one already placed is skipped, so labels never collide. */
-function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font, fontScale }) {
+function labelSize(rPx, fontScale) {
+  return Math.min(LABEL_FONT_MAX * fontScale, Math.max(LABEL_FONT_MIN * fontScale, rPx / LABEL_FONT_DIVISOR));
+}
+
+/**
+ * A folder's name centred above its circle, kept inside the canvas when the
+ * circle's top is off screen; returns the label's box.
+ */
+function drawNameAbove(ctx, { c, p, size, font }) {
+  ctx.font = `${LABEL_WEIGHT_FOLDER} ${size}px ${font}`;
+  const text = chainLabel(c.data.name);
+  const w = ctx.measureText(text).width;
+  const y = Math.max(p.py - p.r - LABEL_GAP, size + LABEL_GAP);
+  ctx.fillText(text, p.px, y);
+  return { x: p.px - w / 2, y: y - size, w, h: size };
+}
+
+/**
+ * Labels, when on: the hovered folder's name and the open folder's name come
+ * first, then the open folder's sub-folders, largest first; a label whose box
+ * would overlap one already placed is skipped, so labels never collide.
+ */
+function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale }) {
   ctx.fillStyle = rgbCss(palette.text);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const placed = [];
-  for (const { c, p } of labelCandidates({ circles, screenCoords, viewport, focusNode })) {
-    const size = Math.min(LABEL_FONT_MAX * fontScale, Math.max(LABEL_FONT_MIN * fontScale, p.r / LABEL_FONT_DIVISOR));
-    ctx.font = `${isPackFolder(c) ? LABEL_WEIGHT_FOLDER : LABEL_WEIGHT_FILE} ${size}px ${font}`;
+  const hovered = hoverIndex === null ? null : circles[hoverIndex];
+  if (hovered && isPackFolder(hovered)) {
+    const p = toPx(screenCoords[hoverIndex], viewport);
+    placed.push(drawNameAbove(ctx, { c: hovered, p, size: labelSize(p.r, fontScale), font }));
+  }
+  const open = focusNode?.depth > 0 ? circles.indexOf(focusNode) : -1;
+  if (open >= 0) placed.push(drawNameAbove(ctx, { c: focusNode, p: toPx(screenCoords[open], viewport), size: LABEL_FONT_MAX * fontScale, font }));
+  for (const { c, p, i } of labelCandidates({ circles, screenCoords, viewport, focusNode })) {
+    if (i === hoverIndex) continue;
+    const size = labelSize(p.r, fontScale);
+    ctx.font = `${LABEL_WEIGHT_FOLDER} ${size}px ${font}`;
     const text = chainLabel(c.data.name);
     const w = ctx.measureText(text).width;
     const y = p.py - p.r - LABEL_GAP;
@@ -198,10 +273,9 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, 
   }
 }
 
-/** The overlay: one veil around the kept circle, the hover ring, and labels of the focus's children. */
-export function drawOverlay(ctx, { circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels, palette, font, width, height, fontScale = 1 }) {
+/** The overlay: the hover ring and, with labels on, the labels. Brightness lives on the static layer (fadesFor). */
+export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, palette, font, width, height, fontScale = 1 }) {
   ctx.clearRect(0, 0, width, height);
-  if (keepIndex !== null && circles[keepIndex]?.depth > 0) drawVeil(ctx, toPx(screenCoords[keepIndex], viewport), palette, { width, height });
   if (hoverIndex !== null) drawHover(ctx, toPx(screenCoords[hoverIndex], viewport), palette);
-  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, palette, font, fontScale });
+  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale });
 }

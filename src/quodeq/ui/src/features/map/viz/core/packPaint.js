@@ -96,7 +96,8 @@ function activityPaint(n, ctx) {
 }
 
 function rootPaint(palette) {
-  return { fill: rgbCss(pageBg(palette)), alpha: 1, stroke: rgbCss(palette.border), strokeAlpha: 1, cutOut: true, file: false, outlineOnly: false, badness: 0, edits: 0 };
+  // Dark mode raises the project circle one step above its frame: page bg < frame surface < circle surface-alt.
+  return { fill: rgbCss(palette.dark ? palette.surfaceAlt : pageBg(palette)), alpha: 1, stroke: rgbCss(palette.border), strokeAlpha: 1, cutOut: true, file: false, outlineOnly: false, badness: 0, edits: 0 };
 }
 
 /**

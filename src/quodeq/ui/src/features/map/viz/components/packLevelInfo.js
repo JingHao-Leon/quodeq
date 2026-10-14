@@ -1,5 +1,6 @@
 import { isDrillableFolder } from '../core/fileTree.js';
 import { folderLines } from './levelInfoLines.js';
+import { t } from '../../../../strings/index.js';
 
 /** Share of checks that passed, or null when nothing was checked. */
 function complianceRate(d) {
@@ -21,15 +22,19 @@ export function computeLevelInfo(focusNode, root, onFileClick) {
   if (!fn || !fn.data) return null;
   const d = fn.data;
   const isRoot = fn === root;
-  const shortName = d.name;
+  // The title is the circle's own name with its path underneath, as on the hover card; a file has no contents line.
+  const path = isRoot ? null : (d.path || d.name || '').replace(/\/$/, '');
+  const shortName = path ? path.split('/').at(-1) : d.name;
+  const lines = folderLines({
+    complianceRate: complianceRate(d),
+    contents: childCount(d.children),
+    violations: d.violations,
+    severity: d.severity,
+  });
   return {
     title: isRoot ? (d.name === '/' ? 'Project' : shortName) : shortName,
-    lines: folderLines({
-      complianceRate: complianceRate(d),
-      contents: childCount(d.children),
-      violations: d.violations,
-      severity: d.severity,
-    }),
+    path,
+    lines: d.isFile ? lines.filter((l) => l.label !== t('map.contents')) : lines,
     detailAction: !isRoot ? () => onFileClick?.(d) : null,
   };
 }

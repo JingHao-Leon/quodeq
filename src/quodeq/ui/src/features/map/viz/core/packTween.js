@@ -33,6 +33,19 @@ export function prefersReducedMotion() {
   return window.matchMedia(REDUCED_MOTION_QUERY).matches;
 }
 
+/** Calls `onFrame(t)` on every animation frame, `t` going from 0 to 1 over `durationMs`; returns the cancel. */
+function playFrames(durationMs, onFrame) {
+  let frame = 0;
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / durationMs);
+    onFrame(t);
+    if (t < 1) frame = requestAnimationFrame(step);
+  };
+  frame = requestAnimationFrame(step);
+  return () => cancelAnimationFrame(frame);
+}
+
 /**
  * The focus transform as currently displayed: snaps to `target` when
  * `skip.current` is set (first paint, breadcrumb jumps) or under reduced
@@ -51,17 +64,12 @@ export function useTweenedTransform(target, skip) {
       setShown(target);
       return undefined;
     }
-    let frame = 0;
-    const start = performance.now();
-    const step = (now) => {
-      const t = easeInOut((now - start) / PACK_TWEEN_MS);
+    return playFrames(PACK_TWEEN_MS, (raw) => {
+      const t = easeInOut(raw);
       const next = t >= 1 ? target : lerpTransform(from, target, t);
       shownRef.current = next;
       setShown(next);
-      if (t < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
+    });
   }, [target, skip]);
 
   return shown;
@@ -86,18 +94,43 @@ export function useFollowingTransform(target, key) {
 
   useEffect(() => {
     if (!moving) return undefined;
-    let frame = 0;
-    const start = performance.now();
-    const step = (now) => {
-      const t = easeInOut((now - start) / PACK_TWEEN_MS);
+    return playFrames(PACK_TWEEN_MS, (raw) => {
+      const t = easeInOut(raw);
       setMove((m) => (m.key === key ? { ...m, t } : m));
-      if (t < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
+    });
   }, [key, moving]);
 
   const shown = moving ? lerpTransform(current.from, target, current.t) : target;
   useEffect(() => { shownRef.current = shown; });
   return shown;
+}
+
+/** How long a brightness change of the pack takes. */
+export const FADE_TWEEN_MS = 150;
+
+/**
+ * Per-circle opacities eased from what is shown toward `target`
+ * over FADE_TWEEN_MS (snaps under reduced motion or when the circles change).
+ * @param {Float32Array} target
+ * @returns {Float32Array}
+ */
+export function useFadeTween(target) {
+  const [shown, setShown] = useState(target);
+  const shownRef = useRef(target);
+  useEffect(() => {
+    const from = shownRef.current;
+    if (from === target) return undefined;
+    if (from.length !== target.length || prefersReducedMotion()) {
+      shownRef.current = target;
+      setShown(target);
+      return undefined;
+    }
+    return playFrames(FADE_TWEEN_MS, (t) => {
+      const next = t >= 1 ? target : target.map((v, i) => from[i] + (v - from[i]) * t);
+      shownRef.current = next;
+      setShown(next);
+    });
+  }, [target]);
+  // New circles render at their target until the next change eases.
+  return shown.length === target.length ? shown : target;
 }

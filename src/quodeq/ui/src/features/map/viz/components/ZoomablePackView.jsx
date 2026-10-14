@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import PackCanvas from './PackCanvas.jsx';
 import { usePackLayout } from '../core/usePackLayout.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from '../core/mapBadness.js';
@@ -25,6 +25,12 @@ function useHover(circles, focusNode) {
   return [current ? state.index : null, setHover];
 }
 
+/** The picked file while it is still a file of the open folder in this tree, else null. */
+function selectedIn(picked, focusNode, root) {
+  if (!picked || picked.parent !== focusNode) return null;
+  return picked.ancestors().at(-1) === root ? picked : null;
+}
+
 /* ---- Main orchestrator ---- */
 /**
  * The Map's zoomable circle pack. `colorMode` is a PACK_COLOR_MODE (anything
@@ -36,22 +42,20 @@ export default function ZoomablePackView({
   node, colorMode = PACK_COLOR_MODE.CONCENTRATION, weights = DEFAULT_SEVERITY_WEIGHTS, editsByPath = NO_EDITS, dark = false,
   onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '', autoOpen = true,
 }) {
-  const mousePos = useRef({ x: 0, y: 0 });
-  const containerRef = useRef(null);
-
   const { root, circles } = usePackLayout(node);
-  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick, autoOpen });
+  // A file click selects the file: the panel shows it and its View details opens it.
+  const [picked, setPicked] = useState(null);
+  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect: setPicked, autoOpen });
   const [hover, setHover] = useHover(circles, focus.focusNode);
+  const selected = selectedIn(picked, focus.focusNode, root);
+  const handleBgClick = useCallback(() => { setPicked(null); focus.handleBgClick(); }, [focus.handleBgClick]);
+  const handleRootClick = useCallback(() => { setPicked(null); focus.handleRootClick(); }, [focus.handleRootClick]);
 
   if (!node) return null;
   const ready = circles.length > 0;
-  const trackMouse = (e) => {
-    const r = containerRef.current?.getBoundingClientRect();
-    if (r) mousePos.current = { x: e.clientX - r.left, y: e.clientY - r.top };
-  };
 
   return (
-    <div ref={containerRef} style={CONTAINER_STYLE} onMouseMove={trackMouse}>
+    <div style={CONTAINER_STYLE}>
       {/* The layout can land after the page fade (worker reply, new tree),
           so the circles fade in on their own when a new root arrives. The
           wrapper stays mounted while a layout is pending so the fade
@@ -61,12 +65,12 @@ export default function ZoomablePackView({
           <PackCanvas
             view={{ circles, transform: focus.transform, skipTransition: focus.skipTransition, focusNode: focus.focusNode, showLabels }}
             paintInputs={{ colorMode, weights, editsByPath, dark }}
-            hoverState={{ hover, setHover }}
-            handlers={{ handleClick: focus.handleClick, handleBgClick: focus.handleBgClick }}
+            hoverState={{ hover, setHover, selected }}
+            handlers={{ handleClick: focus.handleClick, handleBgClick, handleRootClick }}
           />        )}
       </FadeIn>
-      {ready && <PackTooltip node={hover === null ? null : circles[hover]} mousePos={mousePos} containerRef={containerRef} />}
-      {ready && <PackInfoPanel focusNode={focus.focusNode} root={root} onFileClick={onFileClick} />}
+      {ready && <PackTooltip node={hover === null ? null : circles[hover]} />}
+      {ready && <PackInfoPanel focusNode={selected || focus.focusNode} root={root} onFileClick={onFileClick} />}
     </div>
   );
 }

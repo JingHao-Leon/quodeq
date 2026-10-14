@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { hierarchy } from 'd3-hierarchy';
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
-import { drawStatic, drawOverlay, strokeGhostCircle, GHOST_DASH_PX, GHOST_STROKE_ALPHA } from './packLayers.js';
+import { drawStatic, drawOverlay, fadesFor, strokeGhostCircle, FADE, GHOST_DASH_PX, GHOST_STROKE_ALPHA } from './packLayers.js';
 
 const VIEWPORT = { scale: 1, ox: 0, oy: 0 };
 const SIZE = 600;
@@ -112,46 +112,102 @@ describe('strokeGhostCircle', () => {
 
 describe('drawOverlay', () => {
   const palette = { dark: true, bg: { r: 0, g: 0, b: 0 }, text: { r: 255, g: 255, b: 255 } };
+  const overlay = (ctx, { circles, screenCoords }, over = {}) => drawOverlay(ctx, {
+    circles, screenCoords, viewport: VIEWPORT, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE, ...over,
+  });
+  const texts = (ctx) => ctx.fillText.mock.calls.map((c) => c[0]);
 
-  it('one veil with a hole for the kept circle', () => {
+  it('draws no veil: a hover is its ring and its name', () => {
     const ctx = fakeCanvasContext();
-    const { circles, screenCoords } = scene();
-    drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, keepIndex: 1, hoverIndex: null, focusNode: circles[0], showLabels: false, palette, font: 'sans', width: SIZE, height: SIZE });
-    expect(ctx.rect).toHaveBeenCalledTimes(1);
-    expect(ctx.fills).toEqual([{ rule: 'evenodd' }]);
+    overlay(ctx, scene(), { hoverIndex: 1 });
+    expect(ctx.rect).not.toHaveBeenCalled();
+    expect(ctx.stroke).toHaveBeenCalledTimes(1);
+    expect(texts(ctx)).toEqual(['src']);
   });
 
-  it('no veil at the root, labels show the last segment of focus children', () => {
+  it('labels show the last segment of the open folder\'s sub-folders, never a file', () => {
     const ctx = fakeCanvasContext();
-    const { circles, screenCoords } = scene();
-    circles[1].data.name = 'app/src';
-    drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, keepIndex: null, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE });
-    expect(ctx.rect).not.toHaveBeenCalled();
-    expect(ctx.fillText).toHaveBeenCalledWith('src', expect.any(Number), expect.any(Number));
+    const s = scene();
+    s.circles[3].data.name = 'lib/sub';
+    overlay(ctx, s, { focusNode: s.circles[1] });
+    expect(texts(ctx)).toContain('sub');
+    expect(texts(ctx)).not.toContain('a.py');
+  });
+
+  it('the open folder keeps its name on top, inside the canvas when its top is off screen', () => {
+    const ctx = fakeCanvasContext();
+    const s = scene();
+    s.screenCoords[1] = { cx: 300, cy: 300, r: 1000 };
+    overlay(ctx, s, { focusNode: s.circles[1] });
+    const [, , y] = ctx.fillText.mock.calls.find(([text]) => text === 'src');
+    expect(y).toBeGreaterThan(0);
+  });
+
+  it('labels off: no names at all, not even the hovered folder\'s', () => {
+    const ctx = fakeCanvasContext();
+    overlay(ctx, scene(), { hoverIndex: 1, showLabels: false });
+    expect(ctx.fillText).not.toHaveBeenCalled();
   });
 });
 
 describe('drawOverlay labels', () => {
   const palette = { dark: true, bg: { r: 0, g: 0, b: 0 }, text: { r: 255, g: 255, b: 255 } };
+  const folder = (name) => ({ name, path: name, children: [{ name: `${name}.py`, path: `${name}/${name}.py` }] });
 
-  it('two overlapping small siblings keep only the larger label', () => {
+  it('two overlapping small sibling folders keep only the larger label', () => {
     const ctx = fakeCanvasContext();
-    const root = hierarchy({ name: '', children: [{ name: 'y.py', path: 'y.py' }, { name: 'x.py', path: 'x.py' }] });
+    const root = hierarchy({ name: '', children: [folder('y'), folder('x')] });
     const circles = root.descendants();
-    const screenCoords = [[300, 300, 100], [305, 300, 15], [300, 300, 20]].map(([cx, cy, r]) => ({ cx, cy, r }));
-    drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, keepIndex: null, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE });
-    expect(ctx.fillText.mock.calls.map((c) => c[0])).toEqual(['x.py']);
+    const screenCoords = [[300, 300, 100], [305, 300, 15], [300, 300, 20], [305, 300, 5], [300, 300, 5]].map(([cx, cy, r]) => ({ cx, cy, r }));
+    drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE });
+    expect(ctx.fillText.mock.calls.map((c) => c[0])).toEqual(['x']);
   });
 
   it('a larger fontScale yields a larger label font', () => {
     const fontAt = (fontScale) => {
       const ctx = fakeCanvasContext();
-      const root = hierarchy({ name: '', children: [{ name: 'x.py', path: 'x.py' }] });
+      const root = hierarchy({ name: '', children: [folder('x')] });
       const circles = root.descendants();
-      const screenCoords = [[300, 300, 300], [300, 300, 200]].map(([cx, cy, r]) => ({ cx, cy, r }));
-      drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, keepIndex: null, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE, fontScale });
+      const screenCoords = [[300, 300, 300], [300, 300, 200], [300, 300, 100]].map(([cx, cy, r]) => ({ cx, cy, r }));
+      drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, hoverIndex: null, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE, fontScale });
       return parseFloat(ctx.font.split(' ')[1]);
     };
     expect(fontAt(1.5)).toBeCloseTo(fontAt(1) * 1.5);
+  });
+});
+
+describe('fadesFor', () => {
+  // scene(): 0 root, 1 src, 2 src/a.py, 3 src/sub, 4 src/sub/b.py
+  const fades = (over) => { const { circles } = scene(); return Array.from(fadesFor(circles, indexOf(circles), over(circles)), (v) => Math.round(v * 100) / 100); };
+
+  it('at the root everything is active', () => {
+    expect(fades(() => ({}))).toEqual(Array(5).fill(FADE.ACTIVE));
+  });
+
+  it('inside a folder, what is outside it is context', () => {
+    expect(fades((c) => ({ focusNode: c[3] }))).toEqual([FADE.CONTEXT, FADE.CONTEXT, FADE.CONTEXT, FADE.ACTIVE, FADE.ACTIVE]);
+  });
+
+  it('hovering a folder above the open one previews it and steps the open folder back', () => {
+    expect(fades((c) => ({ focusNode: c[3], hoverNode: c[1] }))).toEqual([FADE.CONTEXT, FADE.ACTIVE, FADE.ACTIVE, FADE.RECEDED, FADE.RECEDED]);
+  });
+
+  it('hovering inside the open folder changes nothing', () => {
+    expect(fades((c) => ({ focusNode: c[1], hoverNode: c[3] }))).toEqual(fades((c) => ({ focusNode: c[1] })));
+  });
+
+  it('a selected file steps the rest of the open folder back', () => {
+    expect(fades((c) => ({ focusNode: c[1], selectedNode: c[2] }))).toEqual([FADE.CONTEXT, FADE.ACTIVE, FADE.ACTIVE, FADE.RECEDED, FADE.RECEDED]);
+  });
+});
+
+describe('drawStatic fades', () => {
+  it('draws each circle at its fade', () => {
+    const ctx = fakeCanvasContext();
+    const { circles, screenCoords, paint } = scene();
+    const alphas = [];
+    Object.defineProperty(ctx, 'globalAlpha', { set: (v) => alphas.push(v), get: () => 1 });
+    drawStatic(ctx, { circles, screenCoords, viewport: VIEWPORT, paint, index: indexOf(circles), width: SIZE, height: SIZE, fades: Float32Array.from([1, 1, FADE.CONTEXT, 1, 1]) });
+    expect(alphas.some((v) => Math.abs(v - FADE.CONTEXT) < 1e-6)).toBe(true);
   });
 });

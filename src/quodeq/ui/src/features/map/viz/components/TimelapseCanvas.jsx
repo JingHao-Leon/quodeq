@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useCanvasSize } from './galaxyCanvasSize.js';
 import { prepareLayer, useLayerTheme, WRAPPER_STYLE, LAYER_STYLE, KBD_MAX } from './canvasLayer.js';
-import { drawStatic, drawOverlay } from '../core/packLayers.js';
+import { drawStatic, drawOverlay, fadesFor } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle } from '../core/packCanvasGeometry.js';
-import { useFollowingTransform } from '../core/packTween.js';
+import { useFollowingTransform, useFadeTween } from '../core/packTween.js';
 import { runPaint, lerpXyr, screenCoordsInto, cachedRuns, runFocusTransform, TRANSITION } from '../core/timelapseScene.js';
 import { createPaintTween, paintTweenAt } from '../core/timelapseTween.js';
 import { KEY } from '../../../../vocab/keyboard.js';
@@ -47,24 +47,27 @@ function useLayers(view, paintAt) {
 }
 
 /** One static canvas: the layer's circles through the camera (screen coordinates kept in `coords`), or blank. */
-function drawLayer(canvas, layer, { model, camera, viewport, size, coords }) {
+function drawLayer(canvas, layer, { model, camera, viewport, size, coords, fades }) {
   const ctx = prepareLayer(canvas, size);
   if (!ctx) return;
   if (!layer) { ctx.clearRect(0, 0, size.w, size.h); return; }
   screenCoordsInto(layer.xyr, camera, coords);
-  drawStatic(ctx, { circles: model.nodes, screenCoords: coords, viewport, paint: layer.paint, index: model.index, width: size.w, height: size.h });
+  drawStatic(ctx, { circles: model.nodes, screenCoords: coords, viewport, paint: layer.paint, index: model.index, width: size.w, height: size.h, fades });
 }
 
 /**
  * Pointer and keyboard on the overlay. Playing: no hover, any click pauses.
- * Paused: hover once the run has settled, a folder click zooms into it, a
- * background click or Escape zooms out, a file click does nothing.
+ * Paused: hover once the run has settled; a click goes where it lands: a
+ * folder or ring opens that folder, a file outside the open folder opens its
+ * folder, a miss goes to the top. A file is picked only inside the open
+ * folder (elsewhere its folder is). Escape zooms out one level.
  */
 function usePointer({ model, coords, viewport, focusIndex, interaction, settled }) {
   const hitAt = (e) => {
     const box = e.currentTarget.getBoundingClientRect();
     const p = toLayoutPoint(e.clientX - box.left, e.clientY - box.top, viewport);
-    return hitCircle(model.nodes, coords.current, p.x, p.y);
+    const i = hitCircle(model.nodes, coords.current, p.x, p.y);
+    return i !== null && !model.nodes[i].children && model.parent[i] !== focusIndex ? model.parent[i] : i;
   };
   const zoomOut = () => {
     const parent = model.nodes[focusIndex].parent;
@@ -80,8 +83,9 @@ function usePointer({ model, coords, viewport, focusIndex, interaction, settled 
     onClick: (e) => {
       if (interaction.playing) { interaction.pause(); return; }
       const i = hitAt(e);
-      if (i === null) zoomOut();
-      else if (i !== focusIndex && model.nodes[i].children) interaction.onDrillDown(model.nodes[i].data.path);
+      if (i === null) { if (focusIndex > 0) interaction.onDrillDown(''); return; }
+      const target = model.nodes[i].children ? i : model.parent[i];
+      if (target !== focusIndex) interaction.onDrillDown(target > 0 ? model.nodes[target].data.path : '');
     },
     onKeyDown: (e) => {
       if (e.key !== KEY.ESCAPE) return;
@@ -109,21 +113,21 @@ function useFolderItems({ model, focusIndex, interaction }) {
 }
 
 /** Both static canvases, redrawn only when the run on screen, the camera or the canvas changes (never on hover). */
-function useStaticLayers({ refs, coords, layers, camera, viewport, size, model }) {
+function useStaticLayers({ refs, coords, layers, camera, viewport, size, model, fades }) {
   useEffect(() => {
     if (!layers) return;
-    const common = { model, camera, viewport, size };
+    const common = { model, camera, viewport, size, fades };
     drawLayer(refs.back.current, layers.back, { ...common, coords: coords.back.current });
     drawLayer(refs.front.current, layers.front, { ...common, coords: coords.front.current });
     // refs and coords are stable ref objects; the coordinate arrays are filled in place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layers, camera, viewport, size, model]);
+  }, [layers, camera, viewport, size, model, fades]);
 }
 
 /**
  * The time-lapse pack on three stacked canvases: a back layer (the run being
  * faded out), a front layer (the run shown, or the move in progress) and an
- * overlay (veil, hover ring, labels once settled). The camera centres the
+ * overlay (hover ring, labels once settled). The camera centres the
  * focused folder where the run on screen draws it, at the zoom of its size
  * today, and follows it while runs change.
  */
@@ -141,14 +145,18 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const target = useMemo(() => runFocusTransform(anchor, layers ? layers.front.xyr : anchor, focusIndex), [anchor, layers, focusIndex]);
   const camera = useFollowingTransform(target, focusIndex);
   const settled = Boolean(view && !view.from);
-  useStaticLayers({ refs, coords, layers, camera, viewport, size, model });
+  const targetFades = useMemo(
+    () => fadesFor(model.nodes, model.index, { focusNode: model.nodes[focusIndex], hoverNode: interaction.hover === null ? null : model.nodes[interaction.hover] }),
+    [model, focusIndex, interaction.hover],
+  );
+  const fades = useFadeTween(targetFades);
+  useStaticLayers({ refs, coords, layers, camera, viewport, size, model, fades });
 
   useEffect(() => {
     const ctx = prepareLayer(refs.overlay.current, size);
     if (!ctx || !theme.palette || !layers) return;
-    const keep = interaction.hover ?? (focusIndex > 0 ? focusIndex : null);
     drawOverlay(ctx, {
-      circles: model.nodes, screenCoords: coords.front.current, viewport, keepIndex: keep, hoverIndex: interaction.hover,
+      circles: model.nodes, screenCoords: coords.front.current, viewport, hoverIndex: interaction.hover,
       focusNode: model.nodes[focusIndex], showLabels: interaction.showLabels && settled && camera === target,
       palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });

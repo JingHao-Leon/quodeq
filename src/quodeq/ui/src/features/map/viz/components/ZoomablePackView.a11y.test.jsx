@@ -10,6 +10,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { packTree, stubPackCanvas } from '../../../../test-utils/packFixture.js';
 import ZoomablePackView from './ZoomablePackView.jsx';
+import { t } from '../../../../strings/index.js';
 
 beforeEach(() => { stubPackCanvas(); });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
@@ -45,10 +46,12 @@ describe('ZoomablePackView keyboard activation (6355)', () => {
     expect(onDrillDown).toHaveBeenCalledWith('docs');
   });
 
-  it('Enter on a file inside its own folder opens it', () => {
+  it('Enter on a file inside its own folder selects it; View details opens it', () => {
     const onFileClick = vi.fn();
     renderView({ onFileClick, currentPath: 'src/ui' });
     fireEvent.keyDown(screen.getByRole('button', { name: 'b.js, changed once' }), { key: 'Enter' });
+    expect(onFileClick).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
     expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'src/ui/b.js' }));
   });
 

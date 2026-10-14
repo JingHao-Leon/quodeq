@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef } from 'react';
 import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.jsx';
 import { useCanvasSize } from './galaxyCanvasSize.js';
 import { prepareLayer, useLayerTheme, KBD_MAX, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
-import { drawStatic, drawOverlay } from '../core/packLayers.js';
+import { drawStatic, drawOverlay, fadesFor } from '../core/packLayers.js';
 import { packViewport, toLayoutPoint, hitCircle, screenCoordsFor } from '../core/packCanvasGeometry.js';
-import { useTweenedTransform } from '../core/packTween.js';
+import { useTweenedTransform, useFadeTween } from '../core/packTween.js';
 import { buildPackPaint } from '../core/packPaint.js';
-import { pickUnderPointer, keepCircle } from '../core/packPick.js';
+import { pickUnderPointer } from '../core/packPick.js';
 import { packStateText } from '../core/packStateText.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
@@ -21,25 +21,25 @@ function usePackPaint({ circles, colorMode, palette, weights, editsByPath }) {
   }, [circles, colorMode, palette, weights, editsByPath]);
 }
 
-function useStaticLayer(canvasRef, { circles, indexOf, paint, screenCoords, viewport, size }) {
+function useStaticLayer(canvasRef, { circles, indexOf, paint, screenCoords, viewport, size, fades }) {
   useEffect(() => {
     if (!paint) return;
     const ctx = prepareLayer(canvasRef.current, size);
-    if (ctx) drawStatic(ctx, { circles, screenCoords, viewport, paint, index: indexOf, width: size.w, height: size.h });
-  }, [canvasRef, circles, indexOf, paint, screenCoords, viewport, size]);
+    if (ctx) drawStatic(ctx, { circles, screenCoords, viewport, paint, index: indexOf, width: size.w, height: size.h, fades });
+  }, [canvasRef, circles, indexOf, paint, screenCoords, viewport, size, fades]);
 }
 
 function useOverlayLayer(canvasRef, frame) {
-  const { circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels, theme, size } = frame;
+  const { circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, theme, size } = frame;
   useEffect(() => {
     if (!theme.palette) return;
     const ctx = prepareLayer(canvasRef.current, size);
     if (!ctx) return;
     drawOverlay(ctx, {
-      circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels,
+      circles, screenCoords, viewport, hoverIndex, focusNode, showLabels,
       palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });
-  }, [canvasRef, circles, screenCoords, viewport, keepIndex, hoverIndex, focusNode, showLabels, theme, size]);
+  }, [canvasRef, circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, theme, size]);
 }
 
 function kbdItems({ circles, paint, focusNode, colorMode, handleClick }) {
@@ -64,11 +64,12 @@ function validIndex(i, circles) {
 }
 
 /**
- * Pointer handling: a hit selects the deepest circle under the pointer, at
- * any depth, so a click goes straight to a nested folder or file. A miss goes
- * to the parent; a hit on the open folder itself does nothing.
+ * Pointer handling: a hit picks the deepest folder under the pointer, at any
+ * depth, so a click goes straight to it; a file is picked only inside the
+ * open folder (pickUnderPointer). A miss goes to the top of the project; a hit
+ * on the open folder itself does nothing. Escape goes up one level.
  */
-function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, indexOf, hover, setHover, handleClick, handleBgClick }) {
+function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, indexOf, hover, setHover, handleClick, handleBgClick, handleRootClick }) {
   const hitAt = (e) => {
     const r = overlayRef.current.getBoundingClientRect();
     const p = toLayoutPoint(e.clientX - r.left, e.clientY - r.top, viewport);
@@ -85,7 +86,7 @@ function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, in
     if (hit === focusNode) return;
     const picked = pickUnderPointer(hit, focusNode);
     if (picked) handleClick(e, picked);
-    else handleBgClick();
+    else handleRootClick();
   };
   const onKeyDown = (e) => {
     if (e.key !== KEY.ESCAPE) return;
@@ -96,22 +97,24 @@ function usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, in
 }
 
 /**
- * The pack on two stacked canvases: a static layer with every circle,
- * redrawn when the paint or the zoom changes, and an overlay with the
- * dimming veil, the hover ring and the labels, redrawn on hover. `transform`
+ * The pack on two stacked canvases: a static layer with every circle at its
+ * brightness (fadesFor, eased), redrawn when the paint, the zoom or the
+ * brightness changes, and an overlay with the hover ring and the labels,
+ * redrawn on hover. `transform`
  * is the focus target; the layers tween toward it. Only the overlay takes
  * pointer and keyboard events; keyboard users also get a focusable button
  * per child of the open folder (ChartKeyboardControls).
  *
  * Props are grouped: `view` (circles, transform, skipTransition, focusNode,
  * showLabels), `paintInputs` (colorMode, weights, editsByPath, dark),
- * `hoverState` (hover, setHover) and `handlers` (handleClick, handleBgClick).
+ * `hoverState` (hover, setHover, selected: the selected file or null) and
+ * `handlers` (handleClick, handleBgClick for Escape, handleRootClick for a miss).
  */
 export default function PackCanvas({ view, paintInputs, hoverState, handlers }) {
   const { circles, transform, skipTransition, focusNode, showLabels } = view;
   const { colorMode, weights, editsByPath, dark } = paintInputs;
-  const { hover, setHover } = hoverState;
-  const { handleClick, handleBgClick } = handlers;
+  const { hover, setHover, selected = null } = hoverState;
+  const { handleClick, handleBgClick, handleRootClick } = handlers;
   const staticRef = useRef(null);
   const overlayRef = useRef(null);
   const size = useCanvasSize(overlayRef);
@@ -123,19 +126,24 @@ export default function PackCanvas({ view, paintInputs, hoverState, handlers }) 
   const theme = useLayerTheme(overlayRef, dark);
   const paint = usePackPaint({ circles, colorMode, palette: theme.palette, weights, editsByPath });
   const hoverIndex = validIndex(hover, circles);
-  const keep = keepCircle(hoverIndex === null ? null : circles[hoverIndex], focusNode);
+  // The selected file keeps its ring while nothing else is hovered.
+  const ringIndex = hoverIndex ?? (selected ? indexOf.get(selected) ?? null : null);
+  const targetFades = useMemo(
+    () => fadesFor(circles, indexOf, { focusNode, hoverNode: hoverIndex === null ? null : circles[hoverIndex], selectedNode: selected }),
+    [circles, indexOf, focusNode, hoverIndex, selected],
+  );
+  const fades = useFadeTween(targetFades);
 
-  useStaticLayer(staticRef, { circles, indexOf, paint, screenCoords, viewport, size });
+  useStaticLayer(staticRef, { circles, indexOf, paint, screenCoords, viewport, size, fades });
   useOverlayLayer(overlayRef, {
-    circles, screenCoords, viewport, focusNode, theme, size, hoverIndex,
-    keepIndex: keep ? indexOf.get(keep) ?? null : null,
+    circles, screenCoords, viewport, focusNode, theme, size, hoverIndex: ringIndex,
     showLabels: showLabels && shown === transform,
   });
   const kbd = useMemo(
     () => kbdItems({ circles, paint, focusNode, colorMode, handleClick }),
     [circles, paint, focusNode, colorMode, handleClick],
   );
-  const pointer = usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, indexOf, hover: hoverIndex, setHover, handleClick, handleBgClick });
+  const pointer = usePointer({ overlayRef, circles, screenCoords, viewport, focusNode, indexOf, hover: hoverIndex, setHover, handleClick, handleBgClick, handleRootClick });
 
   return (
     <>

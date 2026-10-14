@@ -41,6 +41,7 @@ const DETAIL_BUTTON_STYLE = {
   transition: 'all 0.2s',
 };
 const TAG_STYLE = { color: 'var(--color-text-muted)', fontSize: 11, margin: '-4px 0 8px' };
+const PATH_STYLE = { color: 'var(--color-text-muted)', fontSize: 10, margin: '-6px 0 8px', wordBreak: 'break-all' };
 const SECONDARY_BUTTON_STYLE = {
   marginTop: 8,
   padding: 0,
@@ -74,6 +75,7 @@ export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape }) {
   return (
     <div style={PANEL_STYLE} role={label ? 'region' : undefined} aria-label={label}>
       <div style={TITLE_STYLE}>{levelInfo.title}</div>
+      {levelInfo.path && <div style={PATH_STYLE}>{levelInfo.path}</div>}
       {levelInfo.tag && <div style={TAG_STYLE}>{levelInfo.tag}</div>}
       {levelInfo.lines.map((l, i) => (
         <div key={i} style={{ ...ROW_STYLE, color: l.color || 'var(--color-text-muted)' }}>

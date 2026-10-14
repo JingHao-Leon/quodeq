@@ -77,21 +77,29 @@ function focusFolder(c, { setFocus, onDrillDown, prevPathRef }) {
   prevPathRef.current = path;
 }
 
-function useFocusHandlers({ focusNode, setFocus, onFileClick, onDrillDown, prevPathRef }) {
+function useFocusHandlers({ focusNode, setFocus, onFileSelect, onDrillDown, prevPathRef }) {
   const handleClick = useCallback((e, c) => {
     e.stopPropagation();
     const nav = { setFocus, onDrillDown, prevPathRef };
     // The open folder itself never arrives here: the pointer ignores a hit
     // on it and the keyboard offers only its children.
-    if (c.data.isFile) onFileClick?.(c.data);
+    if (c.data.isFile) onFileSelect?.(c);
     else if (isDrillableFolder(c.data) && c !== focusNode) focusFolder(c, nav);
-  }, [focusNode, onFileClick, onDrillDown]);
+  }, [focusNode, onFileSelect, onDrillDown]);
 
   const handleBgClick = useCallback(() => {
     focusParent(focusNode, { setFocus, onDrillDown, prevPathRef });
   }, [focusNode, onDrillDown]);
 
-  return { handleClick, handleBgClick };
+  // A click outside every circle goes to the top of the project (Escape still goes up one level).
+  const handleRootClick = useCallback(() => {
+    if (!focusNode || focusNode.depth === 0) return;
+    setFocus(null);
+    onDrillDown?.('');
+    prevPathRef.current = '';
+  }, [focusNode, onDrillDown]);
+
+  return { handleClick, handleBgClick, handleRootClick };
 }
 
 /** The node to focus in the current layout. `focus` may belong to an
@@ -108,10 +116,11 @@ function useResolvedFocus(focus, root, circles) {
 /**
  * Focus state of the zoomable pack: which folder is open (kept in step with
  * `currentPath` and `resetKey`), the zoom transform that frames it, and the
- * click handlers that drill in, open files and zoom out.
- * @returns {{focusNode: object, transform: {k:number,tx:number,ty:number}, handleClick: Function, handleBgClick: Function, skipTransition: {current: boolean}}}
+ * click handlers that drill in, select files (`onFileSelect(circle)`), go to
+ * the top (a miss) and zoom out one level (Escape).
+ * @returns {{focusNode: object, transform: {k:number,tx:number,ty:number}, handleClick: Function, handleBgClick: Function, handleRootClick: Function, skipTransition: {current: boolean}}}
  */
-export function useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileClick, autoOpen = true }) {
+export function useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect, autoOpen = true }) {
   const [focus, setFocus] = useState(null);
   const skipTransition = useRef(true);
   const prevPathRef = useRef(null);
@@ -127,6 +136,6 @@ export function useFocusManager({ root, circles, resetKey, currentPath, onDrillD
 
   const focusNode = useResolvedFocus(focus, root, circles);
   const transform = useFocusTransform(focusNode);
-  const { handleClick, handleBgClick } = useFocusHandlers({ focusNode, setFocus, onFileClick, onDrillDown, prevPathRef });
-  return { focusNode, transform, handleClick, handleBgClick, skipTransition };
+  const { handleClick, handleBgClick, handleRootClick } = useFocusHandlers({ focusNode, setFocus, onFileSelect, onDrillDown, prevPathRef });
+  return { focusNode, transform, handleClick, handleBgClick, handleRootClick, skipTransition };
 }

@@ -126,19 +126,28 @@ describe('TimelapsePackView while paused', () => {
     const { container } = await renderView({ timelapse: timelapse() });
     hitPath = 'src/ui/a.js';
     fireEvent.mouseMove(overlayOf(container));
-    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^src\/ui\/a\.js$/);
+    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^a\.js$/);
+    expect(container.querySelector('.map-tooltip-path')).toHaveTextContent(/^src\/ui\/a\.js$/);
     expect(container.querySelector('.map-tooltip')).toHaveTextContent(t('map.violations'));
   });
 
-  it('a folder click zooms into it and a file click does nothing', async () => {
+  it('a click goes where it lands: a file elsewhere opens its folder, a folder opens', async () => {
     const onDrillDown = vi.fn();
     const { container } = await renderView({ timelapse: timelapse(), onDrillDown, currentPath: '' });
     hitPath = 'src/ui/a.js';
     fireEvent.click(overlayOf(container));
-    expect(onDrillDown).not.toHaveBeenCalled();
+    expect(onDrillDown).toHaveBeenLastCalledWith('src/ui');
     hitPath = 'docs';
     fireEvent.click(overlayOf(container));
-    expect(onDrillDown).toHaveBeenCalledWith('docs');
+    expect(onDrillDown).toHaveBeenLastCalledWith('docs');
+  });
+
+  it('a file click inside the open folder does nothing', async () => {
+    const onDrillDown = vi.fn();
+    const { container } = await renderView({ timelapse: timelapse(), onDrillDown });
+    hitPath = 'src/ui/a.js';
+    fireEvent.click(overlayOf(container));
+    expect(onDrillDown).not.toHaveBeenCalled();
   });
 });
 
@@ -176,7 +185,7 @@ describe('TimelapsePackView background click', () => {
     expect(overlayOf(container)).toHaveAttribute('role', 'img');
   });
 
-  it('a click outside every circle while paused zooms out', async () => {
+  it('a click outside every circle while paused goes to the top', async () => {
     const onDrillDown = vi.fn();
     const { container } = await renderView({ timelapse: timelapse(), onDrillDown });
     fireEvent.click(overlayOf(container));

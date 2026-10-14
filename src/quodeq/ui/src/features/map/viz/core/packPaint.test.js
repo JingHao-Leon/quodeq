@@ -127,3 +127,10 @@ test('activity joins a Windows tree path to its forward-slash history key', () =
   const out = buildPackPaint({ root, circles, mode: PACK_COLOR_MODE.ACTIVITY, palette: { ...PALETTE, dark: true }, weights: DEFAULT_SEVERITY_WEIGHTS, editsByPath: new Map([['src/a.py', 3]]) });
   assert.equal(out[circles.findIndex((c) => c.data.path === 'src\\a.py')].edits, 3);
 });
+
+test('the project circle is surface-alt in both themes: in dark mode one step above its frame, never the page colour', () => {
+  const root = (dark) => paint(PACK_COLOR_MODE.CONCENTRATION, dark).out[0].fill;
+  assert.equal(root(true), rgbCss(PALETTE.surfaceAlt));
+  assert.equal(root(false), rgbCss(PALETTE.surfaceAlt));
+  assert.notEqual(root(true), rgbCss(PALETTE.bg));
+});

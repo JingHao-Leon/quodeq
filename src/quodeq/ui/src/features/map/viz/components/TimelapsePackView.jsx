@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import TimelapseCanvas from './TimelapseCanvas.jsx';
 import PackTooltip from './PackTooltip.jsx';
 import { WRAPPER_STYLE } from './canvasLayer.js';
@@ -85,22 +85,16 @@ export default function TimelapsePackView({
   const focusIndex = useMemo(() => focusIndexFor(model, currentPath), [model, currentPath]);
   const [hover, setHover] = useHover(model.nodes[focusIndex], playing);
   const tip = useTip({ model, data, nodeDataAt, k: view ? view.to.k : null, hover });
-  const mousePos = useRef({ x: 0, y: 0 });
-  const containerRef = useRef(null);
   if (!view || !anchor) return null;
-  const trackMouse = (e) => {
-    const box = containerRef.current?.getBoundingClientRect();
-    if (box) mousePos.current = { x: e.clientX - box.left, y: e.clientY - box.top };
-  };
   const date = formatShortDate(dayDate(data.runs[view.to.k].day).toISOString());
   return (
-    <div ref={containerRef} style={WRAPPER_STYLE} onMouseMove={trackMouse}>
+    <div style={WRAPPER_STYLE}>
       <TimelapseCanvas
         scene={{ model, nodeDataAt, anchor, view, focusIndex, label: t('map.timelapsePackAria', { date }) }}
         paintInputs={{ colorMode, weights, dark }}
         interaction={{ playing, pause: controls.pause, hover, setHover, onDrillDown, showLabels }}
       />
-      <PackTooltip node={tip.node} note={tip.note} mousePos={mousePos} containerRef={containerRef} />
+      <PackTooltip node={tip.node} note={tip.note} />
     </div>
   );
 }
