@@ -44,10 +44,16 @@ Use the pills at the top of the tab:
 | --- | --- |
 | Click a dimension | Open the Explorer with all principles, scores, and findings. |
 | Click a principle | Open the principle detail with violations grouped by severity and a compliance list. |
-| Click a file | Open the file detail with every finding (active and compliance) for that file. |
+| Click a file, folder, requirement or area | Open its findings as one page, a scoped findings view (see below). |
 | Click a finding | Open the leaf finding card with breadcrumb context. |
 
-In the file detail, findings the agents flagged as likely false positives sit in a collapsed **Low confidence** group, out of the way of triage. Expand it to review them.
+### One file, folder or area at a time
+
+The Overview's cards, files, requirements and folders, the Explorer's cards and files, and the Map's **View details** open a scoped findings view: the findings of one file, one folder (everything under it), one requirement, one dimension, one area or the whole project, read as one page. In the workbench, **open file ›** on a finding opens its file the same way. Each one is a new step, so Back returns to where you came from, and the breadcrumb names the scope: the file's name, the folder's path, the requirement, the dimension, the area, or *project*.
+
+The header gives the scope's numbers: its violations with their critical, major and minor counts, its compliant checks, the ratio between them, and how many dimensions they come from. Below it, the filters narrow the page to one severity or to the compliant checks; a view opened from a severity card or a compliance card starts on that filter. The findings read by severity, with the compliant checks after the violations, or **by line**, down each file in order. Each card shows its code open, and findings flagged as likely false positives sit in a collapsed **Low confidence** group. **as a list ›** shows the same scope in the workbench list instead, as its filters and chips.
+
+Dismissing a finding from its card works as everywhere else, and the dismissal goes to the run of the finding's own dimension. A view opened from a past run (an older run picked on the Overview, a run page, a past bar in the Explorer, a past day of the Map's time-lapse) shows the findings as of that run under a banner, and is read-only: dismissing and fix plans act on today, and **Back to today** opens the same scope on today's findings.
 
 ### Fix plans
 
@@ -64,11 +70,11 @@ If a finding is a false positive or an accepted trade-off, dismiss it from the v
 - move to the **dismissed** sub-tab,
 - are **excluded from scoring** (the dimension score updates immediately),
 - are **excluded from future evaluations** for the same principle and file,
-- can be **restored** individually or in bulk via *Restore all*, or removed for good with *Delete* and *Delete all*.
+- can be **restored** individually, or removed for good with *Delete*. With the **dismissed** status on and nothing else narrowing the list, the ⋯ above it holds *restore all* and *delete all* for the whole project, each asking first.
 
 ### Dismissing a whole type
 
-The by-type row menu offers **Dismiss all N in this project** and **Dismiss all N in <principle>**. Each finding gets its own dismissal, written the same way as a single dismiss, so they all appear under *dismissed* and can be restored one by one or all at once. A dismissed type stops counting against the grade; the type is not closed, it is dismissed, and the Overview's open-type count no longer includes it.
+Select a finding in the workbench and open the ⋯ beside **open file ›**: it offers **Dismiss all N <requirement> in this project** and **Dismiss all N <requirement> in <principle>**, and asks before it acts. These act on many findings at once, which is why they wait behind the ⋯ while the one-finding dismiss stays on the card. Each finding gets its own dismissal, written the same way as a single dismiss, so they all appear under *dismissed* and can be restored one by one or all at once. A dismissed type stops counting against the grade; the type is not closed, it is dismissed, and the Overview's open-type count no longer includes it.
 
 ### Trust model and suppression rules
 
