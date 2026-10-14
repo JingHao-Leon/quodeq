@@ -115,11 +115,3 @@ export function splitFolderLabel(label, tailDepth = 2) {
   const lead = parts.length > tailDepth ? `${parts.slice(0, -tailDepth).join('/')}/` : '';
   return { lead, tail: tail ? `${tail}/` : '' };
 }
-
-/** The visible dimensions' findings and passing checks in one folder, by dimension. */
-export function folderDimensions(dimensions, dir) {
-  const inFolder = (item) => dirOf(item.file) === dir;
-  return (dimensions || [])
-    .map((d) => ({ ...d, violations: (d.violations || []).filter(inFolder), compliance: (d.compliance || []).filter(inFolder) }))
-    .filter((d) => d.violations.length > 0);
-}

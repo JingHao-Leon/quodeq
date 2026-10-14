@@ -19,7 +19,7 @@ function renderReadyContent({ data, callbacks, runMode, projectInfo, selectedRun
       runMode={runMode}
       data={{ dashboard, selectedRunId, accumulated, accumulatedDimensions, availableRuns, dailyRuns, overviewRunIndex, selectedProject, projectInfo, granularity, selectedSource, scoresPending, customFormula, formulaUpdated, refreshing }}
       focus={focus}
-      callbacks={{ onRunSelect, onRunHover, onRunHoverEnd, onDimensionCardClick: handlers.handleDimensionCardClick, onAccumulatedDimensionClick: handlers.handleAccumulatedDimensionClick, onFileClick: handlers.handleFileClick, onNavigate, onGranularityChange }}
+      callbacks={{ onRunSelect, onRunHover, onRunHoverEnd, onDimensionCardClick: handlers.handleDimensionCardClick, onAccumulatedDimensionClick: handlers.handleAccumulatedDimensionClick, onNavigate, onGranularityChange }}
     />
   );
 }
@@ -39,7 +39,7 @@ function renderReadyContent({ data, callbacks, runMode, projectInfo, selectedRun
  * @param {object} ctx.focus current focused dimension (dimension, setDimension,
  *   dimensionData)
  * @param {object} ctx.handlers click handlers from useDashboardHandlers
- *   (handleDimensionCardClick, handleAccumulatedDimensionClick, handleFileClick)
+ *   (handleDimensionCardClick, handleAccumulatedDimensionClick)
  * @param {Array} ctx.accumulatedDimensions pre-rescored accumulated dimensions
  * @param {string} [ctx.selectedRunId]
  * @param {() => void} ctx.onSetupComplete

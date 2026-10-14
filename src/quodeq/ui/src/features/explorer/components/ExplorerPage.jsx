@@ -14,14 +14,13 @@ import { useExplorerPageSpecs } from './useExplorerPageSpecs.jsx';
 import { buildRadialPrinciples, buildEnrichedPrinciples } from './explorerPrincipleView.js';
 import { t } from '../../../strings/index.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
-import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
-import { HERO_CARD_KIND } from '../../dashboard/dashboardVocab.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { HELP_SECTION } from '../../../vocab/helpSection.js';
 import { buildHeadline, dimensionHeadlineInput } from '../../dashboard/headlineStats.js';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { useExplorerTrend } from './useExplorerTrend.js';
 import { dimensionPeriodDeltas } from '../dimensionPeriodDeltas.js';
+import { buildExplorerFindingsNav } from './explorerFindingsNav.js';
 
 /** Empty/loading/error states, checked in order — extracted so the main
  * render stays a single happy-path return. The loading state keeps the
@@ -93,11 +92,11 @@ function useExplorerPageData({ project, dimension, runId, dateLabel, refreshSign
 }
 
 /**
- * The synthetic dimension-root file the VIOLATIONS / COMPLIANCE cards (and
- * severity badges) navigate into a FileDetailPage with, mirroring the
- * project / run / by-dimension-row pattern. fromProject rides along so a
- * file opened from a cross-project explorer dismisses into ITS project,
- * not the global selection.
+ * The synthetic dimension-root file a cross-project explorer's VIOLATIONS /
+ * COMPLIANCE cards (and severity badges) navigate into a FileDetailPage
+ * with (see explorerFindingsNav.js). fromProject rides along so a file
+ * opened from a cross-project explorer dismisses into ITS project, not the
+ * global selection.
  */
 function buildDimensionRootFile(evalData, allViolations, complianceByPrinciple) {
   const allCompliance = [];
@@ -108,16 +107,6 @@ function buildDimensionRootFile(evalData, allViolations, complianceByPrinciple) 
     [{ dimension: evalData.dimension, violations: allViolations, compliance: allCompliance }],
     evalData.dimension,
   );
-}
-
-function buildExplorerCardNavigation({ dimFile, onNavigate, project, activeRunId, activeDateLabel, sourceTab }) {
-  const handleCardNavigate = (kind) => {
-    if (!onNavigate) return;
-    const severityFilter = kind === HERO_CARD_KIND.VIOLATIONS ? SEVERITY_FILTER_ALL : kind;
-    onNavigate(NAV_TAB.FILE, { file: dimFile, severityFilter, runId: activeRunId, dateLabel: activeDateLabel, sourceTab, fromProject: project });
-  };
-  const onSeverityBadge = (level) => () => handleCardNavigate(level);
-  return { handleCardNavigate, onSeverityBadge };
 }
 
 /** Top grid: the stats panel (score/violations/compliance/history) plus
@@ -160,8 +149,7 @@ function ExplorerTopGrid({
 function ExplorerPageBody({
   isRefreshing, dim, standardDescription, activeDateLabel, activeRunId, overallScoreNum, d,
   onSeverityBadge, onNavigate, handleCardNavigate, trend, granularity, onGranularityChange,
-  setActiveRunId, setActiveDateLabel, radialPrinciples, onPrincipleClick, enrichedPrinciples,
-  sourceTab, project,
+  setActiveRunId, setActiveDateLabel, radialPrinciples, onPrincipleClick, enrichedPrinciples, onFileClick,
 }) {
   // The arrows on the title, the score and the chips: this dimension's
   // change since the previous period of the chart's grouping, as of the
@@ -205,7 +193,7 @@ function ExplorerPageBody({
           </div>
           <TopOffendingFilesTable
             files={d.topFiles}
-            onFileClick={(f) => onNavigate?.(NAV_TAB.FILE, { file: f, runId: activeRunId, dateLabel: activeDateLabel, sourceTab, fromProject: project })}
+            onFileClick={onFileClick}
           />
         </section>
       </DeferredMount>
@@ -242,6 +230,7 @@ export default function ExplorerPage({
   trend: borrowedTrend = [],
   granularity = 'day',
   onGranularityChange,
+  scopedFindings = null,
 }) {
   const trend = useExplorerTrend(project, selectedSource, borrowedTrend);
   const {
@@ -257,8 +246,8 @@ export default function ExplorerPage({
   const status = explorerPageStatus(d, dimension);
   if (status) return status;
 
-  const { handleCardNavigate, onSeverityBadge } = buildExplorerCardNavigation({
-    dimFile, onNavigate, project, activeRunId, activeDateLabel, sourceTab,
+  const { handleCardNavigate, onSeverityBadge, onFileClick } = buildExplorerFindingsNav({
+    dimension, scoped: scopedFindings, dimFile, onNavigate, project, activeRunId, activeDateLabel, sourceTab, trend,
   });
 
   const {
@@ -273,7 +262,7 @@ export default function ExplorerPage({
       trend={trend} granularity={granularity} onGranularityChange={onGranularityChange}
       setActiveRunId={setActiveRunId} setActiveDateLabel={setActiveDateLabel}
       radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick} enrichedPrinciples={enrichedPrinciples}
-      sourceTab={sourceTab} project={project}
+      onFileClick={onFileClick}
     />
   );
 }

@@ -7,22 +7,20 @@ import FixFirstPanel from './FixFirstPanel.jsx';
 import RiskAreasPanel from './RiskAreasPanel.jsx';
 import { VIZ_STYLE } from '../../map/mapVocab.js';
 import ListShowMore from './ListShowMore.jsx';
-import { buildTopOffendingFiles, buildProjectRootFile } from '../../../utils/explorerUtils.js';
+import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
 import { DEFAULT_SCORE_HISTORY_GRANULARITY } from '../../../constants.js';
 import { HERO_CARD_KIND } from '../dashboardVocab.js';
 import { buildHeadline, filterSinceBaseline, periodChipDeltas, sumSinceBaseline } from '../headlineStats.js';
-import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
 import { useAccumulatedComputations, computeAccumulatedStats } from '../hooks/useAccumulatedComputations.js';
 import { AccumulatedHeroSection } from './AccumulatedHeroSection.jsx';
 import { useAccumulatedReportSpec } from './accumulatedReportSpecs.jsx';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { withPending } from '../../../utils/pendingClass.js';
-import { typeFile } from '../../violations/byTypeModel.js';
-import { FILE_SELECTOR_KIND } from '../../../routes/liveSelectors.js';
-import { folderDimensions } from '../findingsGrouping.js';
+import { SCOPE_KIND, openScope } from '../../violations/scope/scopeModel.js';
+import { overviewAsOf } from '../overviewAsOf.js';
 
 const runHistoryPanelImport = () => import('./RunHistoryPanel.jsx');
 const RunHistoryPanel = lazy(runHistoryPanelImport);
@@ -100,7 +98,7 @@ function HistoryPanelsRow({
 // The files table opens on the most severe few; the rest are one click away.
 const FILES_SHOWN = 8;
 
-function OffendingFilesSection({ topFiles, onNavigate, pending }) {
+function OffendingFilesSection({ topFiles, onNavigate, asOf, pending }) {
   const [open, setOpen] = useState(false);
   if (topFiles.length === 0) return null;
   return (
@@ -111,7 +109,7 @@ function OffendingFilesSection({ topFiles, onNavigate, pending }) {
       </div>
       <TopOffendingFilesTable
         files={open ? topFiles : topFiles.slice(0, FILES_SHOWN)}
-        onFileClick={onNavigate ? (f) => onNavigate(NAV_TAB.FILE, { file: f }) : undefined}
+        onFileClick={onNavigate ? (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf) : undefined}
       />
       <ListShowMore
         open={open} total={topFiles.length} shown={FILES_SHOWN}
@@ -122,52 +120,34 @@ function OffendingFilesSection({ topFiles, onNavigate, pending }) {
   );
 }
 
-function makeCardNavigate({ onNavigate, filteredDimensions, reportProjectName }) {
+// Every finding view below opens as a scoped Findings view, today's or, on a
+// past run (`asOf`, see overviewAsOf), that run's, read-only.
+
+/** The hero cards: the project's findings, opened on the card's severity or on the compliant checks. */
+function makeCardNavigate({ onNavigate, asOf }) {
   if (!onNavigate) return undefined;
-  return (kind) => {
-    const projectFile = buildProjectRootFile(filteredDimensions || [], reportProjectName);
-    const severityFilter = kind === HERO_CARD_KIND.VIOLATIONS ? SEVERITY_FILTER_ALL : kind;
-    onNavigate(NAV_TAB.FILE, { file: projectFile, severityFilter });
-  };
+  return (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: kind === HERO_CARD_KIND.VIOLATIONS ? null : kind }, asOf);
 }
 
-/** Fix first: a requirement opens on its findings, live like the By type view's. */
-function makeRequirementNavigate({ onNavigate, filteredDimensions }) {
+/** Fix first: a requirement opens on its findings. */
+function makeRequirementNavigate({ onNavigate, asOf }) {
   if (!onNavigate) return undefined;
-  return (row) => {
-    const dim = (filteredDimensions || []).find((d) => d.dimension === row.dimension);
-    if (!dim) return;
-    const violations = (dim.violations || []).filter((v) => v.req === row.req);
-    onNavigate(NAV_TAB.FILE, {
-      file: typeFile({ violations }, dim, `${row.req} · ${row.text}`),
-      fileSelector: { kind: FILE_SELECTOR_KIND.TYPE, dimension: row.dimension, req: row.req, text: row.text },
-      severityFilter: SEVERITY_FILTER_ALL,
-      runId: dim.fromRunId,
-      dateLabel: dim.fromDateLabel,
-    });
-  };
+  return (row) => openScope(onNavigate, { kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }, asOf);
 }
 
-/** Where the findings live: a folder opens on its findings across the dimensions on show. */
-function makeFolderNavigate({ onNavigate, filteredDimensions }) {
+/** Where the findings live: a folder opens on its findings. */
+function makeFolderNavigate({ onNavigate, asOf }) {
   if (!onNavigate) return undefined;
-  return (row) => {
-    const label = `${row.dir}/`;
-    onNavigate(NAV_TAB.FILE, {
-      file: buildProjectRootFile(folderDimensions(filteredDimensions, row.dir), label),
-      fileSelector: { kind: FILE_SELECTOR_KIND.FOLDER, dir: row.dir, dimensions: (filteredDimensions || []).map((d) => d.dimension), label },
-      severityFilter: SEVERITY_FILTER_ALL,
-    });
-  };
+  return (row) => openScope(onNavigate, { kind: SCOPE_KIND.FOLDER, path: row.dir }, asOf);
 }
 
 function AccumulatedOverviewSections({
   data, callbacks, currentOverviewRun, selectedDayDimNames, filteredPeriodTrend, filteredDimensions,
-  filteredAccumulated, filteredStats, chartMountable, dimTrends, topFiles, onCardNavigate, headline, notEvaluated,
+  filteredAccumulated, filteredStats, chartMountable, dimTrends, topFiles, onCardNavigate, headline, notEvaluated, asOf,
 }) {
   const { onRunClick, onRunHover, onRunHoverEnd, onDimensionClick, onNavigate } = callbacks;
-  const onFolderClick = useMemo(() => makeFolderNavigate({ onNavigate, filteredDimensions }), [onNavigate, filteredDimensions]);
-  const onRequirementClick = useMemo(() => makeRequirementNavigate({ onNavigate, filteredDimensions }), [onNavigate, filteredDimensions]);
+  const onFolderClick = useMemo(() => makeFolderNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
+  const onRequirementClick = useMemo(() => makeRequirementNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
   const onEvaluate = onNavigate ? () => onNavigate(NAV_TAB.EVALUATE) : undefined;
   // A run or date switch refetches the dashboard and the scores; every
   // section shows the previous values, muted, meanwhile.
@@ -217,7 +197,7 @@ function AccumulatedOverviewSections({
 
       <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={onRequirementClick} />
 
-      <OffendingFilesSection topFiles={topFiles} onNavigate={onNavigate} pending={pending} />
+      <OffendingFilesSection topFiles={topFiles} onNavigate={onNavigate} asOf={asOf} pending={pending} />
     </>
   );
 }
@@ -244,12 +224,10 @@ export default function AccumulatedOverviewPanel({ data, callbacks }) {
     [data.sinceBaseline, filteredDimensions],
   );
   const headline = useMemo(() => buildHeadline(filteredAccumulated?.dimensions), [filteredAccumulated]);
-  const reportProjectName = useAccumulatedReportSpec({ data, filteredAccumulated, filteredDimensions, headline, since });
+  useAccumulatedReportSpec({ data, filteredAccumulated, filteredDimensions, headline, since });
 
-  const onCardNavigate = useMemo(
-    () => makeCardNavigate({ onNavigate, filteredDimensions, reportProjectName }),
-    [onNavigate, filteredDimensions, reportProjectName],
-  );
+  const asOf = useMemo(() => overviewAsOf(data.selectedRunId, data.availableRuns), [data.selectedRunId, data.availableRuns]);
+  const onCardNavigate = useMemo(() => makeCardNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
 
   return (
     <AccumulatedOverviewSections
@@ -258,7 +236,7 @@ export default function AccumulatedOverviewPanel({ data, callbacks }) {
       filteredDimensions={filteredDimensions} filteredAccumulated={filteredAccumulated}
       filteredStats={filteredStats} chartMountable={chartMountable} dimTrends={dimTrends}
       topFiles={topFiles} onCardNavigate={onCardNavigate} headline={headline}
-      notEvaluated={notEvaluated}
+      notEvaluated={notEvaluated} asOf={asOf}
     />
   );
 }

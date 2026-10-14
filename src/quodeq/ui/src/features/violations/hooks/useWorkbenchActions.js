@@ -11,7 +11,7 @@ import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { useDismissByType } from './useDismissByType.js';
 
 /** file path -> File page object, built on demand from the visible dimensions' file tree. */
-export function useFileObjects(dimensions) {
+function useFileObjects(dimensions) {
   const nodes = useMemo(() => {
     const byPath = new Map();
     walkTree(buildFileTree(dimensions), (n) => { if (n.isFile) byPath.set(n.path, n); return false; });

@@ -13,14 +13,12 @@
  * stays as the fallback for callers that pass none.
  */
 import { buildProjectRootFile } from '../utils/explorerUtils.js';
-import { typeFile } from '../features/violations/byTypeModel.js';
-import { folderDimensions } from '../features/dashboard/findingsGrouping.js';
 
 /**
- * What a `fileSelector` points at: a whole dimension, one requirement code of
- * it, or one folder across the dimensions on show.
+ * What a `fileSelector` points at: a whole dimension. (A requirement or a
+ * folder opens as a scoped Findings view now, which reads the live payload.)
  */
-export const FILE_SELECTOR_KIND = Object.freeze({ DIMENSION: 'dimension', TYPE: 'type', FOLDER: 'folder' });
+export const FILE_SELECTOR_KIND = Object.freeze({ DIMENSION: 'dimension' });
 
 /**
  * The accumulated payload the routes render from: the latest one when the
@@ -30,6 +28,18 @@ export const FILE_SELECTOR_KIND = Object.freeze({ DIMENSION: 'dimension', TYPE: 
  */
 export function liveAccumulated(props) {
   return props?.dashboardData?.latestAccumulated || props?.dashboardData?.accumulated || null;
+}
+
+/**
+ * The run behind today's score of a dimension (today's payload, never an
+ * older run's), null while it is not loaded.
+ * @param {Object} props route props (`props.dashboardData`)
+ * @param {string} dimension
+ * @returns {string|null}
+ */
+export function latestRunOf(props, dimension) {
+  const dims = props?.dashboardData?.latestAccumulated?.dimensions || [];
+  return dims.find((d) => d.dimension === dimension)?.fromRunId ?? null;
 }
 
 function dimensionNamed(accumulated, name) {
@@ -69,35 +79,17 @@ export function buildEvalPrincipal(principleObj, principleGrade, runId) {
 }
 
 /**
- * One folder's findings across the selector's dimensions, or null when the
- * payload is missing or the folder no longer has any.
- */
-function liveFolderFile(selector, accumulated) {
-  if (!accumulated) return null;
-  const wanted = new Set(selector.dimensions || []);
-  const dims = (accumulated.dimensions || []).filter((d) => wanted.has(d.dimension));
-  const parts = folderDimensions(dims, selector.dir);
-  return parts.length ? buildProjectRootFile(parts, selector.label || selector.dir) : null;
-}
-
-/**
  * The File page's file rebuilt from the live payload, or null when the nav
  * params carry no selector, there is no payload, or the dimension is gone
  * (the caller then renders the snapshot).
- * @param {{ fileSelector?: { kind: string, dimension?: string, req?: string, text?: string, dir?: string, dimensions?: string[], label?: string } }} params
+ * @param {{ fileSelector?: { kind: string, dimension?: string } }} params
  * @param {Object|null} accumulated
  * @returns {Object|null}
  */
 export function liveFileFor(params, accumulated) {
   const selector = params?.fileSelector;
-  if (selector?.kind === FILE_SELECTOR_KIND.FOLDER) return liveFolderFile(selector, accumulated);
-  const dim = selector ? dimensionNamed(accumulated, selector.dimension) : null;
-  if (!dim) return null;
-  if (selector.kind === FILE_SELECTOR_KIND.TYPE) {
-    const violations = (dim.violations || []).filter((v) => v.req === selector.req);
-    return typeFile({ violations }, dim, `${selector.req} · ${selector.text || dim.dimension}`);
-  }
-  return buildProjectRootFile([dim], dim.dimension);
+  const dim = selector?.kind === FILE_SELECTOR_KIND.DIMENSION ? dimensionNamed(accumulated, selector.dimension) : null;
+  return dim ? buildProjectRootFile([dim], dim.dimension) : null;
 }
 
 /**
