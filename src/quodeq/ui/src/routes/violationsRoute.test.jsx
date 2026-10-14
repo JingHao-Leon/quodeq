@@ -65,14 +65,50 @@ describe('ViolationsRoute as of a past day', () => {
     expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { wb: { q: 'api' }, asOf: null });
   });
 
-  it('opens a file inside that day\'s list, as a new step', () => {
+  it('opens a file as that day\'s scoped view, as a new step', () => {
     const props = routeProps({ dimensions: dims() });
     const params = { wb: { q: 'api', area: { name: 'a', paths: ['x/'] } }, asOf: { runId: 'r7', day: '2026-08-07' } };
     const el = ViolationsRoute({ params, props });
     el.props.callbacks.onFileClick({ file: 'src/a.py' });
     expect(props.navigation.handleNavigate).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, {
-      wb: { q: 'api', paths: ['src/a.py'], area: null, selectedId: null }, asOf: { runId: 'r7', day: '2026-08-07' },
+      scope: { kind: 'file', path: 'src/a.py' }, asOf: { runId: 'r7', day: '2026-08-07' },
     });
+  });
+});
+
+describe('ViolationsRoute scoped to a file, a folder, a dimension...', () => {
+  it('reads the scope param, and drops a malformed one', () => {
+    const props = routeProps({ dimensions: dims() });
+    const el = ViolationsRoute({ params: { scope: { kind: 'folder', path: 'src/a/', filter: 'critical' } }, props });
+    expect(el.props.data.scope).toEqual({ kind: 'folder', path: 'src/a', filter: 'critical' });
+    expect(ViolationsRoute({ params: { scope: { kind: 'folder' } }, props }).props.data.scope).toBeNull();
+  });
+
+  it('opens a file of today as today\'s scoped view', () => {
+    const props = routeProps({ dimensions: dims() });
+    ViolationsRoute({ params: {}, props }).props.callbacks.onFileClick({ file: 'src/a.py' });
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { scope: { kind: 'file', path: 'src/a.py' }, asOf: null });
+  });
+
+  it('shows the scope as the workbench list in the same step, keeping its day', () => {
+    const props = routeProps({ dimensions: dims() });
+    props.navigation.handleNavigateReplace = vi.fn();
+    const params = { scope: { kind: 'area', name: 'api', paths: ['src/api/'] }, asOf: { runId: 'r7', day: '2026-08-07' } };
+    const el = ViolationsRoute({ params, props });
+    el.props.callbacks.onListScope(el.props.data.scope);
+    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, {
+      asOf: { runId: 'r7', day: '2026-08-07' }, scope: null, wb: { area: { name: 'api', paths: ['src/api/'] }, selectedId: null },
+    });
+  });
+
+  it('is read-only on a past day and back to today keeps the scope', () => {
+    const props = routeProps({ dimensions: dims() });
+    props.navigation.handleNavigateReplace = vi.fn();
+    const params = { scope: { kind: 'project' }, asOf: { runId: 'r7', day: null } };
+    const el = ViolationsRoute({ params, props });
+    expect(el.props.callbacks.onDismissFinding).toBeUndefined();
+    el.props.callbacks.onBackToToday();
+    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { scope: { kind: 'project' }, asOf: null });
   });
 });
 

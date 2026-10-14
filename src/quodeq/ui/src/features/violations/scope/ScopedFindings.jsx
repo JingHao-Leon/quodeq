@@ -3,48 +3,29 @@ import SeverityFilterPills from '../../../components/SeverityFilterPills.jsx';
 import { CodeOpenByDefault } from '../../../components/codeOpenContext.js';
 import FileDetailHeader from '../../explorer/components/FileDetailHeader.jsx';
 import { useFileDetailFiltering } from '../../explorer/components/useFileDetailFiltering.js';
-import { useFileDetailWindowSpecs } from '../../explorer/components/useFileDetailWindowSpecs.jsx';
 import { useDashboardScrollElement } from '../../explorer/components/VirtualList.jsx';
-import DeferredViolationList from '../../explorer/components/DeferredViolationList.jsx';
-import { GroupHeader, LowConfidenceToggle, ROW_HEIGHT_PX, fileFindingKey } from '../../explorer/components/fileDetailWidgets.jsx';
+import { FindingRowsList, useFindingsPaneSpecs } from '../../explorer/components/fileDetailRows.jsx';
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
-import ViolationCard from '../../explorer/components/ViolationCard.jsx';
-import { ComplianceCard } from '../../explorer/components/EvalCards.jsx';
 import { scopeFindings } from './scopeModel.js';
 import { FINDING_TYPE } from '../../../vocab/findingType.js';
-import { severityLabel } from '../../../strings/labels.js';
 import { t } from '../../../strings/index.js';
 
 /** How the scoped list reads: by severity (grouped, the default) or down the file by line. */
 export const SCOPE_SORT = Object.freeze({ SEVERITY: 'severity', LINE: 'line' });
 const SORTS = [SCOPE_SORT.SEVERITY, SCOPE_SORT.LINE];
 const isFindingRow = (item) => item.kind === FINDING_TYPE.VIOLATION || item.kind === ROW_KIND.LOW_CONF_ROW || item.kind === FINDING_TYPE.COMPLIANCE;
-const lineOf = (item) => (item.v || item.c)?.line ?? 0;
+const findingOf = (item) => item.v || item.c || {};
+/** Down each file by line, the files in path order (one file: just by line). */
+const byFileThenLine = (a, b) => {
+  const x = findingOf(a);
+  const y = findingOf(b);
+  return (x.file || '').localeCompare(y.file || '') || (x.line ?? 0) - (y.line ?? 0);
+};
 
 /** The rows in reading order: grouped by severity as built, or every finding down the file. */
 function sortedRows(items, sort) {
   if (sort !== SCOPE_SORT.LINE) return items;
-  return items.filter(isFindingRow).sort((a, b) => lineOf(a) - lineOf(b));
-}
-
-function renderRow(item, { onDismiss, setLowConfExpanded }) {
-  switch (item.kind) {
-    case ROW_KIND.SEV_HEADER: {
-      const label = severityLabel(item.sev);
-      return <GroupHeader title={label.charAt(0).toUpperCase() + label.slice(1)} count={item.count} />;
-    }
-    case ROW_KIND.COMPLIANCE_HEADER:
-      return <GroupHeader title={t('violations.scopeCompliant')} count={item.count} />;
-    case ROW_KIND.LOW_CONF_TOGGLE:
-      return <LowConfidenceToggle count={item.count} expanded={item.expanded} onToggle={() => setLowConfExpanded((v) => !v)} />;
-    case FINDING_TYPE.VIOLATION:
-    case ROW_KIND.LOW_CONF_ROW:
-      return <ViolationCard v={item.v} onDismiss={onDismiss} />;
-    case FINDING_TYPE.COMPLIANCE:
-      return <ComplianceCard c={item.c} principle={item.c.principle} index={0} />;
-    default:
-      return null;
-  }
+  return items.filter(isFindingRow).sort(byFileThenLine);
 }
 
 function SortChoice({ sort, onSort }) {
@@ -86,8 +67,7 @@ function ScopedFile({ file, dims, sub, initialFilter, onDismissFinding, onList }
   const { handleDismiss, liveSevCounts, liveTotal, totalCompliance, items, violationsBySeverity } = useFileDetailFiltering({
     file, onDismiss, activeFilter, lowConfExpanded,
   });
-  const hydratedFile = useMemo(() => ({ ...file, violationsBySeverity }), [file, violationsBySeverity]);
-  useFileDetailWindowSpecs({ file: hydratedFile, activeFilter });
+  useFindingsPaneSpecs(file, violationsBySeverity, activeFilter);
   const scrollElement = useDashboardScrollElement();
   const rows = useMemo(() => sortedRows(items, sort), [items, sort]);
   return (
@@ -100,13 +80,10 @@ function ScopedFile({ file, dims, sub, initialFilter, onDismissFinding, onList }
         {onList && <button type="button" className="wb-link findings-scope__list" onClick={onList}>{t('violations.scopeAsList')}</button>}
       </div>
       <CodeOpenByDefault.Provider value>
-        <DeferredViolationList
-          resetKey={`${activeFilter ?? 'all'}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
-          items={rows}
-          scrollElement={scrollElement}
-          rowHeights={ROW_HEIGHT_PX}
-          findingKey={fileFindingKey}
-          renderItem={(item) => renderRow(item, { onDismiss: onDismiss ? handleDismiss : undefined, setLowConfExpanded })}
+        <FindingRowsList
+          rows={rows} resetKey={`${activeFilter ?? 'all'}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
+          scrollElement={scrollElement} setLowConfExpanded={setLowConfExpanded}
+          onDismiss={onDismiss ? handleDismiss : undefined} complianceTitle={t('violations.scopeCompliant')}
         />
       </CodeOpenByDefault.Provider>
     </div>

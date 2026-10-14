@@ -1,6 +1,8 @@
 import { buildProjectRootFile } from '../../../utils/explorerUtils.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { FINDING_TYPE } from '../../../vocab/findingType.js';
+import { NAV_TAB } from '../../../vocab/navTab.js';
+import { t } from '../../../strings/index.js';
 
 /** What a scoped Findings view is about. */
 export const SCOPE_KIND = Object.freeze({
@@ -85,4 +87,32 @@ export function scopeAsList(scope) {
   if (scope.kind === SCOPE_KIND.DIMENSION) return { dimension: scope.dimension };
   if (scope.kind === SCOPE_KIND.REQUIREMENT) return { dimension: scope.dimension, q: scope.req };
   return {};
+}
+
+/** The breadcrumb's name of each kind: the file's name, the folder's path, the dimension, the requirement, the project, the area. */
+const LABELS = {
+  [SCOPE_KIND.FILE]: (s) => s.path.split(SLASH).pop(),
+  [SCOPE_KIND.FOLDER]: (s) => `${s.path}${SLASH}`,
+  [SCOPE_KIND.DIMENSION]: (s) => s.dimension.toLowerCase(),
+  [SCOPE_KIND.REQUIREMENT]: (s) => s.req,
+  [SCOPE_KIND.PROJECT]: () => t('violations.scopeKind_project'),
+  [SCOPE_KIND.AREA]: (s) => s.name,
+};
+
+/** A `scope` navigation param as its breadcrumb reads; null when it is no scope. */
+export function scopeLabel(param) {
+  const scope = readScope(param);
+  return scope ? LABELS[scope.kind](scope) : null;
+}
+
+/**
+ * Open a scoped Findings view as a new navigation step, so Back returns to
+ * where it was opened. `scope` is `{kind, ...fields, filter?}`; `asOf` names
+ * a past run (`{runId, day}`) and opens it read-only, null opens today.
+ * @returns {boolean} whether it navigated
+ */
+export function openScope(onNavigate, scope, asOf = null) {
+  if (!onNavigate) return false;
+  onNavigate(NAV_TAB.VIOLATIONS, { scope, asOf: asOf || null });
+  return true;
 }

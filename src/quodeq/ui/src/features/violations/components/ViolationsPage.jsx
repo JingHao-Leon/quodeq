@@ -65,11 +65,27 @@ function AsOfBanner({ asOf, onBack }) {
   );
 }
 
+/** The dismissed count the header shows: none on a past day, nor while the dismissed list first loads. */
+function shownDismissedCount({ asOf, dismissed, dismissedLoading }) {
+  return asOf || (dismissedLoading && !dismissed.length) ? null : dismissed.length;
+}
+
+/** The page frame: the past-day banner and the action banners above the body. */
+function PageFrame({ refreshing, asOf, onBackToToday, banners, children }) {
+  return (
+    <div className={`violations-page violations-page--terminal${refreshing ? ' section-pending' : ''}`}>
+      <AsOfBanner asOf={asOf} onBack={onBackToToday} />
+      <Banners {...banners} />
+      {children}
+    </div>
+  );
+}
+
 export default function ViolationsPage({ data: given, callbacks, workbench = null, onWorkbenchChange }) {
   const data = useShownData(given);
   const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null, scope = null } = data;
   const { projects = [], projectsLoaded, projectName, loading, isFetching, error } = data;
-  const { onNavigate, onReconcile, onRetry } = callbacks;
+  const { onNavigate, onReconcile, onRetry, onListScope } = callbacks;
 
   const pageState = useViolationsPageState({ selectedProject, onReconcile, accumulatedDimensions, selectedSource });
   const { dismissed, dismissedLoading, restoreError, visibleDimensions, summary } = pageState;
@@ -82,29 +98,28 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
     accumulatedDimensions, loading, isFetching, error, projectName, onRetry,
   });
   if (emptyState) return emptyState;
-  const isRefreshing = isFetching && !loading;
+  const frame = {
+    refreshing: isFetching && !loading, asOf, onBackToToday: callbacks.onBackToToday,
+    banners: { restoreError, dismissError, dismissNotice },
+  };
 
   if (scope) {
     return (
-      <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
-        <AsOfBanner asOf={asOf} onBack={callbacks.onBackToToday} />
-        <Banners restoreError={restoreError} dismissError={dismissError} dismissNotice={dismissNotice} />
+      <PageFrame {...frame}>
         <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null}
-          onDismissFinding={actions.onDismiss} onList={callbacks.onListScope ? () => callbacks.onListScope(scope) : undefined} />
-      </div>
+          onDismissFinding={actions.onDismiss} onList={onListScope ? () => onListScope(scope) : undefined} />
+      </PageFrame>
     );
   }
   return (
-    <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
-      <AsOfBanner asOf={asOf} onBack={callbacks.onBackToToday} />
-      <Banners restoreError={restoreError} dismissError={dismissError} dismissNotice={dismissNotice} />
-      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={asOf || (dismissedLoading && !dismissed.length) ? null : dismissed.length} />
+    <PageFrame {...frame}>
+      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={shownDismissedCount({ asOf, dismissed, dismissedLoading })} />
       {/* The header paints on the click; the workbench (every finding,
           flattened and filtered) follows in the next commit. */}
       <DeferredMount fallback={<CardListSkeleton />}>
         <FindingsWorkbench dims={visibleDimensions} dismissed={dismissed} dismissedLoading={dismissedLoading} workbench={workbench}
           onWorkbenchChange={onWorkbenchChange} actions={actions} />
       </DeferredMount>
-    </div>
+    </PageFrame>
   );
 }

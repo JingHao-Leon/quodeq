@@ -14,7 +14,7 @@ import { NAV_TAB } from '../vocab/navTab.js';
 import { buildEvalPrincipal } from './liveSelectors.js';
 import { isSharedSource, makeDismissHandler } from './dismissWiring.js';
 import { readAsOf } from '../features/violations/asOf.js';
-import { readScope, scopeAsList, SCOPE_KIND } from '../features/violations/scope/scopeModel.js';
+import { openScope, readScope, scopeAsList, SCOPE_KIND } from '../features/violations/scope/scopeModel.js';
 
 // buildEvalPrincipal moved to routes/liveSelectors.js (the Principle page
 // rebuilds it from the live payload there); re-exported for its tests.
@@ -82,19 +82,21 @@ function buildViolationsPageProps({ params, props, acc, dims, nav, past }) {
 }
 
 /**
- * A past day's view (`params.asOf`, from the Map's time-lapse): the page
+ * A past day's view (`params.asOf`, a past run's entry point): the page
  * reads the findings as of that day's last run, read-only, and offers the
- * way back to today (the same entry, without `asOf`).
+ * way back to today (the same entry, without `asOf`). `params.scope` shows
+ * one scope's findings (a file, a folder, a dimension...) as one page.
  */
 function pastView(params, props) {
+  const asOf = readAsOf(params.asOf);
   return {
-    asOf: readAsOf(params.asOf),
+    asOf,
     scope: readScope(params.scope),
     backToToday: () => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, { ...params, asOf: null }),
-    openFile: (file) => props.navigation.handleNavigate(NAV_TAB.VIOLATIONS, { asOf: params.asOf || null, scope: { kind: SCOPE_KIND.FILE, path: file } }),
-    // The scoped file as the workbench list: the same step, the file as a chip.
+    openFile: (file) => openScope(props.navigation.handleNavigate, { kind: SCOPE_KIND.FILE, path: file }, asOf),
+    // The scope as the workbench list: the same step, the scope as its chips.
     listScope: (scope) => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, {
-      asOf: params.asOf || null, scope: null, wb: { ...scopeAsList(scope), selectedId: null },
+      asOf, scope: null, wb: { ...scopeAsList(scope), selectedId: null },
     }),
   };
 }
