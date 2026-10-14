@@ -10,7 +10,7 @@ import { useFileDetailFiltering, dismissKey } from '../../explorer/components/us
 import { useDashboardScrollElement } from '../../explorer/components/VirtualList.jsx';
 import { useFindingsPaneSpecs, renderFileDetailRow } from '../../explorer/components/fileDetailRows.jsx';
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
-import { scopeFindings, SCOPE_KIND } from './scopeModel.js';
+import { scopeFindings, scopeQualifier, SCOPE_KIND } from './scopeModel.js';
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import { usePrincipleHead, severityDeltas } from './usePrincipleHead.jsx';
@@ -128,7 +128,7 @@ export default function ScopedFindings({ scope, dims, projectName, dateLabel, on
   // A new scope starts the page over (filter, order, view); an area's key carries its paths, so it is built once per scope.
   const scopeKey = useMemo(() => JSON.stringify(scope), [scope]);
   if (!file) return <div className="wb-empty">{t('violations.scopeEmpty')}</div>;
-  const sub = [t(`violations.scopeKind_${scope.kind}`), scope.kind === SCOPE_KIND.PRINCIPLE ? scope.dimension : null, dateLabel || head.when]
+  const sub = [t(`violations.scopeKind_${scope.kind}`), scopeQualifier(scope), dateLabel || head.when]
     .filter(Boolean).join(t('violations.wbDot'));
   return <ScopedFile key={scopeKey} file={file} within={within} dims={dims} sub={sub} head={head} initialFilter={scope.filter}
     onDismissFinding={onDismissFinding} readOnly={readOnly} period={{ pastRun: history?.pastRun || null, granularity: history?.granularity }} />;

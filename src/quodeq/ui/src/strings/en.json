@@ -2039,6 +2039,7 @@
   "violations.scopeKind_requirement": "requirement",
   "violations.scopeKind_project": "project",
   "violations.scopeKind_area": "area",
+  "violations.scopeListSep": ", ",
   "violations.asOfBanner": "Showing the findings of {date}. Read-only: dismissing and fix plans act on today.",
   "violations.asOfBack": "Back to today",
   "violations.scopeCompliantShort": "compliant",
