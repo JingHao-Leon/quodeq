@@ -134,6 +134,13 @@ describe('HelpPage violations section', () => {
     expect(container.textContent).toMatch(/one principle/);
     expect(container.textContent).not.toMatch(/as a list ›/);
   });
+
+  it('describes a principle\'s page: its requirements beside its findings, failing first, then Passing', () => {
+    const { container } = render(<HelpPage initialSection="violations" />);
+    expect(container.textContent).toMatch(/three columns: its requirements, its findings and the selected finding/);
+    expect(container.textContent).toMatch(/how many of its requirements fail, of how many were checked/);
+    expect(container.textContent).toMatch(/Passing/);
+  });
 });
 
 describe('HelpPage deep link', () => {
@@ -176,11 +183,11 @@ describe('HelpPage violations by type', () => {
 });
 
 describe('HelpPage overview: the dimension page', () => {
-  it('reads the dimension page top to bottom: header, principles, history and radial, files', () => {
+  it('reads the dimension page top to bottom: header, principles, history and radial, Fix first beside where', () => {
     const { container } = render(<HelpPage initialSection="overview" />);
     expect(screen.getByRole('heading', { level: 3, name: 'The dimension page' })).toBeInTheDocument();
     const text = container.textContent;
-    const at = ['The header', 'one card per principle', 'Score history and principles radial', 'the dimension\'s worst files'].map((s) => text.indexOf(s));
+    const at = ['The header', 'one card per principle', 'Score history and principles radial', 'the dimension\'s requirements', 'its violations by file'].map((s) => text.indexOf(s));
     expect(at.every((i) => i >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
