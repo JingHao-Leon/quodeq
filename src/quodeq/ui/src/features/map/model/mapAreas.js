@@ -20,6 +20,8 @@ function newArea(entry) {
     name: entry.area,
     kind: entry.kind,
     density: entry.density || 0,
+    // Density over the selection's project-wide density; null without a selection (GET /map/history `lift`).
+    lift: entry.lift ?? null,
     touchedShare: entry.touchedShare || 0,
     layers: new Set(),
     dots: [],
