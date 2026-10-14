@@ -18,6 +18,19 @@ function withCurrentView(entry, { vizStyle, viewMode, galaxyMode }) {
   return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined));
 }
 
+// A link may open the Map filtered: { vizStyle: 'risk', dimensions: [...], principle?, area? }.
+// Once the filter is changed on the page, the entry stops carrying the link's
+// filter, so coming back to it keeps the user's.
+function linkFilter(params, replaceView) {
+  return {
+    dimensions: params.dimensions,
+    principle: params.principle,
+    onFilterEdited: () => {
+      if (params.dimensions || params.principle) replaceView({ dimensions: undefined, principle: undefined });
+    },
+  };
+}
+
 export function mapRoute(params, props) {
   const acc = props.dashboardData.latestAccumulated || props.dashboardData.accumulated;
   const isDirectNav = props.navigation.navStackLength === 1;
@@ -60,6 +73,7 @@ export function mapRoute(params, props) {
       path: params.path || '',
       vizStyle: params.vizStyle,
       area: params.area || null,
+      ...linkFilter(params, replaceView),
       viewMode: params.viewMode,
       galaxyMode: params.galaxyMode,
       onPathChange: handlePathChange,
