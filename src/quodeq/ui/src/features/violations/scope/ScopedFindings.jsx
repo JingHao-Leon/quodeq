@@ -26,8 +26,14 @@ export const SCOPE_VIEW = Object.freeze({ LIST: 'list', CARDS: 'cards' });
 const VIEW_OPTIONS = () => [{ key: SCOPE_VIEW.LIST, label: t('violations.scopeViewList') }, { key: SCOPE_VIEW.CARDS, label: t('violations.scopeViewCards') }];
 const isFindingRow = (item) => item.kind === FINDING_TYPE.VIOLATION || item.kind === ROW_KIND.LOW_CONF_ROW || item.kind === FINDING_TYPE.COMPLIANCE;
 const findingOf = (item) => item.v || item.c || {};
-/** What the page already names, so rows leave it out: the file (rows show the line only), the principle. */
+/** Scopes checked on every file their dimension read: their per-100 base is the dimension's files read. */
+const OVER_FILES_READ = new Set([SCOPE_KIND.DIMENSION, SCOPE_KIND.PRINCIPLE]);
+/**
+ * What the page already names, so rows leave it out (the file: rows show the
+ * line only; the principle), what its per-100 base is, and whether it has a Risk.
+ */
 const withinOf = (scope) => ({ inFile: scope.kind === SCOPE_KIND.FILE, inPrinciple: scope.kind === SCOPE_KIND.PRINCIPLE, dimension: scope.dimension,
+  overFilesRead: OVER_FILES_READ.has(scope.kind),
   showsRisk: scope.kind === SCOPE_KIND.FOLDER || scope.kind === SCOPE_KIND.AREA, judgedSmall: Boolean(scope.small) });
 /** Down each file by line, the files in path order (one file: just by line). */
 const byFileThenLine = (a, b) => {
@@ -85,12 +91,13 @@ function SortChoice({ sort, onSort }) {
 }
 
 /**
- * What per 100 files is over: a principle is checked on every file its
- * dimension read, so the dimension's files read; any other scope the files
- * its checks looked at.
+ * What per 100 files is over: a dimension, and a principle of it, is checked
+ * on every file the dimension read, so the dimension's files read (as the
+ * dimension page counts); any other scope, or a dimension with no count, the
+ * files its checks looked at.
  */
 function filesBase(file, dims, within) {
-  const read = within.inPrinciple ? (dims.find((d) => d.dimension === within.dimension)?.filesRead || 0) : 0;
+  const read = within.overFilesRead ? (dims.find((d) => d.dimension === within.dimension)?.filesRead || 0) : 0;
   if (read) return { files: read, hint: t('violations.scopeStatFilesRead', { count: read }) };
   const checked = filesChecked(file);
   return { files: checked, hint: t('violations.scopeStatFilesHint', { count: checked }) };

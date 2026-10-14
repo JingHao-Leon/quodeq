@@ -91,6 +91,12 @@ describe('ScopedFindings', () => {
     expect(screen.getByText(t('violations.scopeStatFilesRead', { count: 50 }))).toBeInTheDocument();
   });
 
+  it('a dimension counts per 100 over the files it read, as the dimension page does', () => {
+    renderScope({ scope: { kind: 'dimension', dimension: 'security' } });
+    expect(screen.getByText(t('violations.scopeStatFilesRead', { count: 50 }))).toBeInTheDocument();
+    expect(tileValue(t('violations.scopeStatPer100'))).toHaveTextContent('4.0');
+  });
+
   it('a folder shows its Risk, too small to judge under three production files', () => {
     renderScope({ scope: { kind: 'folder', path: 'src' } });
     expect(tileValue(t('violations.scopeStatRisk'))).toHaveTextContent(t('map.riskKindSmall'));
