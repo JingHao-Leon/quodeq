@@ -6,6 +6,8 @@ import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
 // The areas card reads the Map's history through react-query; this test is about the panels around it.
 vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
+// The header's previous period, since line and model read through react-query too.
+vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () => null, useOverviewSince: () => null, useRunModel: () => null }));
 
 // Never resolves, so the lazy RunHistoryPanel stays suspended and the
 // Suspense fallback (RunHistoryPanelPlaceholder) is what ends up on screen.

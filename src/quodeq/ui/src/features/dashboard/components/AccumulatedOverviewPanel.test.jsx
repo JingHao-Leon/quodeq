@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { renderHook, render, screen } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { useAccumulatedComputations, AccumulatedHeroSection } from './AccumulatedOverviewPanel.jsx';
+import { useAccumulatedComputations } from './AccumulatedOverviewPanel.jsx';
 
 // Newest-first, one run per day, maintainability scored in every run.
 const TREND = [
@@ -24,25 +24,6 @@ function runHook(selectedRunId) {
     granularity: 'day',
   })).result.current;
 }
-
-// A tuned grade formula moves every score in the project at once and leaves no
-// other trace: same findings, same runs, different number. Setting the major
-// severity weight to 6.0 (shipped default 1.5) cost this project about a point
-// across every dimension for a month, and the Overview -- the one screen where
-// the grade is actually read -- said nothing.
-describe('AccumulatedHeroSection custom-formula warning', () => {
-  const ACC = { summary: { numericAverage: 5, overallGrade: 'Adequate', totalViolations: 3, totalCompliance: 1 } };
-
-  it('marks the score when a tuned formula produced it', () => {
-    render(<AccumulatedHeroSection accumulated={ACC} customFormula />);
-    expect(screen.getByText(/custom formula/i)).toBeInTheDocument();
-  });
-
-  it('says nothing when the shipped formula produced it', () => {
-    render(<AccumulatedHeroSection accumulated={ACC} customFormula={false} />);
-    expect(screen.queryByText(/custom formula/i)).not.toBeInTheDocument();
-  });
-});
 
 describe('useAccumulatedComputations dimTrends (as-of)', () => {
   it('uses the full series at the latest run', () => {
@@ -84,33 +65,5 @@ describe('useAccumulatedComputations selectedDayDimNames (multi-run day)', () =>
     expect(selectedDayDimNames.has('security')).toBe(true);
     expect(selectedDayDimNames.has('maintainability')).toBe(true);
     expect(selectedDayDimNames.has('reliability')).toBe(false);
-  });
-});
-
-// The Overview page header shows a "remote · read-only" chip
-// (+ publisher sub line where available) for shared projects, and nothing
-// extra for local ones.
-describe('AccumulatedHeroSection shared read-only chip', () => {
-  const baseProps = {
-    accumulated: { summary: { numericAverage: 7 } },
-    scoreDelta: null,
-    lastDate: null,
-    projectInfo: null,
-    onCardNavigate: undefined,
-  };
-
-  it('shows the chip for a shared project', () => {
-    render(<AccumulatedHeroSection {...baseProps} selectedSource="shared" />);
-    expect(screen.getByText('remote · read-only')).toBeInTheDocument();
-  });
-
-  it('omits the chip for a local project', () => {
-    render(<AccumulatedHeroSection {...baseProps} selectedSource="local" />);
-    expect(screen.queryByText('remote · read-only')).toBeNull();
-  });
-
-  it('shows the publisher sub line when projectInfo.publishedBy is available', () => {
-    render(<AccumulatedHeroSection {...baseProps} selectedSource="shared" projectInfo={{ publishedBy: 'alice' }} />);
-    expect(screen.getByText('published by alice')).toBeInTheDocument();
   });
 });

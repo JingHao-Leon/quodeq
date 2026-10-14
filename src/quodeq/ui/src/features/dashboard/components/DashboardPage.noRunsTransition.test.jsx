@@ -5,6 +5,8 @@ import { SidePaneProvider } from '../../side-pane/index.js';
 
 // The areas card reads the Map's history through react-query; this test is about the panels around it.
 vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
+// The header's previous period, since line and model read through react-query too.
+vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () => null, useOverviewSince: () => null, useRunModel: () => null }));
 
 // Split from DashboardPage.test.jsx: the no-runs -> first-run transition.
 

@@ -1,9 +1,13 @@
-import { useMemo, lazy, Suspense } from 'react';
+import { useMemo, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
+import OverviewHead from './OverviewHead.jsx';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
+import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import SinceStrip from '../../../components/SinceStrip.jsx';
+import RadialPanel from '../../../components/radial/RadialPanel.jsx';
 import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import { VIZ_STYLE } from '../../map/mapVocab.js';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
@@ -13,7 +17,9 @@ import { t } from '../../../strings/index.js';
 import { DEFAULT_SCORE_HISTORY_GRANULARITY } from '../../../constants.js';
 import { buildHeadline, filterSinceBaseline, periodChipDeltas, sumSinceBaseline } from '../headlineStats.js';
 import { useAccumulatedComputations, computeAccumulatedStats } from '../hooks/useAccumulatedComputations.js';
-import { AccumulatedHeroSection } from './AccumulatedHeroSection.jsx';
+import { usePreviousPeriodMetrics, useOverviewSince } from '../hooks/useOverviewPeriod.js';
+import { weakestDimensionFirst, dimensionPoints, overviewPastRun } from '../overviewHeadModel.js';
+import { topMovers } from '../../../models/sinceSummary.js';
 import { useAccumulatedReportSpec } from './accumulatedReportSpecs.jsx';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { withPending } from '../../../utils/pendingClass.js';
@@ -34,13 +40,16 @@ export function preloadRunHistoryPanel() {
   });
 }
 
-export { useAccumulatedComputations, computeAccumulatedStats, AccumulatedHeroSection };
+export { useAccumulatedComputations, computeAccumulatedStats };
+
+const lower = (s) => String(s ?? '').toLowerCase();
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function AccumulatedDimensionsSection({ sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, pending, notEvaluated, onEvaluate }) {
+/** The dimensions as compact cards, weakest first, each lit with its radial point. */
+function AccumulatedDimensionsSection({ sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, pending, notEvaluated, onEvaluate, lit }) {
   return (
     <section
       className={withPending('quality-dimensions', pending)}
@@ -59,36 +68,57 @@ function AccumulatedDimensionsSection({ sortedDimensions, onDimensionClick, sele
           dimTrends={dimTrends}
           notEvaluated={notEvaluated}
           onEvaluate={onEvaluate}
+          compact
+          highlighted={lit.name}
+          onHover={lit.setName}
         />
       </div>
     </section>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Accumulated overview panel
-// ---------------------------------------------------------------------------
-
-function HistoryPanelsRow({
-  chartMountable, filteredPeriodTrend, currentOverviewRun, onRunClick, onRunHover, onRunHoverEnd, granularity, onGranularityChange,
-  filteredDimensions, onFolderClick, onOpenMap, pending,
-}) {
+/** The score history (grade bands and change marks, as the dimension page's) beside the dimensions radial. */
+function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
+  const onPoint = onDimensionClick ? (name) => { const d = sorted.find((x) => x.dimension === name); if (d) onDimensionClick(d); } : undefined;
   return (
-    <div className={withPending('history-panels-row', pending)} aria-busy={pending || undefined}>
+    <div className={withPending('qd-top-grid overview-top-grid', pending)} aria-busy={pending || undefined}>
       <Suspense fallback={<RunHistoryPanelPlaceholder />}>
-        {chartMountable && (
+        {chart.mountable && (
           <RunHistoryPanel
-            trend={filteredPeriodTrend}
-            selectedRunId={currentOverviewRun}
-            onBarClick={onRunClick}
-            onBarHover={onRunHover}
-            onBarHoverEnd={onRunHoverEnd}
-            granularity={granularity || DEFAULT_SCORE_HISTORY_GRANULARITY}
-            onGranularityChange={onGranularityChange}
+            trend={chart.trend}
+            selectedRunId={chart.selectedRunId}
+            onBarClick={chart.onRunClick}
+            onBarHover={chart.onRunHover}
+            onBarHoverEnd={chart.onRunHoverEnd}
+            granularity={chart.granularity}
+            onGranularityChange={chart.onGranularityChange}
           />
         )}
       </Suspense>
-      <FindingsByFolderPanel dimensions={filteredDimensions} onFolderClick={onFolderClick} onOpenMap={onOpenMap} />
+      <RadialPanel radialPrinciples={dimensionPoints(sorted)} label={t('overview.dimensionsRadialLabel')} ariaLabel={t('overview.dimensionsRadialAria')}
+        onPrincipleClick={onPoint} highlighted={lit.name} onHover={lit.setName} />
+    </div>
+  );
+}
+
+/** What to fix beside where it is: Fix first on the left, the areas, folders or files on the right (areas first). */
+function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, onNavigate }) {
+  const [where, setWhere] = useState(WHERE.AREAS);
+  const openMap = onNavigate ? (params) => onNavigate(NAV_TAB.MAP, params) : null;
+  return (
+    <div className="explorer-bottom">
+      <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={opens.requirement} />
+      <WherePanel view={where} onView={setWhere}>
+        {where === WHERE.AREAS && (
+          <RiskAreasPanel project={data.selectedProject} source={data.selectedSource}
+            onAreaClick={openMap ? (area) => openMap({ vizStyle: VIZ_STYLE.RISK, area: area.name }) : undefined}
+            onOpenRisk={openMap ? () => openMap({ vizStyle: VIZ_STYLE.RISK }) : undefined} />
+        )}
+        {where === WHERE.FOLDERS && (
+          <FindingsByFolderPanel dimensions={filteredDimensions} onFolderClick={opens.folder} onOpenMap={openMap ? () => openMap() : undefined} />
+        )}
+        {where === WHERE.FILES && <OffendingFilesSection topFiles={topFiles} pending={pending} onFileClick={opens.file} />}
+      </WherePanel>
     </div>
   );
 }
@@ -96,7 +126,7 @@ function HistoryPanelsRow({
 // Every finding view below opens as a scoped Findings view, today's or, on a
 // past run (`asOf`, see overviewAsOf), that run's, read-only.
 
-/** The hero cards: the project's findings, opened on the card's severity or on the compliant checks. */
+/** The header tiles: the project's findings, opened on the tile's severity or on the compliant checks. */
 function makeCardNavigate({ onNavigate, asOf }) {
   if (!onNavigate) return undefined;
   return (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf);
@@ -125,6 +155,29 @@ function makeFindingsNavigate(args) {
   return { requirement: makeRequirementNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
 }
 
+/** The dimension a mover's name (lowercase) opens, if one is on show. */
+function moverNavigate(sorted, onDimensionClick) {
+  if (!onDimensionClick) return undefined;
+  return (name) => { const d = sorted.find((x) => lower(x.dimension) === name); if (d) onDimensionClick(d); };
+}
+
+/**
+ * What the Overview compares and lights: the dimensions weakest first, the
+ * one lit by a card or the radial, the previous period's numbers and the
+ * since line, and the note on a past run.
+ */
+function useOverviewView({ data, filteredStats, filteredDimensions, filteredPeriodTrend, currentOverviewRun, asOf, onRunClick }) {
+  const [litName, setLitName] = useState(null);
+  const lit = useMemo(() => ({ name: litName, setName: setLitName }), [litName]);
+  const sorted = useMemo(() => [...(filteredStats.sorted || [])].sort(weakestDimensionFirst), [filteredStats.sorted]);
+  const visibleNames = useMemo(() => new Set((filteredDimensions || []).map((d) => lower(d.dimension))), [filteredDimensions]);
+  const period = { project: data.selectedProject, source: data.selectedSource, periodTrend: filteredPeriodTrend, runOnShow: currentOverviewRun };
+  const previous = usePreviousPeriodMetrics({ ...period, visibleNames });
+  const since = useOverviewSince({ ...period, dimensions: filteredDimensions });
+  const pastRun = overviewPastRun(asOf, data.availableRuns, onRunClick);
+  return { lit, sorted, previous, since, pastRun };
+}
+
 function AccumulatedOverviewSections({
   data, callbacks, currentOverviewRun, selectedDayDimNames, filteredPeriodTrend, filteredDimensions,
   filteredAccumulated, filteredStats, chartMountable, dimTrends, topFiles, onCardNavigate, headline, notEvaluated, asOf,
@@ -132,55 +185,36 @@ function AccumulatedOverviewSections({
   const { onRunClick, onRunHover, onRunHoverEnd, onDimensionClick, onNavigate } = callbacks;
   const opens = useMemo(() => makeFindingsNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
   const onEvaluate = onNavigate ? () => onNavigate(NAV_TAB.EVALUATE) : undefined;
+  const view = useOverviewView({ data, filteredStats, filteredDimensions, filteredPeriodTrend, currentOverviewRun, asOf, onRunClick });
+  const granularity = data.granularity || DEFAULT_SCORE_HISTORY_GRANULARITY;
+  const chart = {
+    mountable: chartMountable, trend: filteredPeriodTrend, selectedRunId: currentOverviewRun,
+    onRunClick, onRunHover, onRunHoverEnd, granularity, onGranularityChange: callbacks.onGranularityChange,
+  };
   // A run or date switch refetches the dashboard and the scores; every
   // section shows the previous values, muted, meanwhile.
   const pending = !!(data.scoresPending || data.refreshing);
   return (
     <>
-      <AccumulatedHeroSection
-        pending={pending}
-        accumulated={filteredAccumulated}
-        scoreDelta={filteredStats.scoreDelta}
-        lastDate={filteredStats.lastRun.date}
-        projectInfo={data.projectInfo}
-        onCardNavigate={onCardNavigate}
-        selectedSource={data.selectedSource}
-        customFormula={data.customFormula}
-        deltas={periodChipDeltas(filteredPeriodTrend, currentOverviewRun)}
-        density={headline.density}
-      />
-      <HistoryPanelsRow
-        chartMountable={chartMountable}
-        filteredPeriodTrend={filteredPeriodTrend}
-        currentOverviewRun={currentOverviewRun}
-        onRunClick={onRunClick}
-        onRunHover={onRunHover}
-        onRunHoverEnd={onRunHoverEnd}
-        pending={pending}
-        granularity={data.granularity}
-        onGranularityChange={callbacks.onGranularityChange}
-        filteredDimensions={filteredDimensions}
-        onFolderClick={opens.folder}
-        onOpenMap={onNavigate ? () => onNavigate(NAV_TAB.MAP) : undefined}
-      />
+      <OverviewHead data={data} accumulated={filteredAccumulated} stats={filteredStats} headline={headline} previous={view.previous}
+        deltas={periodChipDeltas(filteredPeriodTrend, currentOverviewRun)} pastRun={view.pastRun} onCardNavigate={onCardNavigate} />
+
+      <SinceStrip summary={view.since} granularity={granularity} movers={topMovers(dimTrends)} onMover={moverNavigate(view.sorted, onDimensionClick)} />
 
       <AccumulatedDimensionsSection
-        sortedDimensions={filteredStats.sorted}
+        sortedDimensions={view.sorted}
         onDimensionClick={onDimensionClick}
         selectedDayDimNames={selectedDayDimNames}
         dimTrends={dimTrends}
         pending={pending}
         notEvaluated={notEvaluated}
         onEvaluate={onEvaluate}
+        lit={view.lit}
       />
 
-      <RiskAreasPanel project={data.selectedProject} source={data.selectedSource}
-        onAreaClick={onNavigate ? (area) => onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK, area: area.name }) : undefined}
-        onOpenRisk={onNavigate ? () => onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK }) : undefined} />
+      <OverviewTopGrid chart={chart} sorted={view.sorted} lit={view.lit} onDimensionClick={onDimensionClick} pending={pending} />
 
-      <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={opens.requirement} />
-
-      <OffendingFilesSection topFiles={topFiles} pending={pending} onFileClick={opens.file} />
+      <OverviewBottom data={data} filteredDimensions={filteredDimensions} topFiles={topFiles} pending={pending} opens={opens} onNavigate={onNavigate} />
     </>
   );
 }
@@ -200,8 +234,8 @@ export default function AccumulatedOverviewPanel({ data, callbacks }) {
   );
 
   // Only the dimensions on show: a hidden standard must not move the report.
-  // (The hero chips take their deltas from the period trend instead, so they
-  // follow the chart's grouping like the score arrow; see periodChipDeltas.)
+  // (The header's severities take their deltas from the period trend instead,
+  // so they follow the chart's grouping like the score arrow; see periodChipDeltas.)
   const since = useMemo(
     () => sumSinceBaseline(filterSinceBaseline(data.sinceBaseline, (filteredDimensions || []).map((d) => d.dimension))),
     [data.sinceBaseline, filteredDimensions],

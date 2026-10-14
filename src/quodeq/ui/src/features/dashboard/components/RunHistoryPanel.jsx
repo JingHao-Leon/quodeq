@@ -72,6 +72,9 @@ const CHART_PRESENTATION = {
   gradientId: 'scoreAreaGrad',
   tooltip: <RunHistoryTooltip />,
   showSelectedDot: true,
+  // As the dimension page's history: each grade's range behind the bars, each change written above its point.
+  gradeBands: true,
+  changeMarks: true,
 };
 
 // Keyboard-only equivalent of the chart's mouse click: one focusable button

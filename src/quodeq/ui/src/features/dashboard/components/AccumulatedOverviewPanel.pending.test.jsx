@@ -9,6 +9,8 @@ import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
 // The areas card reads the Map's history through react-query; this test is about the panels around it.
 vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
+// The header's previous period, since line and model read through react-query too.
+vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () => null, useOverviewSince: () => null, useRunModel: () => null }));
 
 const TREND = [
   { runId: 't1', dateISO: '2026-07-03T10:00:00', dateLabel: 'Jul 3', numericAverage: 9, overallGrade: 'A', dimensions: ['maintainability'], dimensionDetails: [{ dimension: 'maintainability', score: 9 }] },
@@ -43,7 +45,8 @@ function renderPanel(extra) {
   );
 }
 
-const MIN_SECTIONS = 3;
+// The dimension cards and the history beside the radial.
+const MIN_SECTIONS = 2;
 const DIM_FLOOR = 0.7;
 
 describe('AccumulatedOverviewPanel pending sections', () => {
@@ -51,8 +54,7 @@ describe('AccumulatedOverviewPanel pending sections', () => {
     const { container } = renderPanel({ refreshing: true });
     const sections = container.querySelectorAll('.section-pending');
     expect(sections.length).toBeGreaterThanOrEqual(MIN_SECTIONS);
-    expect(container.querySelector('.acc-eval-panel.section-pending')).not.toBeNull();
-    expect(container.querySelector('.history-panels-row.section-pending')).not.toBeNull();
+    expect(container.querySelector('.overview-top-grid.section-pending')).not.toBeNull();
     expect(container.querySelector('.quality-dimensions.section-pending')).not.toBeNull();
     expect(container.querySelector('.dashboard-refreshing')).toBeNull();
     expect(container.querySelector('.quality-dimensions--pending')).toBeNull();
@@ -61,7 +63,7 @@ describe('AccumulatedOverviewPanel pending sections', () => {
   it('also marks sections pending while the scores query is in flight', () => {
     const { container } = renderPanel({ scoresPending: true });
     expect(container.querySelector('.quality-dimensions.section-pending')).not.toBeNull();
-    expect(container.querySelector('.acc-eval-panel.section-pending')).not.toBeNull();
+    expect(container.querySelector('.overview-top-grid.section-pending')).not.toBeNull();
   });
 
   it('wears no pending class when idle', () => {

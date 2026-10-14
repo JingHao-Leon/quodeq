@@ -6,8 +6,10 @@ import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
 // Each panel is a button that hands its callback one row: this test is about where the Overview sends it.
 vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
-vi.mock('./AccumulatedHeroSection.jsx', () => ({
-  AccumulatedHeroSection: ({ onCardNavigate }) => (
+// The header's previous period, since line and model read through react-query too.
+vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () => null, useOverviewSince: () => null, useRunModel: () => null }));
+vi.mock('./OverviewHead.jsx', () => ({
+  default: ({ onCardNavigate }) => (
     <>
       <button type="button" onClick={() => onCardNavigate('violations')}>hero all</button>
       <button type="button" onClick={() => onCardNavigate('critical')}>hero critical</button>
@@ -49,7 +51,7 @@ function renderPanel(selectedRunId) {
 const click = (name) => fireEvent.click(screen.getByRole('button', { name }));
 
 describe('AccumulatedOverviewPanel opens scoped Findings views', () => {
-  it('on today: the hero cards open the project on their filter', () => {
+  it('on today: the header tiles open the project on their filter', () => {
     const onNavigate = renderPanel('r2');
     click('hero all');
     click('hero critical');
@@ -63,8 +65,10 @@ describe('AccumulatedOverviewPanel opens scoped Findings views', () => {
 
   it('on today: a file, a requirement and a folder open their scope', () => {
     const onNavigate = renderPanel(null);
+    click('files');
     click('file row');
     click('req row');
+    click('folders');
     click('folder row');
     expect(onNavigate.mock.calls).toEqual([
       ['violations', { scope: { kind: 'file', path: 'src/a.py' }, asOf: null }],
@@ -76,8 +80,10 @@ describe('AccumulatedOverviewPanel opens scoped Findings views', () => {
   it('on a past run every entry opens that run, read-only', () => {
     const onNavigate = renderPanel('r1');
     click('hero critical');
+    click('files');
     click('file row');
     click('req row');
+    click('folders');
     click('folder row');
     const asOf = { runId: 'r1', day: '2026-10-01' };
     expect(onNavigate.mock.calls.map((c) => c[1].asOf)).toEqual([asOf, asOf, asOf, asOf]);
