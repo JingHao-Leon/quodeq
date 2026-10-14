@@ -509,6 +509,10 @@
 
 .compare-dueltrigger__item:hover { background: var(--color-surface-alt); }
 .compare-dueltrigger__item--current { color: var(--color-text); font-weight: 600; }
+/* The quiet ⋯ opener of rare actions (components/launcher/MoreMenu.jsx), and its destructive items. */
+.launcher-more { width: 30px; height: 30px; border: 1px solid transparent; border-radius: var(--term-radius); background: none; color: var(--color-text-muted); cursor: pointer; font-size: 16px; line-height: 1; }
+.launcher-more:hover, .launcher-more[aria-expanded="true"] { border-color: var(--color-border); color: var(--color-text); }
+.compare-dueltrigger__item.compare-dueltrigger__item--danger:hover { color: var(--color-danger); }
 
 .compare-dueltrigger__itemScore { font-size: 12px; }
 

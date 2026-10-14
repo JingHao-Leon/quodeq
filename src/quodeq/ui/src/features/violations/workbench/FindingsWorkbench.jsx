@@ -13,6 +13,8 @@ import WorkbenchBar from './WorkbenchBar.jsx';
 import FindingList from './FindingList.jsx';
 import FindingDetail from './FindingDetail.jsx';
 import DismissedBulk from './DismissedBulk.jsx';
+import { useSplitWidth } from '../hooks/useSplitWidth.js';
+import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 
 const FOLDER_END = '/';
@@ -61,6 +63,7 @@ const listKeyOf = (s) => [s.severity, s.dimension, s.status, s.group, s.area?.na
 
 export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = false, workbench, onWorkbenchChange, actions = {} }) {
   const searchRef = useRef(null);
+  const split = useSplitWidth();
   const all = useMemo(() => flattenFindings(dims, dismissed), [dims, dismissed]);
   const wb = useWorkbenchState(workbench, onWorkbenchChange);
   const { state, set } = wb;
@@ -88,9 +91,10 @@ export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = 
           onRestoreAll={actions.onRestoreAll} onDeleteAll={actions.onDeleteAll} />
       )}
       {waiting ? <CardListSkeleton rows={3} /> : (
-      <div className="wb-split">
+      <div ref={split.rootRef} className="wb-split wb-split--resizable" style={splitColumns(split)}>
         <FindingList key={listKeyOf(state)} groups={groups} browse={level ? { dir, folders: level.folders, onDir } : null}
           selectedId={selectedId} onSelect={select} shown={list.length} total={statusPool(all, state.status).length} lineOnly={lineOnly} />
+        <SplitDivider split={split} />
         <FindingDetail finding={selected} dims={dims} findings={all} onAddPath={onAddPath}
           actions={{ ...actions, onOpenFile: canOpen ? openFile : undefined }} />
       </div>

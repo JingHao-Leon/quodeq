@@ -37,4 +37,20 @@ describe('FixFirstPanel', () => {
     const { container } = render(<FixFirstPanel dimensions={[{ dimension: 'x', violations: [] }]} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('lights the rows of the principle lit elsewhere (any case)', () => {
+    const dimensions = [{ dimension: 'reliability', violations: [v('R-1', 'major'), { ...v('R-2', 'minor'), principle: 'Recoverability' }] }];
+    render(<FixFirstPanel dimensions={dimensions} litPrinciple="fault tolerance" onRequirementClick={vi.fn()} />);
+    const [first, second] = screen.getAllByRole('row');
+    expect(first).toHaveClass('term-grid__row--lit');
+    expect(second).not.toHaveClass('term-grid__row--lit');
+  });
+
+  it('names as much of where a requirement sits as the page does not already say', () => {
+    const { container, rerender } = render(<FixFirstPanel dimensions={dims(0)} />);
+    const place = () => container.querySelector('.offending-file-path').textContent;
+    expect(place()).toBe('reliability · Fault Tolerance');
+    rerender(<FixFirstPanel dimensions={dims(0)} oneDimension />);
+    expect(place()).toBe('Fault Tolerance');
+  });
 });

@@ -21,8 +21,9 @@ function buildFileWindowSpec({ file, activeFilter, kind, titleWord, fileSuffix, 
 }
 
 /** Registers the file's report + fix-plan side-pane window specs, kept in
- * sync with the active severity filter. */
-export function useFileDetailWindowSpecs({ file, activeFilter }) {
+ * sync with the active severity filter. `readOnly` (a past run) registers
+ * the report only: fix plans act on today. */
+export function useFileDetailWindowSpecs({ file, activeFilter, readOnly = false }) {
   const reportSpec = useMemo(() => {
     if (!file?.file) return null;
     return buildFileWindowSpec({
@@ -37,7 +38,7 @@ export function useFileDetailWindowSpecs({ file, activeFilter }) {
   useRegisterWindowSpec('report', reportSpec);
 
   const fixPlanSpec = useMemo(() => {
-    if (!file?.file || (file.total || 0) === 0) return null;
+    if (readOnly || !file?.file || (file.total || 0) === 0) return null;
     return buildFileWindowSpec({
       file,
       activeFilter,
@@ -46,6 +47,6 @@ export function useFileDetailWindowSpecs({ file, activeFilter }) {
       fileSuffix: 'fix-plan',
       buildMarkdown: () => buildFilePlanText(file, activeFilter),
     });
-  }, [file, activeFilter]);
+  }, [file, activeFilter, readOnly]);
   useRegisterWindowSpec('fixplan', fixPlanSpec);
 }

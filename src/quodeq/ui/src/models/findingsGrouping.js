@@ -3,7 +3,7 @@
  * live" panels: the visible dimensions' findings by requirement and by
  * folder, most severe first.
  */
-import { SEVERITY_ORDER } from '../../vocab/severity.js';
+import { SEVERITY_ORDER } from '../vocab/severity.js';
 
 const ROOT_FOLDER = '';
 
@@ -51,7 +51,8 @@ export function sharedPrefix(dirs) {
   return first.slice(0, n).join('/');
 }
 
-function mostFrequent(values) {
+/** The most frequent non-empty value of `values` (the first seen on a tie), or null. */
+export function mostFrequent(values) {
   const counts = new Map();
   for (const v of values) if (v) counts.set(v, (counts.get(v) || 0) + 1);
   let best = null;
@@ -114,12 +115,4 @@ export function splitFolderLabel(label, tailDepth = 2) {
   const tail = parts.slice(-tailDepth).join('/');
   const lead = parts.length > tailDepth ? `${parts.slice(0, -tailDepth).join('/')}/` : '';
   return { lead, tail: tail ? `${tail}/` : '' };
-}
-
-/** The visible dimensions' findings and passing checks in one folder, by dimension. */
-export function folderDimensions(dimensions, dir) {
-  const inFolder = (item) => dirOf(item.file) === dir;
-  return (dimensions || [])
-    .map((d) => ({ ...d, violations: (d.violations || []).filter(inFolder), compliance: (d.compliance || []).filter(inFolder) }))
-    .filter((d) => d.violations.length > 0);
 }

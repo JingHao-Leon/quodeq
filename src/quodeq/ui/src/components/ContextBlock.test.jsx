@@ -10,6 +10,7 @@ vi.mock('../utils/pretext.js', () => ({
 }));
 
 import ContextBlock from './ContextBlock.jsx';
+import { CodeOpenByDefault } from './codeOpenContext.js';
 
 // The backend marks the violation line with ">>> " (marker + separator space).
 // The highlighted line's real indentation is 4 spaces here.
@@ -101,5 +102,20 @@ describe('ContextBlock editor-tab strip', () => {
   it('says "1 line" for a single-line snippet', () => {
     render(<ContextBlock snippet="x = 1" line={3} file="a.py" />);
     expect(screen.getByRole('button', { expanded: false })).toHaveTextContent('L3 · 1 line');
+  });
+});
+
+describe('ContextBlock under CodeOpenByDefault', () => {
+  it('starts open inside a findings page that reads like a document, and still folds', () => {
+    const { container } = render(<CodeOpenByDefault.Provider value><ContextBlock context={context} line={42} file="src/app/hello.py" /></CodeOpenByDefault.Provider>);
+    const toggle = screen.getByRole('button', { expanded: true });
+    expect(textOf(container.querySelector('.ctx-line--hl .ctx-code'))).toBe("    print('hi')");
+    fireEvent.click(toggle);
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument();
+  });
+
+  it('starts closed everywhere else', () => {
+    render(<ContextBlock context={context} line={42} />);
+    expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument();
   });
 });

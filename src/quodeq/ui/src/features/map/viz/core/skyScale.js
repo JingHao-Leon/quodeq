@@ -1,5 +1,9 @@
 import { clamp } from './mapBadness.js';
 import { SKY_ZONE } from '../../mapVocab.js';
+import { FIX_FIRST_DENSITY, WATCH_DENSITY, zoneOf } from '../../../../models/riskRules.js';
+
+// The zones' thresholds and the zone of a density are the shared Risk measure (models/riskRules.js).
+export { FIX_FIRST_DENSITY, WATCH_DENSITY, zoneOf };
 
 /**
  * The Risk sky's scale: how big a bubble is, which zone an area's density
@@ -10,10 +14,6 @@ import { SKY_ZONE } from '../../mapVocab.js';
 /** Distance from the centre: the densest areas at NEED_INNER (at most), areas with no findings at NEED_OUTER. */
 const NEED_INNER = 0.12;
 const NEED_OUTER = 0.84;
-/** "Fix first" ring, weighted findings per file: mirrors FLOOR_HOTSPOT in core/map_history/area_metrics.py. */
-export const FIX_FIRST_DENSITY = 0.75;
-/** "Watch" ring, weighted findings per file: mirrors FLOOR_DORMANT in core/map_history/area_metrics.py. */
-export const WATCH_DENSITY = 0.5;
 /**
  * The lowest the scale top goes: twice the fix-first density, so the
  * fix-first ring never sits on the centre and areas past it keep room to
@@ -86,16 +86,6 @@ export const EMPTY_FIX_FIRST = 0.1;
 export const MIN_WATCH = 0.5;
 const MIN_WATCH_BAND = 0.1;
 const MIN_HEALTHY_BAND = 0.12;
-
-/**
- * The zone an area's density puts it in.
- * @param {number} density weighted findings per file
- * @returns {string} a SKY_ZONE
- */
-export function zoneOf(density) {
-  if (density >= FIX_FIRST_DENSITY) return SKY_ZONE.FIX_FIRST;
-  return density >= WATCH_DENSITY ? SKY_ZONE.WATCH : SKY_ZONE.HEALTHY;
-}
 
 /** How much room a bubble asks of its zone: its padded area (any common scale gives the same shares). */
 const roomOf = (area) => (bubbleRadius(area.stats.files) + SKY_GAP * HALF) ** 2;

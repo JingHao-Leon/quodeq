@@ -94,12 +94,12 @@ function mergeRescoreIntoEval(prev, dimData) {
 export function useExplorerData(project, dimension, runId, refreshSignal, selectedSource = PROJECT_SOURCE.LOCAL) {
   const { evalQuery, scoresQuery } = useExplorerQueries(project, dimension, runId, refreshSignal, selectedSource);
 
+  const dimData = useMemo(() => (scoresQuery.data?.dimensions || []).find((d) => d.dimension === dimension) || null, [scoresQuery.data, dimension]);
   const evalData = useMemo(() => {
     const data = evalQuery.data ?? null;
     if (!data) return null;
-    const dimData = (scoresQuery.data?.dimensions || []).find((d) => d.dimension === dimension);
     return dimData ? mergeRescoreIntoEval(data, dimData) : data;
-  }, [evalQuery.data, scoresQuery.data, dimension]);
+  }, [evalQuery.data, dimData]);
 
   // Loading gates on BOTH queries so the first paint never shows pre-rescore
   // grades that visibly correct themselves a beat later (the old code
@@ -120,6 +120,8 @@ export function useExplorerData(project, dimension, runId, refreshSignal, select
     // report.
     waiting: !!evalData?.waiting,
     overallGrade, principleGrades, allViolations,
+    // The files the run on show read for this dimension (the eval report does not carry it).
+    runFilesRead: dimData?.filesRead ?? null,
     ...stats,
   };
 }

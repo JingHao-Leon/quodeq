@@ -27,12 +27,15 @@ def _file_row(row: FileRow) -> list[Any]:
 
 
 def _area(m: AreaMetrics) -> dict[str, Any]:
-    """One area's metrics with the UI's keys."""
-    return {"area": m.area, "files": m.files, "prodFiles": m.prod_files, "violations": m.violations,
-            "weight": m.weight, "density": m.density, "complianceRate": m.compliance_rate,
-            "touchedShare": m.touched_share, "changeRate": m.change_rate,
-            "persistentShare": m.persistent_share, "needPct": m.need_pct, "kind": str(m.kind),
-            "rawKind": str(m.raw_kind), "hasHistory": m.has_history}
+    """One area's metrics with the UI's keys; ``lift`` only under a finding selection."""
+    out = {"area": m.area, "files": m.files, "prodFiles": m.prod_files, "violations": m.violations,
+           "weight": m.weight, "density": m.density, "complianceRate": m.compliance_rate,
+           "touchedShare": m.touched_share, "changeRate": m.change_rate,
+           "persistentShare": m.persistent_share, "needPct": m.need_pct, "kind": str(m.kind),
+           "rawKind": str(m.raw_kind), "hasHistory": m.has_history}
+    if m.lift is not None:
+        out["lift"] = m.lift
+    return out
 
 
 def _frame_head(frame: MapFrame) -> dict[str, Any]:

@@ -154,7 +154,7 @@ export const APP_VISIBILITY_EVENT = 'quodeq:visibility';
 // HTTP status codes the UI branches on by name (a 409 collision, a 404
 // gone-missing). Not a full status enum, only the codes callers compare
 // against res.status / err.status.
-export const HTTP_STATUS = Object.freeze({ CONFLICT: 409, NOT_FOUND: 404 });
+export const HTTP_STATUS = Object.freeze({ BAD_REQUEST: 400, CONFLICT: 409, NOT_FOUND: 404 });
 
 // URL.protocol values (trailing colon included, per the URL spec) the UI
 // branches on: openExternal's web-scheme allowlist and terminalSocketUrl's

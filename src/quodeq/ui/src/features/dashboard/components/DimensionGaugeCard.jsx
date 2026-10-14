@@ -6,12 +6,14 @@
 import { useId } from 'react';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { SevBadge } from '../../../components/terminal/index.js';
-import { splitScore, scoreGradeColorVar, complianceRatio, formatRunId } from '../../../utils/formatters.js';
-import { scoreToGradeLabel } from '../../../utils/gradeThresholds.js';
+import { SEVERITY_ORDER } from '../../../vocab/severity.js';
+import SeverityBadges from '../../../components/SeverityBadges.jsx';
+import { scoreChangeShows } from '../../../utils/trendUtils.js';
+import { complianceRatio, formatRunId } from '../../../utils/formatters.js';
+import { ScoreGauge, InsufficientGauge, computeGaugeRing } from '../../../components/ScoreGauge.jsx';
 import { t, LOCALE } from '../../../strings/index.js';
 import { computeCoverageInfo, buildPartialTooltip } from './dimensionGaugeMath.js';
 import { activateOnKey } from '../../../utils/a11y.js';
-import { SCORE_SCALE_MAX } from '../../../constants.js';
 import { pluralKey } from '../../../utils/plural.js';
 
 /**
@@ -49,67 +51,76 @@ function CoverageLine({ dateText, coveragePct, isPartial, tooltip, quarantinedCo
   );
 }
 
-// SVG geometry — tuned to look right inside the card without scaling JS.
-const RING_SIZE = 100;
-const RING_STROKE = 8;
-const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
-const RING_CIRC = 2 * Math.PI * RING_RADIUS;
-const RING_CX = RING_SIZE / 2;
-const RING_CY = RING_SIZE / 2;
-// Text baseline offsets from ring center: score sits just above, grade word
-// just below.
-const SCORE_TEXT_OFFSET_Y = 4;
-const GRADE_TEXT_OFFSET_Y = 16;
+const COMPACT_RING_PX = 56;
+const PASS_PCT = 100;
 
-function InsufficientGauge() {
+/** Compliant checks over all checks, in percent; null with no checks. */
+export function passPctOf(item) {
+  const v = item.totals?.violationCount ?? 0;
+  const c = item.totals?.complianceCount ?? 0;
+  return v + c ? Math.round((c / (v + c)) * PASS_PCT) : null;
+}
+
+/** The severities present, as the app's pills (count first), wrapping; nothing when there are none. */
+function SevPills({ sev }) {
+  if (!SEVERITY_ORDER.some((level) => (sev[level] ?? 0) > 0)) return null;
+  return <SeverityBadges sev={sev} className="dim-gauge-card__pills" />;
+}
+
+/**
+ * A compact card (the principle row of a dimension page): the name and its
+ * trend (none under 0.05) across the top; below, the ring with the score
+ * only, and beside it the grade word at text size in the ring's colour, the
+ * severities as the app's pills, and the pass rate.
+ */
+function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient }) {
   return (
     <>
-      <div className="dim-gauge-card__gauge dim-gauge-card__gauge--insuf" aria-hidden="true">
-        <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-          <circle
-            className="dim-gauge-card__ring-bg"
-            cx={RING_CX} cy={RING_CY} r={RING_RADIUS}
-            strokeWidth={RING_STROKE}
-            strokeDasharray="3 4"
-          />
-          <text className="dim-gauge-card__score" x={RING_CX} y={RING_CY - SCORE_TEXT_OFFSET_Y}>—</text>
-          <text className="dim-gauge-card__grade" x={RING_CX} y={RING_CY + GRADE_TEXT_OFFSET_Y}>{t('overview.insufficientGrade')}</text>
-        </svg>
+      <div className="dim-gauge-card__top">
+        <span className="dim-gauge-card__name" title={name}>{name}</span>
+        {scoreChangeShows(delta) && <TrendBadge delta={delta} />}
       </div>
-      <div className="dim-gauge-card__insuf-line">{t('overview.insufficientEvidence')}</div>
+      <div className="dim-gauge-card__row">
+        <div className="dim-gauge-card__mini" style={{ width: COMPACT_RING_PX, height: COMPACT_RING_PX }}>
+          {isInsufficient ? <InsufficientGauge /> : <ScoreGauge {...ring} gradeWord={null} />}
+        </div>
+        <div className="dim-gauge-card__rowbody">
+          <span className="dim-gauge-card__gradeword" style={isInsufficient ? undefined : { color: ring.ringColor }}>
+            {isInsufficient ? t('overview.insufficientGrade') : ring.gradeWord}
+          </span>
+          <SevPills sev={sev} />
+          {passPct != null && <span className="dim-gauge-card__pass">{t('overview.cardPass', { pct: passPct })}</span>}
+        </div>
+      </div>
+      {!isInsufficient && <span id={summaryId} className="sr-only">{t('overview.gaugeSummaryAria', { score: ring.scoreDisplay, grade: ring.gradeWord })}</span>}
     </>
   );
 }
 
-function ScoreGauge({ scoreDisplay, gradeWord, ringColor, dashOffset }) {
+/** The full card's body: the name and trend, then the ring (dashed when not enough evidence), violations and severities. */
+function FullCardBody({ item, delta, derived, summaryId, isInsufficient, thinEvidence }) {
+  const { scoreDisplay, gradeWord, ringColor, dashOffset, violationCount, ratio, sev } = derived;
   return (
-    <div className="dim-gauge-card__gauge" aria-hidden="true">
-      <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-        <circle
-          className="dim-gauge-card__ring-bg"
-          cx={RING_CX} cy={RING_CY} r={RING_RADIUS}
-          strokeWidth={RING_STROKE}
+    <>
+      <div className="dim-gauge-card__head">
+        <span className="dim-gauge-card__name" title={item.dimension}>{item.dimension}</span>
+        {delta !== null && delta !== undefined && <TrendBadge delta={delta} />}
+      </div>
+      {isInsufficient ? <InsufficientGauge /> : (
+        <DimensionScoreBody
+          scoreDisplay={scoreDisplay} gradeWord={gradeWord} ringColor={ringColor} dashOffset={dashOffset}
+          violationCount={violationCount} ratio={ratio} sev={sev}
+          summaryId={summaryId} thinEvidence={thinEvidence}
         />
-        <circle
-          className="dim-gauge-card__ring-fill"
-          cx={RING_CX} cy={RING_CY} r={RING_RADIUS}
-          strokeWidth={RING_STROKE}
-          stroke={ringColor}
-          strokeDasharray={RING_CIRC}
-          strokeDashoffset={dashOffset}
-          transform={`rotate(-90 ${RING_CX} ${RING_CY})`}
-        />
-        <text className="dim-gauge-card__score" x={RING_CX} y={RING_CY - SCORE_TEXT_OFFSET_Y}>
-          {scoreDisplay}
-        </text>
-        {gradeWord && (
-          <text className="dim-gauge-card__grade" x={RING_CX} y={RING_CY + GRADE_TEXT_OFFSET_Y}>
-            {gradeWord}
-          </text>
-        )}
-      </svg>
-    </div>
+      )}
+    </>
   );
+}
+
+/** Hover and keyboard focus both tell the page which card is lit (`onHover(true|false)`). */
+function hoverHandlers(onHover) {
+  if (!onHover) return {};
+  return { onMouseEnter: () => onHover(true), onMouseLeave: () => onHover(false), onFocus: () => onHover(true), onBlur: () => onHover(false) };
 }
 
 function DimensionScoreBody({ scoreDisplay, gradeWord, ringColor, dashOffset, violationCount, ratio, sev, summaryId, thinEvidence }) {
@@ -132,24 +143,6 @@ function DimensionScoreBody({ scoreDisplay, gradeWord, ringColor, dashOffset, vi
       </div>
     </>
   );
-}
-
-/**
- * Ring geometry and colour for one dimension's score. A dimension with no
- * parsable score draws an empty muted ring and no grade word.
- */
-function computeGaugeRing(overallScore) {
-  const { value: scoreDisplay } = splitScore(overallScore);
-  const scoreNum = parseFloat(overallScore);
-  const hasScore = !Number.isNaN(scoreNum);
-  const pct = hasScore ? Math.max(0, Math.min(scoreNum / SCORE_SCALE_MAX, 1)) : 0;
-  const label = hasScore ? scoreToGradeLabel(scoreNum) : null;
-  return {
-    scoreDisplay,
-    gradeWord: label ? label.toUpperCase() : null,
-    ringColor: hasScore ? scoreGradeColorVar(scoreNum) : 'var(--color-text-muted)',
-    dashOffset: RING_CIRC * (1 - pct),
-  };
 }
 
 /**
@@ -183,6 +176,10 @@ function computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunI
  * @param {boolean}  [props.isInsufficient=false] - legacy no-evidence state: dashed gauge, wins over thinEvidence
  * @param {boolean}  [props.thinEvidence=false] - scored, but on few observations: adds the thin-evidence line
  *   (also appended to the sr-only summary, the only text assistive tech reads from this button)
+ * @param {boolean}  [props.showDate=true] - the date and coverage line under the card
+ * @param {boolean}  [props.compact=false] - the row form: ring left, name and one quiet line beside it
+ * @param {boolean}  [props.highlighted=false] - lit from elsewhere on the page (its radial point)
+ * @param {(on: boolean) => void} [props.onHover] - told when the pointer or keyboard focus enters and leaves
  * See computeGaugeCardDerived above for the remaining props.
  */
 export default function DimensionGaugeCard({
@@ -194,11 +191,13 @@ export default function DimensionGaugeCard({
   selectedRunId,
   isInsufficient = false,
   thinEvidence = false,
+  showDate = true,
+  compact = false,
+  highlighted = false,
+  onHover,
 }) {
-  const {
-    scoreDisplay, gradeWord, ringColor, dashOffset, violationCount, ratio, sev,
-    staleClass, dateText, coverage, partialTooltip,
-  } = computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunId });
+  const derived = computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunId });
+  const { scoreDisplay, gradeWord, ringColor, dashOffset, sev, staleClass, dateText, coverage, partialTooltip } = derived;
   const activate = () => onDimensionClick?.(item, selectedRunId);
   // role="button" gives the article children-presentational semantics, and the
   // explicit aria-label above already skips its content -- so the sr-only score
@@ -209,7 +208,8 @@ export default function DimensionGaugeCard({
 
   return (
     <article
-      className={`dim-gauge-card ${staleClass}`.trim()}
+      className={['dim-gauge-card', compact && 'dim-gauge-card--compact', highlighted && 'dim-gauge-card--hl', staleClass].filter(Boolean).join(' ')}
+      {...hoverHandlers(onHover)}
       role="button"
       tabIndex={0}
       onClick={activate}
@@ -217,24 +217,16 @@ export default function DimensionGaugeCard({
       aria-label={t('overview.dimensionDetailsAria', { name: item.dimension })}
       aria-describedby={isInsufficient ? undefined : summaryId}
     >
-      <div className="dim-gauge-card__head">
-        <span className="dim-gauge-card__name">{item.dimension}</span>
-        {delta !== null && delta !== undefined && <TrendBadge delta={delta} />}
-      </div>
-
-      {isInsufficient ? (
-        <InsufficientGauge />
+      {compact ? (
+        <CompactCardBody name={item.dimension} delta={delta} sev={sev} passPct={passPctOf(item)} summaryId={summaryId} isInsufficient={isInsufficient}
+          ring={{ scoreDisplay, gradeWord, ringColor, dashOffset }} />
       ) : (
-        <DimensionScoreBody
-          scoreDisplay={scoreDisplay} gradeWord={gradeWord} ringColor={ringColor} dashOffset={dashOffset}
-          violationCount={violationCount} ratio={ratio} sev={sev}
-          summaryId={summaryId} thinEvidence={thinEvidence}
-        />
+        <FullCardBody item={item} delta={delta} derived={derived} summaryId={summaryId} isInsufficient={isInsufficient} thinEvidence={thinEvidence} />
       )}
       {thinEvidence && !isInsufficient ? <div className="dim-gauge-card__insuf-line">{t('overview.thinEvidence')}</div> : null}
 
       <CoverageLine
-        dateText={dateText}
+        dateText={showDate ? dateText : null}
         coveragePct={coverage.coveragePct}
         isPartial={coverage.isPartial}
         tooltip={partialTooltip}

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { t } from '../../../strings/index.js';
 import ViolationsPage from './ViolationsPage.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 
@@ -53,11 +54,12 @@ describe('ViolationsPage — dismissed findings in the workbench', () => {
     expect(pageState.handleRestore).toHaveBeenCalledWith(sampleB);
   });
 
-  it('restore all goes to the page\'s bulk handler', async () => {
+  it('restore all, behind the ⋯, goes to the page\'s bulk handler', async () => {
     renderDismissed('local');
-    fireEvent.click(await screen.findByRole('button', { name: 'restore all 2 in project' }));
+    fireEvent.click(await screen.findByRole('button', { name: t('violations.wbDismissedMore') }));
+    expect(screen.getByRole('menuitem', { name: 'delete all 2 in project' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'restore all 2 in project' }));
     expect(pageState.handleRestoreAll).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'delete all 2 in project' })).toBeInTheDocument();
   });
 
   it('a shared project lists the dismissed findings with no restore, delete or bulk action', async () => {
@@ -67,8 +69,7 @@ describe('ViolationsPage — dismissed findings in the workbench', () => {
     expect(list).toHaveTextContent('Old B');
     expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'restore all 2 in project' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'delete all 2 in project' })).toBeNull();
+    expect(screen.queryByRole('button', { name: t('violations.wbDismissedMore') })).toBeNull();
   });
 
   it('open file shows only for a dismissed finding whose file still has an open finding', async () => {

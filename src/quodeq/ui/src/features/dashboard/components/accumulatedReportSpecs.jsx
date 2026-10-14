@@ -16,8 +16,7 @@ function reportProjectNameFor(data) {
     || 'project';
 }
 
-// Returns reportProjectName so the caller can reuse it (AccumulatedOverviewPanel's
-// onCardNavigate needs the same value) without recomputing it.
+// Registers the Overview's report in the side pane.
 export function useAccumulatedReportSpec({ data, filteredAccumulated, filteredDimensions, headline = null, since = null }) {
   const reportProjectName = reportProjectNameFor(data);
   const hasReportData = Boolean(
@@ -49,6 +48,4 @@ export function useAccumulatedReportSpec({ data, filteredAccumulated, filteredDi
     };
   }, [hasReportData, reportProjectName, filteredAccumulated, filteredDimensions, headline, since, data.selectedRun?.commitSha]);
   useRegisterWindowSpec('report', reportSpec);
-
-  return reportProjectName;
 }

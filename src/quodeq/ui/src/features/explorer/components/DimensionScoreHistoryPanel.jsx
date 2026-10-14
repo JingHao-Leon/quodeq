@@ -48,6 +48,8 @@ const CHART_PRESENTATION = {
   gradientId: 'dimScoreAreaGrad',
   tooltip: <DimensionTooltip />,
   showSelectedDot: true,
+  gradeBands: true,
+  changeMarks: true,
 };
 
 function buildKbdItems({ data, onBarClick, selectedRunId }) {

@@ -12,7 +12,8 @@
  *   - 3+ plotted: a filled <polyline> (with implicit-close fill) connecting
  *     plotted vertices in axis order; insufficient axes produce stroke gaps.
  */
-import { scoreGradeColorVar } from '../../../utils/formatters.js';
+import { polar, hoverProps } from './radialGeometry.js';
+import RadialLabels from './RadialLabels.jsx';
 import { t } from '../../../strings/index.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { SCORE_SCALE_MAX } from '../../../constants.js';
@@ -27,7 +28,6 @@ const RING_LEVELS = [RING_LEVEL_1, RING_LEVEL_2, RING_LEVEL_3, RING_LEVEL_4, RIN
 // radius. Not a ring level: it happens to coincide with the innermost ring
 // today, but it marks "no score to plot", not a score of 2/10.
 const INSUFFICIENT_DOT_RADIUS_FRACTION = 0.2;
-const LABEL_OFFSET = 18;     // svg units beyond the outer ring (name baseline)
 const VERT_RADIUS = 3.2;
 const INSUF_RADIUS = 3.0;
 // Hollow ring around a scored vertex that rests on thin evidence.
@@ -36,11 +36,6 @@ const THIN_HALO_RADIUS = VERT_RADIUS + THIN_HALO_GAP;
 // Horizontal padding around the plot so long principle names don't clip.
 const VIEWBOX_PAD_X = 140;
 const VIEWBOX_PAD_Y = 24;
-// Text-anchor flips once a label's angle leans far enough left/right that
-// centering it on the axis would read off-balance.
-const LABEL_ANCHOR_COS_THRESHOLD = 0.2;
-// Coarse character budget per wrapped label line.
-const LABEL_MAX_CHARS_PER_LINE = 14;
 // A polygon needs at least 3 plotted vertices to read as a filled shape
 // (see the module doc comment's edge cases).
 const MIN_FILLED_POLYGON_POINTS = 3;
@@ -50,26 +45,8 @@ function axisAngles(n) {
   return Array.from({ length: n }, (_, i) => -Math.PI / 2 + (2 * Math.PI * i) / n);
 }
 
-function polar(angle, r) {
-  return [r * Math.cos(angle), r * Math.sin(angle)];
-}
-
 function ringPoints(angles, r) {
   return angles.map((a) => polar(a, r).join(',')).join(' ');
-}
-
-// Greedy word-wrap so long principle names break onto a second line instead of
-// running off the SVG. `maxChars` is a coarse character budget per line.
-function wrapLines(words, maxChars) {
-  const lines = [];
-  let current = '';
-  for (const w of words) {
-    if (!current) { current = w; continue; }
-    if (current.length + 1 + w.length <= maxChars) current = `${current} ${w}`;
-    else { lines.push(current); current = w; }
-  }
-  if (current) lines.push(current);
-  return lines.length ? lines : [''];
 }
 
 function RadialRings({ angles, outerRadius }) {
@@ -112,9 +89,12 @@ function RadialPolyline({ showPolyline, points, isClosed, polylineFill }) {
   );
 }
 
+// A lit vertex (its card or label hovered or focused) grows a little.
+const HL_VERT_RADIUS = 5.5;
+
 /* Plotted vertices (a hollow ring around those on thin evidence), plus a small
  * dashed marker near centre for each insufficient-evidence axis. */
-function RadialVertices({ points, plotted, principles, angles, outerRadius, onPrincipleClick, handleClick, handleKey }) {
+function RadialVertices({ points, plotted, principles, angles, outerRadius, onPrincipleClick, handleClick, handleKey, highlighted, onHover }) {
   return (
     <>
       {points.map(([x, y], idx) => {
@@ -122,10 +102,11 @@ function RadialVertices({ points, plotted, principles, angles, outerRadius, onPr
         return (
           <circle
             key={`v-${idx}`}
-            className="qd-radial__vert"
+            className={`qd-radial__vert${name === highlighted ? ' is-hl' : ''}`}
             cx={x}
             cy={y}
-            r={VERT_RADIUS}
+            r={name === highlighted ? HL_VERT_RADIUS : VERT_RADIUS}
+            {...hoverProps(name, onHover)}
             role={onPrincipleClick ? 'button' : undefined}
             tabIndex={onPrincipleClick ? 0 : undefined}
             aria-label={onPrincipleClick ? t('explorer.drillInto', { name }) : undefined}
@@ -164,67 +145,6 @@ function RadialVertices({ points, plotted, principles, angles, outerRadius, onPr
   );
 }
 
-/* Labels — name and score share an anchor point on a label ring just
-   outside the plot. Score is always rendered on the line below the name
-   via a tspan(dy), so the two never collide regardless of axis angle. */
-/** Click/keyboard wiring for one label; absent entirely when not actionable. */
-function labelInteraction(name, actionable, handleClick, handleKey) {
-  if (!actionable) return {};
-  return { role: 'button', tabIndex: 0, onClick: handleClick(name), onKeyDown: handleKey(name) };
-}
-
-/** One axis label: the principle name wrapped over lines, score below it. */
-function RadialLabel({ p, angle, outerRadius, actionable, handleClick, handleKey }) {
-  const [x, y] = polar(angle, outerRadius + LABEL_OFFSET);
-  const isInsuf = !p.hasEvidence;
-  const cosA = Math.cos(angle);
-  const anchor = cosA > LABEL_ANCHOR_COS_THRESHOLD ? 'start' : cosA < -LABEL_ANCHOR_COS_THRESHOLD ? 'end' : 'middle';
-  const lines = wrapLines(p.name.toUpperCase().split(/\s+/), LABEL_MAX_CHARS_PER_LINE);
-  return (
-    <g
-      {...labelInteraction(p.name, actionable && !isInsuf, handleClick, handleKey)}
-      className={`qd-radial__label-group${isInsuf ? ' qd-radial__label-group--insuf' : ''}`}
-    >
-      <text
-        className={`qd-radial__lab${isInsuf ? ' qd-radial__lab--insuf' : ''}`}
-        x={x}
-        y={y}
-        textAnchor={anchor}
-      >
-        {lines.map((line, li) => (
-          <tspan key={li} x={x} dy={li === 0 ? 0 : '1.15em'}>{line}</tspan>
-        ))}
-        <tspan
-          className={`qd-radial__lab-sub${isInsuf ? ' qd-radial__lab-sub--insuf' : ''}`}
-          x={x}
-          dy="1.25em"
-          style={isInsuf ? undefined : { fill: scoreGradeColorVar(p.score) }}
-        >
-          {isInsuf ? 'insufficient' : p.score?.toFixed(1)}
-        </tspan>
-      </text>
-    </g>
-  );
-}
-
-function RadialLabels({ principles, angles, outerRadius, onPrincipleClick, handleClick, handleKey }) {
-  return (
-    <>
-      {principles.map((p, i) => (
-        <RadialLabel
-          key={`lab-${i}`}
-          p={p}
-          angle={angles[i]}
-          outerRadius={outerRadius}
-          actionable={!!onPrincipleClick}
-          handleClick={handleClick}
-          handleKey={handleKey}
-        />
-      ))}
-    </>
-  );
-}
-
 /** Everything derived from the principles list + dimensions: the plotted
  * (evidenced) subset, their world points, polyline fill/closed/visibility,
  * and the SVG viewBox. */
@@ -250,6 +170,14 @@ function computeRadialLayout(principles, angles, scaleMax, outerRadius, size) {
   return { plotted, points, polylineFill, isClosed, showPolyline, viewBox };
 }
 
+/** The highlighted principle's spoke, from the centre to its point. */
+function HighlightSpoke({ plotted, points, highlighted }) {
+  const idx = plotted.findIndex((p) => p.name === highlighted);
+  if (idx < 0) return null;
+  const [x, y] = points[idx];
+  return <line className="qd-radial__spoke-hl" x1={0} y1={0} x2={x} y2={y} />;
+}
+
 function makeRadialHandlers(onPrincipleClick) {
   const handleClick = (name) => () => onPrincipleClick && onPrincipleClick(name);
   const handleKey = (name) => (e) => {
@@ -267,6 +195,8 @@ export default function PrinciplesRadial({
   size = 400,
   outerRadius = 200,
   onPrincipleClick,
+  highlighted = null,
+  onHover,
 }) {
   const angles = axisAngles(principles.length);
   const { plotted, points, polylineFill, isClosed, showPolyline, viewBox } =
@@ -285,13 +215,14 @@ export default function PrinciplesRadial({
       <RadialRings angles={angles} outerRadius={outerRadius} />
       <RadialAxes angles={angles} outerRadius={outerRadius} />
       <RadialPolyline showPolyline={showPolyline} points={points} isClosed={isClosed} polylineFill={polylineFill} />
+      <HighlightSpoke plotted={plotted} points={points} highlighted={highlighted} />
       <RadialVertices
         points={points} plotted={plotted} principles={principles} angles={angles} outerRadius={outerRadius}
-        onPrincipleClick={onPrincipleClick} handleClick={handleClick} handleKey={handleKey}
+        onPrincipleClick={onPrincipleClick} handleClick={handleClick} handleKey={handleKey} highlighted={highlighted} onHover={onHover}
       />
       <RadialLabels
         principles={principles} angles={angles} outerRadius={outerRadius}
-        onPrincipleClick={onPrincipleClick} handleClick={handleClick} handleKey={handleKey}
+        onPrincipleClick={onPrincipleClick} handleClick={handleClick} handleKey={handleKey} highlighted={highlighted} onHover={onHover}
       />
     </svg>
   );

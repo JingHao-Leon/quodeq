@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PrinciplesRadial from './PrinciplesRadial.jsx';
 
@@ -83,5 +83,30 @@ describe('PrinciplesRadial', () => {
     expect(verts.length).toBe(5);
     await user.click(verts[0]); // first plotted vertex = first principle in FIVE_FULL = modifiability
     expect(onClick).toHaveBeenCalledWith('modifiability');
+  });
+
+  it('lights the highlighted principle: its spoke, its point and its label', () => {
+    const { container } = render(<PrinciplesRadial principles={FIVE_FULL} highlighted="reusability" />);
+    expect(container.querySelectorAll('.qd-radial__spoke-hl')).toHaveLength(1);
+    expect(container.querySelectorAll('circle.qd-radial__vert.is-hl')).toHaveLength(1);
+    expect(container.querySelector('.qd-radial__label-group.is-hl')).toHaveTextContent(/reusability/i);
+  });
+
+  it('nothing lit, no spoke', () => {
+    const { container } = render(<PrinciplesRadial principles={FIVE_FULL} />);
+    expect(container.querySelector('.qd-radial__spoke-hl')).toBeNull();
+    expect(container.querySelector('.is-hl')).toBeNull();
+  });
+
+  it('a point or a label reports the principle under the pointer or the keyboard', () => {
+    const onHover = vi.fn();
+    const { container } = render(<PrinciplesRadial principles={FIVE_FULL} onPrincipleClick={vi.fn()} onHover={onHover} />);
+    const vert = container.querySelectorAll('circle.qd-radial__vert')[1];
+    fireEvent.mouseEnter(vert);
+    fireEvent.mouseLeave(vert);
+    const label = container.querySelectorAll('.qd-radial__label-group')[3];
+    fireEvent.focus(label);
+    fireEvent.blur(label);
+    expect(onHover.mock.calls).toEqual([['modularity'], [null], ['testability'], [null]]);
   });
 });

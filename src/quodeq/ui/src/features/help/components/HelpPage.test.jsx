@@ -120,12 +120,26 @@ describe('HelpPage shared repository section', () => {
 });
 
 describe('HelpPage violations section', () => {
-  it('describes the real sub-tabs', () => {
-    render(<HelpPage />);
+  it('describes the workbench, not the old sub-tabs', () => {
+    const { container } = render(<HelpPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Violations & Fix Plans' }));
-    expect(screen.getByText('by-dimension')).toBeInTheDocument();
-    expect(screen.getByText('by-file')).toBeInTheDocument();
-    expect(screen.queryByText(/Heatgrid/)).toBeNull();
+    expect(screen.getByRole('heading', { level: 3, name: 'The workbench' })).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/sub-tab|by-dimension|by-file|Heatgrid/);
+  });
+
+  it('describes the scoped views: list and cards, Risk on folders and areas, the principle scope', () => {
+    const { container } = render(<HelpPage initialSection="violations" />);
+    expect(container.textContent).toMatch(/list\s+\(the default\)/);
+    expect(container.textContent).toMatch(/on a folder or an area only/);
+    expect(container.textContent).toMatch(/one principle/);
+    expect(container.textContent).not.toMatch(/as a list ›/);
+  });
+
+  it('describes a principle\'s page: its requirements beside its findings, failing first, then Passing', () => {
+    const { container } = render(<HelpPage initialSection="violations" />);
+    expect(container.textContent).toMatch(/three columns: its requirements, its findings and the selected finding/);
+    expect(container.textContent).toMatch(/how many of its requirements fail, of how many were checked/);
+    expect(container.textContent).toMatch(/Passing/);
   });
 });
 
@@ -161,11 +175,21 @@ describe('HelpPage overview header stats', () => {
 });
 
 describe('HelpPage violations by type', () => {
-  it('documents the by-type sub-tab and dismissing a type', () => {
+  it('documents dismissing a type behind the finding\'s menu', () => {
     render(<HelpPage initialSection="violations" />);
-    expect(screen.getByRole('heading', { level: 3, name: /Four sub-tabs, one dataset/ })).toBeInTheDocument();
-    expect(screen.getAllByText(/by-type/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { level: 3, name: /Dismissing a whole type/ })).toBeInTheDocument();
     expect(screen.getAllByText(/Dismiss all/).length).toBeGreaterThan(0);
+  });
+});
+
+describe('HelpPage overview: the dimension page', () => {
+  it('reads the dimension page top to bottom: header, principles, history and radial, Fix first beside where', () => {
+    const { container } = render(<HelpPage initialSection="overview" />);
+    expect(screen.getByRole('heading', { level: 3, name: 'The dimension page' })).toBeInTheDocument();
+    const text = container.textContent;
+    const at = ['The header', 'one card per principle', 'Score history and principles radial', 'the dimension\'s requirements', 'its violations by file'].map((s) => text.indexOf(s));
+    expect(at.every((i) => i >= 0)).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
   });
 });
 

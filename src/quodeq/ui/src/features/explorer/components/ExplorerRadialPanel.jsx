@@ -4,7 +4,7 @@ import { t } from '../../../strings/index.js';
 
 /** The principles radial chart — the right column of the dimension page's
  * top grid. */
-export default function ExplorerRadialPanel({ radialPrinciples, onPrincipleClick }) {
+export default function ExplorerRadialPanel({ radialPrinciples, onPrincipleClick, highlighted, onHover }) {
   return (
     <div className="qd-top-right">
       <section className="run-history-panel--terminal panel" aria-label={t('explorer.principlesRadialAria')}>
@@ -16,6 +16,8 @@ export default function ExplorerRadialPanel({ radialPrinciples, onPrincipleClick
           <PrinciplesRadial
             principles={radialPrinciples}
             onPrincipleClick={onPrincipleClick}
+            highlighted={highlighted}
+            onHover={onHover}
           />
         </div>
       </section>

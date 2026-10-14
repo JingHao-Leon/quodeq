@@ -8,7 +8,8 @@ import { useHydratedCompliance, useHydratedFindings } from '../hooks/useHydrated
 import { bucketBySeverity } from './principleFiltering.js';
 import { emptySeverityCounts } from '../../../utils/severity.js';
 
-const dismissKey = (v) => `${v.file}:${v.line}`;
+/** A violation as the page's own dismissals key it: its file and line. */
+export const dismissKey = (v) => `${v.file}:${v.line}`;
 
 /** Split each severity's live (post-dismiss) bucket into high/low
  * confidence, and total up the counts. */

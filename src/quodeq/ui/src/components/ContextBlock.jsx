@@ -14,7 +14,8 @@
  *   scrollbar size is known and the collapsed→expanded transition doesn't
  *   snap.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useContext } from 'react';
+import { CodeOpenByDefault } from './codeOpenContext.js';
 import { CheckIcon, CopyIcon, XIcon, COPY_FEEDBACK_MS } from './CopyButton.jsx';
 import { measureWidth, cssFontFromElement } from '../utils/pretext.js';
 import { isHighlightedLine, stripHighlightMarker } from '../utils/codeMarker.js';
@@ -214,7 +215,7 @@ function renderContextLines(ctxLines, line) {
 }
 
 export default function ContextBlock({ context, snippet, scope, line, file }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(useContext(CodeOpenByDefault));
   const toggle = () => setExpanded((e) => !e);
 
   const { lines: scopeLines } = useCodeLayout(scope ? (snippet || context || '') : '');

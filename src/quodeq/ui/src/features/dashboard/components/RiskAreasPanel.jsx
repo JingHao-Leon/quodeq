@@ -11,7 +11,7 @@ import { t, LOCALE } from '../../../strings/index.js';
 import useMapAreas from '../../map/hooks/useMapAreas.js';
 import { areasNeedingRework } from '../../map/model/areasNeedingRework.js';
 import { SKY_ZONE, AREA_KIND } from '../../map/mapVocab.js';
-import { SeverityAndFilesCells } from './SeverityBadges.jsx';
+import { SeverityAndFilesCells } from '../../../components/SeverityBadges.jsx';
 
 // Two-line rows, as many as the folders panel shows.
 export const AREAS_SHOWN = 5;

@@ -66,7 +66,8 @@
 .wb-muted { color: var(--color-text-muted); }
 .wb-dismissed { font-size: 11px; color: var(--color-text-muted); }
 .wb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.wb-actions__right { margin-left: auto; }
+/* An actions row whose controls (open file, the ⋯ of bulk actions) sit at the right edge. */
+.wb-actions--end { justify-content: flex-end; }
 .wb-detail .vdetail-row { margin: 0; }
 @media (max-width: 900px) {
   .wb-split { display: flex; flex-direction: column; height: auto; }

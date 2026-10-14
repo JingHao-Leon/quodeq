@@ -60,11 +60,12 @@ class AreaStats:
 
 @dataclass(frozen=True)
 class AreaMetrics(AreaStats):
-    """An area's stats plus its density rank and (hysteresis-smoothed) kind."""
+    """An area's stats plus its density rank, (hysteresis-smoothed) kind and, under a finding selection, its lift."""
 
     need_pct: float
     kind: AreaKind
     raw_kind: AreaKind
+    lift: float | None = None   # density over the selection's project-wide density (``lift.with_lift``); None unselected
 
 
 def _midrank(values: list[float], v: float) -> float:

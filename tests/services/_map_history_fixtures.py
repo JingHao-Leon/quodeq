@@ -12,13 +12,13 @@ DIMS = ("security", "maintainability")
 
 
 def write_run(project_dir: Path, run_id: str, day: str, violations: dict[str, list[dict]], dims=DIMS, state="done",
-         at: str = "10:00:00") -> None:
+         at: str = "10:00:00", compliance: dict[str, list[dict]] | None = None) -> None:
     run = project_dir / run_id
     (run / "evaluation").mkdir(parents=True, exist_ok=True)
     for dim in dims:
         (run / "evaluation" / f"{dim}.json").write_text(json.dumps({
             "dimension": dim, "date": f"{day}T{at}+00:00", "principles": [], "overallScore": "7.0/10", "filesRead": 10,
-            "violations": violations.get(dim, []), "compliance": []}))
+            "violations": violations.get(dim, []), "compliance": (compliance or {}).get(dim, [])}))
     (run / "status.json").write_text(json.dumps({"state": state, "started_at": f"{day}T{at}Z"}))
 
 
@@ -33,6 +33,11 @@ def env(tmp_path, monkeypatch):
 
 def violation(file: str, sev: str = "major", req: str = "R1", snip: str = "x()") -> dict:
     return {"req": req, "file": file, "line": 1, "snippet": snip, "severity": sev}
+
+
+def judged(file: str, req: str = "R9") -> dict:
+    """One compliance judgment in *file*."""
+    return {"req": req, "file": file, "line": 1, "snippet": "ok()"}
 
 
 def write_two_runs(env) -> None:

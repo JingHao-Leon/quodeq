@@ -65,21 +65,21 @@ describe('MapPage: the Risk tab', () => {
     expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual([t('map.vizCirclePack'), t('map.vizRisk'), t('map.vizGalaxy')]);
   });
 
-  it('choosing Risk replaces the entry and hides the Dimensions control', () => {
+  it('choosing Risk replaces the entry and keeps the Dimensions control', () => {
     const log = [];
     render(<NavHarness data={{ ...local(), accumulated: { dimensions: [...DIMS, { ...DIMS[0], dimension: 'performance' }] } }} log={log} />, { wrapper: withStableQueryApi(riskApi()) });
     expect(screen.getByRole('button', { name: t('map.dimensions') })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: t('map.vizRisk') }));
     expect(log).toEqual([['replace', 'vizStyle', 'risk']]);
-    expect(screen.queryByRole('button', { name: t('map.dimensions') })).toBeNull();
+    expect(screen.getByRole('button', { name: t('map.dimensions') })).toBeInTheDocument();
   });
 
-  it('View Details opens the Violations workbench filtered to the area, as one area chip of its paths', async () => {
+  it('View Details opens the area\'s scoped Findings view, of its paths', async () => {
     const onNavigate = vi.fn();
     renderRisk({ onNavigate });
     fireEvent.click(await screen.findByRole('button', { name: /checkout/ }));
     fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
-    expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { area: { name: 'checkout', paths: ['src/'] } } });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'area', name: 'checkout', paths: ['src/'], small: false }, asOf: null });
   });
 
   it('opens with an area selected when asked to (an area from the Overview)', async () => {
