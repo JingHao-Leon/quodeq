@@ -1,11 +1,13 @@
 /**
  * RiskAreasPanel: the functional areas that need rework most, as the Map's
  * Risk tab places them: fix first then watch, on the absolute lines. Over
- * every finding (the Overview) or over some `dimensions` (a dimension page),
- * where each area also says how many times the selection's average its
- * density is (its lift, which orders it within its zone). A row opens the
- * Risk tab with that area selected; the foot counts both zones and links to
- * the whole sky. A project with nothing in either zone says so in one line.
+ * every finding (the Overview) it lists those two zones. Over some
+ * `dimensions` (a dimension page), whose findings alone seldom reach the
+ * lines, the healthy areas follow them, and each area says how many times
+ * the selection's average its density is (its lift, which orders the areas
+ * within a zone and never moves one into another). A row opens the Risk tab
+ * with that area selected; the foot counts both zones and links to the
+ * whole sky. With nothing to list it says so in one line.
  */
 import { useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
@@ -21,7 +23,9 @@ const DENSITY_DECIMALS = 2;
 const LIFT_DECIMALS = 1;
 /** Name, zone chip, density, severities, files. */
 const AREA_COLUMNS = 'minmax(0, 1fr) auto 64px auto 48px';
-const ZONE_KEY = { [SKY_ZONE.FIX_FIRST]: 'overview.riskZoneFixFirst', [SKY_ZONE.WATCH]: 'overview.riskZoneWatch' };
+const ZONE_KEY = {
+  [SKY_ZONE.FIX_FIRST]: 'overview.riskZoneFixFirst', [SKY_ZONE.WATCH]: 'overview.riskZoneWatch', [SKY_ZONE.HEALTHY]: 'overview.riskZoneHealthy',
+};
 const KIND_KEY = { [AREA_KIND.HOTSPOT]: 'map.riskKindHotspot', [AREA_KIND.DORMANT]: 'map.riskKindDormant' };
 const NO_DIMENSIONS = [];
 
@@ -59,7 +63,9 @@ function AreaRow({ area, onClick }) {
  */
 export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENSIONS, onAreaClick, onOpenRisk }) {
   const { areas, loading, unavailable } = useRiskAreas({ project, source, dimensions });
-  const { rows, fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
+  const { rows: rework, fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
+  // Over a selection every area judged is listed, zones first, then by lift.
+  const rows = useMemo(() => (dimensions.length ? areas.filter((a) => a.zone) : rework), [dimensions, areas, rework]);
   if (unavailable || loading || !total) return null;
   return (
     <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')}>

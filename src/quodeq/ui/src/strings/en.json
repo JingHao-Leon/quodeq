@@ -1123,6 +1123,7 @@
   "overview.riskAreaSubKind": "{kind} · {files} files",
   "overview.riskZoneFixFirst": "FIX FIRST",
   "overview.riskZoneWatch": "WATCH",
+  "overview.riskZoneHealthy": "HEALTHY",
   "overview.riskDensity": "{density}/f",
   "overview.riskLift": "×{lift} this dimension's avg",
   "overview.fixFirstAria": "Requirements to fix first",

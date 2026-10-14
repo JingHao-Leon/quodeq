@@ -74,4 +74,13 @@ describe('RiskAreasPanel over a dimension', () => {
     expect(asked.selection).toBeNull();
     expect(screen.queryByText(/this dimension's avg/)).toBeNull();
   });
+
+  it('lists the healthy areas after the two zones over a dimension, by lift, as its findings seldom reach the lines', () => {
+    areaSet = { areas: [area('calm', 0.2, { lift: 6 }), area('quiet', 0.1, { lift: 2 }), area('warm', 0.6, { lift: 1.5 }), area('tiny', 3, { kind: 'small', lift: 9 })] };
+    render(<RiskAreasPanel project="p" source="local" dimensions={['security']} />);
+    const rows = screen.getAllByRole('row');
+    expect(rows.map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['warm', 'calm', 'quiet']);
+    expect(rows[1]).toHaveTextContent(t('overview.riskZoneHealthy'));
+    expect(screen.getByText(t('overview.riskAreasFoot', { areas: '4', fixFirst: 0, watch: 1 }))).toBeInTheDocument();
+  });
 });
