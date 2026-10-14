@@ -232,8 +232,8 @@ def _days(rows: ProjectRows) -> tuple[dict[str, _DayRun], dict[str, ViolationRec
     return picked, {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}}
 
 
-def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
-    """Oldest-first days with reports and their snapshots, the accumulated view as of each day's end.
+def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot], list[str]]:
+    """Oldest-first days with reports, their snapshots (the accumulated view as of each day's end) and each day's last run.
 
     Every run the page header counts counts here: a day folds its runs oldest
     first, and a dimension the day did not report is carried from the latest
@@ -243,7 +243,7 @@ def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot]]:
     runs = carry_forward([p.run for p in picked.values()], records)
     hidden = _hidden(rows, records, referenced_records(runs))
     weights: Mapping[str, float] = rows.params.severity_weight
-    return list(picked), [materialise(run, records, hidden, weights) for run in runs]
+    return list(picked), [materialise(run, records, hidden, weights) for run in runs], [p.row_id for p in picked.values()]
 
 
 def _estimated_activity(snaps: list[RunSnapshot]) -> RunActivity:
@@ -272,8 +272,9 @@ def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_
         raise ValueError(f"unknown frames value: {frames!r}")
     if not project_dir_exists(reports_root / project):
         return EMPTY_HISTORY
-    days, snaps = _history(ProjectRows.load(reports_root, project, run_limit=0))
+    days, snaps, day_runs = _history(ProjectRows.load(reports_root, project, run_limit=0))
     if not days:
         return EMPTY_HISTORY
     frame_runs = list(range(len(snaps))) if frames == ALL_FRAMES else [len(snaps) - 1]
-    return assemble_history(days, snaps, _activity(reports_root / project, days, snaps), frame_runs)
+    history = assemble_history(days, snaps, _activity(reports_root / project, days, snaps), frame_runs)
+    return replace(history, day_runs=tuple(day_runs))

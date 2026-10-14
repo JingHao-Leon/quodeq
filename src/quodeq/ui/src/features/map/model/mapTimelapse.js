@@ -40,10 +40,17 @@ function rowsReader(frames, delta) {
   };
 }
 
-function runOf(frame, rows) {
+function runOf(frame, rows, runId) {
   let issues = 0;
   for (const row of rows.values()) issues += row[ROW.VIOLATIONS];
-  return { day: frame.day, added: frame.new || 0, fixed: frame.fixed || 0, issues, areas: frame.areas || [] };
+  return { day: frame.day, runId, added: frame.new || 0, fixed: frame.fixed || 0, issues, areas: frame.areas || [] };
+}
+
+/** Each day's last run by day (the run the day is as of), from the payload's `days` and `dayRuns`. */
+function dayRunsOf(payload) {
+  const days = Array.isArray(payload.days) ? payload.days : [];
+  const runs = Array.isArray(payload.dayRuns) ? payload.dayRuns : [];
+  return new Map(days.map((day, i) => [day, runs[i] ?? null]));
 }
 
 function checksOf(rows, fileCount) {
@@ -56,7 +63,7 @@ function checksOf(rows, fileCount) {
  * Every run of a `frames=all` map history payload, oldest first.
  * @param {object|null} payload GET /api/projects/<p>/map/history?frames=all
  * @returns {{activitySource: string, fileNames: string[], fileArea: string[], fileLayer: string[],
- *   runs: {day: string, added: number, fixed: number, issues: number, areas: object[]}[],
+ *   runs: {day: string, runId: (string|null), added: number, fixed: number, issues: number, areas: object[]}[],
  *   checks: Float32Array[], rowsAt: function(number): Map<number, number[]>}}
  */
 export function decodeTimelapse(payload) {
@@ -67,9 +74,10 @@ export function decodeTimelapse(payload) {
   const checks = [];
   // One working Map for the whole decode: each frame's runs and checks are read from it before the next frame applies.
   const rows = new Map();
+  const runIdOf = dayRunsOf(payload);
   for (const frame of frames) {
     applyFrameInPlace(rows, frame, delta);
-    runs.push(runOf(frame, rows));
+    runs.push(runOf(frame, rows, runIdOf.get(frame.day) ?? null));
     checks.push(checksOf(rows, payload.fileNames.length));
   }
   return {

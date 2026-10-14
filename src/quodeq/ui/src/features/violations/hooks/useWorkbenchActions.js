@@ -27,16 +27,18 @@ function useFileObjects(dimensions) {
 }
 
 /**
- * @param {{visibleDimensions: Array, selectedProject: string, selectedSource: string, callbacks: Object, handlers: Object}} args
+ * @param {{visibleDimensions: Array, selectedProject: string, selectedSource: string, callbacks: Object, handlers: Object, readOnly?: boolean}} args
  *   `handlers` carries useDismissedFindings' handleRestore/handleDelete/handleRestoreAll/handleDeleteAll.
  * @returns {{actions: Object, error: ?string, notice: ?string}} the workbench actions and the dismiss-by-rule banners.
  */
-export function useWorkbenchActions({ visibleDimensions, selectedProject, selectedSource, callbacks, handlers }) {
-  const shared = selectedSource === PROJECT_SOURCE.SHARED;
+export function useWorkbenchActions({ visibleDimensions, selectedProject, selectedSource, callbacks, handlers, readOnly = false }) {
+  // A shared project, or a past day, is read-only: no dismissing, restoring or fix plans.
+  const shared = selectedSource === PROJECT_SOURCE.SHARED || readOnly;
   const { dismissType, error, notice } = useDismissByType({ project: selectedProject, selectedSource, onReconcile: callbacks.onReconcile });
   const { canOpenFile, fileObjectFor } = useFileObjects(visibleDimensions);
   const { onFileClick, onDismissFinding } = callbacks;
   const actions = useMemo(() => ({
+    readOnly,
     canOpenFile,
     onOpenFile: onFileClick ? (f) => { const obj = fileObjectFor(f); if (obj) onFileClick(obj); } : undefined,
     onDismiss: shared ? undefined : onDismissFinding,
@@ -45,7 +47,7 @@ export function useWorkbenchActions({ visibleDimensions, selectedProject, select
     onDelete: shared ? undefined : handlers.handleDelete,
     onRestoreAll: shared ? undefined : handlers.handleRestoreAll,
     onDeleteAll: shared ? undefined : handlers.handleDeleteAll,
-  }), [shared, canOpenFile, fileObjectFor, onFileClick, onDismissFinding, dismissType,
+  }), [readOnly, shared, canOpenFile, fileObjectFor, onFileClick, onDismissFinding, dismissType,
     handlers.handleRestore, handlers.handleDelete, handlers.handleRestoreAll, handlers.handleDeleteAll]);
   return { actions, error, notice };
 }

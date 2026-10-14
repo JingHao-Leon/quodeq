@@ -92,7 +92,7 @@ export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = 
         <FindingList key={listKeyOf(state)} groups={groups} browse={level ? { dir, folders: level.folders, onDir } : null}
           selectedId={selectedId} onSelect={select} shown={list.length} total={statusPool(all, state.status).length} lineOnly={lineOnly} />
         <FindingDetail finding={selected} dims={dims} findings={all} onAddPath={onAddPath}
-          onOpenFile={canOpen ? openFile : undefined} onDismiss={actions.onDismiss} onDismissType={actions.onDismissType}
+          onOpenFile={canOpen ? openFile : undefined} readOnly={actions.readOnly} onDismiss={actions.onDismiss} onDismissType={actions.onDismissType}
           onRestore={actions.onRestore} onDelete={actions.onDelete} />
       </div>
       )}

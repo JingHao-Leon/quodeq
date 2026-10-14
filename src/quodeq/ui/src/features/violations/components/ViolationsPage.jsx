@@ -10,6 +10,8 @@ import DeferredMount from '../../../components/DeferredMount.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import FindingsWorkbench from '../workbench/FindingsWorkbench.jsx';
 import { sevAbbr } from '../workbench/sevWords.js';
+import { formatShortDate } from '../../../utils/formatters.js';
+import { useAsOfScores } from '../hooks/useAsOfScores.js';
 
 const SUMMARY_SEP = ' · ';
 
@@ -46,15 +48,46 @@ function Banners({ restoreError, dismissError, dismissNotice }) {
   );
 }
 
-export default function ViolationsPage({ data, callbacks, workbench = null, onWorkbenchChange }) {
-  const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL } = data;
+/** A run day ('YYYY-MM-DD') read at local noon, so no time zone moves it to the day before. */
+const NOON = 'T12:00:00';
+const dayDate = (day) => new Date(`${day}${NOON}`);
+
+/** A past day's view: which day, and the way back to today. */
+function AsOfBanner({ asOf, onBack }) {
+  if (!asOf) return null;
+  const date = asOf.day ? formatShortDate(dayDate(asOf.day).toISOString()) : asOf.runId;
+  return (
+    <div className="info-banner violations-asof" role="status">
+      <span>{t('violations.asOfBanner', { date })}</span>
+      {onBack && <button type="button" className="wb-link" onClick={onBack}>{t('violations.asOfBack')}</button>}
+    </div>
+  );
+}
+
+/** Today's findings, or a past day's (`asOf`) read as of that day's last run. */
+function useShownData(data) {
+  const { selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null } = data;
+  const past = useAsOfScores(selectedProject, selectedSource, asOf);
+  if (!asOf) return data;
+  return {
+    ...data,
+    accumulatedDimensions: past.data?.accumulated?.dimensions || [],
+    loading: past.isLoading,
+    isFetching: past.isFetching,
+    error: past.error || null,
+  };
+}
+
+export default function ViolationsPage({ data: given, callbacks, workbench = null, onWorkbenchChange }) {
+  const data = useShownData(given);
+  const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null } = data;
   const { projects = [], projectsLoaded, projectName, loading, isFetching, error } = data;
   const { onNavigate, onReconcile, onRetry } = callbacks;
 
   const pageState = useViolationsPageState({ selectedProject, onReconcile, accumulatedDimensions, selectedSource });
   const { dismissed, dismissedLoading, restoreError, visibleDimensions, summary } = pageState;
   const { actions, error: dismissError, notice: dismissNotice } = useWorkbenchActions({
-    visibleDimensions, selectedProject, selectedSource, callbacks, handlers: pageState,
+    visibleDimensions, selectedProject, selectedSource, callbacks, handlers: pageState, readOnly: Boolean(asOf),
   });
 
   const emptyState = renderViolationsEmptyState({
@@ -66,6 +99,7 @@ export default function ViolationsPage({ data, callbacks, workbench = null, onWo
 
   return (
     <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
+      <AsOfBanner asOf={asOf} onBack={callbacks.onBackToToday} />
       <Banners restoreError={restoreError} dismissError={dismissError} dismissNotice={dismissNotice} />
       <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={dismissedLoading && !dismissed.length ? null : dismissed.length} />
       {/* The header paints on the click; the workbench (every finding,

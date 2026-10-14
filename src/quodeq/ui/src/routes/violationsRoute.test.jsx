@@ -53,6 +53,19 @@ describe('ViolationsRoute', () => {
   });
 });
 
+describe('ViolationsRoute as of a past day', () => {
+  it('is read-only and goes back to today on the same entry', () => {
+    const props = routeProps({ dimensions: dims() });
+    props.navigation.handleNavigateReplace = vi.fn();
+    const params = { wb: { q: 'api' }, asOf: { runId: 'r7', day: '2026-08-07' } };
+    const el = ViolationsRoute({ params, props });
+    expect(el.props.data.asOf).toEqual({ runId: 'r7', day: '2026-08-07' });
+    expect(el.props.callbacks.onDismissFinding).toBeUndefined();
+    el.props.callbacks.onBackToToday();
+    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { wb: { q: 'api' }, asOf: null });
+  });
+});
+
 describe('buildEvalPrincipal', () => {
   it('keeps a genuine score of 0, not coercing it to null', () => {
     const result = buildEvalPrincipal({ principle: 'P1', dimension: 'security' }, { score: 0, grade: 'F' }, 'run-1');
