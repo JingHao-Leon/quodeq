@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from quodeq.api.map_history_payload import map_history_payload
 from quodeq.core.map_history.area_metrics import AreaKind, AreaMetrics
 from quodeq.core.map_history.history import EMPTY_HISTORY, FileRow, MapFrame, MapHistory
@@ -55,3 +57,9 @@ def test_each_days_last_run_is_sent_parallel_to_days():
     body = map_history_payload(history)
     assert body["days"] == ["2026-10-01", "2026-10-02"]
     assert body["dayRuns"] == ["r1", "r3"]
+
+
+def test_an_area_sends_its_lift_only_under_a_selection():
+    plain = map_history_payload(_history(MapFrame("2026-09-01", 0, 0, (), (AREA,))))["frames"][0]["areas"][0]
+    lifted = map_history_payload(_history(MapFrame("2026-09-01", 0, 0, (), (replace(AREA, lift=1.5),))))
+    assert "lift" not in plain and lifted["frames"][0]["areas"][0]["lift"] == 1.5

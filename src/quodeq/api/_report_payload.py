@@ -8,6 +8,7 @@ from pathlib import Path
 
 from flask import Response
 
+from quodeq.api._constants import CODE_INVALID_INPUT
 from quodeq.api._http_cache import conditional_json
 from quodeq.api.helpers import json_error
 from quodeq.api.routes_common import reports_dir
@@ -21,12 +22,15 @@ class PayloadFailure:
     message: str  # the 500 body's error text
     log: Callable[[], None]  # logs the failure with its traceback (called inside the except block)
     not_found: str | None = None  # when set, a FileNotFoundError answers 404 with this text
+    bad_request: tuple[type[Exception], ...] = ()  # the exceptions that mean a bad request, answered 400 with their text
 
 
 def serve_report_payload(build: Callable[[Path], object], failure: PayloadFailure) -> Response | tuple[Response, int]:
-    """``build(reports_dir)`` as a cacheable JSON response, or the route's 404/500 error."""
+    """``build(reports_dir)`` as a cacheable JSON response, or the route's 400/404/500 error."""
     try:
         payload = build(Path(reports_dir()))
+    except failure.bad_request as exc:
+        return json_error(str(exc), HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
     except failure.errors as exc:
         if failure.not_found is not None and isinstance(exc, FileNotFoundError):
             return json_error(failure.not_found, HTTPStatus.NOT_FOUND, "NOT_FOUND")
