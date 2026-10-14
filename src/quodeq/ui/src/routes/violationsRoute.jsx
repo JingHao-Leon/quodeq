@@ -44,7 +44,11 @@ function buildViolationsData({ props, acc, dims, past }) {
 // scheduleDashboardReconcile in useDashboard.js.
 function buildViolationsCallbacks({ props, nav, past }) {
   return {
-    onFileClick: (fileObj, opts) => nav(NAV_TAB.FILE, { file: fileObj, sourceTab: NAV_TAB.VIOLATIONS, severityFilter: opts?.severity || null }),
+    // A past day opens a file inside its own list (that day's findings of the file, a new step back can undo);
+    // today opens the file page.
+    onFileClick: past.asOf
+      ? (fileObj) => past.openFile(fileObj.file)
+      : (fileObj, opts) => nav(NAV_TAB.FILE, { file: fileObj, sourceTab: NAV_TAB.VIOLATIONS, severityFilter: opts?.severity || null }),
     onReconcile: props.scheduleDashboardReconcile,
     // The workbench dismisses findings from many runs: each finding carries
     // its dimension's run, and the handler is made per call (undefined for a
@@ -83,9 +87,13 @@ function buildViolationsPageProps({ params, props, acc, dims, nav, past }) {
  * way back to today (the same entry, without `asOf`).
  */
 function pastView(params, props) {
+  const wb = params.wb || {};
   return {
     asOf: readAsOf(params.asOf),
     backToToday: () => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, { ...params, asOf: null }),
+    openFile: (file) => props.navigation.handleNavigate(NAV_TAB.VIOLATIONS, {
+      ...params, wb: { ...wb, paths: [file], area: null, selectedId: null },
+    }),
   };
 }
 

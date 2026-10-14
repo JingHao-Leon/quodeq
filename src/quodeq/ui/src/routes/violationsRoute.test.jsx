@@ -64,6 +64,16 @@ describe('ViolationsRoute as of a past day', () => {
     el.props.callbacks.onBackToToday();
     expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { wb: { q: 'api' }, asOf: null });
   });
+
+  it('opens a file inside that day\'s list, as a new step', () => {
+    const props = routeProps({ dimensions: dims() });
+    const params = { wb: { q: 'api', area: { name: 'a', paths: ['x/'] } }, asOf: { runId: 'r7', day: '2026-08-07' } };
+    const el = ViolationsRoute({ params, props });
+    el.props.callbacks.onFileClick({ file: 'src/a.py' });
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, {
+      wb: { q: 'api', paths: ['src/a.py'], area: null, selectedId: null }, asOf: { runId: 'r7', day: '2026-08-07' },
+    });
+  });
 });
 
 describe('buildEvalPrincipal', () => {
