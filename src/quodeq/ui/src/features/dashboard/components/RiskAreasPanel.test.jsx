@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import RiskAreasPanel, { areasNeedingRework, AREAS_SHOWN } from './RiskAreasPanel.jsx';
+import RiskAreasPanel, { AREAS_SHOWN } from './RiskAreasPanel.jsx';
+import { areasNeedingRework } from '../../map/model/areasNeedingRework.js';
 import { t } from '../../../strings/index.js';
 
 const stats = (files, violations = 3, critical = 0, major = 1) => ({ files, violations, critical, major, compliance: 0, weight: 0 });
@@ -14,8 +15,16 @@ vi.mock('../../map/hooks/useMapAreas.js', () => ({
 
 describe('areasNeedingRework', () => {
   it('keeps fix first and watch, most weighted issues per file first, and leaves small areas out', () => {
-    const rows = areasNeedingRework({ areas: [area('calm', 0.2), area('hot', 1.4), area('warm', 0.6), area('tiny', 3, { files: 2 })] });
+    const { rows, total } = areasNeedingRework({ areas: [area('calm', 0.2), area('hot', 1.4), area('warm', 0.6), area('tiny', 3, { files: 2 })] });
     expect(rows.map((r) => [r.area.name, r.zone])).toEqual([['hot', 'fixFirst'], ['warm', 'watch']]);
+    expect(total).toBe(3);
+  });
+});
+
+describe('areasNeedingRework, an area without a density', () => {
+  it('counts it as 0 and keeps the order by name among equals', () => {
+    const { rows } = areasNeedingRework({ areas: [{ ...area('b', 0.8), density: undefined }, area('a', 0.8), area('c', 1)] });
+    expect(rows.map((r) => r.area.name)).toEqual(['c', 'a']);
   });
 });
 

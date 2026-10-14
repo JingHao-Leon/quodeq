@@ -9,24 +9,17 @@ import { useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
 import useMapAreas from '../../map/hooks/useMapAreas.js';
-import { skyAreas } from '../../map/viz/core/skyLayout.js';
-import { zoneOf } from '../../map/viz/core/skyScale.js';
+import { areasNeedingRework } from '../../map/model/areasNeedingRework.js';
 import { SKY_ZONE, AREA_KIND } from '../../map/mapVocab.js';
 import { SeverityAndFilesCells } from './SeverityBadges.jsx';
 
 // Two-line rows, as many as the folders panel shows.
 export const AREAS_SHOWN = 5;
 const DENSITY_DECIMALS = 2;
+/** Name, zone chip, density, severities, files. */
+const AREA_COLUMNS = 'minmax(0, 1fr) auto 64px auto 48px';
 const ZONE_KEY = { [SKY_ZONE.FIX_FIRST]: 'overview.riskZoneFixFirst', [SKY_ZONE.WATCH]: 'overview.riskZoneWatch' };
 const KIND_KEY = { [AREA_KIND.HOTSPOT]: 'map.riskKindHotspot', [AREA_KIND.DORMANT]: 'map.riskKindDormant' };
-
-/** The areas in fix first or watch, most weighted issues per file first, with each one's zone. */
-export function areasNeedingRework(areaSet) {
-  return skyAreas(areaSet)
-    .map((a) => ({ area: a, zone: zoneOf(a.density || 0) }))
-    .filter((r) => r.zone !== SKY_ZONE.HEALTHY)
-    .sort((p, q) => q.area.density - p.area.density || p.area.name.localeCompare(q.area.name));
-}
 
 function sevOf(stats) {
   return { critical: stats.critical, major: stats.major, minor: Math.max(0, stats.violations - stats.critical - stats.major) };
@@ -52,7 +45,7 @@ function AreaRow({ row, onClick }) {
 
 export default function RiskAreasPanel({ project, source, onAreaClick, onOpenRisk }) {
   const { areaSet, loading, unavailable } = useMapAreas(project, source, true);
-  const rows = useMemo(() => areasNeedingRework(areaSet), [areaSet]);
+  const { rows, total } = useMemo(() => areasNeedingRework(areaSet), [areaSet]);
   if (unavailable || loading || !areaSet.areas.length) return null;
   const fixFirst = rows.filter((r) => r.zone === SKY_ZONE.FIX_FIRST).length;
   return (
@@ -62,13 +55,13 @@ export default function RiskAreasPanel({ project, source, onAreaClick, onOpenRis
         <span className="run-history-panel__stats">{t('overview.riskAreasNote')}</span>
       </div>
       {rows.length ? (
-        <GridTable columns="minmax(0, 1fr) auto 64px auto 48px" dense>
+        <GridTable columns={AREA_COLUMNS} dense>
           {rows.slice(0, AREAS_SHOWN).map((r) => <AreaRow key={r.area.name} row={r} onClick={onAreaClick} />)}
         </GridTable>
       ) : <div className="risk-areas-panel__none">{t('overview.riskAreasNone')}</div>}
       <div className="panel-foot">
         <span>{t('overview.riskAreasFoot', {
-          areas: skyAreas(areaSet).length.toLocaleString(LOCALE), fixFirst, watch: rows.length - fixFirst,
+          areas: total.toLocaleString(LOCALE), fixFirst, watch: rows.length - fixFirst,
         })}</span>
         {onOpenRisk && <button type="button" className="panel-foot__link" onClick={onOpenRisk}>{t('overview.riskAreasOpen')}</button>}
       </div>
