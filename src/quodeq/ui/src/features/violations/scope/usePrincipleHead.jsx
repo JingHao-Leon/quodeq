@@ -105,7 +105,8 @@ function usePrincipleRisk({ isPrinciple, scope, history, onOpenMap }) {
   const { fixFirst, watch } = useMemo(() => reworkSummary(areas), [areas]);
   if (!isPrinciple || !history?.project || loading || failed || unavailable) return null;
   const onOpen = onOpenMap ? () => onOpenMap(riskMapParams({ dimensions, principle: scope.principle })) : undefined;
-  return { fixFirst, watch, onOpen };
+  // The Map measures today's findings: on a past run the tile says its areas are today's.
+  return { fixFirst, watch, onOpen, today: Boolean(history?.runId) };
 }
 
 /**
@@ -114,7 +115,7 @@ function usePrincipleRisk({ isPrinciple, scope, history, onOpenMap }) {
  * @param {?{project: string, selectedSource: string, trend: object[], granularity: string, runId: ?string}} history
  * @param {(params: object) => void} [onOpenMap] opens the Map with these nav params
  * @returns {{description?: string, grade?: ?object, change?: ?number, when?: ?string, previous?: ?object, since?: ?object,
- *   riskAreas?: ?{fixFirst: number, watch: number, onOpen?: Function}}}
+ *   riskAreas?: ?{fixFirst: number, watch: number, onOpen?: Function, today: boolean}}}
  */
 export function usePrincipleHead(scope, dims, history, onOpenMap) {
   const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;

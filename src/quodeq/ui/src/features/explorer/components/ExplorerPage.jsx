@@ -189,7 +189,7 @@ function ExplorerPageBody({
 
       <DeferredMount fallback={<CardListSkeleton />}>
         <DimensionFindingsPanels d={d} fixFirstDims={fixFirstDims} findingsNav={findingsNav} litPrinciple={lit.principle}
-          project={project} selectedSource={selectedSource} />
+          project={project} selectedSource={selectedSource} areasOfToday={Boolean(pastRun)} />
       </DeferredMount>
     </div>
   );

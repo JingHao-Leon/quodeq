@@ -145,4 +145,10 @@ describe('FindingsHead', () => {
     expect(slim).toHaveTextContent(t('overview.cardPass', { pct: 70 }));
     vi.unstubAllGlobals();
   });
+  it('a principle\'s Risk tile counts its areas, and on a past run says they are today\'s', () => {
+    const { rerender } = head({ riskAreas: { fixFirst: 2, watch: 1 } });
+    expect(statOf(t('violations.scopeStatRisk'))).toHaveTextContent(t('violations.scopeStatRiskAreasHint'));
+    rerender(<FindingsHead title="p" sub="principle" filesHint="x" metrics={metrics()} riskAreas={{ fixFirst: 2, watch: 1, today: true }} />);
+    expect(statOf(t('violations.scopeStatRisk'))).toHaveTextContent(t('violations.scopeStatRiskAreasToday'));
+  });
 });

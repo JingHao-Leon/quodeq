@@ -71,15 +71,17 @@ export function PrinciplesPanel({ radialPrinciples, enrichedPrinciples, onPrinci
  * The page's bottom, what to fix beside where it is: Fix first on the left
  * (a lit principle lights its rows), and on the right the Map's areas
  * measured over this dimension (first), the folders or the files its
- * findings are in.
+ * findings are in. The Map measures today's findings, so on a past run
+ * (`areasOfToday`) the areas say they are today's.
  */
-export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple, project, selectedSource }) {
+export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple, project, selectedSource, areasOfToday = false }) {
   const [where, setWhere] = useState(WHERE.AREAS);
   const dimensions = useMemo(() => [d.evalData.dimension], [d.evalData.dimension]);
   return (
     <div className="explorer-bottom">
       <FixFirstPanel dimensions={fixFirstDims} oneDimension litPrinciple={litPrinciple} onRequirementClick={findingsNav.onRequirementClick} />
       <WherePanel view={where} onView={setWhere}>
+        {where === WHERE.AREAS && areasOfToday && <p className="explorer-where__note">{t('explorer.areasOfToday')}</p>}
         {where === WHERE.AREAS && (
           <RiskAreasPanel project={project} source={selectedSource} dimensions={dimensions}
             onAreaClick={findingsNav.onAreaClick} onOpenRisk={findingsNav.onOpenRisk} />

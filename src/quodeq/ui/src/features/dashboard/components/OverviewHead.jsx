@@ -10,6 +10,7 @@ import { pluralKey } from '../../../utils/plural.js';
 import { useRunModel } from '../hooks/useOverviewPeriod.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { t, LOCALE } from '../../../strings/index.js';
+import { relativeTime } from '../../../utils/relativeTime.js';
 
 const MAX_LANGS_IN_SUB = 5;
 const LANGS_SEP = '  ';
@@ -29,17 +30,21 @@ export function languageSub(projectInfo) {
 /**
  * The Overview's sub line, as the other pages': what it is (the project's
  * files and languages), when and by which model it was last evaluated, and
- * a warning only when a dimension's files read round below 100%.
+ * a warning only when a dimension's files read round below 100%, and for
+ * a shared project when its copy was last fetched.
  * @param {{projectInfo?: object, lastDate?: ?string, model?: ?string, dimensions?: object[]}} args
  * @returns {?string}
  */
 export function overviewSub({ projectInfo, lastDate = null, model = null, dimensions = [] }) {
   const partial = partialDimensionCount(dimensions);
+  // A shared project's copy is as fresh as its last fetch: say when that was.
+  const fetched = projectInfo?.lastFetchedAt ? relativeTime(projectInfo.lastFetchedAt) : null;
   return [
     languageSub(projectInfo),
     lastDate ? t('overview.subEvaluated', { date: lastDate }) : null,
     model ? t('overview.subModel', { model }) : null,
     partial ? t(pluralKey(partial, 'overview.subPartialOne', 'overview.subPartial'), { count: partial }) : null,
+    fetched ? t('overview.subFetched', { when: fetched }) : null,
   ].filter(Boolean).join(t('violations.wbDot')) || null;
 }
 

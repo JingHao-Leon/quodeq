@@ -65,11 +65,11 @@ function RiskStat({ risk }) {
  * the Map's Risk tab on the principle.
  */
 function RiskAreasStat({ riskAreas }) {
-  const { fixFirst, watch, onOpen } = riskAreas;
+  const { fixFirst, watch, onOpen, today = false } = riskAreas;
   const value = fixFirst || watch ? t('violations.scopeStatRiskAreasValue', { fixFirst, watch }) : t('violations.scopeStatRiskAreasNone');
   return (
     <HeadStat label={t('violations.scopeStatRisk')} value={<span className="findings-head__areas">{value}</span>}
-      sub={t('violations.scopeStatRiskAreasHint')} onClick={onOpen} ariaLabel={t('violations.scopeStatRiskAreasAria')} />
+      sub={t(today ? 'violations.scopeStatRiskAreasToday' : 'violations.scopeStatRiskAreasHint')} onClick={onOpen} ariaLabel={t('violations.scopeStatRiskAreasAria')} />
   );
 }
 

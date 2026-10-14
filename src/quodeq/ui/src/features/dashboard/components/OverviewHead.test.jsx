@@ -80,4 +80,9 @@ describe('the Overview\'s sub line', () => {
     expect(overviewSub({ projectInfo: null, lastDate: '14 Oct 2026', dimensions: [dim(), dim({ dimension: 'b' })] })).toBe('evaluated 14 Oct 2026');
     expect(overviewSub({ projectInfo: null })).toBeNull();
   });
+
+  it('a shared project says when its copy was last fetched', () => {
+    const lastFetchedAt = new Date().toISOString();
+    expect(overviewSub({ projectInfo: { lastFetchedAt }, lastDate: '14 Oct 2026' })).toMatch(/^evaluated 14 Oct 2026 · fetched /);
+  });
 });
