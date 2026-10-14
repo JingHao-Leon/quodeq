@@ -211,14 +211,20 @@ function drawHover(ctx, p, palette) {
   drawHoverRing(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette);
 }
 
-/** The open folder's sub-folders big enough to label, largest first (a file's name lives in the hover card). */
+/**
+ * The open folder's sub-folders big enough to label, largest first (a file's
+ * name lives in the hover card), and the open folder's own index (-1 at the root).
+ */
 function labelCandidates({ circles, screenCoords, viewport, focusNode }) {
   const out = [];
+  let open = -1;
   circles.forEach((c, i) => {
+    if (c === focusNode) open = i;
+    if (c.parent !== focusNode || !isPackFolder(c)) return;
     const p = toPx(screenCoords[i], viewport);
-    if (c.parent === focusNode && isPackFolder(c) && p.r > LABEL_MIN_R) out.push({ c, p, i });
+    if (p.r > LABEL_MIN_R) out.push({ p, i });
   });
-  return out.sort((a, b) => b.p.r - a.p.r);
+  return { open: focusNode?.depth > 0 ? open : -1, candidates: out.sort((a, b) => b.p.r - a.p.r) };
 }
 
 function overlaps(a, b) {
@@ -229,47 +235,42 @@ function labelSize(rPx, fontScale) {
   return Math.min(LABEL_FONT_MAX * fontScale, Math.max(LABEL_FONT_MIN * fontScale, rPx / LABEL_FONT_DIVISOR));
 }
 
-/**
- * A folder's name centred above its circle, kept inside the canvas when the
- * circle's top is off screen; returns the label's box.
- */
-function drawNameAbove(ctx, { c, p, size, font }) {
+/** A label's text and box, centred above a circle (`pinned`: kept inside the canvas when the circle's top is off screen). */
+function labelBox(ctx, { text, p, size, font, pinned }) {
   ctx.font = `${LABEL_WEIGHT_FOLDER} ${size}px ${font}`;
-  const text = chainLabel(c.data.name);
   const w = ctx.measureText(text).width;
-  const y = Math.max(p.py - p.r - LABEL_GAP, size + LABEL_GAP);
-  ctx.fillText(text, p.px, y);
-  return { x: p.px - w / 2, y: y - size, w, h: size };
+  const above = p.py - p.r - LABEL_GAP;
+  const y = pinned ? Math.max(above, size + LABEL_GAP) : above;
+  return { text, x: p.px - w / 2, y: y - size, w, h: size, cx: p.px, base: y };
 }
 
 /**
  * Labels, when on: the hovered folder's name and the open folder's name come
- * first, then the open folder's sub-folders, largest first; a label whose box
- * would overlap one already placed is skipped, so labels never collide.
+ * first (kept inside the canvas), then the open folder's sub-folders, largest
+ * first; a label whose box would overlap one already placed is skipped, so
+ * labels never collide.
  */
 function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale }) {
   ctx.fillStyle = rgbCss(palette.text);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  const placed = [];
+  const label = (i) => chainLabel(circles[i].data.name);
+  const { open, candidates } = labelCandidates({ circles, screenCoords, viewport, focusNode });
+  const boxes = [];
   const hovered = hoverIndex === null ? null : circles[hoverIndex];
   if (hovered && isPackFolder(hovered)) {
     const p = toPx(screenCoords[hoverIndex], viewport);
-    placed.push(drawNameAbove(ctx, { c: hovered, p, size: labelSize(p.r, fontScale), font }));
+    boxes.push(labelBox(ctx, { text: label(hoverIndex), p, size: labelSize(p.r, fontScale), font, pinned: true }));
   }
-  const open = focusNode?.depth > 0 ? circles.indexOf(focusNode) : -1;
-  if (open >= 0) placed.push(drawNameAbove(ctx, { c: focusNode, p: toPx(screenCoords[open], viewport), size: LABEL_FONT_MAX * fontScale, font }));
-  for (const { c, p, i } of labelCandidates({ circles, screenCoords, viewport, focusNode })) {
+  if (open >= 0) boxes.push(labelBox(ctx, { text: label(open), p: toPx(screenCoords[open], viewport), size: LABEL_FONT_MAX * fontScale, font, pinned: true }));
+  for (const { p, i } of candidates) {
     if (i === hoverIndex) continue;
-    const size = labelSize(p.r, fontScale);
-    ctx.font = `${LABEL_WEIGHT_FOLDER} ${size}px ${font}`;
-    const text = chainLabel(c.data.name);
-    const w = ctx.measureText(text).width;
-    const y = p.py - p.r - LABEL_GAP;
-    const box = { x: p.px - w / 2, y: y - size, w, h: size };
-    if (placed.some((b) => overlaps(b, box))) continue;
-    placed.push(box);
-    ctx.fillText(text, p.px, y);
+    const box = labelBox(ctx, { text: label(i), p, size: labelSize(p.r, fontScale), font, pinned: false });
+    if (!boxes.some((b) => overlaps(b, box))) boxes.push(box);
+  }
+  for (const b of boxes) {
+    ctx.font = `${LABEL_WEIGHT_FOLDER} ${b.h}px ${font}`;
+    ctx.fillText(b.text, b.cx, b.base);
   }
 }
 

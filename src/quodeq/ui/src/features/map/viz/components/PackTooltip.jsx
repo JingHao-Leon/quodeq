@@ -1,6 +1,7 @@
 import { t } from '../../../../strings/index.js';
 import { PERCENT } from '../../../../constants.js';
 import MapTooltipSeverityRows from './MapTooltipSeverityRows.jsx';
+import { circlePath, circleTitle } from '../core/chainLabel.js';
 
 /** A folder's or file's findings: violations (with per-severity rows when there are any), compliance and rate. */
 function FindingCounts({ counts }) {
@@ -15,9 +16,6 @@ function FindingCounts({ counts }) {
   );
 }
 
-const pathOf = (circle) => (circle.path || circle.name || '').replace(/\/$/, '');
-/** The card's title: the circle's own name (the last segment of its path). */
-const titleOf = (circle) => pathOf(circle).split('/').at(-1) || circle.name || '';
 
 /**
  * Tooltip of the picked pack circle (`node` is `{depth, data}`). With a
@@ -29,8 +27,8 @@ export default function PackTooltip({ node, note = null }) {
   const circle = node.data;
   return (
     <div className="map-tooltip map-tooltip--docked">
-      <div className="map-tooltip-title">{titleOf(circle)}</div>
-      <div className="map-tooltip-path">{pathOf(circle)}</div>
+      <div className="map-tooltip-title">{circleTitle(circle)}</div>
+      <div className="map-tooltip-path">{circlePath(circle)}</div>
       {note ? <div className="map-tooltip-row"><span>{note}</span></div> : <FindingCounts counts={circle} />}
     </div>
   );

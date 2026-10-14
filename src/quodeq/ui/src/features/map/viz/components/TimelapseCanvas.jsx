@@ -55,6 +55,12 @@ function drawLayer(canvas, layer, { model, camera, viewport, size, coords, fades
   drawStatic(ctx, { circles: model.nodes, screenCoords: coords, viewport, paint: layer.paint, index: model.index, width: size.w, height: size.h, fades });
 }
 
+/** Where a click on node `i` goes: a folder opens itself, a file its folder, a miss (null) the top. */
+function clickTarget(model, i) {
+  if (i === null) return 0;
+  return model.nodes[i].children ? i : model.parent[i];
+}
+
 /**
  * Pointer and keyboard on the overlay. Playing: no hover, any click pauses.
  * Paused: hover once the run has settled; a click goes where it lands: a
@@ -83,8 +89,7 @@ function usePointer({ model, coords, viewport, focusIndex, interaction, settled 
     onClick: (e) => {
       if (interaction.playing) { interaction.pause(); return; }
       const i = hitAt(e);
-      if (i === null) { if (focusIndex > 0) interaction.onDrillDown(''); return; }
-      const target = model.nodes[i].children ? i : model.parent[i];
+      const target = clickTarget(model, i);
       if (target !== focusIndex) interaction.onDrillDown(target > 0 ? model.nodes[target].data.path : '');
     },
     onKeyDown: (e) => {

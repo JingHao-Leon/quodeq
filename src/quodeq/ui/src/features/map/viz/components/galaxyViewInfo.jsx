@@ -41,7 +41,7 @@ const DETAIL_BUTTON_STYLE = {
   transition: 'all 0.2s',
 };
 const TAG_STYLE = { color: 'var(--color-text-muted)', fontSize: 11, margin: '-4px 0 8px' };
-const PATH_STYLE = { color: 'var(--color-text-muted)', fontSize: 10, margin: '-6px 0 8px', wordBreak: 'break-all' };
+const PATH_STYLE = { color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', margin: '-6px 0 8px', wordBreak: 'break-all' };
 const SECONDARY_BUTTON_STYLE = {
   marginTop: 8,
   padding: 0,
