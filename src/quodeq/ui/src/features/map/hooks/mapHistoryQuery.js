@@ -1,5 +1,6 @@
 import { projectKeys } from '../../../api/queryKeys.js';
 import { STALE_TIME_MS, refetchWhileError } from '../../../hooks/queryDefaults.js';
+import { HTTP_STATUS } from '../../../constants.js';
 import { MAP_FRAMES } from '../mapVocab.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { selectionKey } from '../model/riskSelection.js';
@@ -23,6 +24,14 @@ export function mapHistoryEnabled(project, source, active) {
  * @param {{api: object, project: string, source: string, active: boolean, frames?: string, selection?: object|null}} args
  * @returns {object} useQuery options without `select`
  */
+/**
+ * Re-ask while the history errors, except when the server refused the
+ * request itself (a selection it does not know): asking again cannot help.
+ */
+export function refetchUnlessRefused(query) {
+  return query.state.error?.status === HTTP_STATUS.BAD_REQUEST ? false : refetchWhileError(query);
+}
+
 export function mapHistoryQuery({ api, project, source, active, frames = MAP_FRAMES.LATEST, selection = null }) {
   return {
     queryKey: projectKeys.mapHistory(project, frames, source, selectionKey(selection)),
@@ -31,6 +40,6 @@ export function mapHistoryQuery({ api, project, source, active, frames = MAP_FRA
     enabled: mapHistoryEnabled(project, source, active),
     staleTime: STALE_TIME_MS,
     retry: false,
-    refetchInterval: refetchWhileError,
+    refetchInterval: refetchUnlessRefused,
   };
 }
