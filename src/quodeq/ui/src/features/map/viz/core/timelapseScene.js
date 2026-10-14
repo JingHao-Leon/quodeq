@@ -2,6 +2,7 @@ import { hierarchy } from 'd3-hierarchy';
 import { buildPackPaint } from './packPaint.js';
 import { XYR_STRIDE, XYR_Y as Y, XYR_R as R } from './packLayout.js';
 import { GHOST_STROKE_ALPHA } from './packLayers.js';
+import { focusTransformFor } from './packCanvasGeometry.js';
 import { CROSSFADE_CHURN, fileChurn } from './timelapseLayout.js';
 import { rgbCss } from './mapPaint.js';
 import { filePathKey } from '../../model/mapActivity.js';
@@ -123,6 +124,17 @@ export function screenCoordsInto(xyr, { k, tx, ty }, out) {
   }
   out.length = n;
   return out;
+}
+
+/**
+ * The camera on node `i` of a run: centred where `xyr` (the run on screen)
+ * draws it, at the zoom that fits its anchor circle (its size today). A past
+ * run, where scaled slots draw a folder smaller and nearer its parent's
+ * centre, shows it at its size then inside today's frame, as the root does.
+ */
+export function runFocusTransform(anchor, xyr, i) {
+  const o = i * XYR_STRIDE;
+  return focusTransformFor({ x: xyr[o], y: xyr[o + Y], r: anchor[o + R] });
 }
 
 /** How to go from run `from` to run `to`: cross-fade big changes and seeks, move small steps. */

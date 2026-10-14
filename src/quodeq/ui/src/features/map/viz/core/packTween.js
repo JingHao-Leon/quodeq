@@ -66,3 +66,38 @@ export function useTweenedTransform(target, skip) {
 
   return shown;
 }
+
+/**
+ * The camera on a target that moves by itself (a time-lapse run moving under
+ * it): follows `target` exactly while `key` stays the same, so it never lags
+ * the run, and when `key` changes (another folder opened) eases from the
+ * camera shown then to the live target over PACK_TWEEN_MS. Snaps under
+ * reduced motion.
+ */
+export function useFollowingTransform(target, key) {
+  const [move, setMove] = useState({ key, from: target, t: 1 });
+  const shownRef = useRef(target);
+  let current = move;
+  if (move.key !== key) {
+    current = { key, from: shownRef.current, t: prefersReducedMotion() ? 1 : 0 };
+    setMove(current);
+  }
+  const moving = current.t < 1;
+
+  useEffect(() => {
+    if (!moving) return undefined;
+    let frame = 0;
+    const start = performance.now();
+    const step = (now) => {
+      const t = easeInOut((now - start) / PACK_TWEEN_MS);
+      setMove((m) => (m.key === key ? { ...m, t } : m));
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, [key, moving]);
+
+  const shown = moving ? lerpTransform(current.from, target, current.t) : target;
+  useEffect(() => { shownRef.current = shown; });
+  return shown;
+}
