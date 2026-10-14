@@ -106,6 +106,7 @@ _UI_ONLY_VOCAB_MODULES = {
     "vocab/sortDirection.js",  # sort-toggle direction: purely client-side UI concept
     "vocab/dialogVariant.js",  # dialog action-button style: purely presentational choice
     "vocab/stageStatus.js",    # grade-formula worked-example lifecycle: purely client-side state
+    "vocab/riskZone.js",       # Risk zones by density (fix first, watch, healthy): drawn by the UI only
 }
 
 

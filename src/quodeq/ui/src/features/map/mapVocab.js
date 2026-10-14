@@ -1,3 +1,5 @@
+import { RISK_ZONE } from '../../vocab/riskZone.js';
+
 // The map's colour/size mode: the `viewMode` nav param, MapPage's toggle and
 // the switches in viz/core/mapColors.js. The Circle Pack's own buttons are
 // PACK_COLOR_MODES (concentration, activity); these health, violations and
@@ -60,5 +62,5 @@ export const AREA_KIND = Object.freeze({ HOTSPOT: 'hotspot', DORMANT: 'dormant',
 /** Kinds that wear a ring on the Risk sky: hotspot solid, dormant dashed (spec 2.4). */
 export const RING_KINDS = Object.freeze([AREA_KIND.HOTSPOT, AREA_KIND.DORMANT]);
 
-/** The Risk sky's zones by density: past fix first, between watch and fix first, below watch. */
-export const SKY_ZONE = Object.freeze({ FIX_FIRST: 'fixFirst', WATCH: 'watch', HEALTHY: 'healthy' });
+/** The Risk sky's zones by density: past fix first, between watch and fix first, below watch (the shared RISK_ZONE). */
+export const SKY_ZONE = RISK_ZONE;
