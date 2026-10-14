@@ -17,6 +17,15 @@ vi.mock('../hooks/useStandardDescriptions.js', () => ({
 vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: data.previous }) }));
 // The since line's run comparisons read through react-query too.
 vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: data.diffs }) }));
+// The Map's areas read through react-query as well.
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({
+  default: ({ dimensions, onAreaClick, onOpenRisk }) => (
+    <>
+      <button type="button" onClick={() => onAreaClick({ name: 'api' })}>area row {dimensions.join(',')}</button>
+      <button type="button" onClick={onOpenRisk}>risk in map</button>
+    </>
+  ),
+}));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => <div data-testid="history" /> }));
 vi.mock('../../../components/radial/RadialPanel.jsx', () => ({ default: () => <div data-testid="radial" /> }));
@@ -144,17 +153,27 @@ describe('ExplorerPage header', () => {
     page({ onNavigate });
     fireEvent.click(await screen.findByText('Validate input'));
     expect(onNavigate).toHaveBeenLastCalledWith(...scope({ kind: 'requirement', dimension: 'security', req: 'SEC-1', text: 'Validate input' }));
+    fireEvent.click(screen.getByRole('button', { name: t('explorer.where_folders') }));
     fireEvent.click(screen.getByTitle('src/api'));
     expect(onNavigate).toHaveBeenLastCalledWith('violations', { wb: { paths: ['src/api/'], dimension: 'security', selectedId: null }, asOf: null });
   });
 
-  it('where the findings are: folders first, files one switch away', () => {
+  it('where the findings are: the areas first, folders and files one switch away', () => {
     const { container } = page();
     const pressed = () => [...container.querySelectorAll('.explorer-where__switch .term-btn')].map((b) => b.getAttribute('aria-pressed'));
-    expect(pressed()).toEqual(['true', 'false']);
-    expect(screen.queryByRole('button', { name: 'file row' })).toBeNull();
+    expect(pressed()).toEqual(['true', 'false', 'false']);
+    expect(screen.getByRole('button', { name: 'area row security' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: t('explorer.where_files') }));
-    expect(pressed()).toEqual(['false', 'true']);
+    expect(pressed()).toEqual(['false', 'false', 'true']);
     expect(screen.getByRole('button', { name: 'file row' })).toBeInTheDocument();
+  });
+
+  it('an area opens the Map\'s Risk tab filtered to this dimension with that area selected; the foot, the filtered sky', () => {
+    const onNavigate = vi.fn();
+    page({ onNavigate });
+    fireEvent.click(screen.getByRole('button', { name: 'area row security' }));
+    expect(onNavigate).toHaveBeenLastCalledWith('map', { vizStyle: 'risk', dimensions: ['security'], area: 'api' });
+    fireEvent.click(screen.getByRole('button', { name: 'risk in map' }));
+    expect(onNavigate).toHaveBeenLastCalledWith('map', { vizStyle: 'risk', dimensions: ['security'] });
   });
 });

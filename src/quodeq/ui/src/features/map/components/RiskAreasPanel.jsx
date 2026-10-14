@@ -1,53 +1,66 @@
 /**
  * RiskAreasPanel: the functional areas that need rework most, as the Map's
- * Risk tab places them: by weighted issues per file, fix first then watch.
- * A row opens the Risk tab with that area selected; the foot counts both
- * zones and links to the whole sky. A project with nothing in either zone
- * says so in one line.
+ * Risk tab places them: fix first then watch, on the absolute lines. Over
+ * every finding (the Overview) or over some `dimensions` (a dimension page),
+ * where each area also says how many times the selection's average its
+ * density is (its lift, which orders it within its zone). A row opens the
+ * Risk tab with that area selected; the foot counts both zones and links to
+ * the whole sky. A project with nothing in either zone says so in one line.
  */
 import { useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
-import useMapAreas from '../hooks/useMapAreas.js';
-import { areasNeedingRework } from '../model/areasNeedingRework.js';
+import useRiskAreas from '../hooks/useRiskAreas.js';
+import { reworkSummary } from '../model/rankedAreas.js';
 import { SKY_ZONE, AREA_KIND } from '../mapVocab.js';
 import { SeverityAndFilesCells } from '../../../components/SeverityBadges.jsx';
 
 // Two-line rows, as many as the folders panel shows.
 export const AREAS_SHOWN = 5;
 const DENSITY_DECIMALS = 2;
+const LIFT_DECIMALS = 1;
 /** Name, zone chip, density, severities, files. */
 const AREA_COLUMNS = 'minmax(0, 1fr) auto 64px auto 48px';
 const ZONE_KEY = { [SKY_ZONE.FIX_FIRST]: 'overview.riskZoneFixFirst', [SKY_ZONE.WATCH]: 'overview.riskZoneWatch' };
 const KIND_KEY = { [AREA_KIND.HOTSPOT]: 'map.riskKindHotspot', [AREA_KIND.DORMANT]: 'map.riskKindDormant' };
+const NO_DIMENSIONS = [];
 
-function sevOf(stats) {
-  return { critical: stats.critical, major: stats.major, minor: Math.max(0, stats.violations - stats.critical - stats.major) };
+/** The line under an area's name: its kind when it has a ring on the sky, its files, and its lift over a selection. */
+function areaSub(area) {
+  const kind = KIND_KEY[area.kind] ? t(KIND_KEY[area.kind]) : null;
+  const base = kind ? t('overview.riskAreaSubKind', { kind, files: area.files }) : t('overview.riskAreaSub', { files: area.files });
+  if (area.lift == null) return base;
+  return `${base}${t('violations.wbDot')}${t('overview.riskLift', { lift: area.lift.toFixed(LIFT_DECIMALS) })}`;
 }
 
-function AreaRow({ row, onClick }) {
-  const { area, zone } = row;
-  const kind = KIND_KEY[area.kind] ? t(KIND_KEY[area.kind]) : null;
+function AreaRow({ area, onClick }) {
   return (
     <GridRow onClick={onClick ? () => onClick(area) : undefined}>
       <GridCell>
         <div className="offending-file-cell">
           <span className="offending-file-name">{area.name}</span>
-          <span className="offending-file-path">{kind ? t('overview.riskAreaSubKind', { kind, files: area.stats.files }) : t('overview.riskAreaSub', { files: area.stats.files })}</span>
+          <span className="offending-file-path">{areaSub(area)}</span>
         </div>
       </GridCell>
-      <GridCell><span className={`risk-zone-chip risk-zone-chip--${zone}`}>{t(ZONE_KEY[zone])}</span></GridCell>
-      <GridCell numeric>{t('overview.riskDensity', { density: (area.density || 0).toFixed(DENSITY_DECIMALS) })}</GridCell>
-      <SeverityAndFilesCells sev={sevOf(area.stats)} fileCount={area.stats.files} />
+      <GridCell><span className={`risk-zone-chip risk-zone-chip--${area.zone}`}>{t(ZONE_KEY[area.zone])}</span></GridCell>
+      <GridCell numeric>{t('overview.riskDensity', { density: area.density.toFixed(DENSITY_DECIMALS) })}</GridCell>
+      <SeverityAndFilesCells sev={area.severities} fileCount={area.files} />
     </GridRow>
   );
 }
 
-export default function RiskAreasPanel({ project, source, onAreaClick, onOpenRisk }) {
-  const { areaSet, loading, unavailable } = useMapAreas(project, source, true);
-  const { rows, total } = useMemo(() => areasNeedingRework(areaSet), [areaSet]);
-  if (unavailable || loading || !areaSet.areas.length) return null;
-  const fixFirst = rows.filter((r) => r.zone === SKY_ZONE.FIX_FIRST).length;
+/**
+ * @param {object} props
+ * @param {string} props.project
+ * @param {string} props.source a PROJECT_SOURCE value
+ * @param {string[]} [props.dimensions] measure the areas over these dimensions only (none: every finding)
+ * @param {(area: {name: string}) => void} [props.onAreaClick]
+ * @param {() => void} [props.onOpenRisk]
+ */
+export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENSIONS, onAreaClick, onOpenRisk }) {
+  const { areas, loading, unavailable } = useRiskAreas({ project, source, dimensions });
+  const { rows, fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
+  if (unavailable || loading || !total) return null;
   return (
     <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')}>
       <div className="qd-cards-panel__head">
@@ -56,13 +69,11 @@ export default function RiskAreasPanel({ project, source, onAreaClick, onOpenRis
       </div>
       {rows.length ? (
         <GridTable columns={AREA_COLUMNS} dense>
-          {rows.slice(0, AREAS_SHOWN).map((r) => <AreaRow key={r.area.name} row={r} onClick={onAreaClick} />)}
+          {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onClick={onAreaClick} />)}
         </GridTable>
       ) : <div className="risk-areas-panel__none">{t('overview.riskAreasNone')}</div>}
       <div className="panel-foot">
-        <span>{t('overview.riskAreasFoot', {
-          areas: total.toLocaleString(LOCALE), fixFirst, watch: rows.length - fixFirst,
-        })}</span>
+        <span>{t('overview.riskAreasFoot', { areas: total.toLocaleString(LOCALE), fixFirst, watch })}</span>
         {onOpenRisk && <button type="button" className="panel-foot__link" onClick={onOpenRisk}>{t('overview.riskAreasOpen')}</button>}
       </div>
     </section>

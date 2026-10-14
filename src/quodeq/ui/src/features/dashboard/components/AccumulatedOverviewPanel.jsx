@@ -9,7 +9,7 @@ import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import RadialPanel from '../../../components/radial/RadialPanel.jsx';
 import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
-import { VIZ_STYLE } from '../../map/mapVocab.js';
+import { riskMapParams } from '../../map/model/riskLinks.js';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';
@@ -111,8 +111,8 @@ function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, on
       <WherePanel view={where} onView={setWhere}>
         {where === WHERE.AREAS && (
           <RiskAreasPanel project={data.selectedProject} source={data.selectedSource}
-            onAreaClick={openMap ? (area) => openMap({ vizStyle: VIZ_STYLE.RISK, area: area.name }) : undefined}
-            onOpenRisk={openMap ? () => openMap({ vizStyle: VIZ_STYLE.RISK }) : undefined} />
+            onAreaClick={openMap ? (area) => openMap(riskMapParams({ area: area.name })) : undefined}
+            onOpenRisk={openMap ? () => openMap(riskMapParams()) : undefined} />
         )}
         {where === WHERE.FOLDERS && (
           <FindingsByFolderPanel dimensions={filteredDimensions} onFolderClick={opens.folder} onOpenMap={openMap ? () => openMap() : undefined} />

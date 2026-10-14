@@ -4,12 +4,13 @@
  * run), the principle cards, and the bottom (Fix first beside where the
  * findings are).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { scopeMetrics, runDimensionMetrics, tileChanges } from '../../../models/findingMetrics.js';
@@ -66,20 +67,23 @@ export function PrinciplesPanel({ radialPrinciples, enrichedPrinciples, onPrinci
   );
 }
 
-// The Map's areas wait for Risk by dimension.
-const DIMENSION_WHERE_VIEWS = [WHERE.FOLDERS, WHERE.FILES];
-
 /**
  * The page's bottom, what to fix beside where it is: Fix first on the left
- * (a lit principle lights its rows), and on the right the folders or the
- * files this dimension's findings are in (folders first).
+ * (a lit principle lights its rows), and on the right the Map's areas
+ * measured over this dimension (first), the folders or the files its
+ * findings are in.
  */
-export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple }) {
-  const [where, setWhere] = useState(WHERE.FOLDERS);
+export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple, project, selectedSource }) {
+  const [where, setWhere] = useState(WHERE.AREAS);
+  const dimensions = useMemo(() => [d.evalData.dimension], [d.evalData.dimension]);
   return (
     <div className="explorer-bottom">
       <FixFirstPanel dimensions={fixFirstDims} oneDimension litPrinciple={litPrinciple} onRequirementClick={findingsNav.onRequirementClick} />
-      <WherePanel view={where} onView={setWhere} views={DIMENSION_WHERE_VIEWS}>
+      <WherePanel view={where} onView={setWhere}>
+        {where === WHERE.AREAS && (
+          <RiskAreasPanel project={project} source={selectedSource} dimensions={dimensions}
+            onAreaClick={findingsNav.onAreaClick} onOpenRisk={findingsNav.onOpenRisk} />
+        )}
         {where === WHERE.FOLDERS && <FindingsByFolderPanel dimensions={fixFirstDims} onFolderClick={findingsNav.onFolderClick} />}
         {where === WHERE.FILES && <OffendingFilesSection topFiles={d.topFiles} onFileClick={findingsNav.onFileClick} />}
       </WherePanel>

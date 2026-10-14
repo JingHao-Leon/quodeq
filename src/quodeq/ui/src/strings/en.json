@@ -1124,6 +1124,7 @@
   "overview.riskZoneFixFirst": "FIX FIRST",
   "overview.riskZoneWatch": "WATCH",
   "overview.riskDensity": "{density}/f",
+  "overview.riskLift": "×{lift} this dimension's avg",
   "overview.fixFirstAria": "Requirements to fix first",
   "overview.fixFirstLabel": "fix_first",
   "overview.fixFirstNote": "REQUIREMENTS · CRITICAL FIRST",

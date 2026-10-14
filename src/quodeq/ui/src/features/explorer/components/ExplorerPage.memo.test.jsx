@@ -27,6 +27,8 @@ vi.mock('../hooks/useStandardDescriptions.js', () => ({ useStandardDescriptions:
 vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: null }) }));
 // The since line's run comparisons read through react-query too.
 vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: [] }) }));
+// The Map's areas read through react-query as well.
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => null }));
 vi.mock('../../../components/radial/RadialPanel.jsx', () => ({ default: () => null }));
