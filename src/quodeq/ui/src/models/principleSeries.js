@@ -1,21 +1,35 @@
 /**
- * Trend principle model: one principle's point in a run's dimension detail.
+ * Principle series model: one dimension's per-principle score history, from
+ * GET .../dimensions/<dimension>/principle-series.
  *
- * The server sends `trend[].dimensionDetails[].principles` as
- * `{ principle, score, grade, critical, majors, violations }`. Rows cached
- * before the field existed have no `principles` key, and rows the server
- * could not count have null counts: both read as "no data", never as zero.
+ * Rows are runs that scored the dimension, newest first like the trend:
+ * `{ runId, dateISO, dateLabel, principles: [{ principle, score, grade,
+ * critical, majors, violations }] }`. Counts the server could not know (a
+ * cached row from before they were stored) arrive as null and stay null:
+ * "no data", never zero.
  *
- * @typedef {Object} TrendPrinciple
+ * @typedef {Object} SeriesPrinciple
  * @property {string}       principle
  * @property {number|null}  score       the score the principle grade shows (0..10)
  * @property {string|null}  grade
  * @property {number|null}  critical
  * @property {number|null}  majors      criticals plus majors, as a dimension's
  * @property {number|null}  violations
+ *
+ * @typedef {Object} PrincipleSeriesRow
+ * @property {string}             runId
+ * @property {string|null}        dateISO
+ * @property {string}             dateLabel
+ * @property {SeriesPrinciple[]}  principles
+ *
+ * @typedef {Object} PrincipleSeries
+ * @property {string}               dimension
+ * @property {PrincipleSeriesRow[]} rows  newest first
  */
 
 const EMPTY = Object.freeze([]);
+
+const isRecord = (raw) => Boolean(raw) && typeof raw === 'object';
 
 const countOrNull = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -25,13 +39,12 @@ function scoreOrNull(v) {
 }
 
 /**
- * Create a canonical TrendPrinciple from a raw API object.
- *
+ * Create a canonical SeriesPrinciple from a raw API object.
  * @param {Object} raw
- * @returns {TrendPrinciple}
+ * @returns {SeriesPrinciple}
  */
-export function createTrendPrinciple(raw) {
-  if (!raw || typeof raw !== 'object') return raw;
+export function createSeriesPrinciple(raw) {
+  if (!isRecord(raw)) return raw;
   return {
     principle:  raw.principle ?? '',
     score:      scoreOrNull(raw.score),
@@ -43,13 +56,29 @@ export function createTrendPrinciple(raw) {
 }
 
 /**
- * The principles of one trend dimension detail as TrendPrinciple models;
- * empty when the detail predates the field.
- *
- * @param {Object|null|undefined} detail A `trend[].dimensionDetails[]` entry.
- * @returns {TrendPrinciple[]}
+ * Create a canonical PrincipleSeriesRow from a raw API row.
+ * @param {Object} raw
+ * @returns {PrincipleSeriesRow}
  */
-export function trendDetailPrinciples(detail) {
-  const raw = detail?.principles;
-  return Array.isArray(raw) ? raw.map(createTrendPrinciple) : EMPTY;
+export function createPrincipleSeriesRow(raw) {
+  if (!isRecord(raw)) return raw;
+  return {
+    runId:      raw.runId ?? '',
+    dateISO:    raw.dateISO ?? null,
+    dateLabel:  raw.dateLabel ?? '',
+    principles: Array.isArray(raw.principles) ? raw.principles.map(createSeriesPrinciple) : EMPTY,
+  };
+}
+
+/**
+ * Create a canonical PrincipleSeries from the raw response.
+ * @param {Object} raw
+ * @returns {PrincipleSeries}
+ */
+export function createPrincipleSeries(raw) {
+  if (!isRecord(raw)) return raw;
+  return {
+    dimension: raw.dimension ?? '',
+    rows:      Array.isArray(raw.rows) ? raw.rows.map(createPrincipleSeriesRow) : EMPTY,
+  };
 }

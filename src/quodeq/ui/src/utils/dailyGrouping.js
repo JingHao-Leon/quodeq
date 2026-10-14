@@ -234,7 +234,7 @@ export function extractDimensionPeriodSeries(trend, dimensionName, granularity =
 }
 
 /** The trend entry's dimension detail for a lowercase dimension id, or undefined. */
-export function findDimensionDetail(entry, wantLower) {
+function findDimensionDetail(entry, wantLower) {
   const details = entry?.dimensionDetails;
   if (!Array.isArray(details)) return undefined;
   return details.find((d) => (d.dimension || '').toLowerCase() === wantLower);
