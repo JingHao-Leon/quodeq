@@ -69,11 +69,9 @@ function collide(slots, maxR) {
 
 function worstOverlap(slots) {
   let w = 0;
-  for (let a = 0; a < slots.length; a++) {
-    for (let b = a + 1; b < slots.length; b++) {
-      w = Math.max(w, slots[a].r + slots[b].r - Math.hypot(slots[b].x - slots[a].x, slots[b].y - slots[a].y));
-    }
-  }
+  const visit = (a, b) => { w = Math.max(w, slots[a].r + slots[b].r - Math.hypot(slots[b].x - slots[a].x, slots[b].y - slots[a].y)); };
+  if (slots.length > ALL_PAIRS_MAX) forNeighbourPairs(slots, 0, visit);
+  else for (let a = 0; a < slots.length; a++) for (let b = a + 1; b < slots.length; b++) visit(a, b);
   return w;
 }
 
@@ -126,6 +124,13 @@ function tighten(slots, maxR) {
   }
 }
 
+/** A folder's padding and starting room: what its children need at pack density, never more than its size today. */
+function roomFor(i, slots, base, maxR) {
+  const pad = i === 0 ? base.pad[i] : base.pad[i] * PAD_SCALE + PAD_MIN;
+  const need = Math.sqrt(slots.reduce((t, s) => t + (s.r + base.gap[i] / 2) ** 2, 0) / PACK_DENSITY) + pad;
+  return { pad, room: Math.min(base.xyr[i * XYR_STRIDE + R], Math.max(maxR + pad, need)) };
+}
+
 /**
  * Settle folder `i`'s present children (their offsets into ox/oy) and return
  * its radius in the run; `base` is the layout's base (kids, xyr, pad, gap).
@@ -139,12 +144,9 @@ export function settleFolder(i, { base, rad, ox, oy }) {
   if (!slots.length) return 0;
   // A folder holding only one folder is drawn as that folder (a collapsed chain).
   if (i > 0 && slots.length === 1 && kids[slots[0].c].length) { ox[slots[0].c] = 0; oy[slots[0].c] = 0; return slots[0].r; }
-  const pad = i === 0 ? base.pad[i] : base.pad[i] * PAD_SCALE + PAD_MIN;
-  const todayR = xyr[o + R];
   const maxR = Math.max(...slots.map((s) => s.r), TINY);
-  const need = Math.sqrt(slots.reduce((t, s) => t + (s.r + base.gap[i] / 2) ** 2, 0) / PACK_DENSITY) + pad;
-  const room = Math.min(todayR, Math.max(maxR + pad, need));
-  if (slots.length > 1 && slots.length < BIG_GROUP) relaxInRoom(slots, { room, pad, todayR, maxR });
+  const { pad, room } = roomFor(i, slots, base, maxR);
+  if (slots.length > 1 && slots.length < BIG_GROUP) relaxInRoom(slots, { room, pad, todayR: xyr[o + R], maxR });
   else contain(slots, room, pad);
   if (slots.length > 1) tighten(slots, maxR);
   const e = recentre(slots);

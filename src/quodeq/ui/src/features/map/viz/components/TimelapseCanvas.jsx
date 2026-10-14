@@ -139,6 +139,23 @@ function useChains(model, view, focusIndex) {
   return { endsAt, ends, shownFocus: chainEnd(ends, focusIndex) };
 }
 
+/** The camera on the focused folder of the frame on screen, eased when the focus changes. */
+function useCamera({ model, anchor, layer, focusIndex }) {
+  // A move writes its positions into one reused buffer, so the target follows `layer`, not the array.
+  const target = useMemo(() => runFocusTransform(model.parent, layer ? layer.xyr : anchor, focusIndex), [model, anchor, layer, focusIndex]);
+  return useFollowingTransform(target, focusIndex);
+}
+
+/** Every circle's brightness for the open folder and the hovered circle, eased. */
+function useCircleFades(model, shownFocus, hover) {
+  const hoverNode = hover === null ? null : model.nodes[hover];
+  const target = useMemo(
+    () => fadesFor(model.nodes, model.index, { focusNode: model.nodes[shownFocus], hoverNode }),
+    [model, shownFocus, hoverNode],
+  );
+  return useFadeTween(target);
+}
+
 /**
  * The time-lapse pack on two stacked canvases: the circles (the run shown,
  * or the move in progress, every circle moving with its parent and growing
@@ -157,16 +174,9 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const { endsAt, ends, shownFocus } = useChains(model, view, focusIndex);
   const paintAt = usePaintAt({ model, nodeDataAt, endsAt, colorMode, palette: theme.palette, weights });
   const layer = useLayer(view, paintAt, model.parent);
-  // A move writes its positions into one reused buffer, so the target follows `layer`, not the array.
-  const target = useMemo(() => runFocusTransform(model.parent, layer ? layer.xyr : anchor, focusIndex), [model, anchor, layer, focusIndex]);
-  const camera = useFollowingTransform(target, focusIndex);
+  const camera = useCamera({ model, anchor, layer, focusIndex });
   const settled = Boolean(view && !view.from);
-  const hoverNode = interaction.hover === null ? null : model.nodes[interaction.hover];
-  const targetFades = useMemo(
-    () => fadesFor(model.nodes, model.index, { focusNode: model.nodes[shownFocus], hoverNode }),
-    [model, shownFocus, hoverNode],
-  );
-  const fades = useFadeTween(targetFades);
+  const fades = useCircleFades(model, shownFocus, interaction.hover);
   useStaticLayer({ ref: refs.front, coords, layer, camera, viewport, size, model, fades });
 
   useEffect(() => {

@@ -244,6 +244,18 @@ function labelBox(ctx, { text, p, size, font, pinned }) {
   return { text, x: p.px - w / 2, y: y - size, w, h: size, cx: p.px, base: y };
 }
 
+/** The labels that are never skipped: the hovered folder's and the open folder's, kept inside the canvas. */
+function pinnedLabels(ctx, { circles, screenCoords, viewport, hoverIndex, open, label, font, fontScale }) {
+  const boxes = [];
+  const hovered = hoverIndex === null ? null : circles[hoverIndex];
+  if (hovered && isPackFolder(hovered)) {
+    const p = toPx(screenCoords[hoverIndex], viewport);
+    boxes.push(labelBox(ctx, { text: label(hoverIndex), p, size: labelSize(p.r, fontScale), font, pinned: true }));
+  }
+  if (open >= 0) boxes.push(labelBox(ctx, { text: label(open), p: toPx(screenCoords[open], viewport), size: LABEL_FONT_MAX * fontScale, font, pinned: true }));
+  return boxes;
+}
+
 /**
  * Labels, when on: the hovered folder's name and the open folder's name come
  * first (kept inside the canvas), then the open folder's sub-folders, largest
@@ -256,13 +268,7 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverInde
   ctx.textBaseline = 'alphabetic';
   const label = (i) => chainLabel(nameOf ? nameOf(i) : circles[i].data.name);
   const { open, candidates } = labelCandidates({ circles, screenCoords, viewport, focusNode });
-  const boxes = [];
-  const hovered = hoverIndex === null ? null : circles[hoverIndex];
-  if (hovered && isPackFolder(hovered)) {
-    const p = toPx(screenCoords[hoverIndex], viewport);
-    boxes.push(labelBox(ctx, { text: label(hoverIndex), p, size: labelSize(p.r, fontScale), font, pinned: true }));
-  }
-  if (open >= 0) boxes.push(labelBox(ctx, { text: label(open), p: toPx(screenCoords[open], viewport), size: LABEL_FONT_MAX * fontScale, font, pinned: true }));
+  const boxes = pinnedLabels(ctx, { circles, screenCoords, viewport, hoverIndex, open, label, font, fontScale });
   for (const { p, i } of candidates) {
     if (i === hoverIndex) continue;
     const box = labelBox(ctx, { text: label(i), p, size: labelSize(p.r, fontScale), font, pinned: false });
