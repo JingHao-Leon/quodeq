@@ -32,8 +32,8 @@ function getDarkThemeAttr() {
 
 const VIZ_STYLES = [
   { id: VIZ_STYLE.ZOOMPACK, label: t('map.vizCirclePack'), enabled: true },
-  { id: VIZ_STYLE.GALAXY, label: 'Galaxy', enabled: true },
   { id: VIZ_STYLE.RISK, label: t('map.vizRisk'), enabled: true },
+  { id: VIZ_STYLE.GALAXY, label: 'Galaxy', enabled: true },
 ];
 
 const GALAXY_MODES = [
