@@ -59,8 +59,8 @@ describe('FindingsHead', () => {
   it('the tiles and the severity badges call their actions, never one button inside another', () => {
     const actions = { onViolations: vi.fn(), onCompliance: vi.fn(), onSeverity: vi.fn() };
     const { container } = head({ actions });
-    fireEvent.click(screen.getByRole('button', { name: t('overview.showAllViolationsAria') }));
-    fireEvent.click(screen.getByRole('button', { name: t('overview.showComplianceAria') }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(t('overview.showAllViolationsAria')) }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(t('overview.showComplianceAria')) }));
     fireEvent.click(screen.getByRole('button', { name: 'critical severity' }));
     expect([actions.onViolations, actions.onCompliance].map((f) => f.mock.calls.length)).toEqual([1, 1]);
     expect(actions.onSeverity).toHaveBeenCalledWith('critical');

@@ -2039,6 +2039,7 @@
   "violations.scopeStatRiskHint": "{density} weighted per file",
   "violations.scopeStatRiskSmallHint": "too few source files",
   "violations.scopeStatViolations": "Violations",
+  "violations.headStatAria": "{label}: {action}",
   "violations.headPast": "Viewing {when}",
   "violations.headBackToLatest": "back to latest ›",
   "violations.scopeDescMore": "more",

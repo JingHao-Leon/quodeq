@@ -32,7 +32,7 @@ function HeadStat({ label, value, sub, alarm = false, onClick, ariaLabel, change
   if (!onClick) return <div className="findings-head__stat">{top}{under}</div>;
   return (
     <div className="findings-head__stat findings-head__stat--link">
-      <button type="button" className="findings-head__hit" onClick={onClick} aria-label={ariaLabel}>{top}</button>
+      <button type="button" className="findings-head__hit" onClick={onClick} aria-label={ariaLabel ? t('violations.headStatAria', { label, action: ariaLabel }) : undefined}>{top}</button>
       {under}
     </div>
   );

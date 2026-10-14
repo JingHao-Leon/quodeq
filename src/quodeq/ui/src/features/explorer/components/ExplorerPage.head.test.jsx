@@ -67,8 +67,8 @@ describe('ExplorerPage header', () => {
   it('the tiles and badges open the dimension\'s findings, where the old cards went', () => {
     const onNavigate = vi.fn();
     page({ onNavigate });
-    fireEvent.click(screen.getByRole('button', { name: t('overview.showAllViolationsAria') }));
-    fireEvent.click(screen.getByRole('button', { name: t('overview.showComplianceAria') }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(t('overview.showAllViolationsAria')) }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(t('overview.showComplianceAria')) }));
     fireEvent.click(screen.getByRole('button', { name: 'critical severity' }));
     expect(onNavigate.mock.calls).toEqual([
       scope({ kind: 'dimension', dimension: 'security', filter: null }),
@@ -79,7 +79,7 @@ describe('ExplorerPage header', () => {
 
   it('without navigation the tiles open nothing', () => {
     page();
-    expect(screen.queryByRole('button', { name: t('overview.showAllViolationsAria') })).toBeNull();
+    expect(screen.queryByRole('button', { name: new RegExp(t('overview.showAllViolationsAria')) })).toBeNull();
   });
 
   it('reads header, principle cards, score history beside the radial, then Fix first beside where the findings are', async () => {

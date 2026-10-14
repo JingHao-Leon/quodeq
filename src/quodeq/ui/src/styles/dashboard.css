@@ -3692,8 +3692,6 @@
 .findings-head__ring .dim-gauge-card__score { font-size: 1.7rem; transform: translateY(4px); }
 
 /* a row the view is narrowed to, and a row lit from elsewhere on the page (its principle hovered) */
-.term-grid__row--selected { box-shadow: inset 3px 0 0 var(--color-accent); }
-.term-grid__row--selected .fix-first__req { color: var(--color-accent); }
 .term-grid__row--lit { background: color-mix(in srgb, var(--color-accent) 7%, transparent); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent); }
 
 /* principle page: requirements rail | findings list | finding */
