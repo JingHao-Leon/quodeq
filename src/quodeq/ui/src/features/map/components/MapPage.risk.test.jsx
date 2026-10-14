@@ -62,7 +62,7 @@ describe('MapPage: the Risk tab', () => {
   it('the tabs are Circle Pack, Risk and Galaxy', () => {
     render(<MapPage data={local()} callbacks={{}} />, { wrapper: withStableQueryApi(riskApi()) });
     const group = screen.getByRole('button', { name: t('map.vizCirclePack') }).parentElement;
-    expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual([t('map.vizCirclePack'), t('map.vizRisk'), 'Galaxy']);
+    expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual([t('map.vizCirclePack'), t('map.vizRisk'), t('map.vizGalaxy')]);
   });
 
   it('choosing Risk replaces the entry and hides the Dimensions control', () => {

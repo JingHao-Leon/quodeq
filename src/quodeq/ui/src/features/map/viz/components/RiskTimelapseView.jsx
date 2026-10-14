@@ -58,7 +58,7 @@ export default function RiskTimelapseView({ timelapse, timeline, dark, showLabel
   const { selectedName, onSelectName } = selection;
   const onSelect = useCallback((i) => {
     if (playing) controls.pause();
-    else onSelectName(i === null ? null : sky.areas[i].name);
+    else onSelectName(i === null ? null : sky?.areas[i]?.name ?? null);
   }, [playing, controls, onSelectName, sky]);
   if (!view) return null;
   const selectedIndex = sky.areas.findIndex((a) => a.name === selectedName && !a.absent);

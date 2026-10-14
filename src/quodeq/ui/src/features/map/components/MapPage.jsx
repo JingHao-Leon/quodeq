@@ -33,12 +33,12 @@ function getDarkThemeAttr() {
 const VIZ_STYLES = [
   { id: VIZ_STYLE.ZOOMPACK, label: t('map.vizCirclePack'), enabled: true },
   { id: VIZ_STYLE.RISK, label: t('map.vizRisk'), enabled: true },
-  { id: VIZ_STYLE.GALAXY, label: 'Galaxy', enabled: true },
+  { id: VIZ_STYLE.GALAXY, label: t('map.vizGalaxy'), enabled: true },
 ];
 
 const GALAXY_MODES = [
   { id: GALAXY_MODE.FILESYSTEM, label: t('map.vizFileSystem') },
-  { id: GALAXY_MODE.STANDARDS, label: 'Standards' },
+  { id: GALAXY_MODE.STANDARDS, label: t('map.vizStandards') },
 ];
 
 /** True while the Dimensions filter leaves some dimension out. */

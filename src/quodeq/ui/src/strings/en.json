@@ -1003,6 +1003,8 @@
   "map.violations": "Violations",
   "map.vizCirclePack": "Circle Pack",
   "map.vizFileSystem": "File System",
+  "map.vizGalaxy": "Galaxy",
+  "map.vizStandards": "Standards",
   "map.zoomablePackAria": "Zoomable pack visualization of project compliance by folder and file",
   "onboarding.addProject": "add a project",
   "onboarding.browseRemote": "browse remote repositories",
