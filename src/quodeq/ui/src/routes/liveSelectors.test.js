@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { latestRunOf, liveFileFor, liveEvalPrincipalFor } from './liveSelectors.js';
+import { latestRunOf, latestFilesReadOf, liveFileFor, liveEvalPrincipalFor } from './liveSelectors.js';
 
 // The File and Principle pages used to render only the object the navigation
 // call built from the payload the client held at click time. A selector in
@@ -60,4 +60,12 @@ test('latestRunOf: today\'s run of a dimension, never the selected run\'s', () =
   assert.equal(latestRunOf(props, 'security'), 'run-9');
   assert.equal(latestRunOf(props, 'gone'), null);
   assert.equal(latestRunOf({ dashboardData: { accumulated: accumulated() } }, 'security'), null);
+});
+
+test('latestFilesReadOf: the files today\'s run of a dimension read, null when unknown', () => {
+  const props = { dashboardData: { latestAccumulated: { dimensions: [{ dimension: 'security', filesRead: 158 }, { dimension: 'reliability' }] } } };
+  assert.equal(latestFilesReadOf(props, 'security'), 158);
+  assert.equal(latestFilesReadOf(props, 'reliability'), null);
+  assert.equal(latestFilesReadOf(props, 'gone'), null);
+  assert.equal(latestFilesReadOf({}, 'security'), null);
 });

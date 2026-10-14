@@ -9,6 +9,9 @@ import { useSplitWidth } from '../hooks/useSplitWidth.js';
 import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 
 const SEP = ' · ';
+/** A compliant check's mark, and its list row's modifier. */
+const CHECK_MARK = '\u2713';
+const COMPLIANT_ROW = 'compliant';
 /** The principle beside a finding, left out inside a principle scope (the principle is the page). */
 const principleOf = (item, { inPrinciple }) => (inPrinciple ? null : item.principle);
 
@@ -60,7 +63,7 @@ export function CompliantRow({ c, within }) {
   return (
     <article className={`findings-check${open ? ' is-open' : ''}`}>
       <button type="button" className="findings-check__line" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <span className="findings-check__mark" aria-hidden="true">✓</span>
+        <span className="findings-check__mark" aria-hidden="true">{CHECK_MARK}</span>
         <span className="findings-check__title">{c.title || c.principle}</span>
         <span className="findings-check__meta">{meta}</span>
       </button>
@@ -73,10 +76,40 @@ const isViolationRow = (item) => Boolean(item.v);
 const findingOfRow = (item) => item.v || item.c;
 const rowKey = (item, i) => { const f = findingOfRow(item); return `${f.file}:${f.line}:${f.principle}:${i}`; };
 
+/** A compliant check in full, beside the list: its title, where it is, its reason and code. */
+function CompliantDetail({ c, within }) {
+  return (
+    <article className="findings-card">
+      <header className="findings-card__head">
+        <span className="findings-check__mark">{CHECK_MARK}</span>
+        <h3 className="findings-card__title">{c.title || c.principle}</h3>
+      </header>
+      <div className="findings-card__meta"><span>{[principleOf(c, within), whereOf(c, within)].filter(Boolean).join(SEP)}</span></div>
+      <Body item={c} />
+    </article>
+  );
+}
+
+/** One line of the list: the finding's title, where it is, its severity (or compliant) and principle. */
+function ListRow({ item, within, selected, onSelect }) {
+  const f = findingOfRow(item);
+  const violation = isViolationRow(item);
+  const meta = [violation ? severityLabel(f.severity) : t('violations.scopeCompliantShort'), principleOf(f, within)];
+  return (
+    <button type="button" role="option" aria-selected={selected}
+      className={`wb-row wb-row--${violation ? f.severity : COMPLIANT_ROW}${selected ? ' is-sel' : ''}`} onClick={onSelect}>
+      <span className="wb-row__t">{violation ? '' : `${CHECK_MARK} `}{f.title || f.principle}</span>
+      <span className="wb-row__f wb-row__f--line">{whereOf(f, within)}</span>
+      <span className="wb-row__meta">{meta.filter(Boolean).join(SEP)}</span>
+    </button>
+  );
+}
+
 /**
  * The scope as a list beside one finding in full: the same rows the cards
  * read (already filtered and sorted by the scope's controls), one line each,
- * and the selected one on the right with its code open.
+ * and the selected one on the right with its code open; the divider between
+ * them drags (useSplitWidth).
  */
 export function ScopeList({ rows, within, onDismiss, readOnly }) {
   const findings = rows.filter((item) => item.v || item.c);
@@ -88,18 +121,9 @@ export function ScopeList({ rows, within, onDismiss, readOnly }) {
     <div ref={split.rootRef} className="wb wb-split findings-scope__split" style={splitColumns(split)}>
       <section className="qd-cards-panel wb-panel">
         <div className="wb-list" role="listbox" aria-label={t('violations.scopeListAria')}>
-          {findings.map((item, i) => {
-            const f = findingOfRow(item);
-            const sev = isViolationRow(item) ? f.severity : 'compliant';
-            return (
-              <button key={rowKey(item, i)} type="button" role="option" aria-selected={i === at}
-                className={`wb-row wb-row--${sev}${i === at ? ' is-sel' : ''}`} onClick={() => setSelected(i)}>
-                <span className="wb-row__t">{isViolationRow(item) ? '' : '✓ '}{f.title || f.principle}</span>
-                <span className="wb-row__f wb-row__f--line">{whereOf(f, within)}</span>
-                <span className="wb-row__meta">{[isViolationRow(item) ? severityLabel(f.severity) : t('violations.scopeCompliantShort'), principleOf(f, within)].filter(Boolean).join(SEP)}</span>
-              </button>
-            );
-          })}
+          {findings.map((item, i) => (
+            <ListRow key={rowKey(item, i)} item={item} within={within} selected={i === at} onSelect={() => setSelected(i)} />
+          ))}
         </div>
       </section>
       <SplitDivider split={split} />
@@ -107,8 +131,7 @@ export function ScopeList({ rows, within, onDismiss, readOnly }) {
         <div className="wb-detail__body">
           {current && (isViolationRow(current)
             ? <FindingCard v={current.v} within={within} onDismiss={onDismiss} readOnly={readOnly} />
-            : <article className="findings-card"><header className="findings-card__head"><span className="findings-check__mark">✓</span><h3 className="findings-card__title">{current.c.title || current.c.principle}</h3></header>
-              <div className="findings-card__meta"><span>{[principleOf(current.c, within), whereOf(current.c, within)].filter(Boolean).join(SEP)}</span></div><Body item={current.c} /></article>)}
+            : <CompliantDetail c={current.c} within={within} />)}
         </div>
       </section>
     </div>

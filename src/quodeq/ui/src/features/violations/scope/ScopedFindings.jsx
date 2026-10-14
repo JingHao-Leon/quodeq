@@ -2,16 +2,16 @@ import { useMemo, useState } from 'react';
 import { CodeOpenByDefault } from '../../../components/codeOpenContext.js';
 import { FindingCard, CompliantRow, ScopeList } from './ScopeCards.jsx';
 import DeferredViolationList from '../../explorer/components/DeferredViolationList.jsx';
-import { GroupHeader, LowConfidenceToggle, ROW_HEIGHT_PX, fileFindingKey } from '../../explorer/components/fileDetailWidgets.jsx';
+import { ROW_HEIGHT_PX, fileFindingKey } from '../../explorer/components/fileDetailWidgets.jsx';
 import { severityLabel } from '../../../strings/labels.js';
-import { SEVERITY_ORDER } from '../../../vocab/severity.js';
-import { useFileDetailFiltering } from '../../explorer/components/useFileDetailFiltering.js';
+import { SEVERITY_ORDER, SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
+import { useFileDetailFiltering, dismissKey } from '../../explorer/components/useFileDetailFiltering.js';
 import { useDashboardScrollElement } from '../../explorer/components/VirtualList.jsx';
-import { useFindingsPaneSpecs } from '../../explorer/components/fileDetailRows.jsx';
+import { useFindingsPaneSpecs, renderFileDetailRow } from '../../explorer/components/fileDetailRows.jsx';
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 import { scopeFindings, principleGradeOf, SCOPE_KIND } from './scopeModel.js';
-import FindingsHead from './FindingsHead.jsx';
-import { scopeMetrics, filesChecked, areaRisk } from './scopeMetrics.js';
+import FindingsHead from '../../../components/FindingsHead.jsx';
+import { scopeMetrics, filesChecked, areaRisk } from '../../../models/findingMetrics.js';
 import { useStandardDescriptions } from '../../explorer/hooks/useStandardDescriptions.js';
 import { GRADE } from '../../../vocab/grade.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
@@ -21,6 +21,9 @@ import { t } from '../../../strings/index.js';
 /** How the scoped list reads: by severity (grouped, the default) or down the file by line. */
 export const SCOPE_SORT = Object.freeze({ SEVERITY: 'severity', LINE: 'line' });
 const SORTS = [SCOPE_SORT.SEVERITY, SCOPE_SORT.LINE];
+/** How the scope shows its findings: a list beside the selected one (the default, first), or cards. */
+export const SCOPE_VIEW = Object.freeze({ LIST: 'list', CARDS: 'cards' });
+const VIEW_OPTIONS = () => [{ key: SCOPE_VIEW.LIST, label: t('violations.scopeViewList') }, { key: SCOPE_VIEW.CARDS, label: t('violations.scopeViewCards') }];
 const isFindingRow = (item) => item.kind === FINDING_TYPE.VIOLATION || item.kind === ROW_KIND.LOW_CONF_ROW || item.kind === FINDING_TYPE.COMPLIANCE;
 const findingOf = (item) => item.v || item.c || {};
 /** What the page already names, so rows leave it out: the file (rows show the line only), the principle. */
@@ -39,19 +42,13 @@ function sortedRows(items, sort) {
   return items.filter(isFindingRow).sort(byFileThenLine);
 }
 
-const capitalized = (word) => word.charAt(0).toUpperCase() + word.slice(1);
-
-/** One row of the scope: a group header, the low-confidence toggle, a violation card or a compliant check. */
+/** One row of the scope: the File page's group headers and toggle, then the scope's own cards. */
 function renderScopeRow(item, { within, onDismiss, readOnly, setLowConfExpanded }) {
-  switch (item.kind) {
-    case ROW_KIND.SEV_HEADER: return <GroupHeader title={capitalized(severityLabel(item.sev))} count={item.count} />;
-    case ROW_KIND.COMPLIANCE_HEADER: return <GroupHeader title={t('violations.scopeCompliant')} count={item.count} />;
-    case ROW_KIND.LOW_CONF_TOGGLE: return <LowConfidenceToggle count={item.count} expanded={item.expanded} onToggle={() => setLowConfExpanded((v) => !v)} />;
-    case FINDING_TYPE.VIOLATION:
-    case ROW_KIND.LOW_CONF_ROW: return <FindingCard v={item.v} within={within} onDismiss={onDismiss} readOnly={readOnly} />;
-    case FINDING_TYPE.COMPLIANCE: return <CompliantRow c={item.c} within={within} />;
-    default: return null;
-  }
+  return renderFileDetailRow(item, {
+    onDismiss, readOnly, setLowConfExpanded, complianceTitle: t('violations.scopeCompliant'),
+    renderViolation: (v, opts) => <FindingCard v={v} within={within} {...opts} />,
+    renderCompliance: (c) => <CompliantRow c={c} within={within} />,
+  });
 }
 
 /** One segmented group of choices, with an optional count per choice. */
@@ -88,16 +85,6 @@ function SortChoice({ sort, onSort }) {
 }
 
 /**
- * The Findings page scoped to a file, folder, dimension, requirement, the
- * project or an area: its header and numbers, then every finding of the
- * scope as a card with its code open, violations by severity and the
- * compliant checks after them, or all of them by line. Filters pick a
- * severity or the compliant checks (opening on `scope.filter`); `onList`
- * hands over to the workbench list on the same filters. Without
- * `onDismissFinding` (a past day, a shared project) nothing is dismissed;
- * `readOnly` (a past day) leaves out the fix plans too, which act on today.
- */
-/**
  * What per 100 files is over: a principle is checked on every file its
  * dimension read, so the dimension's files read; any other scope the files
  * its checks looked at.
@@ -125,7 +112,17 @@ function usePrincipleHead(scope, dims) {
   return { description: principleDescriptions?.[scope.principle] || '', grade: gradeOf(principleGradeOf(scope, dims)) };
 }
 
-export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, onList, readOnly = false }) {
+/**
+ * The Findings page scoped to a file, folder, dimension, principle,
+ * requirement, the project or an area: its header and numbers, then every
+ * finding of the scope, as a list beside the selected finding (the
+ * default) or as cards with their code open; violations by severity and the
+ * compliant checks after them, or all of them by line. Filters pick a
+ * severity or the compliant checks (opening on `scope.filter`). Without
+ * `onDismissFinding` (a past day, a shared project) nothing is dismissed;
+ * `readOnly` (a past day) leaves out the fix plans too, which act on today.
+ */
+export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false }) {
   const file = useMemo(() => scopeFindings(scope, dims, projectName), [scope, dims, projectName]);
   const head = usePrincipleHead(scope, dims);
   const within = useMemo(() => withinOf(scope), [scope]);
@@ -133,44 +130,58 @@ export default function ScopedFindings({ scope, dims, projectName, dateLabel, on
   const sub = [t(`violations.scopeKind_${scope.kind}`), scope.kind === SCOPE_KIND.PRINCIPLE ? scope.dimension : null, dateLabel]
     .filter(Boolean).join(t('violations.wbDot'));
   return <ScopedFile key={JSON.stringify(scope)} file={file} within={within} dims={dims} sub={sub} head={head} initialFilter={scope.filter}
-    onDismissFinding={onDismissFinding} onList={onList} readOnly={readOnly} />;
+    onDismissFinding={onDismissFinding} readOnly={readOnly} />;
 }
 
-function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFinding, onList, readOnly }) {
+/** The scope's controls: which findings to show, in what order, as a list or as cards. */
+function ScopeBar({ sevCounts, compliance, filter, onFilter, sort, onSort, view, onView }) {
+  return (
+    <div className="findings-scope__bar">
+      <Segments label={t('violations.scopeKindAria')} options={kindOptions(sevCounts, compliance)} value={filter} onPick={onFilter} />
+      <SortChoice sort={sort} onSort={onSort} />
+      <Segments label={t('violations.scopeViewAria')} value={view} options={VIEW_OPTIONS()} onPick={onView} />
+    </div>
+  );
+}
+
+/** The header's numbers: per 100 files over `base`, and a folder's or area's Risk over its live violations. */
+function useScopeMetrics({ file, dims, within, filtering }) {
+  const { dismissedSet, liveSevCounts, liveTotal, totalCompliance } = filtering;
+  const base = useMemo(() => filesBase(file, dims, within), [file, dims, within]);
+  const risk = useMemo(() => (within.showsRisk ? areaRisk(file, (v) => !dismissedSet.has(dismissKey(v)), within.judgedSmall) : null),
+    [file, within, dismissedSet]);
+  const metrics = scopeMetrics({ sevCounts: liveSevCounts, total: liveTotal, compliance: totalCompliance, files: base.files, risk });
+  return { metrics, filesHint: base.hint };
+}
+
+function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFinding, readOnly }) {
   const [activeFilter, setActiveFilter] = useState(initialFilter || null);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
   const [sort, setSort] = useState(SCOPE_SORT.SEVERITY);
-  const [view, setView] = useState('list');
+  const [view, setView] = useState(SCOPE_VIEW.LIST);
   // Each finding dismisses into its own dimension's run (the File page used one run for the whole page).
   const runOf = useMemo(() => new Map(dims.map((d) => [d.dimension, d.fromRunId])), [dims]);
   const onDismiss = onDismissFinding ? (v) => onDismissFinding(v, runOf.get(v.dimension)) : undefined;
-  const { dismissedSet, handleDismiss, liveSevCounts, liveTotal, totalCompliance, items, violationsBySeverity } = useFileDetailFiltering({
-    file, onDismiss, activeFilter, lowConfExpanded,
-  });
+  const filtering = useFileDetailFiltering({ file, onDismiss, activeFilter, lowConfExpanded });
+  const { handleDismiss, liveSevCounts, totalCompliance, items, violationsBySeverity } = filtering;
   useFindingsPaneSpecs(file, violationsBySeverity, activeFilter, readOnly);
   const scrollElement = useDashboardScrollElement();
   const rows = useMemo(() => sortedRows(items, sort), [items, sort]);
-  const base = useMemo(() => filesBase(file, dims, within), [file, dims, within]);
-  const risk = useMemo(() => (within.showsRisk ? areaRisk(file, (v) => !dismissedSet.has(`${v.file}:${v.line}`), within.judgedSmall) : null),
-    [file, within, dismissedSet]);
+  const { metrics, filesHint } = useScopeMetrics({ file, dims, within, filtering });
+  const dismiss = onDismiss ? handleDismiss : undefined;
   return (
     <div className="findings-scope">
       <FindingsHead title={file.file} sub={sub} description={head.description} grade={head.grade} oneFile={within.inFile} showRisk={within.showsRisk}
-        metrics={scopeMetrics({ sevCounts: liveSevCounts, total: liveTotal, compliance: totalCompliance, files: base.files, risk })} filesHint={base.hint} />
-      <div className="findings-scope__bar">
-        <Segments label={t('violations.scopeKindAria')} options={kindOptions(liveSevCounts, totalCompliance)} value={activeFilter} onPick={setActiveFilter} />
-        <SortChoice sort={sort} onSort={setSort} />
-        <Segments label={t('violations.scopeViewAria')} value={view}
-          options={[{ key: 'list', label: t('violations.scopeViewList') }, { key: 'cards', label: t('violations.scopeViewCards') }]}
-          onPick={setView} />
-      </div>
+        metrics={metrics} filesHint={filesHint} />
+      <ScopeBar sevCounts={liveSevCounts} compliance={totalCompliance} filter={activeFilter} onFilter={setActiveFilter}
+        sort={sort} onSort={setSort} view={view} onView={setView} />
       <CodeOpenByDefault.Provider value>
-        {view === 'list' ? (
-          <ScopeList rows={rows} within={within} onDismiss={onDismiss ? handleDismiss : undefined} readOnly={readOnly} />
+        {view === SCOPE_VIEW.LIST ? (
+          <ScopeList rows={rows} within={within} onDismiss={dismiss} readOnly={readOnly} />
         ) : <DeferredViolationList
-          resetKey={`${activeFilter ?? 'all'}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
+          resetKey={`${activeFilter ?? SEVERITY_FILTER_ALL}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
           items={rows} scrollElement={scrollElement} rowHeights={ROW_HEIGHT_PX} findingKey={fileFindingKey}
-          renderItem={(item) => renderScopeRow(item, { within, onDismiss: onDismiss ? handleDismiss : undefined, readOnly, setLowConfExpanded })}
+          renderItem={(item) => renderScopeRow(item, { within, onDismiss: dismiss, readOnly, setLowConfExpanded })}
         />}
       </CodeOpenByDefault.Provider>
     </div>

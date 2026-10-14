@@ -1,7 +1,7 @@
 import { useMemo, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
-import TopOffendingFilesTable from './TopOffendingFilesTable.jsx';
+import TopOffendingFilesTable, { OffendingFilesHead } from './TopOffendingFilesTable.jsx';
 import FindingsByFolderPanel from './FindingsByFolderPanel.jsx';
 import FixFirstPanel from './FixFirstPanel.jsx';
 import RiskAreasPanel from './RiskAreasPanel.jsx';
@@ -103,10 +103,7 @@ function OffendingFilesSection({ topFiles, onNavigate, asOf, pending }) {
   if (topFiles.length === 0) return null;
   return (
     <section className={withPending('qd-cards-panel offending-panel', pending)} aria-label={t('overview.violationsByFileAria')} aria-busy={pending || undefined}>
-      <div className="qd-cards-panel__head">
-        <SectionLabel>{t('overview.violationsByFileLabel')} · {topFiles.length}</SectionLabel>
-        <span className="run-history-panel__stats">{t('overview.sortedBySeverity')}</span>
-      </div>
+      <OffendingFilesHead count={topFiles.length} />
       <TopOffendingFilesTable
         files={open ? topFiles : topFiles.slice(0, FILES_SHOWN)}
         onFileClick={onNavigate ? (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf) : undefined}

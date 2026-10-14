@@ -17,6 +17,7 @@ vi.mock('./AccumulatedHeroSection.jsx', () => ({
 }));
 vi.mock('./TopOffendingFilesTable.jsx', () => ({
   default: ({ onFileClick }) => <button type="button" onClick={() => onFileClick({ file: 'src/a.py' })}>file row</button>,
+  OffendingFilesHead: () => null,
 }));
 vi.mock('./FixFirstPanel.jsx', () => ({
   default: ({ onRequirementClick }) => (

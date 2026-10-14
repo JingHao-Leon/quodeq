@@ -8,7 +8,8 @@ function navFor(over) {
   const calls = [];
   const nav = buildExplorerFindingsNav({
     dimension: 'security', scoped: { latestRunId: 'r9' }, dimFile: { file: 'security' }, onNavigate: (...a) => calls.push(a),
-    project: 'p', activeRunId: 'r9', activeDateLabel: '12 Oct', sourceTab: 'overview', trend, ...over,
+    project: 'p', activeRunId: 'r9', activeDateLabel: '12 Oct', sourceTab: 'overview', trend,
+    buildEvalPrincipal: (name) => ({ principle: name }), ...over,
   });
   return { nav, calls };
 }
@@ -50,4 +51,19 @@ test('a cross-project explorer keeps the File page of its own project', () => {
     ['file', { file: { file: 'security' }, severityFilter: 'all', ...at }],
     ['file', { file: { file: 'src/a.py' }, ...at }],
   ]);
+});
+
+test('a principle opens its scoped view, of today or of the run on show', () => {
+  const today = navFor({});
+  today.nav.onPrincipleClick('Dependency Rule');
+  assert.deepEqual(today.calls, [['violations', { scope: { kind: 'principle', dimension: 'security', principle: 'Dependency Rule' }, asOf: null }]]);
+  const past = navFor({ activeRunId: 'r5' });
+  past.nav.onPrincipleClick('Dependency Rule');
+  assert.deepEqual(past.calls[0][1].asOf, { runId: 'r5', day: '2026-09-30' });
+});
+
+test('a cross-project explorer keeps the principle page', () => {
+  const { nav, calls } = navFor({ scoped: null });
+  nav.onPrincipleClick('Dependency Rule');
+  assert.deepEqual(calls, [['evalprinciple', { evalPrincipal: { principle: 'Dependency Rule' }, sourceTab: 'overview' }]]);
 });

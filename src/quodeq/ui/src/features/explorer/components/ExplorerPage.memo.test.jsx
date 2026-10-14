@@ -24,10 +24,10 @@ vi.mock('../../../utils/explorerUtils.js', async (importOriginal) => {
 });
 vi.mock('../hooks/useStandardDescriptions.js', () => ({ useStandardDescriptions: () => ({ standardDescription: '' }) }));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
-vi.mock('./ExplorerStatsPanel.jsx', () => ({ default: () => null }));
+vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => null }));
 vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => null }));
 vi.mock('./PrinciplesCardsRow.jsx', () => ({ default: () => null }));
-vi.mock('../../dashboard/components/TopOffendingFilesTable.jsx', () => ({ default: () => null }));
+vi.mock('../../dashboard/components/TopOffendingFilesTable.jsx', () => ({ default: () => null, OffendingFilesHead: () => null }));
 
 import ExplorerPage from './ExplorerPage.jsx';
 

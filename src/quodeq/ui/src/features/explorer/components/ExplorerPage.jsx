@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import TopOffendingFilesTable from '../../dashboard/components/TopOffendingFilesTable.jsx';
+import TopOffendingFilesTable, { OffendingFilesHead } from '../../dashboard/components/TopOffendingFilesTable.jsx';
 import { buildProjectRootFile } from '../../../utils/explorerUtils.js';
 import { useExplorerData, buildEvalPrincipalFn } from './explorerDataHooks.js';
 import { useStandardDescriptions } from '../hooks/useStandardDescriptions.js';
@@ -9,8 +9,8 @@ import DeferredMount from '../../../components/DeferredMount.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import PrinciplesCardsRow from './PrinciplesCardsRow.jsx';
 import DimensionScoreHistoryPanel from './DimensionScoreHistoryPanel.jsx';
-import FindingsHead from '../../violations/scope/FindingsHead.jsx';
-import { scopeMetrics } from '../../violations/scope/scopeMetrics.js';
+import FindingsHead from '../../../components/FindingsHead.jsx';
+import { scopeMetrics } from '../../../models/findingMetrics.js';
 import { GRADE } from '../../../vocab/grade.js';
 import { HERO_CARD_KIND } from '../../dashboard/dashboardVocab.js';
 import ExplorerRadialPanel from './ExplorerRadialPanel.jsx';
@@ -22,7 +22,6 @@ import TrendBadge from '../../../components/TrendBadge.jsx';
 import { useExplorerTrend } from './useExplorerTrend.js';
 import { dimensionPeriodDeltas } from '../dimensionPeriodDeltas.js';
 import { buildExplorerFindingsNav } from './explorerFindingsNav.js';
-import { openScope, SCOPE_KIND } from '../../violations/scope/scopeModel.js';
 
 /** Empty/loading/error states, checked in order — extracted so the main
  * render stays a single happy-path return. The loading state keeps the
@@ -130,14 +129,9 @@ function ExplorerTopGrid({ d, trend, granularity, onGranularityChange, setActive
  * its numbers (violations, pass rate, per 100 files read, critical per
  * 1,000, Risk zone), the violations and pass rate opening their findings.
  */
-function ExplorerHead({ dim, d, overallScoreNum, standardDescription, activeDateLabel, activeRunId, periodDeltas, onNavigate, handleCardNavigate, onSeverityBadge, filesRead: borrowedFilesRead }) {
+function ExplorerHead({ dim, d, overallScoreNum, standardDescription, activeDateLabel, activeRunId, periodDeltas, actions, filesRead: borrowedFilesRead }) {
   const filesRead = d.evalData.filesRead ?? borrowedFilesRead ?? 0;
   const metrics = scopeMetrics({ sevCounts: d.severityCounts || {}, total: d.allViolations.length, compliance: d.totalCompliant, files: filesRead });
-  const actions = onNavigate ? {
-    onViolations: () => handleCardNavigate(HERO_CARD_KIND.VIOLATIONS),
-    onCompliance: () => handleCardNavigate('compliance'),
-    onSeverity: (level) => onSeverityBadge(level)(),
-  } : {};
   return (
     <FindingsHead
       title={dim} sub={activeDateLabel || activeRunId || null} description={standardDescription}
@@ -148,12 +142,34 @@ function ExplorerHead({ dim, d, overallScoreNum, standardDescription, activeDate
   );
 }
 
-/** The happy-path render: header, top grid (stats + radial), principle
- * cards, and the top-offending-files table. */
+/** The principle cards, each opening its principle. */
+function PrinciplesPanel({ radialPrinciples, enrichedPrinciples, onPrincipleClick }) {
+  return (
+    <section className="qd-cards-panel" aria-label={t('explorer.principlesAria')}>
+      <div className="qd-cards-panel__head">
+        <SectionLabel>{t('explorer.principlesLabel')} · {radialPrinciples.length}</SectionLabel>
+      </div>
+      <PrinciplesCardsRow principles={enrichedPrinciples} onPrincipleClick={onPrincipleClick} />
+    </section>
+  );
+}
+
+/** The files with the most violations, each opening its file. */
+function OffendingFilesPanel({ topFiles, onFileClick }) {
+  return (
+    <section className="qd-cards-panel offending-panel" aria-label={t('overview.violationsByFileAria')}>
+      <OffendingFilesHead count={topFiles.length} />
+      <TopOffendingFilesTable files={topFiles} onFileClick={onFileClick} />
+    </section>
+  );
+}
+
+/** The happy-path render: header, principle cards, top grid (score
+ * history + radial), and the top-offending-files table. */
 function ExplorerPageBody({
   isRefreshing, dim, standardDescription, activeDateLabel, activeRunId, overallScoreNum, d,
-  onSeverityBadge, onNavigate, handleCardNavigate, trend, granularity, onGranularityChange,
-  setActiveRunId, setActiveDateLabel, radialPrinciples, onPrincipleClick, enrichedPrinciples, onFileClick, filesRead,
+  findingsNav, headActions, trend, granularity, onGranularityChange,
+  setActiveRunId, setActiveDateLabel, radialPrinciples, enrichedPrinciples, filesRead,
 }) {
   // The arrows on the title, the score and the chips: this dimension's
   // change since the previous period of the chart's grouping, as of the
@@ -167,56 +183,44 @@ function ExplorerPageBody({
       <ExplorerHead
         dim={dim} d={d} overallScoreNum={overallScoreNum} standardDescription={standardDescription}
         activeDateLabel={activeDateLabel} activeRunId={activeRunId} periodDeltas={periodDeltas}
-        onNavigate={onNavigate} handleCardNavigate={handleCardNavigate} onSeverityBadge={onSeverityBadge} filesRead={filesRead}
+        actions={headActions} filesRead={filesRead}
       />
+
+      {/* The header paints first; the card row and the files table are the
+          heavy part and follow in the next commit. */}
+      <DeferredMount fallback={<CardListSkeleton />}>
+        <PrinciplesPanel radialPrinciples={radialPrinciples} enrichedPrinciples={enrichedPrinciples} onPrincipleClick={findingsNav.onPrincipleClick} />
+      </DeferredMount>
 
       <ExplorerTopGrid
         d={d} trend={trend} granularity={granularity} onGranularityChange={onGranularityChange}
         setActiveRunId={setActiveRunId} setActiveDateLabel={setActiveDateLabel}
-        activeRunId={activeRunId} radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick}
+        activeRunId={activeRunId} radialPrinciples={radialPrinciples} onPrincipleClick={findingsNav.onPrincipleClick}
       />
 
-      {/* Header and the top grid paint first; the card row and the files
-          table are the heavy part and follow in the next commit. */}
       <DeferredMount fallback={<CardListSkeleton />}>
-        <section className="qd-cards-panel" aria-label={t('explorer.principlesAria')}>
-          <div className="qd-cards-panel__head">
-            <SectionLabel>{t('explorer.principlesLabel')} · {radialPrinciples.length}</SectionLabel>
-          </div>
-          <PrinciplesCardsRow
-            principles={enrichedPrinciples}
-            onPrincipleClick={onPrincipleClick}
-          />
-        </section>
-
-        <section className="qd-cards-panel offending-panel" aria-label={t('overview.violationsByFileAria')}>
-          <div className="qd-cards-panel__head">
-            <SectionLabel>{t('overview.violationsByFileLabel')} · {d.topFiles.length}</SectionLabel>
-            <span className="run-history-panel__stats">{t('overview.sortedBySeverity')}</span>
-          </div>
-          <TopOffendingFilesTable
-            files={d.topFiles}
-            onFileClick={onFileClick}
-          />
-        </section>
+        <OffendingFilesPanel topFiles={d.topFiles} onFileClick={findingsNav.onFileClick} />
       </DeferredMount>
     </div>
   );
 }
 
+/** The header's tiles and severity badges open what the old stat cards opened. */
+function headActionsOf(findingsNav) {
+  return {
+    onViolations: () => findingsNav.handleCardNavigate(HERO_CARD_KIND.VIOLATIONS),
+    onCompliance: () => findingsNav.handleCardNavigate(HERO_CARD_KIND.COMPLIANCE),
+    onSeverity: (level) => findingsNav.onSeverityBadge(level)(),
+  };
+}
+
 /** The values derived from `d` once it's known to be ready (dim label,
- * radial/enriched principle views, the principle-click handler, score,
- * refreshing flag). Thread sourceTab through onPrincipleClick: without it a
- * principle click from a Violations-tab drill-in falls back to the
- * Overview tab, swapping the whole page for the Overview and jumping the
- * sidebar highlight. */
-function buildExplorerViewData(d, onNavigate, sourceTab, buildEvalPrincipal, principleViews) {
+ * radial/enriched principle views, score, refreshing flag). */
+function buildExplorerViewData(d, principleViews) {
   return {
     dim: String(d.evalData.dimension || '').toLowerCase(),
     radialPrinciples: principleViews.radialPrinciples,
     enrichedPrinciples: principleViews.enrichedPrinciples,
-    // Prototype: a principle opens its scoped Findings view.
-    onPrincipleClick: (name) => openScope(onNavigate, { kind: SCOPE_KIND.PRINCIPLE, dimension: d.evalData.dimension, principle: name }),
     overallScoreNum: parseFloat(d.overallGrade?.score),
     isRefreshing: d.isFetching && !!d.evalData,
   };
@@ -251,23 +255,21 @@ export default function ExplorerPage({
   const status = explorerPageStatus(d, dimension);
   if (status) return status;
 
-  const { handleCardNavigate, onSeverityBadge, onFileClick } = buildExplorerFindingsNav({
-    dimension, scoped: scopedFindings, dimFile, onNavigate, project, activeRunId, activeDateLabel, sourceTab, trend,
+  // Thread sourceTab through: without it a principle page opened from a
+  // Violations-tab drill-in falls back to the Overview tab.
+  const findingsNav = buildExplorerFindingsNav({
+    dimension, scoped: scopedFindings, dimFile, onNavigate, project, activeRunId, activeDateLabel, sourceTab, trend, buildEvalPrincipal,
   });
-
-  const {
-    dim, radialPrinciples, enrichedPrinciples, onPrincipleClick, overallScoreNum, isRefreshing,
-  } = buildExplorerViewData(d, onNavigate, sourceTab, buildEvalPrincipal, principleViews);
+  const { dim, radialPrinciples, enrichedPrinciples, overallScoreNum, isRefreshing } = buildExplorerViewData(d, principleViews);
 
   return (
     <ExplorerPageBody
       isRefreshing={isRefreshing} dim={dim} standardDescription={standardDescription}
       activeDateLabel={activeDateLabel} activeRunId={activeRunId} overallScoreNum={overallScoreNum} d={d}
-      onSeverityBadge={onSeverityBadge} onNavigate={onNavigate} handleCardNavigate={handleCardNavigate}
+      findingsNav={findingsNav} headActions={onNavigate ? headActionsOf(findingsNav) : {}}
       trend={trend} granularity={granularity} onGranularityChange={onGranularityChange}
       setActiveRunId={setActiveRunId} setActiveDateLabel={setActiveDateLabel}
-      radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick} enrichedPrinciples={enrichedPrinciples}
-      onFileClick={onFileClick} filesRead={filesRead}
+      radialPrinciples={radialPrinciples} enrichedPrinciples={enrichedPrinciples} filesRead={filesRead}
     />
   );
 }

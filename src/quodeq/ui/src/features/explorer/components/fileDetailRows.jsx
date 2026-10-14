@@ -10,13 +10,18 @@ import { FINDING_TYPE } from '../../../vocab/findingType.js';
 
 const capitalized = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 
+const defaultViolation = (v, { onDismiss, readOnly }) => <ViolationCard v={v} onDismiss={onDismiss} readOnly={readOnly} />;
+const defaultCompliance = (c) => <ComplianceCard c={c} principle={c.principle} index={0} />;
+
 /**
  * One row of a findings list built by useFileDetailFiltering: a severity or
  * compliance group header (`complianceTitle`), the low-confidence toggle, a
  * violation card (no `onDismiss`: no dismiss; `readOnly`, a past run: no
- * fix plan either) or a compliance card.
+ * fix plan either) or a compliance card. `renderViolation(v, opts)` and
+ * `renderCompliance(c)` replace the File page's own cards.
  */
-export function renderFileDetailRow(item, { onDismiss, setLowConfExpanded, complianceTitle, readOnly = false }) {
+export function renderFileDetailRow(item, opts) {
+  const { setLowConfExpanded, complianceTitle, renderViolation = defaultViolation, renderCompliance = defaultCompliance } = opts;
   switch (item.kind) {
     case ROW_KIND.SEV_HEADER:
       return <GroupHeader title={capitalized(severityLabel(item.sev))} count={item.count} />;
@@ -26,9 +31,9 @@ export function renderFileDetailRow(item, { onDismiss, setLowConfExpanded, compl
       return <LowConfidenceToggle count={item.count} expanded={item.expanded} onToggle={() => setLowConfExpanded((v) => !v)} />;
     case FINDING_TYPE.VIOLATION:
     case ROW_KIND.LOW_CONF_ROW:
-      return <ViolationCard v={item.v} onDismiss={onDismiss} readOnly={readOnly} />;
+      return renderViolation(item.v, { onDismiss: opts.onDismiss, readOnly: opts.readOnly ?? false });
     case FINDING_TYPE.COMPLIANCE:
-      return <ComplianceCard c={item.c} principle={item.c.principle} index={0} />;
+      return renderCompliance(item.c);
     default:
       return null;
   }
