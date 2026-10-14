@@ -7,6 +7,9 @@ import '@testing-library/jest-dom/vitest';
 import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
+// The areas card reads the Map's history through react-query; this test is about the panels around it.
+vi.mock('./RiskAreasPanel.jsx', () => ({ default: () => null }));
+
 const TREND = [
   { runId: 't1', dateISO: '2026-07-03T10:00:00', dateLabel: 'Jul 3', numericAverage: 9, overallGrade: 'A', dimensions: ['maintainability'], dimensionDetails: [{ dimension: 'maintainability', score: 9 }] },
   { runId: 't2', dateISO: '2026-06-15T10:00:00', dateLabel: 'Jun 15', numericAverage: 7, overallGrade: 'B', dimensions: ['maintainability'], dimensionDetails: [{ dimension: 'maintainability', score: 7 }] },

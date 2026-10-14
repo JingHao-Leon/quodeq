@@ -3,9 +3,13 @@ import { RiskView, RiskTimelapseView } from '../viz/index.js';
 import MapTimelapseStage from './MapTimelapseStage.jsx';
 import useSkyTimeline from '../hooks/useSkyTimeline.js';
 
-/** The selected area by name, shared by today's sky and the time-lapse; a new project (resetKey) clears it. */
-function useAreaSelection(resetKey) {
-  const [held, setHeld] = useState({ resetKey, name: null });
+/**
+ * The selected area by name, shared by today's sky and the time-lapse; a new
+ * project (resetKey) clears it. `initial` (an area opened from the Overview)
+ * is selected when the tab opens on it.
+ */
+function useAreaSelection(resetKey, initial) {
+  const [held, setHeld] = useState({ resetKey, name: initial || null });
   const onSelectName = useCallback((name) => setHeld({ resetKey, name }), [resetKey]);
   return { selectedName: held.resetKey === resetKey ? held.name : null, onSelectName };
 }
@@ -23,7 +27,7 @@ function useAreaSelection(resetKey) {
 export default function MapRiskPanel({ risk, riskActions, view, timelapse }) {
   const { dark, showLabels, resetKey } = view;
   const timeline = useSkyTimeline(timelapse.data);
-  const selection = useAreaSelection(resetKey);
+  const selection = useAreaSelection(resetKey, risk.initialArea);
   const latest = (
     <RiskView areaState={risk.areaState} dark={dark} showLabels={showLabels} resetKey={resetKey}
       onViewDetails={riskActions.onViewDetails} selection={selection} />
