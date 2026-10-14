@@ -1,15 +1,18 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLayers.test.jsx
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
-import { skyFrame, toPixels, pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont } from './skyLayers.js';
+import { skyFrame, toPixels, pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont, skyZoneFont, placeZoneLabels } from './skyLayers.js';
 import { RING_STYLE } from './skyPaint.js';
 import { TAU } from './galaxyCore.js';
-import { SKY_RIM } from './skyLayout.js';
-import { GHOST_DASH_PX } from './packLayers.js';
+import { SKY_ZONE } from '../../mapVocab.js';
 
 const SIZE = 400;
 const C = (r, g, b) => ({ r, g, b });
 const RINGS = { fixFirst: 0.3, watch: 0.45 };
-const PALETTE = { dark: true, bg: C(0, 0, 0), surface: C(9, 9, 9), text: C(255, 255, 255), textMuted: C(120, 120, 120), worse: C(240, 80, 120) };
+const PALETTE = {
+  dark: true, bg: C(0, 0, 0), surface: C(9, 9, 9), text: C(255, 255, 255), textMuted: C(120, 120, 120), worse: C(240, 80, 120),
+  sevCritical: C(250, 60, 60), sevMajor: C(250, 160, 40),
+};
+const ZONE_TEXT = { [SKY_ZONE.FIX_FIRST]: { text: 'Fix first · 2', w: 60 }, [SKY_ZONE.WATCH]: { text: 'Watch · 3', w: 50 } };
 
 function scene() {
   const frame = skyFrame(SIZE, SIZE);
@@ -27,39 +30,68 @@ describe('sky geometry', () => {
     expect(pickBubble(bubbles, SIZE / 2 + 5, SIZE / 2)).toBe(0);
     expect(pickBubble(bubbles, 2, 2)).toBeNull();
   });
+
+  it('never picks a bubble of radius 0 (an area the run shown does not have)', () => {
+    const frame = skyFrame(SIZE, SIZE);
+    expect(pickBubble(toPixels([{ x: 0, y: 0, r: 0 }], frame), SIZE / 2, SIZE / 2)).toBeNull();
+  });
 });
 
 describe('drawSkyStatic', () => {
-  it('draws the backdrop, every bubble, a dashed ring for dormant, and the files inside', () => {
+  const draw = (extra = {}) => {
     const ctx = fakeCanvasContext();
     const s = scene();
-    drawSkyStatic(ctx, { ...s, rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE });
-    expect(ctx.createRadialGradient).toHaveBeenCalledTimes(1);
+    drawSkyStatic(ctx, { ...s, rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE, ...extra });
+    return { ctx, frame: s.frame };
+  };
+
+  it('draws the zones, every bubble, a dashed ring for dormant, and the files inside', () => {
+    const { ctx } = draw();
+    expect(ctx.createRadialGradient).toHaveBeenCalledTimes(2);
     expect(ctx.setLineDash).toHaveBeenCalledWith([]);
     expect(ctx.globalAlpha).toBe(1);
   });
 
-  it('draws the fix-first and watch lines where the layout put them, and the glow follows', () => {
-    const ctx = fakeCanvasContext();
-    const s = scene();
-    drawSkyStatic(ctx, { ...s, rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE });
-    const { cx, cy, s: radius } = s.frame;
+  it('draws the fix-first and watch lines where the layout put them, and each zone glows inside its own ring', () => {
+    const { ctx, frame } = draw();
+    const { cx, cy, s: radius } = frame;
     expect(ctx.arc).toHaveBeenCalledWith(cx, cy, RINGS.fixFirst * radius, 0, TAU);
     expect(ctx.arc).toHaveBeenCalledWith(cx, cy, RINGS.watch * radius, 0, TAU);
-    const stops = ctx.createRadialGradient.mock.results[0].value.addColorStop.mock.calls.map(([at]) => at);
-    expect(stops).toEqual(expect.arrayContaining([expect.closeTo(RINGS.fixFirst / SKY_RIM), expect.closeTo(RINGS.watch / SKY_RIM)]));
+    // The watch haze spans the band between the rings, the fix-first core the circle inside.
+    expect(ctx.createRadialGradient).toHaveBeenCalledWith(cx, cy, RINGS.fixFirst * radius, cx, cy, RINGS.watch * radius);
+    expect(ctx.createRadialGradient).toHaveBeenCalledWith(cx, cy, 0, cx, cy, RINGS.fixFirst * radius);
   });
 
-  it('draws a ghost bubble as a dotted outline, without fill or files', () => {
-    const frame = skyFrame(SIZE, SIZE);
-    const empty = fakeCanvasContext();
-    drawSkyStatic(empty, { frame, rings: RINGS, bubbles: [], paints: [], files: [], palette: PALETTE, width: SIZE, height: SIZE });
+  it('only the fix-first line glows', () => {
     const ctx = fakeCanvasContext();
-    const ghost = { ghost: true, stroke: 'rgb(1, 1, 1)', strokeAlpha: 0.4, ring: null };
-    const files = [{ dots: [{ x: 0, y: 0, r: 0.5 }], colors: ['rgb(255, 0, 0)'] }];
-    drawSkyStatic(ctx, { frame, rings: RINGS, bubbles: toPixels([{ x: 0, y: 0, r: 0.2 }], frame), paints: [ghost], files, palette: PALETTE, width: SIZE, height: SIZE });
-    expect(ctx.fills.length).toBe(empty.fills.length);
-    expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
+    const blurs = [];
+    ctx.stroke.mockImplementation(() => { blurs.push(ctx.shadowBlur); });
+    drawSkyStatic(ctx, { ...scene(), rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE });
+    // Rim, watch, fix first: the first three strokes.
+    expect(blurs.slice(0, 3).map((b) => b > 0)).toEqual([false, false, true]);
+    expect(ctx.shadowBlur).toBe(0);
+  });
+
+  it('writes each zone\'s label on top of its ring, and none without zone labels', () => {
+    const { frame } = scene();
+    const zoneLabels = placeZoneLabels(frame, RINGS, ZONE_TEXT, 1);
+    const { ctx } = draw({ zoneLabels, font: 'sans', fontScale: 1 });
+    expect(ctx.fillText).toHaveBeenCalledWith('Fix first · 2', zoneLabels[0].x, zoneLabels[0].y);
+    expect(ctx.fillText).toHaveBeenCalledWith('Watch · 3', zoneLabels[1].x, zoneLabels[1].y);
+    expect(draw({ zoneLabels: [] }).ctx.fillText).not.toHaveBeenCalled();
+  });
+});
+
+describe('placeZoneLabels', () => {
+  it('centres each label above its ring, with a box the area labels keep clear of', () => {
+    const frame = skyFrame(SIZE, SIZE);
+    const [fix, watch] = placeZoneLabels(frame, RINGS, ZONE_TEXT, 1);
+    expect([fix.zone, watch.zone]).toEqual([SKY_ZONE.FIX_FIRST, SKY_ZONE.WATCH]);
+    expect(fix.x).toBe(frame.cx);
+    expect(fix.y).toBeLessThan(frame.cy - RINGS.fixFirst * frame.s);
+    expect(watch.y).toBeLessThan(fix.y);
+    expect(fix.box.x1 - fix.box.x0).toBe(ZONE_TEXT[SKY_ZONE.FIX_FIRST].w);
+    expect(fix.box.y1).toBe(fix.y);
   });
 });
 
@@ -67,7 +99,7 @@ describe('drawSkyOverlay', () => {
   it('one veil with a hole for the kept bubble, then the labels', () => {
     const ctx = fakeCanvasContext();
     const { bubbles } = scene();
-    drawSkyOverlay(ctx, { bubbles, keepIndex: 0, hoverIndex: 0, labels: [{ x: 10, y: 10, title: 'article', sub: '3 issues' }], palette: PALETTE, font: 'sans', fontScale: 1, width: SIZE, height: SIZE });
+    drawSkyOverlay(ctx, { bubbles, keepIndex: 0, hoverIndex: 0, labels: [{ x: 10, y: 10, title: 'article' }], palette: PALETTE, font: 'sans', fontScale: 1, width: SIZE, height: SIZE });
     expect(ctx.rect).toHaveBeenCalledTimes(1);
     expect(ctx.fills).toEqual([{ rule: 'evenodd' }]);
     expect(ctx.fillText).toHaveBeenCalledWith('article', 10, 10);
@@ -84,5 +116,6 @@ describe('drawSkyOverlay', () => {
 describe('skyTitleFont', () => {
   it('scales the title size with the root font, so measuring and drawing agree', () => {
     expect(skyTitleFont('Inter', 2)).toBe('600 23px Inter');
+    expect(skyZoneFont('Inter', 2)).toBe('600 20px Inter');
   });
 });

@@ -59,3 +59,6 @@ export function normalizePackMode(mode) {
 export const AREA_KIND = Object.freeze({ HOTSPOT: 'hotspot', DORMANT: 'dormant', WATCH: 'watch', HEALTHY: 'healthy', SMALL: 'small' });
 /** Kinds that wear a ring on the Risk sky: hotspot solid, dormant dashed (spec 2.4). */
 export const RING_KINDS = Object.freeze([AREA_KIND.HOTSPOT, AREA_KIND.DORMANT]);
+
+/** The Risk sky's zones by density: past fix first, between watch and fix first, below watch. */
+export const SKY_ZONE = Object.freeze({ FIX_FIRST: 'fixFirst', WATCH: 'watch', HEALTHY: 'healthy' });

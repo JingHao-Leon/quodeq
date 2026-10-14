@@ -32,13 +32,13 @@ function getDarkThemeAttr() {
 
 const VIZ_STYLES = [
   { id: VIZ_STYLE.ZOOMPACK, label: t('map.vizCirclePack'), enabled: true },
-  { id: VIZ_STYLE.GALAXY, label: 'Galaxy', enabled: true },
   { id: VIZ_STYLE.RISK, label: t('map.vizRisk'), enabled: true },
+  { id: VIZ_STYLE.GALAXY, label: t('map.vizGalaxy'), enabled: true },
 ];
 
 const GALAXY_MODES = [
   { id: GALAXY_MODE.FILESYSTEM, label: t('map.vizFileSystem') },
-  { id: GALAXY_MODE.STANDARDS, label: 'Standards' },
+  { id: GALAXY_MODE.STANDARDS, label: t('map.vizStandards') },
 ];
 
 /** True while the Dimensions filter leaves some dimension out. */
@@ -155,10 +155,10 @@ function hasBreadcrumb(vizStyle) {
 function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk, timelapse }) {
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
-  const { fullTree, currentPath, onPathChange, explicitPath } = treeState;
+  const { fullTree, currentPath, onPathChange } = treeState;
   const { onDrillDown, onFileClick, onNavigate, onBreadcrumbNav } = callbacks;
   const { showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
-  const riskActions = useRiskActions({ areaState: risk.areaState, fullTree, onNavigate, onShowInPack: risk.onShowInPack });
+  const riskActions = useRiskActions({ areaState: risk.areaState, onNavigate });
   return (
     <div className="map-viz-container" {...(darkMode && !appIsDark ? { [DATA_THEME_ATTR]: getDarkThemeAttr() } : {})}>
       {hasBreadcrumb(vizStyle) && <MapBreadcrumb path={breadcrumb} onNavigate={onBreadcrumbNav} projectName={projectName} />}
@@ -179,7 +179,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
       )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
         <MapPackPanel
-          view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, explicitPath, onDrillDown, onFileClick }}
+          view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, onDrillDown, onFileClick }}
           pack={pack} timelapse={timelapse}
         />
       )}
@@ -274,7 +274,7 @@ export default function MapPage(props) {
         />
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, onShowInPack: props.nav?.onShowInPack }} timelapse={timelapse} />
+      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState }} timelapse={timelapse} />
     </div>
   );
 }

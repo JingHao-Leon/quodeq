@@ -1,8 +1,9 @@
 import { t } from '../../../../strings/index.js';
 import { PERCENT } from '../../../../constants.js';
-import { AREA_KIND } from '../../mapVocab.js';
+import { AREA_KIND, RING_KINDS, SKY_ZONE } from '../../mapVocab.js';
 import { severityLines } from './levelInfoLines.js';
 import { pluralKey } from '../../../../utils/plural.js';
+import { zoneOf } from '../core/skyScale.js';
 
 /** Decimals shown for an area's weighted issues per file. */
 const DENSITY_DECIMALS = 2;
@@ -16,14 +17,9 @@ export function kindLabel(kind) {
   return t(KIND_KEY.get(kind) || 'map.riskKindSmall');
 }
 
-function issuesSub(count) {
-  if (!count) return t('map.riskClean');
-  return count === 1 ? t('map.riskIssuesSubOne') : t('map.riskIssuesSub', { count });
-}
-
-/** The two-line canvas label of an area: its name and its issue count. */
+/** The canvas label of an area: its name (its numbers are in the hover card and the panel). */
 export function riskLabelText(area) {
-  return { title: area.name, sub: issuesSub(area.stats.violations) };
+  return { title: area.name };
 }
 
 /** An area's keyboard-list text: its name and its issue count. */
@@ -38,6 +34,22 @@ function densityLines(area) {
   return [{ label: t('map.riskDensity'), value: (area.density || 0).toFixed(DENSITY_DECIMALS) }];
 }
 
+const ZONE_KEY = new Map([
+  [SKY_ZONE.FIX_FIRST, 'map.riskZoneNameFixFirst'], [SKY_ZONE.WATCH, 'map.riskZoneNameWatch'], [SKY_ZONE.HEALTHY, 'map.riskZoneNameHealthy'],
+]);
+
+/**
+ * The zone the sky puts the area in (by its density, as the rings), then
+ * Hotspot or Dormant debt when the area is one: the backend's other kinds
+ * rank the area against the project and would contradict the rings.
+ */
+function placeLines(area) {
+  const zone = area.kind === AREA_KIND.SMALL ? kindLabel(AREA_KIND.SMALL) : t(ZONE_KEY.get(zoneOf(area.density || 0)));
+  const lines = [{ label: t('map.riskZone'), value: zone }];
+  if (RING_KINDS.includes(area.kind)) lines.push({ label: t('map.riskKind'), value: kindLabel(area.kind) });
+  return lines;
+}
+
 /** The info panel (and tooltip) content for an area. */
 export function riskAreaInfo(area) {
   const s = area.stats;
@@ -46,7 +58,7 @@ export function riskAreaInfo(area) {
     title: area.name,
     tag: area.layers.join(', '),
     lines: [
-      { label: t('map.riskKind'), value: kindLabel(area.kind) },
+      ...placeLines(area),
       { label: t('map.riskFiles'), value: s.files },
       { label: t('map.riskIssues'), value: s.violations },
       ...severityLines({ critical: s.critical, major: s.major, minor }, { colored: true }),

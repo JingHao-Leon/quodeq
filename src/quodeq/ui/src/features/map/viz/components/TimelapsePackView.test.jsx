@@ -3,9 +3,7 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { stubPackCanvas } from '../../../../test-utils/packFixture.js';
 import TimelapsePackView from './TimelapsePackView.jsx';
-import { timelapseNoteText } from './timelapseNote.js';
 import { decodeTimelapse } from '../../model/mapTimelapse.js';
-import { ABSENCE } from '../core/timelapseScene.js';
 import { packViewport } from '../core/packCanvasGeometry.js';
 import { PACK_BASE_SIZE } from '../core/packLayout.js';
 import { DEFAULT_CANVAS_W, DEFAULT_CANVAS_H } from '../core/galaxyTunables.js';
@@ -101,12 +99,6 @@ describe('TimelapsePackView', () => {
     const { container } = await renderView({ timelapse: timelapse(), onDrillDown });
     fireEvent.keyDown(overlayOf(container), { key: 'Escape' });
     expect(onDrillDown).toHaveBeenCalledWith('');
-  });
-
-  it('an absent circle explains itself', () => {
-    expect(timelapseNoteText({ kind: ABSENCE.GONE_SINCE, day: '2026-09-08' })).toBe(t('map.timelapseGoneSince', { date: shortDate('2026-09-08') }));
-    expect(timelapseNoteText({ kind: ABSENCE.FIRST_APPEARS, day: '2026-09-08' })).toBe(t('map.timelapseFirstAppears', { date: shortDate('2026-09-08') }));
-    expect(timelapseNoteText(null)).toBeNull();
   });
 });
 
@@ -205,25 +197,41 @@ describe('TimelapsePackView background click', () => {
   });
 });
 
-describe('TimelapsePackView while playing', () => {
-  it('a pause does not bring back the circle hovered before play', async () => {
-    const tl = timelapse();
+/** The violations count the hover card shows. */
+const tipViolations = (container) => container.querySelector('.map-tooltip-row span:last-child').textContent;
+
+describe('TimelapsePackView hover across runs', () => {
+  it('hover shows the run\'s numbers while playing too', async () => {
+    const { container } = await renderView({ timelapse: timelapse({ playing: true }) });
+    hitPath = 'src/ui/a.js';
+    fireEvent.mouseMove(overlayOf(container));
+    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^a\.js$/);
+    expect(tipViolations(container)).toBe('2');
+    expect(overlayOf(container).style.cursor).toBe('pointer');
+  });
+
+  it('the hover follows its circle to the next run, with that run\'s numbers', async () => {
+    const tl = timelapse({ data: DATA3, playing: true });
     const props = baseProps();
     const { container, rerender } = await renderView({ ...props, timelapse: tl });
     hitPath = 'src/ui/a.js';
     fireEvent.mouseMove(overlayOf(container));
-    rerender(<TimelapsePackView {...props} timelapse={{ ...tl, playing: true }} />);
-    rerender(<TimelapsePackView {...props} timelapse={tl} />);
-    expect(container.querySelector('.map-tooltip')).toBeNull();
-    expect(overlayOf(container).style.cursor).toBe('default');
+    rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 2 }} />);
+    await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(2));
+    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^a\.js$/);
+    expect(tipViolations(container)).toBe('3');
   });
 
-  it('shows no hover and no tooltip', async () => {
-    const { container } = await renderView({ timelapse: timelapse({ playing: true }) });
-    hitPath = 'src/ui/a.js';
+  it('a run that does not hold the hovered circle shows no card', async () => {
+    const tl = timelapse({ position: 1 });
+    const props = baseProps();
+    const { container, rerender } = await renderView({ ...props, timelapse: tl });
+    hitPath = 'src/ui/b.js';
     fireEvent.mouseMove(overlayOf(container));
+    expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^b\.js$/);
+    rerender(<TimelapsePackView {...props} timelapse={{ ...tl, position: 0 }} />);
+    await waitFor(() => expect(tl.onSettled).toHaveBeenCalledWith(0));
     expect(container.querySelector('.map-tooltip')).toBeNull();
-    expect(overlayOf(container).style.cursor).toBe('default');
   });
 });
 

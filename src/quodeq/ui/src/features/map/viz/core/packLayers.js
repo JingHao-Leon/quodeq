@@ -89,7 +89,7 @@ function drawFile(ctx, p, paint, fade = 1) {
 }
 
 /**
- * A dotted, unfilled circle of radius `r` at (px, py): how both vizzes draw
+ * A dotted, unfilled circle of radius `r` at (px, py): how the pack draws
  * something absent from the run shown (time-lapse). Leaves the dash off and
  * globalAlpha back at 1.
  * @param {{stroke: string, strokeAlpha: number}} paint

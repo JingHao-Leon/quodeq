@@ -12,13 +12,22 @@ import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
 
 export const WORKBENCH_DEFAULTS = Object.freeze({
   q: '', severity: null, dimension: null, status: FINDING_STATUS.OPEN,
-  group: FINDING_GROUP.NONE, paths: [], selectedId: null,
+  group: FINDING_GROUP.NONE, paths: [], area: null, selectedId: null,
 });
 
 const SEVERITIES = new Set(Object.values(SEVERITY));
 const STATUSES = new Set(Object.values(FINDING_STATUS));
 const GROUPS = new Set(Object.values(FINDING_GROUP));
 const isText = (x) => typeof x === 'string';
+/** The non-empty strings of a path list, each once. */
+const cleanPaths = (list) => [...new Set(list.filter((x) => isText(x) && x))];
+
+/** A functional area from the Map's Risk tab: its name and the path chips that hold exactly its files. */
+function readArea(a) {
+  if (!a || typeof a !== 'object' || !isText(a.name) || !a.name || !Array.isArray(a.paths)) return null;
+  const paths = cleanPaths(a.paths);
+  return paths.length ? { name: a.name, paths } : null;
+}
 
 export function readWorkbench(param) {
   const p = param && typeof param === 'object' ? param : {};
@@ -28,7 +37,8 @@ export function readWorkbench(param) {
     dimension: isText(p.dimension) && p.dimension ? p.dimension : null,
     status: STATUSES.has(p.status) ? p.status : WORKBENCH_DEFAULTS.status,
     group: GROUPS.has(p.group) ? p.group : WORKBENCH_DEFAULTS.group,
-    paths: Array.isArray(p.paths) ? [...new Set(p.paths.filter((x) => isText(x) && x))] : [],
+    paths: Array.isArray(p.paths) ? cleanPaths(p.paths) : [],
+    area: readArea(p.area),
     selectedId: isText(p.selectedId) ? p.selectedId : null,
   };
 }

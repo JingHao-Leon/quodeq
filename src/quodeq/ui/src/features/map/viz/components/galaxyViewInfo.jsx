@@ -42,16 +42,6 @@ const DETAIL_BUTTON_STYLE = {
 };
 const TAG_STYLE = { color: 'var(--color-text-muted)', fontSize: 11, margin: '-4px 0 8px' };
 const PATH_STYLE = { color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', margin: '-6px 0 8px', wordBreak: 'break-all' };
-const SECONDARY_BUTTON_STYLE = {
-  marginTop: 8,
-  padding: 0,
-  background: 'none',
-  border: 'none',
-  color: 'var(--color-accent)',
-  fontSize: 11,
-  cursor: 'pointer',
-  textDecoration: 'underline',
-};
 const DETAIL_BUTTON_HOVER_BG = 'color-mix(in srgb, var(--color-accent) 35%, transparent)';
 
 /** A keydown handler that runs `onEscape` on Escape, or undefined without one. */
@@ -67,7 +57,7 @@ function escapeHandler(onEscape) {
 /**
  * Presentational component for the level info panel overlay.
  * With `label` it is a named region; `detailRef` reaches the View Details
- * button, and `onEscape` runs when Escape is pressed on one of its buttons.
+ * button, and `onEscape` runs when Escape is pressed on it.
  */
 export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape }) {
   if (!levelInfo) return null;
@@ -96,13 +86,6 @@ export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape }) {
           onMouseEnter={e => { e.target.style.background = DETAIL_BUTTON_HOVER_BG; }}
           onMouseLeave={e => { e.target.style.background = DETAIL_BUTTON_STYLE.background; }}
         >{t('map.viewDetails')}</button>
-      )}
-      {levelInfo.secondaryAction && (
-        <div>
-          <button type="button" onClick={levelInfo.secondaryAction.onClick} onKeyDown={onKeyDown} style={SECONDARY_BUTTON_STYLE}>
-            {levelInfo.secondaryAction.label}
-          </button>
-        </div>
       )}
     </div>
   );

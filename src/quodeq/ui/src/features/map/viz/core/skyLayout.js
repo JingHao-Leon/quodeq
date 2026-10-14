@@ -1,21 +1,12 @@
 import { TAU } from './galaxyCore.js';
-import { clamp } from './mapBadness.js';
 import { forNeighbourPairs } from './circleGrid.js';
+import { SKY_ZONE } from '../../mapVocab.js';
+import { SKY_GAP as GAP, bubbleRadius, densityDistance, skyScale, zoneOf } from './skyScale.js';
 
 /** Areas with fewer files than this get no bubble (spec 2.4). */
 export const SKY_MIN_FILES = 5;
 /** The sky's edge, in units of its radius. */
 export const SKY_RIM = 0.95;
-// Distance from the centre: densest at NEED_INNER, no findings at NEED_INNER + NEED_SPAN.
-const NEED_INNER = 0.12;
-const NEED_SPAN = 0.72;
-/** "Fix first" ring, weighted findings per file: mirrors FLOOR_HOTSPOT in core/map_history/area_metrics.py. */
-export const FIX_FIRST_DENSITY = 0.75;
-/** "Watch" ring, weighted findings per file: mirrors FLOOR_DORMANT in core/map_history/area_metrics.py. */
-export const WATCH_DENSITY = 0.5;
-const R_BASE = 0.014;
-const R_PER_SQRT_FILE = 0.0068;
-const GAP = 0.012;             // empty space kept between neighbouring bubbles
 const PULL = 0.12;             // share of the way back to its target per step
 const ITERATIONS = 260;
 const ANCHORED_ITERATIONS = 80; // a run that starts from the run before needs fewer steps
@@ -30,86 +21,6 @@ const HALF = 0.5;
 const SLACK = 1e-9;
 
 /**
- * The share of the areas the scale top covers: one extreme area cannot push
- * every other area to the rim, it sits at the centre with the top's own.
- */
-export const SKY_TOP_PERCENTILE = 0.9;
-
-/** The p-quantile of ascending values, interpolated between the two nearest ranks. */
-function quantile(sorted, p) {
-  const at = (sorted.length - 1) * p;
-  const below = Math.floor(at);
-  const above = Math.min(sorted.length - 1, below + 1);
-  return sorted[below] + (sorted[above] - sorted[below]) * (at - below);
-}
-
-/**
- * How far above the second-densest area the scale top may reach. One runaway
- * area may not stretch the scale for every other area; with few areas the
- * percentile sits next to the max and cannot hold it back on its own.
- */
-export const OUTLIER_CAP = 2;
-
-/**
- * The density the sky's scale tops out at: the SKY_TOP_PERCENTILE of the
- * areas' densities, capped at OUTLIER_CAP times the second-densest area (when
- * there is one), never below the fix-first floor, so a clean project keeps
- * its areas off the centre. Areas above it sit at the innermost distance.
- * The live sky and the time-lapse's history-wide top both use it.
- * @param {{density: number}[]} areas
- * @returns {number} weighted findings per file
- */
-export function densityTop(areas) {
-  if (!areas.length) return FIX_FIRST_DENSITY;
-  const sorted = areas.map((a) => a.density || 0).sort((a, b) => a - b);
-  const percentile = quantile(sorted, SKY_TOP_PERCENTILE);
-  const capped = sorted.length > 1 ? Math.min(percentile, OUTLIER_CAP * sorted[sorted.length - 2]) : percentile;
-  return Math.max(FIX_FIRST_DENSITY, capped);
-}
-
-/**
- * How far from the centre an area with this density sits. The square root
- * spreads the many low-density areas across the outer half instead of
- * stacking them on the rim, and still compresses a heavy tail. A density
- * above the top is clamped to it: the innermost distance, never beyond.
- * @param {number} density weighted findings per file
- * @param {number} top densityTop of the project
- * @returns {number} distance in sky-radius units
- */
-export function densityDistance(density, top) {
-  const reach = Math.sqrt(clamp(density / top, 0, 1));
-  return NEED_INNER + (1 - reach) * NEED_SPAN;
-}
-
-/**
- * Where the "fix first" and "watch" rings fall under a scale top.
- * @param {number} top densityTop of the areas on the sky
- * @returns {{fixFirst: number, watch: number}} distances in sky-radius units
- */
-export function ringsAt(top) {
-  return { fixFirst: densityDistance(FIX_FIRST_DENSITY, top), watch: densityDistance(WATCH_DENSITY, top) };
-}
-
-/**
- * Where the "fix first" and "watch" rings fall for these areas: they follow
- * the project, close to the centre when it is clean, wide when it is not.
- * @param {{density: number}[]} areas
- * @returns {{fixFirst: number, watch: number}} distances in sky-radius units
- */
-export function skyRings(areas) {
-  return ringsAt(densityTop(areas));
-}
-
-/**
- * A bubble's radius from its file count.
- * @param {number} files file count
- * @returns {number} radius in sky-radius units
- */
-export function bubbleRadius(files) {
-  return R_BASE + Math.sqrt(Math.max(0, files)) * R_PER_SQRT_FILE;
-}
-
-/**
  * A stable angle per area name (FNV-1a), so an area keeps its direction across runs.
  * @param {string} name area name
  * @returns {number} angle in radians
@@ -120,10 +31,35 @@ export function seededAngle(name) {
   return ((h >>> 0) / UINT32) * TAU;
 }
 
-function targetOf(area, top) {
+function targetOf(area, scale) {
   const angle = seededAngle(area.name);
-  const d = densityDistance(area.density || 0, top);
+  const d = densityDistance(area.density || 0, scale);
   return { tx: Math.cos(angle) * d, ty: Math.sin(angle) * d };
+}
+
+/** The distances from the centre an area's zone spans under a scale. */
+function bandOf(area, { fixFirst, watch }) {
+  const zone = zoneOf(area.density || 0);
+  if (zone === SKY_ZONE.FIX_FIRST) return { lo: 0, hi: fixFirst };
+  return zone === SKY_ZONE.WATCH ? { lo: fixFirst, hi: watch } : { lo: watch, hi: SKY_RIM };
+}
+
+/**
+ * Keep each bubble's centre inside its zone, half its radius clear of the
+ * zone's lines where the band allows: a bubble may graze a ring, never sit
+ * on the wrong side of it.
+ */
+function keepInBands(nodes) {
+  for (const n of nodes) {
+    const d = Math.hypot(n.x, n.y);
+    const clear = Math.min(n.r * HALF, (n.hi - n.lo) * HALF);
+    const lo = n.lo > 0 ? n.lo + clear : 0;
+    const want = Math.min(Math.max(d, lo), n.hi - clear);
+    if (want === d) continue;
+    const ux = d > 0 ? n.x / d : Math.cos(Math.atan2(n.ty, n.tx));
+    const uy = d > 0 ? n.y / d : Math.sin(Math.atan2(n.ty, n.tx));
+    n.x = ux * want; n.y = uy * want;
+  }
 }
 
 function pushApart(a, b) {
@@ -145,6 +81,7 @@ function relax(nodes, iterations) {
     for (const n of nodes) { n.x += (n.tx - n.x) * pull; n.y += (n.ty - n.y) * pull; }
     forNeighbourPairs(nodes, GAP, (i, j) => pushApart(nodes[i], nodes[j]));
     pullInside(nodes);
+    keepInBands(nodes);
   }
 }
 
@@ -177,8 +114,8 @@ function startScale(areas) {
   return scale;
 }
 
-function attemptAt(areas, scale, { top, start, iterations }) {
-  const nodes = areas.map((a) => ({ ...targetOf(a, top), r: bubbleRadius(a.stats.files) * scale }));
+function attemptAt(areas, scale, { sky, start, iterations }) {
+  const nodes = areas.map((a) => ({ ...targetOf(a, sky), ...bandOf(a, sky), r: bubbleRadius(a.stats.files) * scale }));
   nodes.forEach((n, i) => {
     const from = start?.get(areas[i].name);
     n.x = from ? from.x : n.tx;
@@ -202,16 +139,15 @@ function bestLayout(areas, options) {
 }
 
 /**
- * Positions for the Risk sky: each area pulled to its density ring at its own
- * angle, pushed off its neighbours, shrunk until nothing overlaps and
+ * Positions for the Risk sky: each area pulled to its distance in its zone
+ * (densityDistance under the areas' own skyScale) at its own angle, pushed off its neighbours, shrunk until nothing overlaps and
  * everything fits the rim. If no scale within MAX_TRIES is clean, the
  * attempt with the least total overlap wins.
  * @param {{name: string, density: number, stats: {files: number}}[]} areas
- * @param {number} [top] the scale top; defaults to these areas' own densityTop
  * @returns {{x: number, y: number, r: number}[]} same order, sky-radius units
  */
-export function layoutSky(areas, top = densityTop(areas)) {
-  return bestLayout(areas, { top, start: null, iterations: ITERATIONS });
+export function layoutSky(areas) {
+  return bestLayout(areas, { sky: skyScale(areas), start: null, iterations: ITERATIONS });
 }
 
 /**
@@ -219,12 +155,11 @@ export function layoutSky(areas, top = densityTop(areas)) {
  * (`previous`, by name; new areas at their target) and settles from there,
  * so bubbles drift instead of jumping.
  * @param {{name: string, density: number, stats: {files: number}}[]} areas as for layoutSky
- * @param {Map<string, {x: number, y: number}>} previous the run before's positions, by area name
- * @param {number} [top] the scale top; defaults to these areas' own densityTop
+ * @param {Map<string, {x: number, y: number}>} previous positions to start from, by area name
  * @returns {{x: number, y: number, r: number}[]} same order, sky-radius units
  */
-export function layoutSkyFrom(areas, previous, top = densityTop(areas)) {
-  return bestLayout(areas, { top, start: previous, iterations: ANCHORED_ITERATIONS });
+export function layoutSkyFrom(areas, previous) {
+  return bestLayout(areas, { sky: skyScale(areas), start: previous, iterations: ANCHORED_ITERATIONS });
 }
 
 /**

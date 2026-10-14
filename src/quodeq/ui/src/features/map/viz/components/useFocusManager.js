@@ -15,14 +15,13 @@ function useFocusResetSync(resetKey, setFocus) {
 
 /** Once per resetKey, at the root, open the folder that holds most of the
  * files. The drill goes through `onDrillDown` like a user's, so the page's
- * breadcrumb follows; the ref keeps a later way back to the root there.
- * `autoOpen` false (an explicit jump to the root) skips it for the visit. */
-function useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown, autoOpen }) {
+ * breadcrumb follows; the ref keeps a later way back to the root there. */
+function useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown }) {
   const openedFor = useRef(null);
   useEffect(() => {
     if (!circles.length || openedFor.current === resetKey) return;
     openedFor.current = resetKey;
-    const path = currentPath || !autoOpen ? null : dominantFolderPath(root?.data);
+    const path = currentPath ? null : dominantFolderPath(root?.data);
     if (path) onDrillDown?.(path);
   }, [circles, resetKey]);
 }
@@ -120,14 +119,14 @@ function useResolvedFocus(focus, root, circles) {
  * the top (a miss) and zoom out one level (Escape).
  * @returns {{focusNode: object, transform: {k:number,tx:number,ty:number}, handleClick: Function, handleBgClick: Function, handleRootClick: Function, skipTransition: {current: boolean}}}
  */
-export function useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect, autoOpen = true }) {
+export function useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect }) {
   const [focus, setFocus] = useState(null);
   const skipTransition = useRef(true);
   const prevPathRef = useRef(null);
 
   useFocusResetSync(resetKey, setFocus);
   useFocusPathSync({ currentPath, circles, setFocus, skipTransition, prevPathRef });
-  useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown, autoOpen });
+  useOpenDominantFolder({ root, circles, resetKey, currentPath, onDrillDown });
 
   // Enable transitions after first paint
   useEffect(() => {

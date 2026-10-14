@@ -65,6 +65,18 @@ test('applyFilters: a folder path takes everything under it, a file path only th
   assert.equal(applyFilters(all(), { ...base, paths: ['src/a/b/', 'src/c/z.js'] }).length, 2);
 });
 
+test('applyFilters: an area takes only the findings under its paths', () => {
+  const area = { name: 'checkout', paths: ['src/a/b/', 'src/c/z.js'] };
+  assert.deepEqual(applyFilters(all(), { ...base, area }).map((f) => f.file).sort(), ['src/a/b/y.py', 'src/c/z.js']);
+  assert.equal(applyFilters(all(), { ...base, area: null }).length, all().length);
+});
+
+test('applyFilters: an area and path chips narrow together', () => {
+  const area = { name: 'checkout', paths: ['src/a/'] };
+  assert.equal(applyFilters(all(), { ...base, area, paths: ['src/a/x.py'] }).length, 2);
+  assert.equal(applyFilters(all(), { ...base, area, paths: ['src/c/z.js'] }).length, 0);
+});
+
 test('groupFindings: one group per key, worst group first', () => {
   const byFile = groupFindings(all(), FINDING_GROUP.FILE);
   assert.equal(byFile[0].key, 'src/c/z.js');

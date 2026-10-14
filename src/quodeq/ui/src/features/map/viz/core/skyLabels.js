@@ -1,9 +1,9 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLabels.js
 import { RING_KINDS } from '../../mapVocab.js';
 
-/** Height of one label line, and of the two-line block (name, issue count). */
+/** Height of a label's line, and of the block it keeps clear (the name). */
 export const LABEL_LINE_PX = 12;
-export const LABEL_BLOCK_PX = 26;
+export const LABEL_BLOCK_PX = 15;
 const TOP_BY_WEIGHT = 10;
 const BELOW_GAP = 13;
 const ABOVE_GAP = 18;
@@ -111,15 +111,16 @@ function spotFor(index, { bubbles, placed, w, must }) {
  * of other bubbles and labels. Must labels may move further out and graze
  * bubbles. No two labels ever overlap: a label without a free spot is
  * dropped (the area keeps its tooltip, keyboard button and panel).
+ * `reserved` boxes (the zone labels) are kept clear like placed labels.
  * @returns {{index: number, x: number, y: number}[]}
  */
-export function placeSkyLabels({ bubbles, wanted, must, measure }) {
+export function placeSkyLabels({ bubbles, wanted, must, measure, reserved = [] }) {
   const order = [...new Set([...must, ...wanted])]
     .sort((a, b) => Number(must.has(b)) - Number(must.has(a)) || bubbles[b].R - bubbles[a].R);
-  const placed = [];
+  const placed = reserved.map((box) => ({ index: null, box }));
   for (const index of order) {
     const spot = spotFor(index, { bubbles, placed, w: measure(index), must: must.has(index) });
     if (spot) placed.push({ index, x: spot.x, y: spot.y, box: spot.box });
   }
-  return placed.map(({ index, x, y }) => ({ index, x, y }));
+  return placed.filter((p) => p.index !== null).map(({ index, x, y }) => ({ index, x, y }));
 }

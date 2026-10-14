@@ -583,9 +583,8 @@
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
-.map-tooltip--floating { position: absolute; z-index: 10; }
 .map-tooltip-path { font-size: 10px; color: var(--color-text-muted); margin: -2px 0 6px; word-break: break-all; }
-/* The pack tooltip, docked bottom-right above the Labels switch instead of following the pointer. */
+/* The pack and Risk tooltips, docked bottom-right above the Labels switch instead of following the pointer. */
 .map-tooltip--docked { position: absolute; right: var(--space-2); bottom: calc(var(--space-2) + 28px); z-index: 10; min-width: 200px; }
 .map-tooltip-tag { font-style: italic; margin-bottom: 4px; }
 .risk-legend-bar {

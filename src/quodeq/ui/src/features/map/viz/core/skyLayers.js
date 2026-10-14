@@ -1,23 +1,35 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLayers.js
 import { TAU } from './galaxyCore.js';
-import { rgbCss, mixRgb } from './mapPaint.js';
+import { rgbCss } from './mapPaint.js';
 import { SKY_RIM } from './skyLayout.js';
 import { RING_STYLE } from './skyPaint.js';
-import { LABEL_LINE_PX } from './skyLabels.js';
-import { drawVeilWithHole, drawHoverRing, strokeGhostCircle } from './packLayers.js';
+import { SKY_ZONE } from '../../mapVocab.js';
+import { drawVeilWithHole, drawHoverRing } from './packLayers.js';
 
 /** The sky uses 90 % of the shorter side's half as its radius. */
 export const SKY_SCALE = 0.9;
-const GLOW_ALPHA = { dark: 0.26, light: 0.14 };
-const WATCH_GLOW_SHARE = 0.4;
+/**
+ * The zones' glows (alpha by theme): fix first a heat core, strongest at the
+ * centre and fading toward its ring, with a soft rim inside the line, in the
+ * critical colour; watch a haze in the major colour, warmest at the fix-first ring and
+ * fading toward its own. Only the fix-first line glows.
+ */
+const ZONE_GLOW = {
+  dark: { core: 0.34, coreEdge: 0.16, rim: 0.3, haze: 0.22, hazeEdge: 0.13, fixFirstLine: 0.9, watchLine: 0.55 },
+  light: { core: 0.24, coreEdge: 0.13, rim: 0.24, haze: 0.18, hazeEdge: 0.11, fixFirstLine: 0.8, watchLine: 0.65 },
+};
+const RIM_GLOW_SHARE = 0.18;
+const LINE_GLOW_PX = 8;
+const ZONE_LABEL_PX = 10;
+const ZONE_LABEL_WEIGHT = 600;
+const ZONE_LABEL_GAP_PX = 5;
 const BAND_DASH_PX = 5;
+const BAND_DASH = [BAND_DASH_PX, BAND_DASH_PX];
 const RING_DASH_PX = 5;
 const RING_GAP_PX = 4;
-const BAND_DASH = [BAND_DASH_PX, BAND_DASH_PX];
 const RING_DASH = [RING_DASH_PX, RING_GAP_PX];
 const NO_DASH = [];
 const BAND_ALPHA_FAINT = 0.3;
-const BAND_ALPHA_STRONG = 0.5;
 const BAND_WIDTH_RIM = 1;
 const BAND_WIDTH_WATCH = 1.1;
 const BAND_WIDTH_FIX = 1.3;
@@ -34,19 +46,17 @@ const PICK_GRACE_PX = 3;
 const VEIL_GAP_PX = 4;
 const HOVER_GAP_PX = 1;
 const TITLE_PX = 11.5;
-const SUB_PX = 10;
 const HALO_WIDTH = 3.5;
 const TITLE_WEIGHT = 600;
-const SUB_WEIGHT = 500;
 
 const side = (palette) => (palette.dark ? 'dark' : 'light');
 
 /** The rim, then the watch and fix-first lines where this project's layout put them. */
-function bandsFor(rings) {
+function bandsFor(rings, palette) {
   return [
-    { at: SKY_RIM, muted: true, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_RIM },
-    { at: rings.watch, muted: false, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_WATCH },
-    { at: rings.fixFirst, muted: false, alpha: BAND_ALPHA_STRONG, width: BAND_WIDTH_FIX },
+    { at: SKY_RIM, color: palette.textMuted, alpha: BAND_ALPHA_FAINT, width: BAND_WIDTH_RIM },
+    { at: rings.watch, zone: SKY_ZONE.WATCH, color: palette.sevMajor, width: BAND_WIDTH_WATCH },
+    { at: rings.fixFirst, zone: SKY_ZONE.FIX_FIRST, color: palette.sevCritical, width: BAND_WIDTH_FIX },
   ];
 }
 
@@ -60,51 +70,98 @@ export function toPixels(nodes, frame) {
   return nodes.map((n) => ({ px: frame.cx + n.x * frame.s, py: frame.cy + n.y * frame.s, R: n.r * frame.s }));
 }
 
-/** The bubble under a point (the one whose centre is relatively closest), or null. */
+/** The bubble under a point (the one whose centre is relatively closest), or null; a bubble of radius 0 is not there. */
 export function pickBubble(bubbles, x, y) {
   let best = null;
   let bestRatio = Infinity;
   bubbles.forEach((b, i) => {
     const d = Math.hypot(b.px - x, b.py - y);
-    if (d > b.R + PICK_GRACE_PX) return;
+    if (b.R <= 0 || d > b.R + PICK_GRACE_PX) return;
     const ratio = d / Math.max(b.R, 1);
     if (ratio < bestRatio) { bestRatio = ratio; best = i; }
   });
   return best;
 }
 
-function drawBackdrop(ctx, frame, rings, palette) {
-  const { cx, cy, s } = frame;
-  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, SKY_RIM * s);
-  const hot = rgbCss(palette.worse);
-  g.addColorStop(0, hot);
-  g.addColorStop(rings.fixFirst / SKY_RIM, hot);
-  g.addColorStop(rings.watch / SKY_RIM, rgbCss(mixRgb(palette.bg, palette.worse, WATCH_GLOW_SHARE)));
-  g.addColorStop(1, rgbCss(palette.bg));
-  ctx.globalAlpha = GLOW_ALPHA[side(palette)];
+const rgba = ({ r, g, b }, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
+
+/** One radial glow between two radii, with colour stops as [share of the way, alpha]. */
+function radialGlow(ctx, { cx, cy, from, to }, color, stops) {
+  const g = ctx.createRadialGradient(cx, cy, from, cx, cy, to);
+  for (const [at, a] of stops) g.addColorStop(at, rgba(color, a));
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.arc(cx, cy, SKY_RIM * s, 0, TAU);
+  ctx.arc(cx, cy, to, 0, TAU);
+  if (from > 0) ctx.arc(cx, cy, from, 0, TAU, true);
   ctx.fill();
-  ctx.globalAlpha = 1;
+}
+
+/** The zones as glows: the fix-first heat core with its rim, and the watch haze around it. */
+function drawZones(ctx, frame, rings, palette) {
+  const { cx, cy, s } = frame;
+  const glow = ZONE_GLOW[side(palette)];
+  const fix = rings.fixFirst * s;
+  radialGlow(ctx, { cx, cy, from: fix, to: rings.watch * s }, palette.sevMajor, [[0, glow.haze], [1, glow.hazeEdge]]);
+  radialGlow(ctx, { cx, cy, from: 0, to: fix }, palette.sevCritical, [[0, glow.core], [1 - RIM_GLOW_SHARE, glow.coreEdge], [1, glow.rim]]);
 }
 
 function drawBands(ctx, frame, rings, palette) {
+  const glow = ZONE_GLOW[side(palette)];
   ctx.setLineDash(BAND_DASH);
-  for (const band of bandsFor(rings)) {
+  for (const band of bandsFor(rings, palette)) {
+    const muted = !band.zone;
     ctx.beginPath();
     ctx.arc(frame.cx, frame.cy, band.at * frame.s, 0, TAU);
-    ctx.strokeStyle = rgbCss(band.muted ? palette.textMuted : palette.worse);
-    ctx.globalAlpha = band.alpha;
+    ctx.strokeStyle = rgbCss(band.color);
+    ctx.globalAlpha = muted ? band.alpha : glow[`${band.zone}Line`];
     ctx.lineWidth = band.width;
+    // Only fix first glows, so it stays the stronger line where the two colours sit close.
+    const glows = band.zone === SKY_ZONE.FIX_FIRST;
+    ctx.shadowColor = glows ? rgbCss(band.color) : 'transparent';
+    ctx.shadowBlur = glows ? LINE_GLOW_PX : 0;
     ctx.stroke();
   }
   ctx.setLineDash(NO_DASH);
+  ctx.shadowBlur = 0;
+  ctx.shadowColor = 'transparent';
   ctx.globalAlpha = 1;
 }
 
+/** The canvas font of a zone's label (its name and count on top of its ring). */
+export function skyZoneFont(font, fontScale) {
+  return `${ZONE_LABEL_WEIGHT} ${ZONE_LABEL_PX * fontScale}px ${font}`;
+}
+
+/**
+ * Where each zone's label sits: centred on top of its ring. `zoneLabels`
+ * holds each label's text and measured width; the boxes keep area labels off them.
+ * @returns {{text: string, x: number, y: number, box: {x0: number, x1: number, y0: number, y1: number}, zone: string}[]}
+ */
+export function placeZoneLabels(frame, rings, zoneLabels, fontScale) {
+  return [SKY_ZONE.FIX_FIRST, SKY_ZONE.WATCH].map((zone) => {
+    const { text, w } = zoneLabels[zone];
+    const y = frame.cy - rings[zone] * frame.s - ZONE_LABEL_GAP_PX;
+    return { zone, text, x: frame.cx, y, box: { x0: frame.cx - w / 2, x1: frame.cx + w / 2, y0: y - ZONE_LABEL_PX * fontScale, y1: y } };
+  });
+}
+
+/** Each zone's name and count on top of its ring, over the bubbles. */
+function drawZoneLabels(ctx, { zoneLabels, palette, font, fontScale }) {
+  if (!zoneLabels) return;
+  const color = { [SKY_ZONE.FIX_FIRST]: palette.sevCritical, [SKY_ZONE.WATCH]: palette.sevMajor };
+  ctx.textAlign = 'center';
+  ctx.font = skyZoneFont(font, fontScale);
+  ctx.lineWidth = HALO_WIDTH;
+  ctx.strokeStyle = rgbCss(palette.bg);
+  for (const label of zoneLabels) {
+    ctx.strokeText(label.text, label.x, label.y);
+    ctx.fillStyle = rgbCss(color[label.zone]);
+    ctx.fillText(label.text, label.x, label.y);
+  }
+}
+
 function drawCentre(ctx, frame, palette) {
-  const hot = rgbCss(palette.worse);
+  const hot = rgbCss(palette.sevCritical);
   ctx.beginPath();
   ctx.arc(frame.cx, frame.cy, CENTRE_RING_PX, 0, TAU);
   ctx.strokeStyle = hot;
@@ -141,12 +198,8 @@ function drawFiles(ctx, b, files) {
   });
 }
 
-/** A bubble drawn dotted (paint.ghost): an area with no file in the run shown, without fill, ring or files. */
+/** One area bubble: its fill and outline, its kind ring, and its file dots. */
 function drawBubble(ctx, b, paint, files) {
-  if (paint.ghost) {
-    strokeGhostCircle(ctx, { px: b.px, py: b.py, r: b.R }, paint, BUBBLE_STROKE_WIDTH);
-    return;
-  }
   ctx.beginPath();
   ctx.arc(b.px, b.py, b.R, 0, TAU);
   ctx.globalAlpha = paint.alpha;
@@ -162,16 +215,18 @@ function drawBubble(ctx, b, paint, files) {
 }
 
 /**
- * The static layer: backdrop, bands, centre mark, then bubbles largest first.
- * `rings` are skyRings distances, so the lines and the glow follow the project.
+ * The static layer: zone glows, bands, centre mark, bubbles largest first,
+ * then the zone labels on top. `rings` are skyRings distances, so the lines
+ * and the glows follow the areas on the sky.
  */
-export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width, height }) {
+export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width, height, zoneLabels, font, fontScale }) {
   ctx.clearRect(0, 0, width, height);
-  drawBackdrop(ctx, frame, rings, palette);
+  drawZones(ctx, frame, rings, palette);
   drawBands(ctx, frame, rings, palette);
   drawCentre(ctx, frame, palette);
   const order = bubbles.map((_, i) => i).sort((a, b) => bubbles[b].R - bubbles[a].R);
   for (const i of order) drawBubble(ctx, bubbles[i], paints[i], files[i]);
+  drawZoneLabels(ctx, { zoneLabels, palette, font, fontScale });
 }
 
 function drawVeil(ctx, b, palette, size) {
@@ -201,11 +256,6 @@ function drawLabel(ctx, label, { palette, font, fontScale }) {
   ctx.strokeText(label.title, label.x, label.y);
   ctx.fillStyle = rgbCss(palette.text);
   ctx.fillText(label.title, label.x, label.y);
-  ctx.font = `${SUB_WEIGHT} ${SUB_PX * fontScale}px ${font}`;
-  const subY = label.y + LABEL_LINE_PX * fontScale;
-  ctx.strokeText(label.sub, label.x, subY);
-  ctx.fillStyle = rgbCss(palette.textMuted);
-  ctx.fillText(label.sub, label.x, subY);
 }
 
 /** The overlay: one veil around the kept bubble, the hover ring, and the labels. */

@@ -12,6 +12,19 @@ describe('readWorkbench', () => {
   it('keeps each path once', () => {
     expect(readWorkbench({ paths: ['src/', 'src/a.py', 'src/'] }).paths).toEqual(['src/', 'src/a.py']);
   });
+
+  it('keeps a Map area with its name and its distinct text paths', () => {
+    const area = readWorkbench({ area: { name: 'checkout', paths: ['src/app/', 'src/lib/f.py', 'src/app/', 7, ''] } }).area;
+    expect(area).toEqual({ name: 'checkout', paths: ['src/app/', 'src/lib/f.py'] });
+  });
+
+  it('drops an area without a name or without a path to filter by', () => {
+    expect(readWorkbench({}).area).toBeNull();
+    expect(readWorkbench({ area: 'checkout' }).area).toBeNull();
+    expect(readWorkbench({ area: { name: '', paths: ['src/'] } }).area).toBeNull();
+    expect(readWorkbench({ area: { name: 'checkout' } }).area).toBeNull();
+    expect(readWorkbench({ area: { name: 'checkout', paths: [3, ''] } }).area).toBeNull();
+  });
 });
 
 describe('useWorkbenchState', () => {

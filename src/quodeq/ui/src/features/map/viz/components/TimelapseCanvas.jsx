@@ -64,14 +64,15 @@ function clickTarget(model, i) {
 }
 
 /**
- * Pointer and keyboard on the overlay. Playing: no hover, any click pauses.
- * Paused: hover once the run has settled; a click goes where it lands: a
+ * Pointer and keyboard on the overlay. Hover works playing or paused (it
+ * follows its circle from run to run). Playing: any click pauses. Paused: a
+ * click goes where it lands: a
  * folder or ring opens that folder, a file outside the open folder opens its
  * folder, a miss goes to the top. A file is picked only inside the open
  * folder (elsewhere its folder is), and a collapsed chain is picked as its
  * end. Escape zooms out one level.
  */
-function usePointer({ model, coords, viewport, focusIndex, interaction, settled, ends }) {
+function usePointer({ model, coords, viewport, focusIndex, interaction, ends }) {
   const hitAt = (e) => {
     const box = e.currentTarget.getBoundingClientRect();
     const p = toLayoutPoint(e.clientX - box.left, e.clientY - box.top, viewport);
@@ -84,7 +85,7 @@ function usePointer({ model, coords, viewport, focusIndex, interaction, settled,
   };
   return {
     onMouseMove: (e) => {
-      const i = interaction.playing || !settled ? null : hitAt(e);
+      const i = hitAt(e);
       const picked = i === focusIndex ? null : i;
       if (picked !== interaction.hover) interaction.setHover(picked);
     },
@@ -175,7 +176,6 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const paintAt = usePaintAt({ model, nodeDataAt, endsAt, colorMode, palette: theme.palette, weights });
   const layer = useLayer(view, paintAt, model.parent);
   const camera = useCamera({ model, anchor, layer, focusIndex });
-  const settled = Boolean(view && !view.from);
   const fades = useCircleFades(model, shownFocus, interaction.hover);
   useStaticLayer({ ref: refs.front, coords, layer, camera, viewport, size, model, fades });
 
@@ -191,7 +191,7 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layer, camera, viewport, size, model, theme, interaction.hover, interaction.showLabels, shownFocus, ends]);
 
-  const pointer = usePointer({ model, coords, viewport, focusIndex: shownFocus, interaction, settled, ends });
+  const pointer = usePointer({ model, coords, viewport, focusIndex: shownFocus, interaction, ends });
   const folders = useFolderItems({ model, focusIndex: shownFocus, interaction });
   return (
     <>

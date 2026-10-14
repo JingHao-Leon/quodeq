@@ -20,6 +20,19 @@ const STATUS_LABEL = Object.freeze({
   [FINDING_STATUS.ALL]: 'violations.wbAll',
 });
 
+/** The Map area the list is narrowed to (from the Risk tab's View Details), as one chip. */
+function AreaChip({ area, onRemove }) {
+  if (!area) return null;
+  return (
+    <div className="wb-chips">
+      <span className="wb-chip">
+        {t('violations.wbAreaChip', { name: area.name })}
+        <button type="button" aria-label={t('violations.wbRemoveAreaChip', { name: area.name })} onClick={onRemove}>×</button>
+      </span>
+    </div>
+  );
+}
+
 function PathChips({ paths, removePath, setPaths }) {
   if (!paths.length) return null;
   return (
@@ -62,6 +75,7 @@ export default function WorkbenchBar({ findings, state, set, addPath, removePath
         <WorkbenchSearch findings={findings} q={state.q} onQuery={(q) => set({ q })} onPickPath={addPath} inputRef={inputRef} />
         {menus({ state, set, dimensions, statusCounts, sev }).map(({ key, ...m }) => <WorkbenchMenu key={key} {...m} />)}
       </div>
+      <AreaChip area={state.area} onRemove={() => set({ area: null })} />
       <PathChips paths={state.paths} removePath={removePath} setPaths={setPaths} />
     </>
   );

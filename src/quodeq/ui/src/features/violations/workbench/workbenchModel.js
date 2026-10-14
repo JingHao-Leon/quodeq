@@ -71,14 +71,27 @@ export function statusPool(findings, status) {
 
 const underPath = (file, path) => (path.endsWith(FOLDER_SUFFIX) ? file.startsWith(path) : file === path);
 
+/** A file test for an area's chips, built once: exact files in a set, folders as prefixes. */
+function areaMatcher(area) {
+  if (!area) return () => true;
+  const files = new Set(area.paths.filter((p) => !p.endsWith(FOLDER_SUFFIX)));
+  const folders = area.paths.filter((p) => p.endsWith(FOLDER_SUFFIX));
+  return (file) => files.has(file) || folders.some((p) => file.startsWith(p));
+}
+
+/** Status, severity and dimension: the menus' exact matches. */
+const matchesMenus = (f, { status, severity, dimension }) => (status === FINDING_STATUS.ALL || f.status === status)
+  && (!severity || f.severity === severity)
+  && (!dimension || f.dimension === dimension);
+
+const matchesText = (f, needle) => !needle || [f.title, f.file, f.req, f.principle].some((x) => x.toLowerCase().includes(needle));
+
 /** The findings the filters leave. Text is a plain, case-insensitive substring. */
-export function applyFilters(findings, { q, severity, dimension, status, paths }) {
+export function applyFilters(findings, { q, severity, dimension, status, paths, area }) {
   const needle = String(q || '').trim().toLowerCase();
-  return findings.filter((f) => (status === FINDING_STATUS.ALL || f.status === status)
-    && (!severity || f.severity === severity)
-    && (!dimension || f.dimension === dimension)
-    && (!paths?.length || paths.some((p) => underPath(f.file, p)))
-    && (!needle || [f.title, f.file, f.req, f.principle].some((x) => x.toLowerCase().includes(needle))));
+  const inArea = areaMatcher(area);
+  const onPaths = (file) => !paths?.length || paths.some((p) => underPath(file, p));
+  return findings.filter((f) => matchesMenus(f, { status, severity, dimension }) && onPaths(f.file) && inArea(f.file) && matchesText(f, needle));
 }
 
 const GROUP_KEY = Object.freeze({

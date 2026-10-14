@@ -41,8 +41,3 @@ test('dots follow the Circle Pack file colour: issues against the project averag
   assert.notEqual(fileDotColor(heavy, 1, light), fileDotColor(clean, 1, light));
   assert.equal(fileDotColor(fileStats({}), 1, light), rgbCss(fileConcentrationColor(0, light)));
 });
-
-test('a ghost area is a dotted outline with no ring', () => {
-  const paint = skyAreaPaint({ ghost: true, kind: null, stats: { violations: 0, compliance: 0, weight: 0, files: 0 } }, 1, PALETTE);
-  assert.deepEqual([paint.ghost, paint.ring], [true, null]);
-});
