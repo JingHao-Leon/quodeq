@@ -721,6 +721,7 @@
   "explorer.principlesAria": "Principles",
   "explorer.principlesLabel": "principles",
   "explorer.principlesRadial": "Principles radial plot",
+  "explorer.radialInsufficient": "insufficient",
   "explorer.principlesRadialAria": "Principles radial",
   "explorer.principlesRadialLabel": "principles_radial",
   "explorer.projectsCrumb": "repositories",

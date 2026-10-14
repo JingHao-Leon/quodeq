@@ -7,6 +7,8 @@ import { useId } from 'react';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { SevBadge } from '../../../components/terminal/index.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
+import SeverityBadges from '../../../components/SeverityBadges.jsx';
+import { scoreChangeShows } from '../../../utils/trendUtils.js';
 import { complianceRatio, formatRunId } from '../../../utils/formatters.js';
 import { ScoreGauge, InsufficientGauge, computeGaugeRing } from '../../../components/ScoreGauge.jsx';
 import { t, LOCALE } from '../../../strings/index.js';
@@ -50,9 +52,6 @@ function CoverageLine({ dateText, coveragePct, isPartial, tooltip, quarantinedCo
 }
 
 const COMPACT_RING_PX = 56;
-// A change under a twentieth of a point shows as 0.0: no arrow for it.
-const MIN_SHOWN_CHANGE = 0.05;
-const movedEnough = (delta) => delta !== null && delta !== undefined && Math.abs(Number(delta)) >= MIN_SHOWN_CHANGE;
 const PASS_PCT = 100;
 
 /** Compliant checks over all checks, in percent; null with no checks. */
@@ -64,13 +63,8 @@ export function passPctOf(item) {
 
 /** The severities present, as the app's pills (count first), wrapping; nothing when there are none. */
 function SevPills({ sev }) {
-  const levels = SEVERITY_ORDER.filter((level) => (sev[level] ?? 0) > 0);
-  if (levels.length === 0) return null;
-  return (
-    <span className="dim-gauge-card__pills">
-      {levels.map((level) => <SevBadge key={level} level={level} count={sev[level]} format="count-abbr" />)}
-    </span>
-  );
+  if (!SEVERITY_ORDER.some((level) => (sev[level] ?? 0) > 0)) return null;
+  return <SeverityBadges sev={sev} className="dim-gauge-card__pills" />;
 }
 
 /**
@@ -84,7 +78,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsuffi
     <>
       <div className="dim-gauge-card__top">
         <span className="dim-gauge-card__name" title={name}>{name}</span>
-        {movedEnough(delta) && <TrendBadge delta={delta} />}
+        {scoreChangeShows(delta) && <TrendBadge delta={delta} />}
       </div>
       <div className="dim-gauge-card__row">
         <div className="dim-gauge-card__mini" style={{ width: COMPACT_RING_PX, height: COMPACT_RING_PX }}>

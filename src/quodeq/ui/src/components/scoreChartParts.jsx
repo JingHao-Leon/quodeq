@@ -10,6 +10,7 @@
  * The panel chrome around it — header, period selector, stats line, tooltip
  * cards and the keyboard-controls pairing — is scoreChartPanel.jsx.
  */
+import { useMemo } from 'react';
 import {
   ComposedChart,
   Area,
@@ -193,6 +194,8 @@ export function ScoreHistoryChart({
   hoveredIndex, setHoveredIndex, selectedRunId, onActivate,
 }) {
   const handleClick = onActivate ? makeChartClickHandler(data, onActivate) : undefined;
+  // One label component per data set, not per render: recharts remounts every label when it changes.
+  const changeLabel = useMemo(() => (changeMarks ? makeChangeLabel(data) : undefined), [changeMarks, data]);
   return (
     <ResponsiveContainer
       width="100%"
@@ -229,7 +232,7 @@ export function ScoreHistoryChart({
           strokeWidth={TREND_LINE_STROKE_WIDTH}
           dot={showSelectedDot ? <SelectedDot selectedRunId={selectedRunId} /> : false}
           activeDot={false}
-          label={changeMarks ? makeChangeLabel(data) : undefined}
+          label={changeLabel}
         />
       </ComposedChart>
     </ResponsiveContainer>

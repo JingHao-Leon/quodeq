@@ -13,6 +13,7 @@ import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 import { scopeFindings, principleGradeOf, SCOPE_KIND } from './scopeModel.js';
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
+import { scoreChangeShows } from '../../../utils/trendUtils.js';
 import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
 import ReqRail from './ReqRail.jsx';
 import { requirementRail, requirementCounts, rowsOfRequirement, reqKindCounts } from './requirementRail.js';
@@ -117,12 +118,9 @@ function gradeOf(row) {
   return { score: row.score, insufficient, hint };
 }
 
-// A change under a twentieth of a point shows as 0.0: no arrow for it.
-const MIN_SHOWN_CHANGE = 0.05;
-
-/** The principle's change as its header's badge; none under a twentieth of a point. */
+/** The principle's change as its header's badge, as its card shows it. */
 function changeBadge(change) {
-  return change != null && Math.abs(change) >= MIN_SHOWN_CHANGE ? <TrendBadge delta={change} /> : null;
+  return scoreChangeShows(change) ? <TrendBadge delta={change} /> : null;
 }
 
 /**

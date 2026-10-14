@@ -5,6 +5,7 @@
  */
 import { scoreGradeColorVar } from '../../../utils/formatters.js';
 import { polar, hoverProps } from './radialGeometry.js';
+import { t } from '../../../strings/index.js';
 
 const LABEL_OFFSET = 18;     // svg units beyond the outer ring (name baseline)
 // Text-anchor flips once a label's angle leans far enough left/right that
@@ -12,6 +13,9 @@ const LABEL_OFFSET = 18;     // svg units beyond the outer ring (name baseline)
 const LABEL_ANCHOR_COS_THRESHOLD = 0.2;
 // Coarse character budget per wrapped label line.
 const LABEL_MAX_CHARS_PER_LINE = 14;
+// Line spacing of a wrapped name, and the gap down to the score under it.
+const NAME_LINE_EM = '1.15em';
+const SCORE_LINE_EM = '1.25em';
 
 // Greedy word-wrap so long principle names break onto a second line instead of
 // running off the SVG. `maxChars` is a coarse character budget per line.
@@ -56,15 +60,15 @@ function RadialLabel({ p, angle, outerRadius, actionable, handleClick, handleKey
         textAnchor={anchor}
       >
         {lines.map((line, li) => (
-          <tspan key={li} x={x} dy={li === 0 ? 0 : '1.15em'}>{line}</tspan>
+          <tspan key={li} x={x} dy={li === 0 ? 0 : NAME_LINE_EM}>{line}</tspan>
         ))}
         <tspan
           className={`qd-radial__lab-sub${isInsuf ? ' qd-radial__lab-sub--insuf' : ''}`}
           x={x}
-          dy="1.25em"
+          dy={SCORE_LINE_EM}
           style={isInsuf ? undefined : { fill: scoreGradeColorVar(p.score) }}
         >
-          {isInsuf ? 'insufficient' : p.score?.toFixed(1)}
+          {isInsuf ? t('explorer.radialInsufficient') : p.score?.toFixed(1)}
         </tspan>
       </text>
     </g>

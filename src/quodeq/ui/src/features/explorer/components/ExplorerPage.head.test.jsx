@@ -83,12 +83,17 @@ describe('ExplorerPage header', () => {
   });
 
   it('reads header, principle cards, score history beside the radial, then Fix first beside where the findings are', async () => {
-    const onNavigate = vi.fn();
-    const { container } = page({ onNavigate });
-    fireEvent.click(await screen.findByRole('button', { name: 'principle card' }));
-    expect(onNavigate).toHaveBeenCalledWith(...scope({ kind: 'principle', dimension: 'security', principle: 'Dependency Rule' }));
+    const { container } = page({ onNavigate: vi.fn() });
+    await screen.findByRole('button', { name: 'principle card' });
     const order = [...container.querySelector('.explorer-page').children].map((n) => n.getAttribute('aria-label') || n.className);
     expect(order).toEqual(['findings-head__sticky', 'findings-head qd-cards-panel', t('explorer.principlesAria'), 'qd-top-grid explorer-top-grid', 'explorer-bottom']);
+  });
+
+  it('a principle card opens its principle, a file row its file', async () => {
+    const onNavigate = vi.fn();
+    page({ onNavigate });
+    fireEvent.click(await screen.findByRole('button', { name: 'principle card' }));
+    expect(onNavigate).toHaveBeenCalledWith(...scope({ kind: 'principle', dimension: 'security', principle: 'Dependency Rule' }));
     fireEvent.click(screen.getByRole('button', { name: t('explorer.where_files') }));
     fireEvent.click(screen.getByRole('button', { name: 'file row' }));
     expect(onNavigate).toHaveBeenLastCalledWith(...scope({ kind: 'file', path: 'src/a.py' }));

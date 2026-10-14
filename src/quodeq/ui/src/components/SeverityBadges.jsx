@@ -3,9 +3,9 @@ import { SevBadge, GridCell } from './terminal/index.js';
 import { t } from '../strings/index.js';
 import { SEVERITY_ORDER } from '../vocab/severity.js';
 
-export default function SeverityBadges({ sev }) {
+export default function SeverityBadges({ sev, className = 'offending-file-tags' }) {
   return (
-    <span className="offending-file-tags">
+    <span className={className}>
       {SEVERITY_ORDER.map((level) => (sev?.[level] ?? 0) > 0 && (
         <SevBadge key={level} level={level} count={sev[level]} format="count-abbr" />
       ))}

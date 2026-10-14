@@ -25,7 +25,9 @@ export function requirementRail(dimension, file, isLive) {
   const byReq = new Map();
   for (const c of file.compliance || []) {
     if (!c.req || failed.has(c.req)) continue;
-    byReq.set(c.req, [...(byReq.get(c.req) || []), c]);
+    const list = byReq.get(c.req) || [];
+    list.push(c);
+    byReq.set(c.req, list);
   }
   const passing = [...byReq.entries()]
     .map(([req, list]) => ({ req, text: mostFrequent(list.map((c) => c.title)) || req, count: list.length }))
