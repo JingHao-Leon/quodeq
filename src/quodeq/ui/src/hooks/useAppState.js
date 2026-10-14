@@ -148,6 +148,10 @@ export function useOverviewReturnReconcile({ rootTab, selectedProject, selectedS
  * when it is itself a known tab, `history-run` buckets under `history`, and
  * everything else defaults to Overview.
  *
+ * A scoped Findings view (`violations` with a `scope` param) is a detail
+ * page, not the Violations tab: it lights the tab the stack started from
+ * (`rootPage`, navStack[0].page), so Violations is lit only at its own root.
+ *
  * Caveat: a drill-down page pushed WITHOUT a `sourceTab` (e.g. ExplorerPage's
  * onPrincipleClick -> 'evalprinciple', handleCardNavigate -> 'file') hits the
  * Overview fallback here even while the user is still mid-triage inside
@@ -155,7 +159,8 @@ export function useOverviewReturnReconcile({ rootTab, selectedProject, selectedS
  * refetch on `rootTab` (navStack[0].page) instead of this derived value —
  * see its comment.
  */
-export function resolveActiveTab(activePage) {
+export function resolveActiveTab(activePage, rootPage = null) {
+  if (activePage.page === NAV_TAB.VIOLATIONS && activePage.scope) return KNOWN_TABS.includes(rootPage) ? rootPage : NAV_TAB.OVERVIEW;
   if (KNOWN_TABS.includes(activePage.page)) return activePage.page;
   if (activePage.sourceTab && KNOWN_TABS.includes(activePage.sourceTab)) return activePage.sourceTab;
   if (activePage.page === NAV_TAB.HISTORY_RUN) return NAV_TAB.HISTORY;
@@ -202,7 +207,7 @@ function useAppEvaluation({ navTab, navReset, projectBundle }) {
 // the same nav state.
 function useAppChrome({ activePage, navStack, projectBundle, visibleDailyRuns }) {
   const { projects, selectedProject, selectedSource } = projectBundle;
-  const activeTab = resolveActiveTab(activePage);
+  const activeTab = resolveActiveTab(activePage, navStack[0]?.page);
   const showProjectHeader = PROJECT_TABS.includes(activeTab) && projects.length > 0 && !!selectedProject;
   const showRunNav = activeTab === NAV_TAB.OVERVIEW && showProjectHeader && visibleDailyRuns.length > 0 && navStack.length === 1;
   useOverviewReturnReconcile({ rootTab: navStack[0]?.page, selectedProject, selectedSource });
