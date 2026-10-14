@@ -83,12 +83,13 @@ describe('ScopedFindings', () => {
     expect(folder.container.querySelector('.wb-row__f')).toHaveTextContent('app.py:5');
   });
 
-  it('inside a principle the rows leave the principle out, and the header grades it', () => {
+  it('inside a principle the rows leave the principle out, and the header grades it and counts requirements, not per 100', () => {
     const { container } = renderScope({ scope: { kind: 'principle', dimension: 'security', principle: 'Input' } });
     expect([...container.querySelectorAll('.wb-row__meta')].map((n) => n.textContent)).toEqual(['critical', 'major']);
     expect(container.querySelector('.findings-head__ring')).toHaveTextContent('7.7');
     expect(container.querySelector('.findings-head__desc')).toHaveTextContent('Validate what comes in');
-    expect(screen.getByText(t('violations.scopeStatFilesRead', { count: 50 }))).toBeInTheDocument();
+    expect(tileValue(t('violations.scopeStatReqs'))).toBeInTheDocument();
+    expect(screen.queryByText(t('violations.scopeStatPer100'))).toBeNull();
   });
 
   it('a dimension counts per 100 over the files it read, as the dimension page does', () => {

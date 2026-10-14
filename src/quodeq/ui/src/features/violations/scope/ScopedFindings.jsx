@@ -12,6 +12,10 @@ import { useFindingsPaneSpecs, renderFileDetailRow } from '../../explorer/compon
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 import { scopeFindings, principleGradeOf, SCOPE_KIND } from './scopeModel.js';
 import FindingsHead from '../../../components/FindingsHead.jsx';
+import TrendBadge from '../../../components/TrendBadge.jsx';
+import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
+import ReqRail from './ReqRail.jsx';
+import { requirementRail, requirementCounts, rowsOfRequirement, reqKindCounts } from './requirementRail.js';
 import { scopeMetrics, filesChecked, areaRisk } from '../../../models/findingMetrics.js';
 import { useStandardDescriptions } from '../../explorer/hooks/useStandardDescriptions.js';
 import { GRADE } from '../../../vocab/grade.js';
@@ -113,11 +117,44 @@ function gradeOf(row) {
   return { score: row.score, insufficient, hint };
 }
 
-/** What a principle scope adds to its header: the standard's description of it, and its score. */
-function usePrincipleHead(scope, dims) {
-  const { principleDescriptions } = useStandardDescriptions(scope.kind === SCOPE_KIND.PRINCIPLE ? scope.dimension : null);
-  if (scope.kind !== SCOPE_KIND.PRINCIPLE) return {};
-  return { description: principleDescriptions?.[scope.principle] || '', grade: gradeOf(principleGradeOf(scope, dims)) };
+// A change under a twentieth of a point shows as 0.0: no arrow for it.
+const MIN_SHOWN_CHANGE = 0.05;
+
+/** The principle's change as its header's badge; none under a twentieth of a point. */
+function changeBadge(change) {
+  return change != null && Math.abs(change) >= MIN_SHOWN_CHANGE ? <TrendBadge delta={change} /> : null;
+}
+
+/**
+ * What the period hook needs for a principle scope: the project (none for
+ * any other scope, so nothing is fetched), the history and its grouping, and
+ * the run on show (the past day's, else the dimension's own).
+ */
+function periodArgs({ scope, dims, history, principles }) {
+  const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;
+  const fromRunId = isPrinciple ? dims.find((d) => d.dimension === scope.dimension)?.fromRunId : null;
+  return {
+    project: isPrinciple ? history?.project : null, selectedSource: history?.selectedSource, trend: history?.trend,
+    dimension: scope.dimension, granularity: history?.granularity, activeRunId: history?.runId || fromRunId, principles,
+  };
+}
+
+/**
+ * What a principle scope adds to its header: the standard's description of
+ * it, its score, and its change since the previous day, week or month (as
+ * its card on the dimension page shows it), read from `history`.
+ * @param {object} scope
+ * @param {object[]} dims
+ * @param {?{project: string, selectedSource: string, trend: object[], granularity: string, runId: ?string}} history
+ */
+function usePrincipleHead(scope, dims, history) {
+  const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;
+  const { principleDescriptions } = useStandardDescriptions(isPrinciple ? scope.dimension : null);
+  const row = isPrinciple ? principleGradeOf(scope, dims) : null;
+  const principles = useMemo(() => (row ? [{ principle: scope.principle, score: row.score }] : []), [row, scope.principle]);
+  const { principles: changes } = usePrinciplePeriodDeltas(periodArgs({ scope, dims, history, principles }));
+  if (!isPrinciple) return {};
+  return { description: principleDescriptions?.[scope.principle] || '', grade: gradeOf(row), badge: changeBadge(changes.get(scope.principle)) };
 }
 
 /**
@@ -129,10 +166,13 @@ function usePrincipleHead(scope, dims) {
  * severity or the compliant checks (opening on `scope.filter`). Without
  * `onDismissFinding` (a past day, a shared project) nothing is dismissed;
  * `readOnly` (a past day) leaves out the fix plans too, which act on today.
+ * A principle reads its requirements down the side, as a filter on its
+ * findings, and its change since the previous period from `history` (the
+ * project, its score history and grouping, the run on show).
  */
-export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false }) {
+export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false, history = null }) {
   const file = useMemo(() => scopeFindings(scope, dims, projectName), [scope, dims, projectName]);
-  const head = usePrincipleHead(scope, dims);
+  const head = usePrincipleHead(scope, dims, history);
   const within = useMemo(() => withinOf(scope), [scope]);
   // A new scope starts the page over (filter, order, view); an area's key carries its paths, so it is built once per scope.
   const scopeKey = useMemo(() => JSON.stringify(scope), [scope]);
@@ -164,6 +204,21 @@ function useScopeMetrics({ file, dims, within, filtering }) {
   return { metrics, filesHint: base.hint };
 }
 
+/**
+ * A principle's requirements (none for other scopes): the rail, the one
+ * picked (`req`, null for all), and the kind filter's counts inside it.
+ */
+function useRequirementFilter({ file, within, filtering }) {
+  const [req, setReq] = useState(null);
+  const { dismissedSet, liveSevCounts, totalCompliance } = filtering;
+  const isLive = useMemo(() => (v) => !dismissedSet.has(dismissKey(v)), [dismissedSet]);
+  const rail = useMemo(() => (within.inPrinciple ? requirementRail(within.dimension, file, isLive) : null), [file, within, isLive]);
+  const counts = useMemo(() => (within.inPrinciple ? requirementCounts(file) : null), [file, within]);
+  const kindCounts = useMemo(() => (req ? reqKindCounts(file, req, isLive) : { sev: liveSevCounts, compliance: totalCompliance }),
+    [req, file, isLive, liveSevCounts, totalCompliance]);
+  return { req, setReq, rail, counts, kindCounts };
+}
+
 function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFinding, readOnly }) {
   const [activeFilter, setActiveFilter] = useState(initialFilter || null);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
@@ -173,27 +228,33 @@ function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFin
   const runOf = useMemo(() => new Map(dims.map((d) => [d.dimension, d.fromRunId])), [dims]);
   const onDismiss = onDismissFinding ? (v) => onDismissFinding(v, runOf.get(v.dimension)) : undefined;
   const filtering = useFileDetailFiltering({ file, onDismiss, activeFilter, lowConfExpanded });
-  const { handleDismiss, liveSevCounts, totalCompliance, items, violationsBySeverity } = filtering;
+  const { handleDismiss, items, violationsBySeverity } = filtering;
   useFindingsPaneSpecs(file, violationsBySeverity, activeFilter, readOnly);
   const scrollElement = useDashboardScrollElement();
-  const rows = useMemo(() => sortedRows(items, sort), [items, sort]);
+  const { req, setReq, rail, counts, kindCounts } = useRequirementFilter({ file, within, filtering });
+  const rows = useMemo(() => rowsOfRequirement(sortedRows(items, sort), req), [items, sort, req]);
   const { metrics, filesHint } = useScopeMetrics({ file, dims, within, filtering });
   const dismiss = onDismiss ? handleDismiss : undefined;
   return (
     <div className="findings-scope">
-      <FindingsHead title={file.file} sub={sub} description={head.description} grade={head.grade} oneFile={within.inFile} showRisk={within.showsRisk}
-        metrics={metrics} filesHint={filesHint} />
-      <ScopeBar sevCounts={liveSevCounts} compliance={totalCompliance} filter={activeFilter} onFilter={setActiveFilter}
-        sort={sort} onSort={setSort} view={view} onView={setView} />
-      <CodeOpenByDefault.Provider value>
-        {view === SCOPE_VIEW.LIST ? (
-          <ScopeList rows={rows} within={within} onDismiss={dismiss} readOnly={readOnly} />
-        ) : <DeferredViolationList
-          resetKey={`${activeFilter ?? SEVERITY_FILTER_ALL}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
-          items={rows} scrollElement={scrollElement} rowHeights={ROW_HEIGHT_PX} findingKey={fileFindingKey}
-          renderItem={(item) => renderScopeRow(item, { within, onDismiss: dismiss, readOnly, setLowConfExpanded })}
-        />}
-      </CodeOpenByDefault.Provider>
+      <FindingsHead title={file.file} sub={sub} description={head.description} grade={head.grade} badge={head.badge}
+        oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} metrics={metrics} filesHint={filesHint} />
+      <div className={rail ? 'findings-scope__work' : undefined}>
+        {rail && <ReqRail rail={rail} total={filtering.liveTotal} selected={req} onSelect={setReq} />}
+        <div className="findings-scope__main">
+          <ScopeBar sevCounts={kindCounts.sev} compliance={kindCounts.compliance} filter={activeFilter} onFilter={setActiveFilter}
+            sort={sort} onSort={setSort} view={view} onView={setView} />
+          <CodeOpenByDefault.Provider value>
+            {view === SCOPE_VIEW.LIST ? (
+              <ScopeList rows={rows} within={within} onDismiss={dismiss} readOnly={readOnly} />
+            ) : <DeferredViolationList
+              resetKey={`${activeFilter ?? SEVERITY_FILTER_ALL}-${req ?? ''}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
+              items={rows} scrollElement={scrollElement} rowHeights={ROW_HEIGHT_PX} findingKey={fileFindingKey}
+              renderItem={(item) => renderScopeRow(item, { within, onDismiss: dismiss, readOnly, setLowConfExpanded })}
+            />}
+          </CodeOpenByDefault.Provider>
+        </div>
+      </div>
     </div>
   );
 }

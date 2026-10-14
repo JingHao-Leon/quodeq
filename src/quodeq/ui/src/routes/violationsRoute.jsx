@@ -36,6 +36,9 @@ function buildViolationsData({ props, acc, dims, past }) {
     loading: props.dashboardData.loading,
     isFetching: props.dashboardData.isFetching,
     error: props.dashboardData.error,
+    // The score history and its grouping: a principle scope's header reads its change from them.
+    trend: props.dashboardData.dashboard?.trend || [],
+    granularity: props.dashboardData.granularity,
   };
 }
 

@@ -51,7 +51,8 @@ export function sharedPrefix(dirs) {
   return first.slice(0, n).join('/');
 }
 
-function mostFrequent(values) {
+/** The most frequent non-empty value of `values` (the first seen on a tie), or null. */
+export function mostFrequent(values) {
   const counts = new Map();
   for (const v of values) if (v) counts.set(v, (counts.get(v) || 0) + 1);
   let best = null;
