@@ -17,6 +17,16 @@ export function mapHistoryEnabled(project, source, active) {
 }
 
 /**
+ * Re-ask while the history errors, except when the server refused the
+ * request itself (a selection it does not know): asking again cannot help.
+ * @param {{state: {error: ?{status?: number}}}} query
+ * @returns {number|false} the next refetch in ms, or false for none
+ */
+export function refetchUnlessRefused(query) {
+  return query.state.error?.status === HTTP_STATUS.BAD_REQUEST ? false : refetchWhileError(query);
+}
+
+/**
  * The map history query, shared by every Map view that reads it (one key per
  * frames mode and selection, one fetch); each caller adds its own `select`.
  * The latest-frame history by default; the time-lapse asks for every frame.
@@ -24,14 +34,6 @@ export function mapHistoryEnabled(project, source, active) {
  * @param {{api: object, project: string, source: string, active: boolean, frames?: string, selection?: object|null}} args
  * @returns {object} useQuery options without `select`
  */
-/**
- * Re-ask while the history errors, except when the server refused the
- * request itself (a selection it does not know): asking again cannot help.
- */
-export function refetchUnlessRefused(query) {
-  return query.state.error?.status === HTTP_STATUS.BAD_REQUEST ? false : refetchWhileError(query);
-}
-
 export function mapHistoryQuery({ api, project, source, active, frames = MAP_FRAMES.LATEST, selection = null }) {
   return {
     queryKey: projectKeys.mapHistory(project, frames, source, selectionKey(selection)),
