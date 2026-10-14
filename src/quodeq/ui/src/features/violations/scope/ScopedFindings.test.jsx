@@ -78,6 +78,14 @@ describe('ScopedFindings', () => {
     expect(screen.queryByRole('button', { name: /dismiss/i })).not.toBeInTheDocument();
   });
 
+  it('a past day offers no fix plan, a day of today does', () => {
+    const { unmount } = renderScope();
+    expect(screen.getAllByRole('button', { name: /fix plan/i }).length).toBeGreaterThan(0);
+    unmount();
+    renderScope({ onDismissFinding: undefined, readOnly: true });
+    expect(screen.queryByRole('button', { name: /fix plan/i })).toBeNull();
+  });
+
   it('dismisses a finding into its own dimension\'s run', () => {
     const onDismissFinding = vi.fn();
     const { container } = renderScope({ onDismissFinding });

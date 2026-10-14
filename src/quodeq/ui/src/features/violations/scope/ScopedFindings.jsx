@@ -47,17 +47,18 @@ function SortChoice({ sort, onSort }) {
  * compliant checks after them, or all of them by line. Filters pick a
  * severity or the compliant checks (opening on `scope.filter`); `onList`
  * hands over to the workbench list on the same filters. Without
- * `onDismissFinding` (a past day, a shared project) it is read-only.
+ * `onDismissFinding` (a past day, a shared project) nothing is dismissed;
+ * `readOnly` (a past day) leaves out the fix plans too, which act on today.
  */
-export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, onList }) {
+export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, onList, readOnly = false }) {
   const file = useMemo(() => scopeFindings(scope, dims, projectName), [scope, dims, projectName]);
   if (!file) return <div className="wb-empty">{t('violations.scopeEmpty')}</div>;
   const sub = [t(`violations.scopeKind_${scope.kind}`), dateLabel].filter(Boolean).join(t('violations.wbDot'));
   return <ScopedFile key={JSON.stringify(scope)} file={file} dims={dims} sub={sub} initialFilter={scope.filter}
-    onDismissFinding={onDismissFinding} onList={onList} />;
+    onDismissFinding={onDismissFinding} onList={onList} readOnly={readOnly} />;
 }
 
-function ScopedFile({ file, dims, sub, initialFilter, onDismissFinding, onList }) {
+function ScopedFile({ file, dims, sub, initialFilter, onDismissFinding, onList, readOnly }) {
   const [activeFilter, setActiveFilter] = useState(initialFilter || null);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
   const [sort, setSort] = useState(SCOPE_SORT.SEVERITY);
@@ -67,7 +68,7 @@ function ScopedFile({ file, dims, sub, initialFilter, onDismissFinding, onList }
   const { handleDismiss, liveSevCounts, liveTotal, totalCompliance, items, violationsBySeverity } = useFileDetailFiltering({
     file, onDismiss, activeFilter, lowConfExpanded,
   });
-  useFindingsPaneSpecs(file, violationsBySeverity, activeFilter);
+  useFindingsPaneSpecs(file, violationsBySeverity, activeFilter, readOnly);
   const scrollElement = useDashboardScrollElement();
   const rows = useMemo(() => sortedRows(items, sort), [items, sort]);
   return (
@@ -82,7 +83,7 @@ function ScopedFile({ file, dims, sub, initialFilter, onDismissFinding, onList }
       <CodeOpenByDefault.Provider value>
         <FindingRowsList
           rows={rows} resetKey={`${activeFilter ?? 'all'}-${sort}-${lowConfExpanded ? 'lc' : ''}-${file.file}`}
-          scrollElement={scrollElement} setLowConfExpanded={setLowConfExpanded}
+          scrollElement={scrollElement} setLowConfExpanded={setLowConfExpanded} readOnly={readOnly}
           onDismiss={onDismiss ? handleDismiss : undefined} complianceTitle={t('violations.scopeCompliant')}
         />
       </CodeOpenByDefault.Provider>

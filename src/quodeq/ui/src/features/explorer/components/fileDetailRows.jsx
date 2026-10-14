@@ -13,9 +13,10 @@ const capitalized = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 /**
  * One row of a findings list built by useFileDetailFiltering: a severity or
  * compliance group header (`complianceTitle`), the low-confidence toggle, a
- * violation card (`onDismiss` absent: read-only) or a compliance card.
+ * violation card (no `onDismiss`: no dismiss; `readOnly`, a past run: no
+ * fix plan either) or a compliance card.
  */
-export function renderFileDetailRow(item, { onDismiss, setLowConfExpanded, complianceTitle }) {
+export function renderFileDetailRow(item, { onDismiss, setLowConfExpanded, complianceTitle, readOnly = false }) {
   switch (item.kind) {
     case ROW_KIND.SEV_HEADER:
       return <GroupHeader title={capitalized(severityLabel(item.sev))} count={item.count} />;
@@ -25,7 +26,7 @@ export function renderFileDetailRow(item, { onDismiss, setLowConfExpanded, compl
       return <LowConfidenceToggle count={item.count} expanded={item.expanded} onToggle={() => setLowConfExpanded((v) => !v)} />;
     case FINDING_TYPE.VIOLATION:
     case ROW_KIND.LOW_CONF_ROW:
-      return <ViolationCard v={item.v} onDismiss={onDismiss} />;
+      return <ViolationCard v={item.v} onDismiss={onDismiss} readOnly={readOnly} />;
     case FINDING_TYPE.COMPLIANCE:
       return <ComplianceCard c={item.c} principle={item.c.principle} index={0} />;
     default:
@@ -38,16 +39,17 @@ export function renderFileDetailRow(item, { onDismiss, setLowConfExpanded, compl
  * reason, snippet and references, so they get the hydrated rows, not the
  * deferred ones the list was built from.
  */
-export function useFindingsPaneSpecs(file, violationsBySeverity, activeFilter) {
+export function useFindingsPaneSpecs(file, violationsBySeverity, activeFilter, readOnly = false) {
   const hydratedFile = useMemo(() => ({ ...file, violationsBySeverity }), [file, violationsBySeverity]);
-  useFileDetailWindowSpecs({ file: hydratedFile, activeFilter });
+  useFileDetailWindowSpecs({ file: hydratedFile, activeFilter, readOnly });
 }
 
 /**
  * The findings list itself, virtualized under the dashboard's scroll box:
- * `rows` in order, remounted on `resetKey`; `onDismiss` absent is read-only.
+ * `rows` in order, remounted on `resetKey`, the cards as renderFileDetailRow
+ * makes them.
  */
-export function FindingRowsList({ rows, resetKey, scrollElement, onDismiss, setLowConfExpanded, complianceTitle }) {
+export function FindingRowsList({ rows, resetKey, scrollElement, onDismiss, setLowConfExpanded, complianceTitle, readOnly = false }) {
   return (
     <DeferredViolationList
       resetKey={resetKey}
@@ -55,7 +57,7 @@ export function FindingRowsList({ rows, resetKey, scrollElement, onDismiss, setL
       scrollElement={scrollElement}
       rowHeights={ROW_HEIGHT_PX}
       findingKey={fileFindingKey}
-      renderItem={(item) => renderFileDetailRow(item, { onDismiss, setLowConfExpanded, complianceTitle })}
+      renderItem={(item) => renderFileDetailRow(item, { onDismiss, setLowConfExpanded, complianceTitle, readOnly })}
     />
   );
 }

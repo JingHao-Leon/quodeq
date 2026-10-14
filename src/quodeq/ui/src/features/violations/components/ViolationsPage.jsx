@@ -106,7 +106,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
   if (scope) {
     return (
       <PageFrame {...frame}>
-        <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null}
+        <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null} readOnly={Boolean(asOf)}
           onDismissFinding={actions.onDismiss} onList={onListScope ? () => onListScope(scope) : undefined} />
       </PageFrame>
     );
