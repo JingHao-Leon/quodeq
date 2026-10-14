@@ -23,3 +23,19 @@ test('an area too small to judge shows no weighted issues per file', () => {
   assert.equal(densityLine(info), undefined);
   assert.equal(info.lines[0].value, t('map.riskKindSmall'));
 });
+
+const lineOf = (info, key) => info.lines.find((l) => l.label === t(key));
+
+test('the first line is the sky zone the density puts the area in', () => {
+  const zoneOfArea = (density) => riskAreaInfo(area(AREA_KIND.WATCH, density)).lines[0];
+  assert.deepEqual(zoneOfArea(1.2), { label: t('map.riskZone'), value: t('map.riskZoneNameFixFirst') });
+  assert.equal(zoneOfArea(0.6).value, t('map.riskZoneNameWatch'));
+  assert.equal(zoneOfArea(0.1).value, t('map.riskZoneNameHealthy'));
+});
+
+test('the kind shows only for a hotspot or dormant debt, the kinds the sky rings', () => {
+  assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.HOTSPOT, 1.2)), 'map.riskKind').value, t('map.riskKindHotspot'));
+  assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.DORMANT, 1.2)), 'map.riskKind').value, t('map.riskKindDormant'));
+  assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.WATCH, 0.6)), 'map.riskKind'), undefined);
+  assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.HEALTHY, 0.1)), 'map.riskKind'), undefined);
+});

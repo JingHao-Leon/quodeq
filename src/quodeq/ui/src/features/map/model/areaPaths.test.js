@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { areaPathFilters, largestFolder } from './areaPaths.js';
+import { areaPathFilters } from './areaPaths.js';
 
 const FILES = [
   { path: 'feature-article/src/A.kt', area: 'article' },
@@ -20,10 +20,4 @@ test('a folder shared with another area is never a prefix (no neighbour findings
 
 test('a root file is an exact path', () => {
   assert.deepEqual(areaPathFilters(FILES, '(root)'), ['README.md']);
-});
-
-test('the largest folder of an area', () => {
-  assert.equal(largestFolder(['a/b/x', 'a/b/y', 'a/c/z']), 'a/b');
-  assert.equal(largestFolder(['x', 'y']), '');
-  assert.equal(largestFolder([]), '');
 });

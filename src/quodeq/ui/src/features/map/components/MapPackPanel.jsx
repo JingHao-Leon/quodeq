@@ -9,12 +9,12 @@ import { ACTIVITY_SOURCE } from '../mapVocab.js';
  * labels and navigation of the normal pack.
  */
 export default function MapPackPanel({ view, pack, timelapse }) {
-  const { fullTree, viewMode, dark, showLabels, resetKey, currentPath, explicitPath, onDrillDown, onFileClick } = view;
+  const { fullTree, viewMode, dark, showLabels, resetKey, currentPath, onDrillDown, onFileClick } = view;
   const latest = (
     <ZoomablePackView
       node={fullTree} colorMode={viewMode} weights={pack.weights} editsByPath={pack.activity.editsByPath}
       dark={dark} onDrillDown={onDrillDown} onFileClick={onFileClick}
-      showLabels={showLabels} resetKey={resetKey} currentPath={currentPath} autoOpen={!explicitPath}
+      showLabels={showLabels} resetKey={resetKey} currentPath={currentPath}
     />
   );
   // Run and history come from the stage (held while hidden); zoom, theme and paint follow the page.

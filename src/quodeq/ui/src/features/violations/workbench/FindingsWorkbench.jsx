@@ -42,7 +42,7 @@ function useView(all, state) {
 }
 
 /** True when a filter narrows the list below the whole status: the bulk actions, project-wide, would read as acting on what shows. */
-const isNarrowed = (s) => Boolean(s.q.trim() || s.severity || s.dimension || s.paths.length);
+const isNarrowed = (s) => Boolean(s.q.trim() || s.severity || s.dimension || s.paths.length || s.area);
 
 /**
  * Folder moves and the detail's path links. Browsing folders, a link moves to
@@ -57,7 +57,7 @@ function pathHandlers(wb, unpathed, folders) {
 const canOpenFile = (f, actions) => Boolean(f && actions.onOpenFile && (!actions.canOpenFile || actions.canOpenFile(f)));
 
 /** The list's filters (not the search text, so typing keeps the scroll) as a string: a new value starts the row cap over. */
-const listKeyOf = (s) => [s.severity, s.dimension, s.status, s.group, ...s.paths].join(KEY_SEP);
+const listKeyOf = (s) => [s.severity, s.dimension, s.status, s.group, s.area?.name, ...s.paths].join(KEY_SEP);
 
 export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = false, workbench, onWorkbenchChange, actions = {} }) {
   const searchRef = useRef(null);

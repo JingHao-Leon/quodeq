@@ -35,17 +35,16 @@ function selectedIn(picked, focusNode, root) {
 /**
  * The Map's zoomable circle pack. `colorMode` is a PACK_COLOR_MODE (anything
  * else paints as concentration); `weights` are the severity weights of the
- * grade formula and `editsByPath` the activity per file path. `autoOpen`
- * false keeps the pack where `currentPath` puts it (no dominant-folder open).
+ * grade formula and `editsByPath` the activity per file path.
  */
 export default function ZoomablePackView({
   node, colorMode = PACK_COLOR_MODE.CONCENTRATION, weights = DEFAULT_SEVERITY_WEIGHTS, editsByPath = NO_EDITS, dark = false,
-  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '', autoOpen = true,
+  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '',
 }) {
   const { root, circles } = usePackLayout(node);
   // A file click selects the file: the panel shows it and its View details opens it.
   const [picked, setPicked] = useState(null);
-  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect: setPicked, autoOpen });
+  const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect: setPicked });
   const [hover, setHover] = useHover(circles, focus.focusNode);
   const selected = selectedIn(picked, focus.focusNode, root);
   const handleBgClick = useCallback(() => { setPicked(null); focus.handleBgClick(); }, [focus.handleBgClick]);

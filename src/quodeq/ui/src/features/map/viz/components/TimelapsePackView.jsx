@@ -8,6 +8,7 @@ import { createTimelapseLayouts } from '../core/timelapseLayouts.js';
 import { runNodeData, transitionKind, focusIndexFor, cachedRuns } from '../core/timelapseScene.js';
 import { dayDate } from '../core/timelapseBarModel.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from '../core/mapBadness.js';
+import { XYR_STRIDE, XYR_R } from '../core/packLayout.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
 
@@ -38,19 +39,19 @@ function usePrefetch(layouts, { position, playing, data }) {
 /** Hover index tied to the folder it was taken under (a zoom or another
  * history reads as "no hover" until the pointer moves again). Play drops it,
  * so a pause never brings back the circle hovered before play. */
-function useHover(focusNode, playing) {
+function useHover(focusNode) {
   const [state, setState] = useState({ focusNode, index: null });
   const setHover = useCallback((index) => setState({ focusNode, index }), [focusNode]);
-  if (playing && state.index !== null) setState({ focusNode, index: null });
-  return [playing || state.focusNode !== focusNode ? null : state.index, setHover];
+  return [state.focusNode !== focusNode ? null : state.index, setHover];
 }
 
 /** The hovered circle with run k's numbers (a run draws only what it holds, so it is always there). */
-function useTip({ model, nodeDataAt, k, hover }) {
+function useTip({ model, nodeDataAt, k, hover, shown }) {
   return useMemo(() => {
-    if (hover === null || k === null) return null;
+    // The hover follows its circle while the runs play; a run that does not hold it shows no card.
+    if (hover === null || k === null || !shown(hover)) return null;
     return { depth: model.nodes[hover].depth, data: nodeDataAt(k)[hover] };
-  }, [model, nodeDataAt, k, hover]);
+  }, [model, nodeDataAt, k, hover, shown]);
 }
 
 /** The model, its layouts and the run transition toward `position`. */
@@ -68,8 +69,8 @@ function useTimelapseScene({ data, position, moveMs, onSettled }) {
  * The Circle Pack on a past run (time-lapse): the whole-history tree laid out
  * per run in the worker, each run showing only what it holds, and every
  * change between runs a move: circles slide with their folder, new ones grow
- * in, gone ones shrink out. Paused: hover shows the run's numbers, a click
- * goes through `onDrillDown`. Playing: a click pauses. No info panel: it
+ * in, gone ones shrink out. Hover shows the run's numbers, playing or
+ * paused. Paused: a click goes through `onDrillDown`. Playing: a click pauses. No info panel: it
  * would act on today's data.
  */
 export default function TimelapsePackView({
@@ -80,8 +81,9 @@ export default function TimelapsePackView({
   usePrefetch(layouts, timelapse);
   // A full scan of the tree: only when the focus path or the tree changes, never per frame.
   const focusIndex = useMemo(() => focusIndexFor(model, currentPath), [model, currentPath]);
-  const [hover, setHover] = useHover(model.nodes[focusIndex], playing);
-  const tip = useTip({ model, nodeDataAt, k: view ? view.to.k : null, hover });
+  const [hover, setHover] = useHover(model.nodes[focusIndex]);
+  const shown = useCallback((i) => Boolean(view && view.to.state[i * XYR_STRIDE + XYR_R] > 0), [view]);
+  const tip = useTip({ model, nodeDataAt, k: view ? view.to.k : null, hover, shown });
   if (!view || !anchor) return null;
   const date = formatShortDate(dayDate(data.runs[view.to.k].day).toISOString());
   return (

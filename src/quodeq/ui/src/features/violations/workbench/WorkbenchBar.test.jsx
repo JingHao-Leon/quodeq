@@ -64,4 +64,17 @@ describe('WorkbenchBar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'clear' }));
     expect(api.setPaths).toHaveBeenCalledWith([]);
   });
+
+  it('an area from the Map shows as one chip, and its x clears it', async () => {
+    const api = setup({ area: { name: 'checkout', paths: ['src/a/', 'src/c/z.js'] } });
+    expect(screen.getByText('area: checkout')).toBeInTheDocument();
+    expect(screen.queryByText(/^path:/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove the checkout area' }));
+    expect(api.set).toHaveBeenCalledWith({ area: null });
+  });
+
+  it('no area, no area chip', () => {
+    setup();
+    expect(screen.queryByText(/^area:/)).toBeNull();
+  });
 });

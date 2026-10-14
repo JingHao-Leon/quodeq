@@ -37,26 +37,3 @@ export function areaPathFilters(files, areaName) {
   }
   return [...chips].sort();
 }
-
-/** The folder holding most of `paths` (ties: the shorter, then alphabetical); '' for the root. */
-export function largestFolder(paths) {
-  const counts = new Map();
-  for (const path of paths) {
-    const cut = path.lastIndexOf(SEP);
-    const folder = cut < 0 ? '' : path.slice(0, cut);
-    counts.set(folder, (counts.get(folder) || 0) + 1);
-  }
-  let best = '';
-  let bestCount = 0;
-  for (const [folder, n] of counts) {
-    if (isBetter(folder, n, best, bestCount)) { best = folder; bestCount = n; }
-  }
-  return best;
-}
-
-/** More files wins; on a tie the shorter folder, then the alphabetically first. */
-function isBetter(folder, count, best, bestCount) {
-  if (count !== bestCount) return count > bestCount;
-  if (folder.length !== best.length) return folder.length < best.length;
-  return folder < best;
-}

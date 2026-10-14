@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import useMapPageState from './useMapPageState.js';
 import { VIZ_STYLE } from '../mapVocab.js';
+import { buildFileTree } from '../viz/core/fileTree.js';
 import { writeVisibleStandardIds } from '../../../utils/visibleStandards.js';
 import { createPageStateCache, readCachedState, clearAllCachedState } from '../../../utils/pageStateCache.js';
 
@@ -103,5 +104,34 @@ describe('useMapPageState: dimension source while accumulated is loading', () =>
     const full = [{ dimension: 'Security', violations: [], compliance: [] }];
     const { result } = setup({ data: { projectName: 'proj-x', accumulated: null, dashboard: { dimensions: full } } });
     expect(result.current.allDimensions).toBe(full);
+  });
+});
+
+/** The first file node under a tree node, depth first. */
+const firstFile = (node) => (node.isFile ? node : node.children.map(firstFile).find(Boolean));
+
+describe('useMapPageState: View Details on a Circle Pack or Galaxy node', () => {
+  it('a folder opens the Violations workbench under one folder chip', () => {
+    const onNavigate = vi.fn();
+    const { result } = setup({ callbacks: { onNavigate } });
+    result.current.callbacks.onFileClick({ isFile: false, path: 'src/app', name: 'app' });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { paths: ['src/app/'] } });
+  });
+
+  it('the project root opens the workbench with no chip', () => {
+    const onNavigate = vi.fn();
+    const { result } = setup({ callbacks: { onNavigate } });
+    result.current.callbacks.onFileClick({ isFile: false, path: '', name: 'proj-x' });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { paths: [] } });
+  });
+
+  it('a file still opens its own page', () => {
+    const onNavigate = vi.fn();
+    const violations = [{ file: 'src/app/a.py', severity: 'minor', principle: 'P1' }];
+    const data = { projectName: 'proj-x', accumulated: { dimensions: [{ dimension: 'Security', violations, compliance: [] }] } };
+    const { result } = setup({ data, callbacks: { onNavigate } });
+    const fileNode = firstFile(buildFileTree(data.accumulated.dimensions));
+    result.current.callbacks.onFileClick(fileNode);
+    expect(onNavigate).toHaveBeenCalledWith('file', expect.objectContaining({ sourceTab: 'map', file: expect.objectContaining({ file: 'src/app/a.py' }) }));
   });
 });

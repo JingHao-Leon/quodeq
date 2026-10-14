@@ -1,9 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  layoutSky, layoutSkyFrom, skyAreas, densityDistance, densityTop, skyRings, ringsAt, SKY_RIM, seededAngle,
-  FIX_FIRST_DENSITY, WATCH_DENSITY, SKY_TOP_PERCENTILE, OUTLIER_CAP,
-} from './skyLayout.js';
+import { layoutSky, layoutSkyFrom, skyAreas, SKY_RIM, seededAngle } from './skyLayout.js';
+import { densityDistance, skyScale, zoneOf } from './skyScale.js';
+import { SKY_ZONE } from '../../mapVocab.js';
 
 const EPS = 1e-6;
 const MANY = 300;
@@ -46,49 +45,36 @@ function timed(input) {
 }
 
 test('denser areas sit closer to the centre, a clean area at the outer edge', () => {
-  assert.ok(densityDistance(2, MESSY_TOP) < densityDistance(HALF_DENSITY, MESSY_TOP));
-  assert.ok(densityDistance(0, MESSY_TOP) > densityDistance(HALF_DENSITY, MESSY_TOP));
-  assert.equal(densityDistance(MESSY_TOP * 2, MESSY_TOP), densityDistance(MESSY_TOP, MESSY_TOP));
-  const [hot, calm] = layoutSky([area('hot', 3, 10), area('calm', 0.05, 10)]);
-  assert.ok(Math.hypot(hot.x, hot.y) < Math.hypot(calm.x, calm.y));
+  const [hot, calm] = layoutSky([area('hot', MESSY_TOP, 10), area('calm', 0.05, 10)]);
+  assert.ok(fromCentre(hot) < fromCentre(calm));
 });
 
-/** The linearly interpolated SKY_TOP_PERCENTILE of the spread fixture, computed independently of densityTop. */
-function spreadPercentile() {
-  const sorted = spread().map((a) => a.density);
-  const at = (sorted.length - 1) * SKY_TOP_PERCENTILE;
-  const lo = Math.floor(at);
-  return sorted[lo] + (sorted[lo + 1] - sorted[lo]) * (at - lo);
+/** The distances from the centre each area's zone spans under the areas' own scale. */
+function bandsOf(areas) {
+  const { fixFirst, watch } = skyScale(areas);
+  const band = { [SKY_ZONE.FIX_FIRST]: [0, fixFirst], [SKY_ZONE.WATCH]: [fixFirst, watch], [SKY_ZONE.HEALTHY]: [watch, SKY_RIM] };
+  return areas.map((a) => band[zoneOf(a.density)]);
 }
 
-test('the scale tops out at a high percentile of the densities, never below the fix-first floor', () => {
-  assert.equal(densityTop(CLEAN.map((d, i) => area(`c${i}`, d, 5))), FIX_FIRST_DENSITY);
-  assert.ok(Math.abs(densityTop(spread()) - spreadPercentile()) < EPS);
-  assert.ok(densityTop(spread()) < SPREAD_MAX);
-  assert.equal(densityTop([]), FIX_FIRST_DENSITY);
+test('every bubble\'s centre stays inside its own zone', () => {
+  const input = Array.from({ length: MANY }, (_, i) => area(`z${i}`, (i % 97) / 24, SMALL_MIN + (i % 40)));
+  const bands = bandsOf(input);
+  const outside = layoutSky(input).filter((n, i) => fromCentre(n) < bands[i][0] - EPS || fromCentre(n) > bands[i][1] + EPS);
+  assert.deepEqual(outside, []);
 });
 
-const BENCHMARK_LIKE = [4.41, 0.94, 0.6];
-const BENCHMARK_TOP = 1.88;
-const MID_SKY = [0.3, 0.6];
-
-test('with few areas, one runaway area is capped at twice the second densest', () => {
-  assert.equal(OUTLIER_CAP, 2);
-  const areas = BENCHMARK_LIKE.map((d, i) => area(`b${i}`, d, SMALL_MIN));
-  const top = densityTop(areas);
-  assert.ok(Math.abs(top - BENCHMARK_TOP) < EPS, `${top}`);
-  assert.equal(densityDistance(BENCHMARK_LIKE[0], top), densityDistance(top, top));
-  const second = densityDistance(BENCHMARK_LIKE[1], top);
-  assert.ok(second > MID_SKY[0] && second < MID_SKY[1], `${second}`);
+test('a clean project: every area sits outside the watch ring', () => {
+  const areas = CLEAN.map((d, i) => area(`c${i}`, d, SMALL_MIN));
+  const { watch } = skyScale(areas);
+  assert.ok(layoutSky(areas).every((n) => fromCentre(n) > watch), `${watch}`);
 });
 
-test('without a runaway area the cap does not bite: the percentile stands', () => {
-  assert.ok(Math.abs(densityTop(spread()) - spreadPercentile()) < EPS);
-});
-
-test('a single area has no second to cap against: its own density, or the floor', () => {
-  assert.equal(densityTop([area('only', MESSY_TOP, SMALL_MIN)]), MESSY_TOP);
-  assert.equal(densityTop([area('only', HALF_DENSITY, SMALL_MIN)]), FIX_FIRST_DENSITY);
+test('an area denser than the scale top sits at the innermost distance, not beyond it', () => {
+  const areas = [...spread(), area('outlier', OUTLIER, SMALL_MIN)];
+  const scale = skyScale(areas);
+  assert.ok(scale.top < OUTLIER);
+  assert.equal(densityDistance(OUTLIER, scale), densityDistance(scale.top, scale));
+  assert.ok(Math.abs(fromCentre(layoutSky(areas).at(-1)) - densityDistance(scale.top, scale)) < DISTANCE_TOLERANCE);
 });
 
 test('one extreme area no longer pushes every other area outward', () => {
@@ -99,31 +85,6 @@ test('one extreme area no longer pushes every other area outward', () => {
   // On average: a neighbour of the outlier near the centre may still be nudged aside by its bubble.
   const drift = others.reduce((sum, _, i) => sum + Math.abs(fromCentre(together[i]) - fromCentre(alone[i])), 0) / others.length;
   assert.ok(drift < DISTANCE_TOLERANCE, `${drift}`);
-});
-
-test('an area denser than the scale top sits at the innermost distance, not beyond it', () => {
-  const top = densityTop([...spread(), area('outlier', OUTLIER, SMALL_MIN)]);
-  assert.ok(top < OUTLIER);
-  assert.equal(densityDistance(OUTLIER, top), densityDistance(top, top));
-  const nodes = layoutSky([...spread(), area('outlier', OUTLIER, SMALL_MIN)]);
-  assert.ok(Math.abs(fromCentre(nodes.at(-1)) - densityDistance(top, top)) < DISTANCE_TOLERANCE);
-});
-
-test('a clean project: the rings shrink toward the centre and every area sits outside them', () => {
-  const areas = CLEAN.map((d, i) => area(`c${i}`, d, 5));
-  const rings = skyRings(areas);
-  const top = densityTop(areas);
-  assert.ok(areas.every((a) => densityDistance(a.density, top) > rings.watch));
-  assert.ok(rings.fixFirst < rings.watch);
-});
-
-test('a messy project: the rings widen, fix first still inside watch', () => {
-  const clean = skyRings([area('c', 0.2, 5)]);
-  const messy = skyRings([area('m', MESSY_TOP, 5), area('n', 1, 5)]);
-  assert.ok(messy.fixFirst > clean.fixFirst);
-  assert.ok(messy.watch > clean.watch);
-  assert.ok(messy.fixFirst < messy.watch);
-  assert.ok(WATCH_DENSITY < FIX_FIRST_DENSITY);
 });
 
 test('the same areas always land in the same place', () => {
@@ -176,14 +137,6 @@ test('an anchored sky starts from the previous positions and stays clean', () =>
   assert.ok(drift < ANCHORED_DRIFT, `${drift}`);
   assert.equal(overlaps(after), false);
   assert.ok(inside(after));
-});
-
-test('a given scale top places areas against it, not against their own densest', () => {
-  const areas = [area('hot', 1, 10), area('calm', HALF_DENSITY, 10)];
-  const [own] = layoutSky(areas);
-  const [wide] = layoutSky(areas, MESSY_TOP);
-  assert.ok(Math.hypot(wide.x, wide.y) > Math.hypot(own.x, own.y));
-  assert.deepEqual(ringsAt(densityTop(areas)), skyRings(areas));
 });
 
 test('only areas with enough files are bubbles', () => {

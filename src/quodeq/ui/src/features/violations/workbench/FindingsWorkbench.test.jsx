@@ -171,14 +171,22 @@ describe('FindingsWorkbench', () => {
     expect(screen.queryByRole('button', { name: /restore all/ })).toBeNull();
   });
 
-  it('a severity, dimension or path filter hides the bulk actions too', () => {
+  it('a severity, dimension, path or area filter hides the bulk actions too', () => {
     const two = [...makeDismissed(), { ...makeDismissed()[0], title: 'Older', line: 9 }];
     const actions = { onRestoreAll: vi.fn(), onDeleteAll: vi.fn() };
-    [{ severity: 'minor' }, { dimension: 'maintainability' }, { paths: ['src/c/'] }].forEach((narrow) => {
+    const area = { name: 'legacy', paths: ['src/c/'] };
+    [{ severity: 'minor' }, { dimension: 'maintainability' }, { paths: ['src/c/'] }, { area }].forEach((narrow) => {
       const { unmount } = render(<Harness initial={{ status: 'dismissed', ...narrow }} dismissed={two} actions={actions} />);
       expect(screen.queryByRole('button', { name: /restore all/ })).toBeNull();
       unmount();
     });
+  });
+
+  it('opened from a Map area, the list holds only that area\'s findings until its chip is removed', async () => {
+    render(<Harness initial={{ area: { name: 'checkout', paths: ['src/a/b/', 'src/c/z.js'] } }} />);
+    expect(screen.getByText('2 of 5')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove the checkout area' }));
+    expect(screen.getByText('5 of 5')).toBeInTheDocument();
   });
 
   it('open file writes a pending selection to the nav entry before it leaves', () => {

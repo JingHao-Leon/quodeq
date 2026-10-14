@@ -13,6 +13,12 @@ import { NAV_TAB } from '../../../vocab/navTab.js';
 // implementations live in mapTree.js (pure, unit-testable without the hook).
 export { findSubtree, buildBreadcrumbPath } from './mapTree.js';
 
+/** The workbench path chip of a folder (its path with a trailing '/'), none for the project root. */
+function folderChips(path) {
+  if (!path) return [];
+  return [path.endsWith('/') ? path : `${path}/`];
+}
+
 // Stable empty input for the tree while the page defers its heavy body.
 const EMPTY_DIMENSIONS = [];
 
@@ -30,12 +36,11 @@ function useMapNavParams(nav) {
     vizStyle: rawVizStyle,
     viewMode = MAP_VIEW_MODE.HEALTH,
     galaxyMode = GALAXY_MODE.FILESYSTEM,
-    explicitPath = false,
     onPathChange, onVizStyleChange, onViewModeChange, onGalaxyModeChange,
   } = nav || {};
   const vizStyle = normalizeVizStyle(rawVizStyle);
   return {
-    currentPath, vizStyle, galaxyMode, explicitPath,
+    currentPath, vizStyle, galaxyMode,
     viewMode: vizStyle === VIZ_STYLE.ZOOMPACK ? normalizePackMode(viewMode) : viewMode,
     setCurrentPath: (p) => onPathChange?.(p),
     setVizStyle: (v) => onVizStyleChange?.(v),
@@ -59,7 +64,7 @@ function useMapTabCache(selectedProject, tabKey, cache) {
  * for every consumer of useMapPageState. */
 function buildMapPageResult({
   allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-  dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath, explicitPath,
+  dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
   setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
   showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName, standardTypes,
 }) {
@@ -69,13 +74,15 @@ function buildMapPageResult({
     galaxyState: { galaxyMode, setGalaxyMode },
     dimensionState: { allDimensions: dimensionNames, selectedDimensions: effectiveSelected, onToggleDimension: handleToggleDimension },
     vizState: { vizStyle, viewMode, galaxyMode, setGalaxyMode },
-    treeState: { node: currentNode, fullTree, currentPath, explicitPath, onPathChange: setCurrentPath },
+    treeState: { node: currentNode, fullTree, currentPath, onPathChange: setCurrentPath },
     dimensions: filteredDimensions,
     callbacks: {
       onDrillDown: handleDrillDown,
       onFileClick: (treeNode) => {
         if (!callbacks?.onNavigate) return;
-        callbacks.onNavigate(NAV_TAB.FILE, { file: treeNodeToFileObj(treeNode), sourceTab: NAV_TAB.MAP });
+        // A folder's details are its findings in the Violations workbench, under one folder chip; a file opens its page.
+        if (!treeNode.isFile) callbacks.onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: folderChips(treeNode.path) } });
+        else callbacks.onNavigate(NAV_TAB.FILE, { file: treeNodeToFileObj(treeNode), sourceTab: NAV_TAB.MAP });
       },
       onNavigate: callbacks?.onNavigate,
       onBreadcrumbNav: handleBreadcrumbNav,
@@ -125,7 +132,7 @@ function treeDimensions(filteredDimensions, deferTree) {
 export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cache, deferTree = false }) {
   const selectedProject = data?.projectName || data?.selectedProject || '__map__';
   const {
-    currentPath, vizStyle, viewMode, galaxyMode, explicitPath,
+    currentPath, vizStyle, viewMode, galaxyMode,
     setCurrentPath, setVizStyle, setViewMode, setGalaxyMode,
   } = useMapNavParams(nav);
   const { cached, standardTypes } = useMapPageLifecycle({ selectedProject, tabKey, cache });
@@ -147,7 +154,7 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
 
   return buildMapPageResult({
     allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-    dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath, explicitPath,
+    dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
     setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
     showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName: data?.projectName, standardTypes,
   });

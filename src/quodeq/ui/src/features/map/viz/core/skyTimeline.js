@@ -1,38 +1,16 @@
-import { densityTop, layoutSky, layoutSkyFrom, ringsAt, skyAreas } from './skyLayout.js';
-import { absenceIn, cachedRuns } from './timelapseScene.js';
+import { layoutSky, layoutSkyFrom, skyAreas } from './skyLayout.js';
+import { skyRings } from './skyScale.js';
+import { cachedRuns } from './timelapseScene.js';
 
 const NO_STATS = Object.freeze({ violations: 0, compliance: 0, weight: 0, files: 0, critical: 0, major: 0 });
 /** Full area sets kept at once: the two runs of a move plus a little slack for scrubbing. */
 export const SKY_SCENE_CACHE_SIZE = 4;
+/** Where an area a run does not have sits: nowhere, at radius 0 (it grows in or shrinks out where it is drawn). */
+const NO_BUBBLE = Object.freeze({ x: 0, y: 0, r: 0 });
 
-/** An area with no file in a run: a small dotted bubble at its nearest known density. */
-function ghostArea(name, density) {
-  return { name, ghost: true, kind: null, density, touchedShare: 0, layers: [], dots: [], stats: NO_STATS };
-}
-
-const NO_RUN = -1;
-
-/**
- * Per run, the area's density in the nearest run that has it, earlier runs
- * first on a tie (0 when no run has it): one pass each way over the runs.
- */
-function nearestDensities(present, name) {
-  const n = present.length;
-  const before = new Int32Array(n).fill(NO_RUN);
-  for (let k = 1; k < n; k++) before[k] = present[k - 1].has(name) ? k - 1 : before[k - 1];
-  const after = new Int32Array(n).fill(NO_RUN);
-  for (let k = n - 2; k >= 0; k--) after[k] = present[k + 1].has(name) ? k + 1 : after[k + 1];
-  return Array.from(before, (b, k) => {
-    const a = after[k];
-    const nearest = b === NO_RUN || (a !== NO_RUN && a - k < k - b) ? a : b;
-    return nearest === NO_RUN ? 0 : present[nearest].get(name).density;
-  });
-}
-
-/** The dotted stand-in of an area in a run that has no file of it, densities worked out once per area. */
-function ghostAreas(present, names) {
-  const densities = new Map(names.map((name) => [name, nearestDensities(present, name)]));
-  return (name, k) => ghostArea(name, densities.get(name)[k]);
+/** An area that is not a bubble in a run: drawn at radius 0, never hovered, labelled or listed. */
+function absentArea(name) {
+  return { name, absent: true, kind: null, density: 0, touchedShare: 0, layers: [], dots: [], stats: NO_STATS };
 }
 
 /**
@@ -44,59 +22,59 @@ function runSummary(set) {
   return { areas, bubbles: skyAreas(set).map((a) => a.name), average: set.average };
 }
 
-/**
- * The history's scale top: densityTop (the live sky's rule) over one value
- * per area on the sky, its peak density across the runs it is present in.
- * One value per area keeps the percentile and the outlier cap working per
- * area: fed every instance, a runaway area's own other runs would be its
- * "second densest" and the cap would never hold it back.
- */
-function historyTop(summaries, names) {
-  const peaks = names.map((name) => ({
-    density: summaries.reduce((peak, { areas }) => Math.max(peak, areas.get(name)?.density || 0), 0),
-  }));
-  return densityTop(peaks);
-}
-
 /** Every kind an area on the sky has in some run (a legend that holds still while the runs play). */
-function historyKinds(summaries, names) {
-  const kinds = summaries.flatMap(({ areas }) => names.map((n) => areas.get(n)?.kind));
+function historyKinds(summaries) {
+  const kinds = summaries.flatMap(({ areas, bubbles }) => bubbles.map((n) => areas.get(n).kind));
   return [...new Set(kinds.filter(Boolean))];
 }
 
 /**
- * Bubble positions per run, settled in order, each from the run before, under
- * one top; computed up to the run asked for and kept (a few dozen per run).
- * @returns {{at: function(number): Map<string, {x: number, y: number, r: number}>, settled: function(): number}}
+ * Each run's own sky, as today's sky is drawn: only the run's bubbles, under
+ * the run's own scale and rings. The base is today's sky (the latest
+ * run, laid out as the Risk tab lays it out); every other run starts from it
+ * and settles toward its own targets, so runs never depend on each other and
+ * the latest run is today's sky. Computed in order up to the run asked for
+ * and kept (a few dozen positions per run).
+ * @returns {{at: function(number): {nodes: Map<string, {x: number, y: number, r: number}>, rings: object}, settled: function(): number}}
  */
-function settledRuns(present, names, top, ghostAt) {
-  const nodes = [];
-  const at = (k) => {
-    for (let j = nodes.length; j <= k; j++) {
-      const areas = names.map((name) => present[j].get(name) || ghostAt(name, j));
-      const laid = j ? layoutSkyFrom(areas, nodes[j - 1], top) : layoutSky(areas, top);
-      nodes.push(new Map(areas.map((a, i) => [a.name, laid[i]])));
+function daySkies(summaries, names) {
+  const last = summaries.length - 1;
+  const bubblesOf = (k) => summaries[k].bubbles.map((name) => summaries[k].areas.get(name));
+  let base = null;
+  const baseOf = () => {
+    if (!base) {
+      const areas = bubblesOf(last);
+      const laid = layoutSky(areas);
+      base = new Map(areas.map((a, i) => [a.name, laid[i]]));
     }
-    return nodes[k];
+    return base;
   };
-  return { at, settled: () => nodes.length };
+  const skyOf = (k) => {
+    const areas = bubblesOf(k);
+    const laid = k === last ? areas.map((a) => baseOf().get(a.name)) : layoutSkyFrom(areas, baseOf());
+    const own = new Map(areas.map((a, i) => [a.name, laid[i]]));
+    return { nodes: new Map(names.map((name) => [name, own.get(name) || NO_BUBBLE])), rings: skyRings(areas) };
+  };
+  const skies = [];
+  const at = (k) => {
+    for (let j = skies.length; j <= k; j++) skies.push(skyOf(j));
+    return skies[k];
+  };
+  return { at, settled: () => skies.length };
 }
 
 /**
  * What the whole history decides once every run is summarised: the names on
- * the sky, the scale top and its rings, the legend's kinds, and the chain of
- * settled runs.
+ * the sky (every area that is a bubble in some run), the legend's kinds, and
+ * each run's sky.
  */
 function historyOf(summaries) {
-  const present = summaries.map((s) => s.areas);
   const names = [...new Set(summaries.flatMap((s) => s.bubbles))].sort();
-  const top = historyTop(summaries, names);
-  const ghostAt = ghostAreas(present, names);
   return {
-    present, names, ghostAt,
-    rings: ringsAt(top),
-    kinds: historyKinds(summaries, names),
-    chain: settledRuns(present, names, top, ghostAt),
+    bubbles: summaries.map((s) => new Set(s.bubbles)),
+    names,
+    kinds: historyKinds(summaries),
+    chain: daySkies(summaries, names),
   };
 }
 
@@ -117,20 +95,18 @@ function lazyHistory(areaSetAt, runCount) {
 }
 
 /**
- * The Risk sky of every run (plan Decision 11): every area that is a bubble in
- * some run is on every run's sky, dotted where it has no file; each run
- * settles from the run before it. One scale top over the whole history keeps
- * the targets and the rings still while the runs play. Only per-run area
- * summaries and positions are kept for the whole history; a run's full area
- * set (with its file dots) is rebuilt on demand for the last few runs asked.
- * Nothing is read or laid out up front: the first scene (or `rings()`,
- * `kinds()`, `absenceAt`) reads what is still missing, and `warmStep` does that work
- * ahead of time, one run per call, so a seek finds its run already settled.
+ * The Risk sky of every run (spec 2.5): each run shows only its own bubbles,
+ * under its own scale and rings, laid out from today's sky; an area a run
+ * does not have is in the scene at radius 0, so between runs it grows in or
+ * shrinks out. Only per-run area summaries and positions are kept for the
+ * whole history; a run's full area set (with its file dots) is rebuilt on
+ * demand for the last few runs asked. Nothing is read or laid out up front:
+ * the first scene (or `kinds()`) reads what is still missing, and `warmStep`
+ * does that work ahead of time, one run per call, so a seek finds its run ready.
  * @param {function(number): {areas: object[], average: number}} areaSetAt run k's area set
  * @param {{day: string}[]} runs the history's runs, oldest first
- * @returns {{rings: function(): {fixFirst: number, watch: number}, kinds: function(): string[],
+ * @returns {{kinds: function(): string[],
  *   sceneAt: function(number): {areas: object[], average: number, rings: object, nodes: Map<string, {x: number, y: number, r: number}>},
- *   absenceAt: function(number, string): ({kind: string, day: string}|null),
  *   warmStep: function(): boolean,
  *   progress: function(): {summarized: number, settled: number, total: number}}}
  */
@@ -138,19 +114,18 @@ export function createSkyTimeline(areaSetAt, runs) {
   const total = runs.length;
   const lazy = lazyHistory(areaSetAt, total);
   const sceneOf = cachedRuns((k) => {
-    const { names, ghostAt, rings, chain } = lazy.ready();
+    const { names, bubbles, chain } = lazy.ready();
     const full = new Map(areaSetAt(k).areas.map((a) => [a.name, a]));
-    const areas = names.map((name) => full.get(name) || ghostAt(name, k));
-    return { areas, average: lazy.summaryAt(k).average, rings, nodes: chain.at(k) };
+    const areas = names.map((name) => (bubbles[k].has(name) ? full.get(name) : absentArea(name)));
+    const { nodes, rings } = chain.at(k);
+    return { areas, average: lazy.summaryAt(k).average, rings, nodes };
   }, SKY_SCENE_CACHE_SIZE);
   const settled = () => (lazy.summarized() < total ? 0 : lazy.ready().chain.settled());
   let empty = null;
-  const emptyScene = () => (empty ||= Object.freeze({ areas: [], average: 0, rings: lazy.ready().rings, nodes: new Map() }));
+  const emptyScene = () => (empty ||= Object.freeze({ areas: [], average: 0, rings: skyRings([]), nodes: new Map() }));
   return {
-    rings: () => lazy.ready().rings,
     kinds: () => lazy.ready().kinds,
     sceneAt: (k) => (k >= 0 && k < total ? sceneOf(k) : emptyScene()),
-    absenceAt: (k, name) => absenceIn(runs, k, (j) => Boolean(lazy.ready().present[j]?.has(name))),
     warmStep: () => warmOne(lazy, total, settled()),
     progress: () => ({ summarized: lazy.summarized(), settled: settled(), total }),
   };
@@ -166,8 +141,9 @@ function warmOne(lazy, total, settled) {
 
 /**
  * Bubble positions and radii between two runs' skies, aligned with `areas`
- * (every name is in both). At `t >= 1` it is exactly the target, so the end
- * of a move never pops.
+ * (every name is in both). A bubble that appears grows where it lands and one
+ * that goes shrinks where it was. At `t >= 1` it is exactly the target, so
+ * the end of a move never pops.
  * @param {{name: string}[]} areas the target run's areas
  * @param {Map<string, {x: number, y: number, r: number}>} fromNodes
  * @param {Map<string, {x: number, y: number, r: number}>} toNodes
@@ -176,9 +152,16 @@ function warmOne(lazy, total, settled) {
  */
 export function lerpSkyNodes(areas, fromNodes, toNodes, t) {
   return areas.map(({ name }) => {
-    const a = fromNodes.get(name);
     const b = toNodes.get(name);
     if (t >= 1) return { x: b.x, y: b.y, r: b.r };
-    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, r: a.r + (b.r - a.r) * t };
+    const a = fromNodes.get(name);
+    const at = a.r > 0 && b.r > 0 ? t : Number(a.r === 0);
+    return { x: a.x + (b.x - a.x) * at, y: a.y + (b.y - a.y) * at, r: a.r + (b.r - a.r) * t };
   });
+}
+
+/** The rings between two runs' skies: each line slides from one run's place to the other's. */
+export function lerpRings(from, to, t) {
+  if (t >= 1) return to;
+  return { fixFirst: from.fixFirst + (to.fixFirst - from.fixFirst) * t, watch: from.watch + (to.watch - from.watch) * t, counts: to.counts };
 }

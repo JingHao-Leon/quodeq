@@ -1,15 +1,14 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import SkyCanvas from './SkyCanvas.jsx';
 import RiskLegend from './RiskLegend.jsx';
 import RiskTooltip from './RiskTooltip.jsx';
 import { WRAPPER_STYLE } from './canvasLayer.js';
-import { riskLabelText, riskItemText } from './riskAreaInfo.js';
+import { riskLabelText, riskAreaInfo } from './riskAreaInfo.js';
+import { LevelInfoPanel } from './galaxyViewInfo.jsx';
 import { useRunTransition } from './useRunTransition.js';
-import { timelapseNoteText } from './timelapseNote.js';
-import { lerpSkyNodes } from '../core/skyTimeline.js';
+import { lerpSkyNodes, lerpRings } from '../core/skyTimeline.js';
 import { TRANSITION } from '../core/timelapseScene.js';
 import { dayDate } from '../core/timelapseBarModel.js';
-import { hoverWithTooltipPos } from '../core/tooltipPlacement.js';
 import { formatShortDate } from '../../../../utils/formatters.js';
 import { t } from '../../../../strings/index.js';
 
@@ -17,78 +16,65 @@ import { t } from '../../../../strings/index.js';
 const alwaysMove = () => TRANSITION.MOVE;
 
 /**
- * Bubble positions aligned with the target run's areas: tweened from the run
- * before while moving, the run's own once settled. Memoised on the view, so a
- * hover render hands SkyCanvas the same array and the static sky stays put.
+ * What the sky draws this frame, aligned by area: tweened from the run before
+ * while moving (an area leaving keeps its own paint while it shrinks out),
+ * the run's own once settled. Memoised on the view, so a hover render hands
+ * SkyCanvas the same arrays and the static sky stays put.
  */
-function useViewNodes(view) {
+function useViewSky(view) {
   return useMemo(() => {
     if (!view) return null;
-    const { areas, nodes } = view.to.state;
-    const from = view.from?.state.nodes;
-    if (from?.size) return lerpSkyNodes(areas, from, nodes, view.t);
-    return areas.map((a) => nodes.get(a.name));
+    const to = view.to.state;
+    const from = view.from?.state;
+    if (!from?.nodes.size) return { areas: to.areas, nodes: to.areas.map((a) => to.nodes.get(a.name)), rings: to.rings };
+    return {
+      areas: to.areas.map((a, i) => (a.absent && from.areas[i] && !from.areas[i].absent ? from.areas[i] : a)),
+      nodes: lerpSkyNodes(to.areas, from.nodes, to.nodes, view.t),
+      rings: lerpRings(from.rings, to.rings, view.t),
+    };
   }, [view]);
 }
 
 /**
- * Hover with its clamped tooltip box, tied to the run it was taken on: a step
- * to another run clears it (as the sky clears its ring), and play drops it,
- * so a pause never brings back the area hovered before play.
+ * The Risk sky on a past run: each run shows only the areas it had, under its
+ * own rings, as today's sky would have drawn it that day; between runs the
+ * bubbles move, new areas grow in, gone ones shrink out, and the rings slide.
+ * The legend's ring rows hold every kind of the history. Playing: a click
+ * pauses. Hover shows the run's numbers (and follows its area while the runs
+ * play). Paused: a click selects an area
+ * (or clears the selection): the selected area stays lit while the runs play,
+ * so it can be followed over time, its panel showing that run's numbers
+ * (without View Details, which acts on today's data). `timeline` is createSkyTimeline of
+ * `timelapse.data`, built (and warmed) by the Risk tab, so a seek finds its
+ * run already laid out.
  */
-function useTimelapseHover(containerRef, { playing, k }) {
-  const [held, setHeld] = useState({ k, hover: null });
-  if (playing && held.hover !== null) setHeld({ k, hover: null });
-  const onHover = useCallback((h) => setHeld({ k, hover: hoverWithTooltipPos(h, containerRef.current) }), [containerRef, k]);
-  return [playing || held.k !== k ? null : held.hover, onHover];
-}
-
-/**
- * Canvas label and keyboard-list text for run k: a dotted area says since
- * when it is gone (or when it first appears) instead of reading as clean.
- */
-function useAreaTexts(timeline, k) {
-  return useMemo(() => {
-    const noteOf = (a) => (a.ghost ? timelapseNoteText(timeline.absenceAt(k, a.name)) : null);
-    return {
-      labelText: (a) => { const note = noteOf(a); return note ? { title: a.name, sub: note } : riskLabelText(a); },
-      itemText: (a) => { const note = noteOf(a); return note ? t('map.riskAreaAbsentAria', { name: a.name, note }) : riskItemText(a); },
-    };
-  }, [timeline, k]);
-}
-
-/**
- * The Risk sky on a past run (plan Decision 11): every area that is ever a
- * bubble, dotted where it has no file; bubbles drift from run to run under the
- * history's rings, which stay put while the runs play, as do the legend's
- * ring rows (every kind of the history). Playing: a click
- * pauses. Paused: hover shows the run's numbers (or since when a dotted area
- * is gone); there is no selection, since View Details acts on today's data.
- * `timeline` is createSkyTimeline of `timelapse.data`, built (and warmed) by
- * the Risk tab, so a seek finds its run already settled.
- */
-export default function RiskTimelapseView({ timelapse, timeline, dark, showLabels }) {
+export default function RiskTimelapseView({ timelapse, timeline, dark, showLabels, selection }) {
   const { data, position, playing, moveMs, onSettled, controls } = timelapse;
   const load = useCallback((k) => timeline.sceneAt(k), [timeline]);
   const view = useRunTransition({ target: position, load, kindOf: alwaysMove, durationMs: moveMs, onSettled });
-  const nodes = useViewNodes(view);
-  const containerRef = useRef(null);
+  const sky = useViewSky(view);
   const k = view ? view.to.k : null;
-  const [hover, onHover] = useTimelapseHover(containerRef, { playing, k });
-  const { labelText, itemText } = useAreaTexts(timeline, k);
-  const onSelect = useCallback(() => { if (playing) controls.pause(); }, [playing, controls]);
+  const [hover, onHover] = useState(null);
+  const { selectedName, onSelectName } = selection;
+  const onSelect = useCallback((i) => {
+    if (playing) controls.pause();
+    else onSelectName(i === null ? null : sky.areas[i].name);
+  }, [playing, controls, onSelectName, sky]);
   if (!view) return null;
+  const selectedIndex = sky.areas.findIndex((a) => a.name === selectedName && !a.absent);
+  const chosen = selectedIndex < 0 ? null : sky.areas[selectedIndex];
   const scene = view.to.state;
-  const hovered = hover ? scene.areas[hover.index] : null;
-  const note = hovered ? timelapseNoteText(timeline.absenceAt(k, hovered.name)) : null;
+  // The hover follows its area from run to run (SkyCanvas); an area the run does not have shows no card.
+  const hovered = hover && sky.areas[hover.index] && !sky.areas[hover.index].absent ? sky.areas[hover.index] : null;
   const day = data.runs[k]?.day;
   const label = day ? t('map.timelapseRiskAria', { date: formatShortDate(dayDate(day).toISOString()) }) : undefined;
   return (
-    <div ref={containerRef} style={WRAPPER_STYLE}>
-      <SkyCanvas areas={scene.areas} average={scene.average} dark={dark} showLabels={showLabels && !view.from}
-        selected={null} onSelect={onSelect} onHover={onHover} hoverable={!playing} labelText={labelText} itemText={itemText}
-        nodes={nodes} rings={timeline.rings()} label={label} />
-      <RiskTooltip area={hovered} at={hover} note={note} />
+    <div style={WRAPPER_STYLE}>
+      <SkyCanvas areas={sky.areas} average={scene.average} dark={dark} showLabels={showLabels}
+        selected={selectedIndex < 0 ? null : selectedIndex} onSelect={onSelect} onHover={onHover} labelText={riskLabelText}
+        nodes={sky.nodes} rings={sky.rings} label={label} />
+      <RiskTooltip area={hovered} />
+      <LevelInfoPanel levelInfo={chosen && riskAreaInfo(chosen)} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined} />
       <RiskLegend kinds={timeline.kinds()} />
     </div>
   );

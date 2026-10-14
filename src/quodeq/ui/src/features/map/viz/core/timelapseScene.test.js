@@ -5,7 +5,7 @@ import { buildTimelapseModel } from './timelapseModel.js';
 import { runLayout } from './timelapseLayout.js';
 import { XYR_STRIDE, PACK_BASE_SIZE } from './packLayout.js';
 import {
-  runNodeData, runPaint, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, runFocusTransform, chainEndsIn, cachedRuns, TRANSITION, ABSENCE,
+  runNodeData, runPaint, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, runFocusTransform, chainEndsIn, cachedRuns, TRANSITION,
 } from './timelapseScene.js';
 import { PACK_COLOR_MODE } from '../../mapVocab.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from './mapBadness.js';
@@ -48,15 +48,6 @@ test('paint per run: present nodes painted as usual, absent ones as dotted ghost
   assert.notEqual(paint[at('src/b.py')].ghost, true);
 });
 
-test('the absence rule reads presence through a callback, so other views can share it', () => {
-  const runs = [{ day: 'd0' }, { day: 'd1' }, { day: 'd2' }, { day: 'd3' }];
-  const presentIn = (set) => (j) => set.includes(j);
-  assert.deepEqual(absenceIn(runs, 3, presentIn([0, 1])), { kind: ABSENCE.GONE_SINCE, day: 'd2' });
-  assert.deepEqual(absenceIn(runs, 0, presentIn([2])), { kind: ABSENCE.FIRST_APPEARS, day: 'd2' });
-  assert.equal(absenceIn(runs, 1, presentIn([1])), null);
-  assert.equal(absenceIn(runs, 1, presentIn([])), null);
-});
-
 test('interpolation and screen coords write into reused arrays', () => {
   const parent = Int32Array.from([-1]);
   const out = new Float32Array(3);
@@ -74,6 +65,37 @@ test('a circle moves with its parent; one absent on a side grows or shrinks in p
   const mid = lerpXyr(parent, from, to, 0.5, new Float32Array(9));
   assert.deepEqual([...mid.slice(3, 6)], [8, 0, 4]);
   assert.deepEqual([...mid.slice(6, 9)], [10, 0, 1]);
+});
+
+const STEPS = 10;
+const FIT_EPS = 1e-4;
+
+/** Whether node `i` sits inside node `p` at every step of the move. */
+function staysInside(parent, from, to, [i, p]) {
+  const out = new Float32Array(from.length);
+  return Array.from({ length: STEPS + 1 }, (_, s) => s / STEPS).every((t) => {
+    const xyr = lerpXyr(parent, from, to, t, out);
+    const [c, q] = [i * XYR_STRIDE, p * XYR_STRIDE];
+    return Math.hypot(xyr[c] - xyr[q], xyr[c + 1] - xyr[q + 1]) + xyr[c + 2] <= xyr[q + 2] + FIT_EPS;
+  });
+}
+
+test('a file arriving inside a new folder stays inside it at every step', () => {
+  // Root, a folder that is new in the target (radius 10, offset 20), and its new file (radius 4, offset 5).
+  const parent = Int32Array.from([-1, 0, 1]);
+  const from = Float32Array.from([0, 0, 50, 0, 0, 0, 0, 0, 0]);
+  const to = Float32Array.from([0, 0, 50, 20, 0, 10, 25, 0, 4]);
+  assert.equal(staysInside(parent, from, to, [2, 1]), true);
+  assert.equal(staysInside(parent, to, from, [2, 1]), true);
+});
+
+test('a file arriving inside a folder that grows stays inside it at every step', () => {
+  // The folder grows from radius 6 to 12; the new file lands at offset 7 with radius 4.
+  const parent = Int32Array.from([-1, 0, 1]);
+  const from = Float32Array.from([0, 0, 50, 10, 0, 6, 0, 0, 0]);
+  const to = Float32Array.from([0, 0, 50, 10, 0, 12, 17, 0, 4]);
+  assert.equal(staysInside(parent, from, to, [2, 1]), true);
+  assert.equal(staysInside(parent, to, from, [2, 1]), true);
 });
 
 test('every change between runs moves; nothing cross-fades', () => {

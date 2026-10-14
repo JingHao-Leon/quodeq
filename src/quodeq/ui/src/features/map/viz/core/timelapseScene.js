@@ -9,8 +9,6 @@ import { ROW } from '../../model/historyRows.js';
 
 /** How the view goes from one run to the next. */
 export const TRANSITION = Object.freeze({ NONE: 'none', MOVE: 'move' });
-/** Why a circle is dotted in the run shown: it left earlier, or it only exists later. */
-export const ABSENCE = Object.freeze({ GONE_SINCE: 'goneSince', FIRST_APPEARS: 'firstAppears' });
 /** Runs whose node data or paint are kept per view. */
 export const RUN_SCENE_CACHE_SIZE = 12;
 const PATH_SEP = '/';
@@ -80,19 +78,15 @@ export function runPaint({ model, nodeData, mode, palette, weights }) {
 }
 
 /**
- * Why something is absent from run `k`: gone since the run after the last
- * one it was in, or first appearing in a later run; null when it is present
- * in `k` or in no run at all. The Risk time-lapse explains its dotted areas with it.
- * @param {{day: string}[]} runs decodeTimelapse(...).runs
- * @param {number} k run index
- * @param {function(number): boolean} isPresentAt whether it is in run j
- * @returns {{kind: string, day: string}|null} kind is an ABSENCE value
+ * How a circle that arrives or leaves scales its offset: by its parent's
+ * size now over the parent's size on the side the circle exists, so it
+ * grows or shrinks where it lands inside the parent even while the parent
+ * grows or shrinks around it.
  */
-export function absenceIn(runs, k, isPresentAt) {
-  if (isPresentAt(k)) return null;
-  for (let j = k - 1; j >= 0; j--) if (isPresentAt(j)) return { kind: ABSENCE.GONE_SINCE, day: runs[j + 1].day };
-  for (let j = k + 1; j < runs.length; j++) if (isPresentAt(j)) return { kind: ABSENCE.FIRST_APPEARS, day: runs[j].day };
-  return null;
+function offsetScale({ fromIn, toIn }, parentR) {
+  if (fromIn === toIn) return 1;
+  const full = fromIn ? parentR.from : parentR.to;
+  return full > 0 ? parentR.now / full : 1;
 }
 
 /**
@@ -100,6 +94,10 @@ export function absenceIn(runs, k, isPresentAt) {
  * relative to its parent (parents come first in node order), so a newcomer
  * starts inside its moving parent; a circle absent on one side (radius 0)
  * keeps the other side's offset, so it grows in or shrinks out in place.
+ * The offset of a circle that arrives or leaves scales with its parent's
+ * radius, so it pops in or out inside the parent while the parent grows or
+ * shrinks (a new folder and its content pop in as one piece), instead of
+ * sitting outside the parent until the parent reaches its size.
  * @param {Int32Array} parent the model's parent per node
  */
 export function lerpXyr(parent, from, to, t, out) {
@@ -117,8 +115,9 @@ export function lerpXyr(parent, from, to, t, out) {
     const ty = to[o + Y] - to[p + Y];
     const sx = fromIn ? fx : tx;
     const sy = fromIn ? fy : ty;
-    out[o] = out[p] + sx + ((toIn ? tx : fx) - sx) * t;
-    out[o + Y] = out[p + Y] + sy + ((toIn ? ty : fy) - sy) * t;
+    const k = offsetScale({ fromIn, toIn }, { from: from[p + R], to: to[p + R], now: out[p + R] });
+    out[o] = out[p] + (sx + ((toIn ? tx : fx) - sx) * t) * k;
+    out[o + Y] = out[p + Y] + (sy + ((toIn ? ty : fy) - sy) * t) * k;
     out[o + R] = from[o + R] + (to[o + R] - from[o + R]) * t;
   }
   return out;
