@@ -8,8 +8,6 @@
  * gets none.
  */
 import { useMemo } from 'react';
-import TrendBadge from '../../../components/TrendBadge.jsx';
-import { scoreChangeShows } from '../../../utils/trendUtils.js';
 import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
 import { usePeriodDiffs } from '../../../hooks/usePeriodDiffs.js';
 import { sinceSummary } from '../../../models/sinceSummary.js';
@@ -22,8 +20,8 @@ import { GRADE } from '../../../vocab/grade.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
 import { SEVERITY, SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { t } from '../../../strings/index.js';
+import { nameKey } from '../../../utils/nameKey.js';
 
-const lower = (s) => String(s ?? '').toLowerCase();
 
 /** A principle's grade for its header ring: its score, whether the evidence grades it at all, and what the evidence says. */
 function gradeOf(row) {
@@ -32,11 +30,6 @@ function gradeOf(row) {
   const hint = insufficient ? t('explorer.notEnoughEvidence')
     : row.confidence === EVIDENCE_CONFIDENCE.LOW ? t('explorer.thinEvidenceHint') : null;
   return { score: row.score, insufficient, hint };
-}
-
-/** The principle's change as its header's badge, as its card shows it. */
-function changeBadge(change) {
-  return scoreChangeShows(change) ? <TrendBadge delta={change} /> : null;
 }
 
 /**
@@ -50,11 +43,11 @@ function changeBadge(change) {
  */
 export function previousPrincipleCounts(previousDim, principle) {
   if (!previousDim) return null;
-  const mine = (list) => (list || []).filter((f) => lower(f.principle) === lower(principle));
+  const mine = (list) => (list || []).filter((f) => nameKey(f.principle) === nameKey(principle));
   const violations = mine(previousDim.violations);
   const sevCounts = Object.fromEntries(SEVERITY_ORDER.map((level) => [level, 0]));
   for (const v of violations) {
-    const level = lower(v.severity);
+    const level = nameKey(v.severity);
     sevCounts[level in sevCounts ? level : SEVERITY.MINOR] += 1;
   }
   return { sevCounts, total: violations.length, compliance: mine(previousDim.compliance).length };
@@ -90,7 +83,7 @@ function periodArgs({ isPrinciple, scope, dim, history, principles }) {
 function usePrincipleSince({ args, beforeRunId, scope, isPrinciple }) {
   const { payloads } = usePeriodDiffs({ project: args.project, source: args.selectedSource, runs: [args.activeRunId], against: beforeRunId });
   return useMemo(
-    () => (isPrinciple ? sinceSummary(payloads, (name) => lower(name) === lower(scope.dimension), scope.principle) : null),
+    () => (isPrinciple ? sinceSummary(payloads, (name) => nameKey(name) === nameKey(scope.dimension), scope.principle) : null),
     [isPrinciple, payloads, scope.dimension, scope.principle],
   );
 }
@@ -120,7 +113,7 @@ function usePrincipleRisk({ isPrinciple, scope, history, onOpenMap }) {
  * @param {object[]} dims the dimensions on show
  * @param {?{project: string, selectedSource: string, trend: object[], granularity: string, runId: ?string}} history
  * @param {(params: object) => void} [onOpenMap] opens the Map with these nav params
- * @returns {{description?: string, grade?: ?object, badge?: React.ReactNode, when?: ?string, previous?: ?object, since?: ?object,
+ * @returns {{description?: string, grade?: ?object, change?: ?number, when?: ?string, previous?: ?object, since?: ?object,
  *   riskAreas?: ?{fixFirst: number, watch: number, onOpen?: Function}}}
  */
 export function usePrincipleHead(scope, dims, history, onOpenMap) {
@@ -137,7 +130,7 @@ export function usePrincipleHead(scope, dims, history, onOpenMap) {
   return {
     description: principleDescriptions?.[scope.principle] || '',
     grade: gradeOf(row),
-    badge: changeBadge(changes.get(scope.principle)),
+    change: changes.get(scope.principle) ?? null,
     when: dim?.fromDateLabel || null,
     previous: previousPrincipleCounts(previous, scope.principle),
     since,

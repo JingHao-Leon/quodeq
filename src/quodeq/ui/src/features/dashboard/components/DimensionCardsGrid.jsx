@@ -11,16 +11,26 @@ const CARD_MIN_WIDTH = 180;
 const COMPACT_MIN_WIDTH = 240;
 const GRID_GAP = 12;
 
-// Cards keep the incoming order (the Overview hands them weakest first)
-// regardless of the selected period: changing the day/week/month re-dims
-// cards but never reorders them. Standards switched on but never evaluated
-// follow as empty cards. Rows are balanced (5 + 4, never 8 + 1) once the
-// grid needs more than one. `compact` is the principle card's form (ring
-// beside grade, pills and pass rate); `highlighted` lights the card its
-// radial point is lit for, and `onHover` reports the card the pointer or
-// keyboard is on (null when it leaves).
+const NOT_LIT = Object.freeze({ name: null, setName: null });
+
+/**
+ * The dimension cards. They keep the incoming order (the Overview hands
+ * them weakest first) whatever the selected period: changing the
+ * day/week/month re-dims cards but never reorders them. Standards switched
+ * on but never evaluated follow as empty cards. Rows are balanced (5 + 4,
+ * never 8 + 1) once the grid needs more than one.
+ * @param {object} props
+ * @param {object[]} props.sortedDimensions
+ * @param {(item: object) => void} [props.onDimensionClick]
+ * @param {Set<string>} [props.selectedDayDimNames] the dimensions the selected period evaluated (the others dim)
+ * @param {object} [props.dimTrends] each dimension's change, by lowercase name
+ * @param {string[]} [props.notEvaluated] standards switched on without results
+ * @param {() => void} [props.onEvaluate] what an empty card opens
+ * @param {boolean} [props.compact] the principle card's form: ring beside grade, pills and pass rate
+ * @param {{name: ?string, setName: ?Function}} [props.lit] the card lit with its radial point, and who to tell which card the pointer or keyboard is on
+ */
 export default function DimensionCardsGrid({
-  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, highlighted = null, onHover,
+  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, lit = NOT_LIT,
 }) {
   const dimNameSet = selectedDayDimNames instanceof Set ? selectedDayDimNames : new Set();
   const [gridRef, gridStyle] = useBalancedColumns(sortedDimensions.length + notEvaluated.length, compact ? COMPACT_MIN_WIDTH : CARD_MIN_WIDTH, GRID_GAP);
@@ -40,8 +50,8 @@ export default function DimensionCardsGrid({
             thinEvidence={item.confidence === EVIDENCE_CONFIDENCE.LOW}
             compact={compact}
             showDate={!compact}
-            highlighted={highlighted === item.dimension}
-            onHover={onHover ? (on) => onHover(on ? item.dimension : null) : undefined}
+            highlighted={lit.name === item.dimension}
+            onHover={lit.setName ? (on) => lit.setName(on ? item.dimension : null) : undefined}
           />
         );
       })}

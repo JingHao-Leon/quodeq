@@ -11,12 +11,12 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { projectKeys } from '../../../api/queryKeys.js';
 import { useAsOfScores } from '../../../hooks/useAsOfScores.js';
 import { usePeriodDiffs } from '../../../hooks/usePeriodDiffs.js';
-import { sinceSummary, previousPeriodRunId } from '../../../models/sinceSummary.js';
+import { sinceSummary, runClosingPreviousPeriod } from '../../../models/sinceSummary.js';
 import { previousPeriodMetrics, modelOfRun } from '../overviewHeadModel.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { STALE_TIME_MS } from '../../../hooks/queryDefaults.js';
+import { nameKey } from '../../../utils/nameKey.js';
 
-const lower = (s) => String(s ?? '').toLowerCase();
 
 /**
  * The previous period's numbers as the header tiles read them (scopeMetrics),
@@ -25,7 +25,7 @@ const lower = (s) => String(s ?? '').toLowerCase();
  * @param {{project: ?string, source?: string, periodTrend: object[], runOnShow: ?string, visibleNames: Set<string>}} args
  */
 export function usePreviousPeriodMetrics({ project, source = PROJECT_SOURCE.LOCAL, periodTrend, runOnShow, visibleNames }) {
-  const before = previousPeriodRunId(periodTrend, runOnShow);
+  const before = runClosingPreviousPeriod(periodTrend, runOnShow);
   const prev = useAsOfScores(project, source, before ? { runId: before } : null);
   return useMemo(() => (before ? previousPeriodMetrics(prev.data, visibleNames) : null), [before, prev.data, visibleNames]);
 }
@@ -37,12 +37,12 @@ export function usePreviousPeriodMetrics({ project, source = PROJECT_SOURCE.LOCA
  * @returns {?object} sinceSummary output
  */
 export function useOverviewSince({ project, source = PROJECT_SOURCE.LOCAL, dimensions, periodTrend, runOnShow }) {
-  const against = previousPeriodRunId(periodTrend, runOnShow);
+  const against = runClosingPreviousPeriod(periodTrend, runOnShow);
   const dims = dimensions || [];
   const { runs, payloads } = usePeriodDiffs({ project, source, runs: dims.map((d) => d.fromRunId), against });
   // A few comparisons of a handful of dimensions: summed on each render, no memo to keep in step.
-  const ownRun = new Map(dims.map((d) => [lower(d.dimension), d.fromRunId]));
-  return sinceSummary(payloads, (dimension, i) => ownRun.get(lower(dimension)) === runs[i]);
+  const ownRun = new Map(dims.map((d) => [nameKey(d.dimension), d.fromRunId]));
+  return sinceSummary(payloads, (dimension, i) => ownRun.get(nameKey(dimension)) === runs[i]);
 }
 
 /**

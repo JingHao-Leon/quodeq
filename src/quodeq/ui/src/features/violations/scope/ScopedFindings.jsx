@@ -13,6 +13,8 @@ import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 import { scopeFindings, scopeQualifier, SCOPE_KIND } from './scopeModel.js';
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import SinceStrip from '../../../components/SinceStrip.jsx';
+import TrendBadge from '../../../components/TrendBadge.jsx';
+import { scoreChangeShows } from '../../../utils/trendUtils.js';
 import { usePrincipleHead, severityDeltas } from './usePrincipleHead.jsx';
 import ReqRail from './ReqRail.jsx';
 import { requirementRail, requirementCounts, rowsOfRequirement, reqKindCounts } from './requirementRail.js';
@@ -130,8 +132,9 @@ export default function ScopedFindings({ scope, dims, projectName, dateLabel, on
   if (!file) return <div className="wb-empty">{t('violations.scopeEmpty')}</div>;
   const sub = [t(`violations.scopeKind_${scope.kind}`), scopeQualifier(scope), dateLabel || head.when]
     .filter(Boolean).join(t('violations.wbDot'));
-  return <ScopedFile key={scopeKey} file={file} within={within} dims={dims} sub={sub} head={head} initialFilter={scope.filter}
-    onDismissFinding={onDismissFinding} readOnly={readOnly} period={{ pastRun: history?.pastRun || null, granularity: history?.granularity }} />;
+  const shown = { ...head, sub, pastRun: history?.pastRun || null, granularity: history?.granularity };
+  return <ScopedFile key={scopeKey} file={file} within={within} dims={dims} head={shown} initialFilter={scope.filter}
+    onDismissFinding={onDismissFinding} readOnly={readOnly} />;
 }
 
 /** The scope's controls: which findings to show, in what order, as a list or as cards. */
@@ -170,7 +173,12 @@ function useRequirementFilter({ file, within, filtering }) {
   return { req, setReq, rail, counts, kindCounts };
 }
 
-function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFinding, readOnly, period }) {
+/**
+ * The scoped page itself. `head` is what its header reads beyond the
+ * numbers: the sub line, a principle's description, grade, change, previous
+ * counts, since line and Risk, the past run on show and the chart's grouping.
+ */
+function ScopedFile({ file, within, dims, head, initialFilter, onDismissFinding, readOnly }) {
   const [activeFilter, setActiveFilter] = useState(initialFilter || null);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
   const [sort, setSort] = useState(SCOPE_SORT.SEVERITY);
@@ -188,11 +196,11 @@ function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFin
   const dismiss = onDismiss ? handleDismiss : undefined;
   return (
     <div className="findings-scope">
-      <FindingsHead title={within.inPrinciple ? String(file.file).toLowerCase() : file.file} sub={sub} description={head.description} grade={head.grade}
-        badge={head.badge} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} metrics={metrics} filesHint={filesHint}
+      <FindingsHead title={within.inPrinciple ? String(file.file).toLowerCase() : file.file} sub={head.sub} description={head.description} grade={head.grade}
+        badge={scoreChangeShows(head.change) ? <TrendBadge delta={head.change} /> : null} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} metrics={metrics} filesHint={filesHint}
         changes={head.previous ? tileChanges(metrics, scopeMetrics({ ...head.previous, files: metrics.files })) : undefined}
-        deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={period.pastRun} />
-      {head.since && <SinceStrip summary={head.since} granularity={period.granularity} />}
+        deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={head.pastRun} />
+      {head.since && <SinceStrip summary={head.since} granularity={head.granularity} />}
       <div className={rail ? 'findings-scope__work' : undefined}>
         {rail && <ReqRail rail={rail} total={filtering.liveTotal} selected={req} onSelect={setReq} />}
         <div className="findings-scope__main">

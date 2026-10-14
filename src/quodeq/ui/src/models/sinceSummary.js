@@ -5,15 +5,15 @@
  * a principle's page. Pure functions, no framework imports.
  */
 import { scoreChangeShows } from '../utils/trendUtils.js';
+import { nameKey } from '../utils/nameKey.js';
 
-const lower = (s) => String(s ?? '').toLowerCase();
 // The dimensions the Overview's since line names as moving most.
 const MOVERS_SHOWN = 3;
 
 /** The items of `list` that belong to `principle` (any case); all of them without one. */
 function ofPrinciple(list, principle) {
   const items = list || [];
-  return principle ? items.filter((f) => lower(f.principle) === lower(principle)) : items;
+  return principle ? items.filter((f) => nameKey(f.principle) === nameKey(principle)) : items;
 }
 
 /**
@@ -68,7 +68,7 @@ export function sinceSummary(payloads, keep, principle = null) {
  * @param {?string} runOnShow
  * @returns {?string}
  */
-export function previousPeriodRunId(periodTrend, runOnShow) {
+export function runClosingPreviousPeriod(periodTrend, runOnShow) {
   const rows = periodTrend || [];
   const at = runOnShow ? rows.findIndex((r) => r.runId === runOnShow) : 0;
   return at >= 0 ? rows[at + 1]?.runId ?? null : null;

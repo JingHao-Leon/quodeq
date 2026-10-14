@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import OverviewHead from './OverviewHead.jsx';
+import OverviewHead, { languageSub, overviewSub } from './OverviewHead.jsx';
 import { scopeMetrics } from '../../../models/findingMetrics.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 
@@ -60,5 +60,24 @@ describe('OverviewHead', () => {
     expect(screen.getByText(/Viewing 2026-10-01/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /back to latest/i }));
     expect(onBack).toHaveBeenCalled();
+  });
+});
+
+describe('the Overview\'s sub line', () => {
+  const dim = (over = {}) => ({ dimension: 'a', filesRead: 100, sourceFileCount: 100, ...over });
+
+  it('reads the project\'s size, then its top languages', () => {
+    expect(languageSub({ filesCount: 3925, languageStats: { py: 2329, jsx: 866 } })).toBe('3,925 files  ·  2329 python  866 jsx');
+    expect(languageSub(null)).toBeNull();
+  });
+
+  it('reads files and languages, when, by which model, then the coverage warning', () => {
+    const sub = overviewSub({ projectInfo: { filesCount: 61 }, lastDate: '14 Oct 2026', model: 'qwen', dimensions: [dim({ filesRead: 50 })] });
+    expect(sub).toBe('61 files · evaluated 14 Oct 2026 · by qwen · 1 dimension read only part of the files');
+  });
+
+  it('warns about nothing when every dimension read its files, and shows nothing unknown', () => {
+    expect(overviewSub({ projectInfo: null, lastDate: '14 Oct 2026', dimensions: [dim(), dim({ dimension: 'b' })] })).toBe('evaluated 14 Oct 2026');
+    expect(overviewSub({ projectInfo: null })).toBeNull();
   });
 });

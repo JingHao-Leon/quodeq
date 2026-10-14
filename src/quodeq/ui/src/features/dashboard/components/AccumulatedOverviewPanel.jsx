@@ -25,6 +25,7 @@ import { NAV_TAB } from '../../../vocab/navTab.js';
 import { withPending } from '../../../utils/pendingClass.js';
 import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { overviewAsOf } from '../overviewAsOf.js';
+import { nameKey } from '../../../utils/nameKey.js';
 
 const runHistoryPanelImport = () => import('./RunHistoryPanel.jsx');
 const RunHistoryPanel = lazy(runHistoryPanelImport);
@@ -42,7 +43,6 @@ export function preloadRunHistoryPanel() {
 
 export { useAccumulatedComputations, computeAccumulatedStats };
 
-const lower = (s) => String(s ?? '').toLowerCase();
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -69,8 +69,7 @@ function AccumulatedDimensionsSection({ sortedDimensions, onDimensionClick, sele
           notEvaluated={notEvaluated}
           onEvaluate={onEvaluate}
           compact
-          highlighted={lit.name}
-          onHover={lit.setName}
+          lit={lit}
         />
       </div>
     </section>
@@ -158,7 +157,7 @@ function makeFindingsNavigate(args) {
 /** The dimension a mover's name (lowercase) opens, if one is on show. */
 function moverNavigate(sorted, onDimensionClick) {
   if (!onDimensionClick) return undefined;
-  return (name) => { const d = sorted.find((x) => lower(x.dimension) === name); if (d) onDimensionClick(d); };
+  return (name) => { const d = sorted.find((x) => nameKey(x.dimension) === name); if (d) onDimensionClick(d); };
 }
 
 /**
@@ -170,7 +169,7 @@ function useOverviewView({ data, filteredStats, filteredDimensions, filteredPeri
   const [litName, setLitName] = useState(null);
   const lit = useMemo(() => ({ name: litName, setName: setLitName }), [litName]);
   const sorted = useMemo(() => [...(filteredStats.sorted || [])].sort(weakestDimensionFirst), [filteredStats.sorted]);
-  const visibleNames = useMemo(() => new Set((filteredDimensions || []).map((d) => lower(d.dimension))), [filteredDimensions]);
+  const visibleNames = useMemo(() => new Set((filteredDimensions || []).map((d) => nameKey(d.dimension))), [filteredDimensions]);
   const period = { project: data.selectedProject, source: data.selectedSource, periodTrend: filteredPeriodTrend, runOnShow: currentOverviewRun };
   const previous = usePreviousPeriodMetrics({ ...period, visibleNames });
   const since = useOverviewSince({ ...period, dimensions: filteredDimensions });

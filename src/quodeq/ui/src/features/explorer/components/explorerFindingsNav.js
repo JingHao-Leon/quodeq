@@ -76,6 +76,6 @@ export function buildExplorerFindingsNav(args) {
   const { toCard, toFile, toPrinciple, toRequirement, toFolder, toArea, toRisk } = args.scoped ? scopedNav(args) : filePageNav(args);
   return {
     handleCardNavigate: toCard, onSeverityBadge: (level) => () => toCard(level), onFileClick: toFile, onPrincipleClick: toPrinciple,
-    onRequirementClick: toRequirement, onFolderClick: toFolder, onAreaClick: toArea || undefined, onOpenRisk: toRisk || undefined,
+    onRequirementClick: toRequirement, onFolderClick: toFolder, onAreaClick: toArea, onOpenRisk: toRisk,
   };
 }

@@ -65,7 +65,7 @@ describe('DimensionCardsGrid, compact (the Overview)', () => {
 
   it('lights the card its radial point lights, and reports the card the pointer is on', () => {
     const onHover = vi.fn();
-    render(<DimensionCardsGrid sortedDimensions={DIMS} compact highlighted="maintainability" onHover={onHover} />);
+    render(<DimensionCardsGrid sortedDimensions={DIMS} compact lit={{ name: 'maintainability', setName: onHover }} />);
     const card = screen.getByRole('button', { name: /maintainability/i });
     expect(card).toHaveClass('dim-gauge-card--compact', 'dim-gauge-card--hl');
     fireEvent.mouseEnter(card);

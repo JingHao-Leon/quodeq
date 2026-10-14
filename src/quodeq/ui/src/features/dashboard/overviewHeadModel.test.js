@@ -2,31 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  languageSub, partialDimensionCount, overviewSub, previousPeriodMetrics, weakestDimensionFirst, dimensionPoints, overviewPastRun, modelOfRun,
+  partialDimensionCount, previousPeriodMetrics, weakestDimensionFirst, dimensionPoints, overviewPastRun, modelOfRun,
 } from './overviewHeadModel.js';
 
 const dim = (dimension, over = {}) => ({ dimension, filesRead: 100, sourceFileCount: 100, ...over });
-
-test('languageSub: the project\'s size, then its top languages', () => {
-  assert.equal(languageSub({ filesCount: 3925, languageStats: { py: 2329, jsx: 866 } }), '3,925 files  ·  2329 python  866 jsx');
-  assert.equal(languageSub(null), null);
-});
 
 test('partialDimensionCount: a dimension counts only when its files read round below 100%', () => {
   const rounding = dim('security', { filesRead: 4205, sourceFileCount: 4209 });
   const partial = dim('reliability', { filesRead: 90, sourceFileCount: 100 });
   const legacy = { dimension: 'usability' };
   assert.equal(partialDimensionCount([rounding, partial, legacy, dim('flexibility')]), 1);
-});
-
-test('overviewSub: files and languages, when, by which model, then the coverage warning', () => {
-  const sub = overviewSub({ projectInfo: { filesCount: 61 }, lastDate: '14 Oct 2026', model: 'qwen', dimensions: [dim('a', { filesRead: 50 })] });
-  assert.equal(sub, '61 files · evaluated 14 Oct 2026 · by qwen · 1 dimension read only part of the files');
-});
-
-test('overviewSub: no warning when every dimension read its files, nothing unknown shown', () => {
-  assert.equal(overviewSub({ projectInfo: null, lastDate: '14 Oct 2026', dimensions: [dim('a'), dim('b')] }), 'evaluated 14 Oct 2026');
-  assert.equal(overviewSub({ projectInfo: null }), null);
 });
 
 test('previousPeriodMetrics: the dimensions on show only, as the tiles read them', () => {

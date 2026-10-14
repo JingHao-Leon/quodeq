@@ -4,6 +4,7 @@ import { FINDING_TYPE } from '../../../vocab/findingType.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
 import { t } from '../../../strings/index.js';
+import { nameKey } from '../../../utils/nameKey.js';
 
 /** What a scoped Findings view is about. */
 export const SCOPE_KIND = Object.freeze({
@@ -60,13 +61,11 @@ function underAny(paths) {
   return (file) => files.has(file) || folders.some((p) => (file || '').startsWith(p));
 }
 
-const lower = (x) => String(x ?? '').toLowerCase();
-
 /** An area's selection as a test on a finding of a dimension: its dimensions, its principle; every finding without one. */
 function selectionKeeps({ dimensions, principle }) {
   if (!dimensions) return () => true;
-  const dims = new Set(dimensions.map(lower));
-  return (item, dim) => dims.has(lower(dim.dimension)) && (!principle || lower(item.principle) === lower(principle));
+  const dims = new Set(dimensions.map(nameKey));
+  return (item, dim) => dims.has(nameKey(dim.dimension)) && (!principle || nameKey(item.principle) === nameKey(principle));
 }
 
 /** What each kind keeps of a dimension's findings (`item`, of dimension `dim`). */

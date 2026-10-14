@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sinceSummary, previousPeriodRunId, topMovers } from './sinceSummary.js';
+import { sinceSummary, runClosingPreviousPeriod, topMovers } from './sinceSummary.js';
 
 const finding = (principle) => ({ principle, file: 'a.py' });
 const dim = ({ added = 0, fixed = 0, newList = [], resolved = [], opened = [], closed = [] } = {}) => ({
@@ -34,13 +34,13 @@ test('sinceSummary is null when nothing was compared', () => {
   assert.equal(sinceSummary([{ dimensions: { security: dim({ added: 1 }) } }], () => false), null);
 });
 
-test('previousPeriodRunId is the row after the one on show, the newest row\'s when none is', () => {
+test('runClosingPreviousPeriod is the row after the one on show, the newest row\'s when none is', () => {
   const rows = [{ runId: 'r3' }, { runId: 'r2' }, { runId: 'r1' }];
-  assert.equal(previousPeriodRunId(rows, null), 'r2');
-  assert.equal(previousPeriodRunId(rows, 'r2'), 'r1');
-  assert.equal(previousPeriodRunId(rows, 'r1'), null);
-  assert.equal(previousPeriodRunId(rows, 'gone'), null);
-  assert.equal(previousPeriodRunId(undefined, null), null);
+  assert.equal(runClosingPreviousPeriod(rows, null), 'r2');
+  assert.equal(runClosingPreviousPeriod(rows, 'r2'), 'r1');
+  assert.equal(runClosingPreviousPeriod(rows, 'r1'), null);
+  assert.equal(runClosingPreviousPeriod(rows, 'gone'), null);
+  assert.equal(runClosingPreviousPeriod(undefined, null), null);
 });
 
 test('topMovers keeps the three largest changes that show, largest first', () => {

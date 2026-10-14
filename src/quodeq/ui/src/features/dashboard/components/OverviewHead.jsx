@@ -4,10 +4,44 @@ import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
 import { scopeMetrics, tileChanges } from '../../../models/findingMetrics.js';
 import { scoreChangeShows } from '../../../utils/trendUtils.js';
 import { heroCardHandlers } from './heroSectionParts.jsx';
-import { overviewSub } from '../overviewHeadModel.js';
+import { partialDimensionCount } from '../overviewHeadModel.js';
+import { extDisplayName } from '../../../utils/formatters.js';
+import { pluralKey } from '../../../utils/plural.js';
 import { useRunModel } from '../hooks/useOverviewPeriod.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
-import { t } from '../../../strings/index.js';
+import { t, LOCALE } from '../../../strings/index.js';
+
+const MAX_LANGS_IN_SUB = 5;
+const LANGS_SEP = '  ';
+const SIZE_SEP = '  ·  ';
+
+/** The project's size first ("3,925 files"), then its top languages; null when neither is known. */
+export function languageSub(projectInfo) {
+  const files = projectInfo?.filesCount;
+  const total = files != null ? t('overview.filesTotal', { count: files.toLocaleString(LOCALE) }) : null;
+  const stats = projectInfo?.languageStats;
+  const sorted = stats ? Object.entries(stats).sort(([, a], [, b]) => b - a).slice(0, MAX_LANGS_IN_SUB) : [];
+  const langs = sorted.map(([lang, count]) => `${count} ${extDisplayName(lang).toLowerCase()}`).join(LANGS_SEP);
+  if (!total) return langs || null;
+  return langs ? `${total}${SIZE_SEP}${langs}` : total;
+}
+
+/**
+ * The Overview's sub line, as the other pages': what it is (the project's
+ * files and languages), when and by which model it was last evaluated, and
+ * a warning only when a dimension's files read round below 100%.
+ * @param {{projectInfo?: object, lastDate?: ?string, model?: ?string, dimensions?: object[]}} args
+ * @returns {?string}
+ */
+export function overviewSub({ projectInfo, lastDate = null, model = null, dimensions = [] }) {
+  const partial = partialDimensionCount(dimensions);
+  return [
+    languageSub(projectInfo),
+    lastDate ? t('overview.subEvaluated', { date: lastDate }) : null,
+    model ? t('overview.subModel', { model }) : null,
+    partial ? t(pluralKey(partial, 'overview.subPartialOne', 'overview.subPartial'), { count: partial }) : null,
+  ].filter(Boolean).join(t('violations.wbDot')) || null;
+}
 
 /** Beside the title: the score's trend (none under 0.05), and the shared badge on a shared project. */
 function HeadBadge({ delta, shared, publishedBy }) {
