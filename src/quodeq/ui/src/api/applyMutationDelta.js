@@ -156,25 +156,6 @@ function patchTrendDetail(detail, scoreByDim) {
     ...detail,
     score: Number.isFinite(score) ? score : detail.score,
     grade: resc.overallGrade ?? detail.grade,
-    ...patchTrendPrinciples(detail.principles, resc.principles),
-  };
-}
-
-// The detail's per-principle points take the rescored principle grades too
-// (by name), so a principle's history moves with the dismiss like its
-// dimension's. The delta carries no per-principle counts: they reconcile on
-// the refetch, as the dimension detail's counts do. A detail from before the
-// field (no principles key) stays without it.
-function patchTrendPrinciples(principles, rescored) {
-  if (!Array.isArray(principles) || !Array.isArray(rescored)) return {};
-  const byName = new Map(rescored.map((p) => [p.principle, p]));
-  return {
-    principles: principles.map((p) => {
-      const resc = byName.get(p?.principle);
-      if (!resc) return p;
-      const score = parseFloat(resc.score);
-      return { ...p, score: Number.isFinite(score) ? score : p.score, grade: resc.grade ?? p.grade };
-    }),
   };
 }
 

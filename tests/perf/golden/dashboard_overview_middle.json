@@ -177,24 +177,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 3,
-          "principles": [
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Custom Practice",
-              "score": 9.8,
-              "violations": 1
-            },
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Integrity",
-              "score": 9.6,
-              "violations": 2
-            }
-          ],
           "score": 9.7,
           "violations": 3
         }
@@ -226,24 +208,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 2,
-          "principles": [
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Confidentiality",
-              "score": 9.8,
-              "violations": 1
-            },
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Integrity",
-              "score": 9.8,
-              "violations": 1
-            }
-          ],
           "score": 9.8,
           "violations": 2
         }
@@ -275,16 +239,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 3,
-          "principles": [
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Confidentiality",
-              "score": 9.4,
-              "violations": 3
-            }
-          ],
           "score": 9.4,
           "violations": 3
         }
@@ -316,16 +270,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 4,
-          "principles": [
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Confidentiality",
-              "score": 9.3,
-              "violations": 4
-            }
-          ],
           "score": 9.3,
           "violations": 4
         }
@@ -357,16 +301,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 5,
-          "principles": [
-            {
-              "critical": 0,
-              "grade": "Exemplary",
-              "majors": 0,
-              "principle": "Confidentiality",
-              "score": 9.1,
-              "violations": 5
-            }
-          ],
           "score": 9.1,
           "violations": 5
         }

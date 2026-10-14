@@ -19,22 +19,6 @@ class RunInfoPayload(TypedDict):
     dateLabel: str
 
 
-class PrincipleDetail(TypedDict):
-    """One principle's score, grade and active-violation counts within a run's dimension detail.
-
-    Wire shape of ``trend[].dimensionDetails[].principles``: compact on
-    purpose, no finding lists. ``majors`` counts criticals and majors, as the
-    dimension's does. The counts are None when the run's cached row predates
-    them (unknown, not zero).
-    """
-    principle: str
-    score: float | None
-    grade: str | None
-    critical: int | None
-    majors: int | None
-    violations: int | None
-
-
 class DimensionDetail(TypedDict):
     """One dimension's score/grade/delta within a single run's trend entry.
 
@@ -49,7 +33,6 @@ class DimensionDetail(TypedDict):
     majors: int
     openTypes: int
     critical: int
-    principles: list[PrincipleDetail]
 
 
 class TrendEntry(TypedDict):

@@ -8,13 +8,10 @@ from quodeq.core.scoring.internals import score_to_grade_label
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.core.scoring.report_grades import most_frequent_grade, parse_numeric_score
 from quodeq.core.types import DimensionResult
-from quodeq.core.types.principle_counts import principles_with_counts
-from quodeq.core.types.report import PrincipleCounts
 from quodeq.core.types.severity import Severity
-from quodeq.core.types.trend import DimensionDetail, PrincipleDetail, RunInfoPayload, TrendEntry
+from quodeq.core.types.trend import DimensionDetail, RunInfoPayload, TrendEntry
 from quodeq.data.fs.report_parser.runs import RunInfo
 from quodeq.services.accumulated import numeric_average
-from quodeq.services.score_cache import run_rows
 
 
 def run_info_payload(info: RunInfo) -> RunInfoPayload:
@@ -45,33 +42,8 @@ def _build_dimension_details(
             "grade": dim.overall_grade,
             "delta": delta,
             **dimension_counts(dim),
-            "principles": _principle_details(dim),
         })
     return details
-
-
-def _principle_details(dim: DimensionResult) -> list[PrincipleDetail]:
-    """Each graded principle of *dim*: its score as the principle grades show it, its grade, and its counts.
-
-    Counted over the live findings (after dismissals), like the dimension's
-    own counts; unknown counts (an older cached row) stay None.
-    """
-    return [
-        {
-            "principle": p.principle,
-            "score": parse_numeric_score(p.score) if p.score else None,
-            "grade": p.grade,
-            **_principle_count_fields(p.counts),
-        }
-        for p in principles_with_counts(dim) if p.principle
-    ]
-
-
-def _principle_count_fields(counts: PrincipleCounts | None) -> dict[str, int | None]:
-    """The wire counts of one principle; ``majors`` adds the criticals, as a dimension's does."""
-    if counts is None:
-        return {"critical": None, "majors": None, "violations": None}
-    return {"critical": counts.critical, "majors": counts.critical + counts.major, "violations": counts.violations}
 
 
 _BLOCKING = frozenset({Severity.CRITICAL, Severity.MAJOR})
@@ -158,8 +130,6 @@ def build_accumulated_trend(
 ) -> list[TrendEntry]:
     """Build trend using accumulated scores across all runs (oldest to newest).
 
-    Each run is read through *get_run_dimensions*' rows (``run_rows``), the
-    shape that keeps the principle grades the per-principle series needs.
     When *params* is None, the saved grade-formula params are loaded so the
     per-run and accumulated grade labels honour the user's custom formula.
     """
@@ -169,10 +139,8 @@ def build_accumulated_trend(
     trend: list[TrendEntry] = []
     acc_by_dim: dict[str, DimensionResult] = {}
     prev_by_dim: dict[str, DimensionResult] = {}
-    # The rows, not the history-context shape: they carry the principle grades.
-    get_rows = run_rows(get_run_dimensions)
     for item in reversed(runs):  # oldest -> newest
-        run_dims = get_rows(item.run_id)
+        run_dims = get_run_dimensions(item.run_id)
         for dim in run_dims:
             if dim.dimension:
                 acc_by_dim[dim.dimension] = dim
@@ -200,11 +168,10 @@ def build_partial_run_entries(
         from quodeq.services import grade_formula  # noqa: PLC0415
         params = grade_formula.load_params()
     entries: list[TrendEntry] = []
-    get_rows = run_rows(get_run_dimensions)
     for item in runs:
         if item.status is not RunState.CANCELLED:
             continue
-        run_dims = get_rows(item.run_id)
+        run_dims = get_run_dimensions(item.run_id)
         if not run_dims:
             continue
         entries.append(_build_trend_entry(item, run_dims, {}, {}, params))
