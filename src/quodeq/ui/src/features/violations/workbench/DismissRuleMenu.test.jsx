@@ -10,20 +10,22 @@ const row = {
 };
 
 describe('DismissRuleMenu', () => {
-  it('names the rule on a launcher and renders its menu outside the panel', async () => {
+  it('keeps the bulk dismiss behind a ⋯ named for the rule, its menu outside the panel', async () => {
     const { container } = render(<div className="wb-detail"><DismissRuleMenu row={row} onDismissType={vi.fn()} /></div>);
-    await userEvent.click(screen.getByRole('button', { name: 'dismiss all R-FT-2' }));
+    expect(screen.queryByRole('menuitem')).toBeNull();
+    expect(screen.queryByText(/Dismiss all/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'more actions on R-FT-2' }));
     const menu = screen.getByRole('menu');
     expect(container.contains(menu)).toBe(false);
-    expect(screen.getByRole('menuitem', { name: 'Dismiss all 3 in this project' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'Dismiss all 2 in Fault Tolerance' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Dismiss all 3 R-FT-2 in this project' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Dismiss all 2 R-FT-2 in Fault Tolerance' })).toBeInTheDocument();
   });
 
   it('picking a scope dismisses the rule in it', async () => {
     const onDismissType = vi.fn();
     render(<DismissRuleMenu row={row} onDismissType={onDismissType} />);
-    await userEvent.click(screen.getByRole('button', { name: 'dismiss all R-FT-2' }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Dismiss all 2 in Fault Tolerance' }));
+    await userEvent.click(screen.getByRole('button', { name: 'more actions on R-FT-2' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Dismiss all 2 R-FT-2 in Fault Tolerance' }));
     expect(onDismissType).toHaveBeenCalledWith(row, 'principle');
     expect(screen.queryByRole('menu')).toBeNull();
   });

@@ -79,11 +79,11 @@ export default function FindingDetail({ finding, dims, findings, onAddPath, acti
         <EvalViolationCard v={{ ...violation, principle: finding.principle, dimension: finding.dimension }} principle={finding.principle} index={0} readOnly={readOnly}
           onDismiss={open && onDismiss ? (v) => onDismiss(v, finding.runId) : undefined} />
         {!open && <DismissedActions finding={finding} onRestore={onRestore} onDelete={onDelete} />}
-        <div className="wb-actions">
-          {open && onDismissType && finding.runId != null && <DismissRuleMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
+        <div className="wb-actions wb-actions--end">
           {finding.file && onOpenFile && (
-            <button type="button" className="eval-pill-btn wb-actions__right" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
+            <button type="button" className="eval-pill-btn" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
           )}
+          {open && onDismissType && finding.runId != null && <DismissRuleMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
         </div>
       </div>
     </section>
