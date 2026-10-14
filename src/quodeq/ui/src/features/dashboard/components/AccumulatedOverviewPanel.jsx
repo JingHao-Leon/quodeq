@@ -15,7 +15,7 @@ import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
 import { DEFAULT_SCORE_HISTORY_GRANULARITY } from '../../../constants.js';
-import { buildHeadline, filterSinceBaseline, periodChipDeltas, sumSinceBaseline } from '../headlineStats.js';
+import { buildHeadline, filterSinceBaseline, sumSinceBaseline } from '../headlineStats.js';
 import { useAccumulatedComputations, computeAccumulatedStats } from '../hooks/useAccumulatedComputations.js';
 import { usePreviousPeriodMetrics, useOverviewSince } from '../hooks/useOverviewPeriod.js';
 import { weakestDimensionFirst, dimensionPoints, overviewPastRun } from '../overviewHeadModel.js';
@@ -197,7 +197,7 @@ function AccumulatedOverviewSections({
   return (
     <>
       <OverviewHead data={data} accumulated={filteredAccumulated} stats={filteredStats} headline={headline} previous={view.previous}
-        deltas={periodChipDeltas(filteredPeriodTrend, currentOverviewRun)} pastRun={view.pastRun} onCardNavigate={onCardNavigate} />
+        pastRun={view.pastRun} onCardNavigate={onCardNavigate} />
 
       <SinceStrip summary={view.since} granularity={granularity} movers={topMovers(dimTrends)} onMover={moverNavigate(view.sorted, onDimensionClick)} />
 
@@ -234,8 +234,6 @@ export default function AccumulatedOverviewPanel({ data, callbacks }) {
   );
 
   // Only the dimensions on show: a hidden standard must not move the report.
-  // (The header's severities take their deltas from the period trend instead,
-  // so they follow the chart's grouping like the score arrow; see periodChipDeltas.)
   const since = useMemo(
     () => sumSinceBaseline(filterSinceBaseline(data.sinceBaseline, (filteredDimensions || []).map((d) => d.dimension))),
     [data.sinceBaseline, filteredDimensions],
