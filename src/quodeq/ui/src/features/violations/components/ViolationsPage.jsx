@@ -11,7 +11,7 @@ import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import FindingsWorkbench from '../workbench/FindingsWorkbench.jsx';
 import { sevAbbr } from '../workbench/sevWords.js';
 import { formatShortDate } from '../../../utils/formatters.js';
-import { useAsOfScores } from '../hooks/useAsOfScores.js';
+import { useShownData } from '../hooks/useAsOfScores.js';
 
 const SUMMARY_SEP = ' · ';
 
@@ -62,20 +62,6 @@ function AsOfBanner({ asOf, onBack }) {
       {onBack && <button type="button" className="wb-link" onClick={onBack}>{t('violations.asOfBack')}</button>}
     </div>
   );
-}
-
-/** Today's findings, or a past day's (`asOf`) read as of that day's last run. */
-function useShownData(data) {
-  const { selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null } = data;
-  const past = useAsOfScores(selectedProject, selectedSource, asOf);
-  if (!asOf) return data;
-  return {
-    ...data,
-    accumulatedDimensions: past.data?.accumulated?.dimensions || [],
-    loading: past.isLoading,
-    isFetching: past.isFetching,
-    error: past.error || null,
-  };
 }
 
 export default function ViolationsPage({ data: given, callbacks, workbench = null, onWorkbenchChange }) {

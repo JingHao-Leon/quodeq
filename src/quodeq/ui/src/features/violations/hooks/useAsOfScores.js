@@ -3,6 +3,7 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { projectKeys } from '../../../api/queryKeys.js';
 import { refetchWhilePendingOrError } from '../../../hooks/queryDefaults.js';
 import { isPendingPayload } from '../../../api/scoresShape.js';
+import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 
 /**
  * The project's scores as of a past run (the same query, and cache entry, the
@@ -23,4 +24,18 @@ export function useAsOfScores(project, source, asOf) {
   });
   const pending = isPendingPayload(query.data);
   return { ...query, data: pending ? undefined : query.data, isLoading: query.isLoading || pending };
+}
+
+/** Today's findings, or a past day's (`asOf`) read as of that day's last run. */
+export function useShownData(data) {
+  const { selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null } = data;
+  const past = useAsOfScores(selectedProject, selectedSource, asOf);
+  if (!asOf) return data;
+  return {
+    ...data,
+    accumulatedDimensions: past.data?.accumulated?.dimensions || [],
+    loading: past.isLoading,
+    isFetching: past.isFetching,
+    error: past.error || null,
+  };
 }

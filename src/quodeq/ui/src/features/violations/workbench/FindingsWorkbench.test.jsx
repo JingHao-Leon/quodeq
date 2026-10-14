@@ -9,8 +9,8 @@ import { flattenFindings } from './workbenchModel.js';
 import { makeDims, makeDismissed } from './_workbench.fixtures.js';
 
 vi.mock('./FindingDetail.jsx', () => ({
-  default: ({ finding, onOpenFile, onAddPath }) => (
-    <div data-testid="detail">{finding?.title || 'none'}{onOpenFile && <button type="button" onClick={() => onOpenFile(finding)}>open</button>}
+  default: ({ finding, actions, onAddPath }) => (
+    <div data-testid="detail">{finding?.title || 'none'}{actions?.onOpenFile && <button type="button" onClick={() => actions.onOpenFile(finding)}>open</button>}
       <button type="button" onClick={() => onAddPath(finding.file)}>file link</button>
       <button type="button" onClick={() => onAddPath(finding.file.slice(0, finding.file.lastIndexOf('/') + 1))}>folder link</button>
     </div>
