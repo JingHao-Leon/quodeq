@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildHeadline, chipDeltas, dimensionHeadlineInput, dimensionOpenTypes, filterSinceBaseline, periodChipDeltas, runCounts, sumSinceBaseline, SCOPE_ALL, SCOPE_CHANGED, SCOPE_MIXED } from './headlineStats.js';
+import { buildHeadline, chipDeltas, dimensionOpenTypes, filterSinceBaseline, periodChipDeltas, runCounts, sumSinceBaseline, SCOPE_ALL, SCOPE_CHANGED, SCOPE_MIXED } from './headlineStats.js';
 
 const dim = (over = {}) => ({
   dimension: 'maintainability',
@@ -105,11 +105,11 @@ test('filterSinceBaseline keeps only the named dimensions, case-insensitively', 
   assert.deepEqual(filterSinceBaseline(undefined, ['x']), {});
 });
 
-test('dimensionHeadlineInput shapes the dimension page data for buildHeadline', () => {
-  const input = dimensionHeadlineInput([{ req: 'A', severity: 'major' }, { req: 'B', severity: 'minor' }], { critical: 0, major: 1, minor: 1 }, { filesRead: 50, sourceFileCount: 100 });
-  const h = buildHeadline([input]);
+test('buildHeadline reads one dimension\'s density and coverage from its files read', () => {
+  const one = (violations, severity, files) => ({ totals: { violationCount: violations.length, severity }, violations, ...files });
+  const h = buildHeadline([one([{ req: 'A', severity: 'major' }, { req: 'B', severity: 'minor' }], { critical: 0, major: 1, minor: 1 }, { filesRead: 50, sourceFileCount: 100 })]);
   assert.deepEqual([h.majors, h.critical, h.openTypes, h.violations, h.density, h.coveragePct], [1, 0, 2, 2, 4, 50]);
-  assert.equal(buildHeadline([dimensionHeadlineInput([], { critical: 0, major: 0, minor: 0 }, {})]).density, null);
+  assert.equal(buildHeadline([one([], { critical: 0, major: 0, minor: 0 }, {})]).density, null);
 });
 
 test('runCounts sums dimensionDetails and ignores the top-level totals when details exist', () => {

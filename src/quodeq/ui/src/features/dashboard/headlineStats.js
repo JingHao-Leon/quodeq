@@ -168,20 +168,6 @@ export function filterSinceBaseline(sinceBaseline, dimensionNames) {
   return Object.fromEntries(Object.entries(sinceBaseline || {}).filter(([k]) => wanted.has(k.toLowerCase())));
 }
 
-/**
- * One dimension as `buildHeadline` expects it, from what the dimension page
- * holds: its own violation list, severity counts and the eval report's file
- * counts.
- */
-export function dimensionHeadlineInput(allViolations, severity, evalData) {
-  return {
-    totals: { violationCount: (allViolations || []).length, severity: severity || {} },
-    violations: allViolations || [],
-    filesRead: evalData?.filesRead,
-    sourceFileCount: evalData?.sourceFileCount,
-  };
-}
-
 function sumDetail(details, field) {
   const values = details.map((d) => d?.[field]).filter(isNumber);
   return values.length > 0 ? values.reduce((a, b) => a + b, 0) : null;
