@@ -12,7 +12,7 @@ import DimensionScoreHistoryPanel from './DimensionScoreHistoryPanel.jsx';
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import { scopeMetrics } from '../../../models/findingMetrics.js';
 import { GRADE } from '../../../vocab/grade.js';
-import { HERO_CARD_KIND } from '../../dashboard/dashboardVocab.js';
+import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
 import ExplorerRadialPanel from './ExplorerRadialPanel.jsx';
 import { useExplorerPageSpecs } from './useExplorerPageSpecs.jsx';
 import { buildRadialPrinciples, buildEnrichedPrinciples } from './explorerPrincipleView.js';

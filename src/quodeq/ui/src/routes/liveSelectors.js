@@ -38,14 +38,12 @@ export function liveAccumulated(props) {
  * @returns {string|null}
  */
 export function latestRunOf(props, dimension) {
-  const dims = props?.dashboardData?.latestAccumulated?.dimensions || [];
-  return dims.find((d) => d.dimension === dimension)?.fromRunId ?? null;
+  return dimensionNamed(props?.dashboardData?.latestAccumulated, dimension)?.fromRunId ?? null;
 }
 
 /** The files today's run of a dimension read, or null when the dashboard does not know it. */
 export function latestFilesReadOf(props, dimension) {
-  const dims = props?.dashboardData?.latestAccumulated?.dimensions || [];
-  return dims.find((d) => d.dimension === dimension)?.filesRead ?? null;
+  return dimensionNamed(props?.dashboardData?.latestAccumulated, dimension)?.filesRead ?? null;
 }
 
 function dimensionNamed(accumulated, name) {

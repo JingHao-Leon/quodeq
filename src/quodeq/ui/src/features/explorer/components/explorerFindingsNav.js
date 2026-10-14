@@ -1,7 +1,6 @@
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
-import { HERO_CARD_KIND } from '../../dashboard/dashboardVocab.js';
-import { SCOPE_KIND, openScope } from '../../violations/scope/scopeModel.js';
+import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { runAsOf } from '../../violations/asOf.js';
 
 /**
@@ -21,12 +20,10 @@ export function explorerAsOf(activeRunId, latestRunId, trend) {
   return runAsOf(activeRunId, (trend || []).find((p) => p.runId === activeRunId)?.dateISO);
 }
 
-const heroFilter = (kind) => (kind === HERO_CARD_KIND.VIOLATIONS ? null : kind);
-
 function scopedNav({ dimension, scoped, onNavigate, activeRunId, trend }) {
   const asOf = explorerAsOf(activeRunId, scoped.latestRunId, trend);
   return {
-    toCard: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.DIMENSION, dimension, filter: heroFilter(kind) }, asOf),
+    toCard: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.DIMENSION, dimension, filter: cardFilter(kind) }, asOf),
     toFile: (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf),
     toPrinciple: (name) => openScope(onNavigate, { kind: SCOPE_KIND.PRINCIPLE, dimension, principle: name }, asOf),
   };
@@ -35,7 +32,7 @@ function scopedNav({ dimension, scoped, onNavigate, activeRunId, trend }) {
 function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabel, sourceTab, buildEvalPrincipal }) {
   const at = { runId: activeRunId, dateLabel: activeDateLabel, sourceTab, fromProject: project };
   return {
-    toCard: (kind) => onNavigate?.(NAV_TAB.FILE, { file: dimFile, severityFilter: heroFilter(kind) || SEVERITY_FILTER_ALL, ...at }),
+    toCard: (kind) => onNavigate?.(NAV_TAB.FILE, { file: dimFile, severityFilter: cardFilter(kind) || SEVERITY_FILTER_ALL, ...at }),
     toFile: (f) => onNavigate?.(NAV_TAB.FILE, { file: f, ...at }),
     toPrinciple: (name) => onNavigate?.(NAV_TAB.EVAL_PRINCIPLE, { evalPrincipal: buildEvalPrincipal?.(name), sourceTab }),
   };

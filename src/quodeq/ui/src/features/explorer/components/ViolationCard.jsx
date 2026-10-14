@@ -1,31 +1,15 @@
 import { memo } from 'react';
-import { FindingDetailBody } from '../../../components/findingDetail.jsx';
+import { FindingDetailBody, DowngradeTags } from '../../../components/findingDetail.jsx';
 import { ViolationActions } from './violationActions.jsx';
 import { parseFileRef } from '../../../utils/formatters.js';
-import { t } from '../../../strings/index.js';
-import { severityLabel, scopeGateRuleLabel } from '../../../strings/labels.js';
+import { severityLabel } from '../../../strings/labels.js';
 
 function ViolationCardMarkup({ v, filename, display, refText, onDismiss, readOnly }) {
   return (
     <div className={`vdetail-row vdetail-row--${v.severity}`}>
       <div className="vdetail-row-main">
         <span className={`severity-tag ${v.severity}`}>{severityLabel(v.severity)}</span>
-        {v.provenanceDowngrade && (
-          <span
-            className="provenance-downgrade-tag"
-            title={t('explorer.provenanceDowngradeTitle')}
-          >
-            {t('explorer.downgradedFromCritical')}
-          </span>
-        )}
-        {v.scopeDowngrade && (
-          <span
-            className="scope-downgrade-tag"
-            title={t('explorer.scopeDowngradeTitle')}
-          >
-            {t('explorer.scopeDowngradeBadge', { rule: scopeGateRuleLabel(v.scopeDowngrade.rule) })}
-          </span>
-        )}
+        <DowngradeTags v={v} />
         {v.dimension && <span className="vrow-label">[{v.dimension}]</span>}
         {v.principle && <span className="vrow-label">[{v.principle}]</span>}
         {filename && <span className="vlive-detail-file" title={refText}>{display}</span>}

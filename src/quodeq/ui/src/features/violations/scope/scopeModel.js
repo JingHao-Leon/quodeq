@@ -2,6 +2,7 @@ import { buildProjectRootFile } from '../../../utils/explorerUtils.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { FINDING_TYPE } from '../../../vocab/findingType.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
+import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
 import { t } from '../../../strings/index.js';
 
 /** What a scoped Findings view is about. */
@@ -15,6 +16,9 @@ const SLASH = '/';
 
 const isText = (x) => typeof x === 'string' && x.length > 0;
 const textList = (x) => (Array.isArray(x) ? x.filter(isText) : []);
+
+/** The filter a findings number opens its scope on: every violation (no filter), a severity, or the compliant checks. */
+export const cardFilter = (kind) => (kind === HERO_CARD_KIND.VIOLATIONS ? null : kind);
 
 /** The fields each kind needs, read from a navigation param. */
 const READERS = {

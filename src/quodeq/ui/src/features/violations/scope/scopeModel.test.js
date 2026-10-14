@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SCOPE_KIND, openScope, readScope, scopeFindings, scopeLabel, principleGradeOf } from './scopeModel.js';
+import { SCOPE_KIND, openScope, readScope, scopeFindings, scopeLabel, principleGradeOf, cardFilter } from './scopeModel.js';
 
 const v = (over) => ({ title: 'T', severity: 'major', file: 'src/a/x.py', line: 10, req: 'R-1', principle: 'P', ...over });
 const c = (over) => ({ file: 'src/a/x.py', line: 4, req: 'R-1', principle: 'P', ...over });
@@ -122,4 +122,10 @@ test('openScope pushes the Violations tab with the scope, today or as of a past 
     ['violations', { scope: { kind: 'file', path: 'a.py' }, asOf: { runId: 'r1', day: '2026-10-01' } }],
   ]);
   assert.equal(openScope(undefined, { kind: SCOPE_KIND.PROJECT }), false);
+});
+
+test('cardFilter: the violations number opens unfiltered, a severity or the compliant checks on themselves', () => {
+  assert.equal(cardFilter('violations'), null);
+  assert.equal(cardFilter('critical'), 'critical');
+  assert.equal(cardFilter('compliance'), 'compliance');
 });

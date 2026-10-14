@@ -12,14 +12,13 @@ import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
 import { DEFAULT_SCORE_HISTORY_GRANULARITY } from '../../../constants.js';
-import { HERO_CARD_KIND } from '../dashboardVocab.js';
 import { buildHeadline, filterSinceBaseline, periodChipDeltas, sumSinceBaseline } from '../headlineStats.js';
 import { useAccumulatedComputations, computeAccumulatedStats } from '../hooks/useAccumulatedComputations.js';
 import { AccumulatedHeroSection } from './AccumulatedHeroSection.jsx';
 import { useAccumulatedReportSpec } from './accumulatedReportSpecs.jsx';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { withPending } from '../../../utils/pendingClass.js';
-import { SCOPE_KIND, openScope } from '../../violations/scope/scopeModel.js';
+import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { overviewAsOf } from '../overviewAsOf.js';
 
 const runHistoryPanelImport = () => import('./RunHistoryPanel.jsx');
@@ -123,7 +122,7 @@ function OffendingFilesSection({ topFiles, onNavigate, asOf, pending }) {
 /** The hero cards: the project's findings, opened on the card's severity or on the compliant checks. */
 function makeCardNavigate({ onNavigate, asOf }) {
   if (!onNavigate) return undefined;
-  return (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: kind === HERO_CARD_KIND.VIOLATIONS ? null : kind }, asOf);
+  return (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf);
 }
 
 /** Fix first: a requirement opens on its findings. */

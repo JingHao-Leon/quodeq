@@ -11,8 +11,7 @@ import { chipDeltas } from '../headlineStats.js';
 import { buildRunViewData } from '../runViewData.js';
 import { useRunReportSpecs } from './runReportSpecs.jsx';
 import { useRunFindings } from '../hooks/useRunFindings.js';
-import { HERO_CARD_KIND } from '../dashboardVocab.js';
-import { SCOPE_KIND, openScope } from '../../violations/scope/scopeModel.js';
+import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { runAsOf } from '../../violations/asOf.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
 
@@ -81,7 +80,7 @@ function useRunScopeNavigate({ asOf, onNavigate }) {
   return useMemo(() => {
     if (!onNavigate) return {};
     return {
-      onCardNavigate: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: kind === HERO_CARD_KIND.VIOLATIONS ? null : kind }, asOf),
+      onCardNavigate: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf),
       onFileClick: (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf),
     };
   }, [onNavigate, asOf]);
