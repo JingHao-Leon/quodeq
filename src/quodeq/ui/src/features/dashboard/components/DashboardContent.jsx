@@ -82,7 +82,7 @@ function AccumulatedContent({ data, callbacks }) {
 export default function DashboardContent({ runMode, data, focus, callbacks }) {
   const { accumulatedDimensions, availableRuns, selectedProject, projectInfo, selectedSource } = data;
   const { dimension: focusedDimension, setDimension: setFocusedDimension, dimensionData: focusedDimensionData } = focus;
-  const { onDimensionCardClick, onFileClick, onNavigate } = callbacks;
+  const { onDimensionCardClick, onNavigate } = callbacks;
   // No readiness check here on purpose: the page only mounts this component
   // once contentReady is true (see DashboardPage's return), so there is
   // exactly one place in the whole page that decides whether a loader is
@@ -99,7 +99,6 @@ export default function DashboardContent({ runMode, data, focus, callbacks }) {
         availableRuns={data.availableRuns}
         projectName={projectInfo?.displayName || projectInfo?.name || selectedProject}
         onDimensionClick={onDimensionCardClick}
-        onFileClick={onFileClick}
         onNavigate={onNavigate}
       />
     );

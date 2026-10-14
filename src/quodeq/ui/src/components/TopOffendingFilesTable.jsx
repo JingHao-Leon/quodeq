@@ -4,8 +4,8 @@
 // onFileClick is called with the file object when a row is clicked.
 
 import { memo } from 'react';
-import { GridTable, GridRow, GridCell, SevBadge } from '../../../components/terminal/index.js';
-import { t } from '../../../strings/index.js';
+import { GridTable, GridRow, GridCell, SevBadge, SectionLabel } from './terminal/index.js';
+import { t } from '../strings/index.js';
 
 /** Basename and directory from a single lastIndexOf, computed once per row. */
 function splitPath(filepath) {
@@ -14,6 +14,16 @@ function splitPath(filepath) {
   return idx >= 0
     ? { name: filepath.slice(idx + 1), dir: filepath.slice(0, idx) }
     : { name: filepath, dir: '' };
+}
+
+/** The files panel's head: its label and count, and how the files are sorted. */
+export function OffendingFilesHead({ count }) {
+  return (
+    <div className="qd-cards-panel__head">
+      <SectionLabel>{t('overview.violationsByFileLabel')} · {count}</SectionLabel>
+      <span className="run-history-panel__stats">{t('overview.sortedBySeverity')}</span>
+    </div>
+  );
 }
 
 export default memo(function TopOffendingFilesTable({ files, onFileClick }) {

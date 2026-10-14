@@ -74,12 +74,12 @@ describe('MapPage: the Risk tab', () => {
     expect(screen.queryByRole('button', { name: t('map.dimensions') })).toBeNull();
   });
 
-  it('View Details opens the Violations workbench filtered to the area, as one area chip of its paths', async () => {
+  it('View Details opens the area\'s scoped Findings view, of its paths', async () => {
     const onNavigate = vi.fn();
     renderRisk({ onNavigate });
     fireEvent.click(await screen.findByRole('button', { name: /checkout/ }));
     fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
-    expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { area: { name: 'checkout', paths: ['src/'] } } });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'area', name: 'checkout', paths: ['src/'], small: false }, asOf: null });
   });
 
   it('opens with an area selected when asked to (an area from the Overview)', async () => {

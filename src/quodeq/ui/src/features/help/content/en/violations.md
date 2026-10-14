@@ -1,6 +1,6 @@
 ## Violations & Fix Plans
 
-The **Violations** tab is where you triage findings, read the evidence, and plan fixes. Active and dismissed findings live in their own sub-tabs.
+The **Violations** tab is where you triage findings, read the evidence, and plan fixes. Open and dismissed findings live in one list, picked by its status.
 
 ### Severity levels
 
@@ -29,25 +29,40 @@ COMPLIANT   src/api.py:88       Parameterized query prevents injection     CWE-8
             cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
 ```
 
-### Four sub-tabs, one dataset
+### The workbench
 
-Use the pills at the top of the tab:
+Every finding of the project sits in one list, with the selected one in full beside it. Drag the line between them to give the list more or less room; the width is remembered.
 
-- **by-dimension** a table of dimensions with their principles indented below, showing critical, major, and minor counts, total violations, and health per row. Click a column header to sort.
-- **by-type** one row per requirement code, grouped by dimension and principle, with the count in the baseline run, the count now, the change, and a *closed* badge when a type that had findings has none. Click a row to open its findings. The row menu can dismiss every finding of the type in the project or in one principle.
-- **by-file** the same findings arranged as your directory tree, with a breadcrumb you can drill into. Useful for tracking down a single hot spot.
-- **dismissed** everything you dismissed, with its reason, ready to restore or delete for good.
+- **Search** (`grep -r`) matches a finding's title, file or rule id. Its suggestions offer files and folders: pick one to narrow the list to it as a *path* chip. A finding's detail offers the same for its own file and folder.
+- **severity**, **dimension**, **status** and **group** menus narrow and arrange the list. Status is *open*, *dismissed* or *all*. Group by requirement, file or dimension, or browse **folders** one level at a time with a breadcrumb back up.
+- An area opened from the Map's Risk tab arrives as an *area* chip. Remove a chip, or **clear** them all, to widen the list again.
+- `↑` `↓` move through the list and `/` jumps to the search.
 
 ### Drilling in
 
 | Key | Value |
 | --- | --- |
 | Click a dimension | Open the Explorer with all principles, scores, and findings. |
-| Click a principle | Open the principle detail with violations grouped by severity and a compliance list. |
-| Click a file | Open the file detail with every finding (active and compliance) for that file. |
+| Click a principle | Open the principle's findings as one page, a scoped findings view (see below). |
+| Click a file, folder, requirement or area | Open its findings as one page, the same kind of view. |
 | Click a finding | Open the leaf finding card with breadcrumb context. |
 
-In the file detail, findings the agents flagged as likely false positives sit in a collapsed **Low confidence** group, out of the way of triage. Expand it to review them.
+### One file, folder or area at a time
+
+The Overview's cards, files, requirements and folders, the Explorer's header, principles and files, and the Map's **View details** open a scoped findings view: the findings of one file, one folder (everything under it), one requirement, one dimension, one principle, one area or the whole project, read as one page. In the workbench, **open file ›** on a finding opens its file the same way. Each one is a new step, so Back returns to where you came from, and the breadcrumb names the scope: the file's name, the folder's path, the requirement, the dimension, the principle, the area, or *project*.
+
+The header names the scope and gives its numbers. A principle leads with its score ring and reads the standard's description of it under its name. Then:
+
+- **Violations** with their critical, major and minor counts.
+- **Pass rate** the compliant checks' share of every check, with both counts under it.
+- **Per 100 files** violations per 100 files, and **Critical per 1k**, critical findings per 1,000 files, the way Compare reads a project. A dimension counts over the files it read, as the dimension page does; any other scope over the files its findings are in. A single file has neither, and a principle shows **Requirements** instead: how many of its requirements fail, of how many were checked.
+- **Risk**, on a folder or an area only: the zone its weighted findings per file put it in, measured as the Map's Risk tab measures an area. Test files are left out unless the folder holds nothing else, and with fewer than three other files it is too small to judge.
+
+Below the header, the filters narrow the page to one severity or to the compliant checks; a view opened from a severity or a compliance number starts on that filter. The findings read by severity, with the compliant checks after the violations, or **by line**, down each file in order. **list** (the default) shows them one line each beside the selected finding in full, with a divider you can drag as in the workbench; **cards** shows every finding as a card with its code open, and findings flagged as likely false positives sit in a collapsed **Low confidence** group. Rows leave out what the page already names: inside a file they give the line only, inside a principle they leave the principle out.
+
+A principle's page reads in three columns: its requirements, its findings and the selected finding. Its header also shows the principle's change since the previous period. The requirements list the failing ones first, worst first, each with its severities and how many files break it, then **Passing** with the ones that only pass. Pick one to narrow the findings and the filters' counts to it; pick it again, or **All findings**, to see them all. On a narrow screen the requirements sit above the findings.
+
+Dismissing a finding from its card works as everywhere else, and the dismissal goes to the run of the finding's own dimension. A view opened from a past run (an older run picked on the Overview, a run page, a past bar in the Explorer, a past day of the Map's time-lapse) shows the findings as of that run under a banner, and is read-only: dismissing and fix plans act on today, and **Back to today** opens the same scope on today's findings.
 
 ### Fix plans
 
@@ -61,14 +76,14 @@ When the assistant verifies a finding (see *Assistant*), the row gets a checkmar
 
 If a finding is a false positive or an accepted trade-off, dismiss it from the violation detail. You will be asked for a reason. Dismissed findings:
 
-- move to the **dismissed** sub-tab,
+- move to the **dismissed** status of the list,
 - are **excluded from scoring** (the dimension score updates immediately),
 - are **excluded from future evaluations** for the same principle and file,
-- can be **restored** individually or in bulk via *Restore all*, or removed for good with *Delete* and *Delete all*.
+- can be **restored** individually, or removed for good with *Delete*. With the **dismissed** status on and nothing else narrowing the list, the ⋯ above it holds *restore all* and *delete all* for the whole project, each asking first.
 
 ### Dismissing a whole type
 
-The by-type row menu offers **Dismiss all N in this project** and **Dismiss all N in <principle>**. Each finding gets its own dismissal, written the same way as a single dismiss, so they all appear under *dismissed* and can be restored one by one or all at once. A dismissed type stops counting against the grade; the type is not closed, it is dismissed, and the Overview's open-type count no longer includes it.
+Select a finding in the workbench and open the ⋯ beside **open file ›**: it offers **Dismiss all N <requirement> in this project** and **Dismiss all N <requirement> in <principle>**, and asks before it acts. These act on many findings at once, which is why they wait behind the ⋯ while the one-finding dismiss stays on the card. Each finding gets its own dismissal, written the same way as a single dismiss, so they all appear under *dismissed* and can be restored one by one or all at once. A dismissed type stops counting against the grade; the type is not closed, it is dismissed, and the Overview's open-type count no longer includes it.
 
 ### Trust model and suppression rules
 

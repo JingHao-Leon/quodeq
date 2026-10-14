@@ -1,4 +1,3 @@
-import { treeNodeToFileObj } from '../viz/index.js';
 import { hasBodies } from '../../../models/dimension.js';
 import { useTabScopedPageState } from '../../../hooks/useTabScopedPageState.js';
 import { useDashboardFullHeight } from './useDashboardFullHeight.js';
@@ -7,8 +6,8 @@ import { useMapDisplayPrefs } from './useMapDisplayPrefs.js';
 import { useMapDimensionFilter } from './useMapDimensionFilter.js';
 import { useMapTreeState } from './useMapTreeState.js';
 import { MAP_VIEW_MODE, VIZ_STYLE, GALAXY_MODE, normalizePackMode, normalizeVizStyle } from '../mapVocab.js';
-import { NAV_TAB } from '../../../vocab/navTab.js';
-import { folderChips, openPastDetails } from '../model/pastDetails.js';
+import { nodeScope, openPastScope } from '../model/detailScopes.js';
+import { openScope } from '../../violations/scope/scopeModel.js';
 
 // Re-exported so existing importers of the tree helpers keep one seam; the
 // implementations live in mapTree.js (pure, unit-testable without the hook).
@@ -73,14 +72,10 @@ function buildMapPageResult({
     dimensions: filteredDimensions,
     callbacks: {
       onDrillDown: handleDrillDown,
-      onFileClick: (treeNode) => {
-        if (!callbacks?.onNavigate) return;
-        // A folder's details are its findings in the Violations workbench, under one folder chip; a file opens its page.
-        if (!treeNode.isFile) callbacks.onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: folderChips(treeNode.path) } });
-        else callbacks.onNavigate(NAV_TAB.FILE, { file: treeNodeToFileObj(treeNode), sourceTab: NAV_TAB.MAP });
-      },
-      // A past day's details: its findings as of that day, under the folder's or the file's chip.
-      onPastDetails: ({ path, isFile }, run) => openPastDetails(callbacks?.onNavigate, { paths: isFile ? [path] : folderChips(path) }, run),
+      // A node's details are its findings as one page (a scoped Findings view): a file's, a folder's, the project's at the root.
+      onFileClick: (treeNode) => { openScope(callbacks?.onNavigate, nodeScope(treeNode)); },
+      // A past day's details: the same, as of that day, read-only.
+      onPastDetails: (node, run) => openPastScope(callbacks?.onNavigate, nodeScope(node), run),
       onNavigate: callbacks?.onNavigate,
       onBreadcrumbNav: handleBreadcrumbNav,
     },

@@ -1,18 +1,28 @@
 /**
  * FixFirstPanel: the visible dimensions' requirements, most severe first.
- * A row opens the File page on that requirement's findings, the same live
- * selector the Violations page's By type view uses.
+ * A row opens that requirement's findings. On the Overview each row names
+ * its dimension and principle; on a dimension page (`oneDimension`) just the
+ * principle. A principle lit elsewhere on the page (`litPrinciple`, its card
+ * or radial point hovered) lights its rows.
  */
 import { useMemo, useState } from 'react';
-import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
-import { t, LOCALE } from '../../../strings/index.js';
-import { groupByRequirement } from '../findingsGrouping.js';
+import { GridTable, GridRow, GridCell, SectionLabel } from './terminal/index.js';
+import { t, LOCALE } from '../strings/index.js';
+import { groupByRequirement } from '../models/findingsGrouping.js';
 import ListShowMore from './ListShowMore.jsx';
 import { SeverityAndFilesCells } from './SeverityBadges.jsx';
 
 export const FIX_FIRST_SHOWN = 8;
 
-export default function FixFirstPanel({ dimensions, onRequirementClick }) {
+const sameName = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
+
+/** Where a row's requirement sits, as much as the page does not already say. */
+function placeOf(row, { oneDimension }) {
+  if (oneDimension) return row.principle || null;
+  return row.principle ? `${row.dimension} · ${row.principle}` : row.dimension;
+}
+
+export default function FixFirstPanel({ dimensions, onRequirementClick, oneDimension = false, litPrinciple = null }) {
   const rows = useMemo(() => groupByRequirement(dimensions), [dimensions]);
   const [open, setOpen] = useState(false);
   if (rows.length === 0) return null;
@@ -25,12 +35,13 @@ export default function FixFirstPanel({ dimensions, onRequirementClick }) {
       </div>
       <GridTable columns="110px minmax(0, 1fr) auto 48px" dense>
         {list.map((r) => (
-          <GridRow key={`${r.dimension}:${r.req}`} onClick={onRequirementClick ? () => onRequirementClick(r) : undefined}>
+          <GridRow key={`${r.dimension}:${r.req}`} lit={Boolean(litPrinciple) && sameName(r.principle, litPrinciple)}
+            onClick={onRequirementClick ? () => onRequirementClick(r) : undefined}>
             <GridCell><span className="fix-first__req">{r.req}</span></GridCell>
             <GridCell>
               <div className="offending-file-cell">
                 <span className="offending-file-name">{r.text}</span>
-                <span className="offending-file-path">{r.principle ? `${r.dimension} · ${r.principle}` : r.dimension}</span>
+                <span className="offending-file-path">{placeOf(r, { oneDimension })}</span>
               </div>
             </GridCell>
             <SeverityAndFilesCells sev={r.sev} fileCount={r.fileCount} />

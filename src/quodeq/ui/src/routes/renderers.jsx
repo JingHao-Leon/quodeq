@@ -12,6 +12,7 @@ import { isSharedSource, makeDismissHandler } from './dismissWiring.js';
 import { t } from '../strings/index.js';
 import { buildEvalPrincipal, ViolationsRoute } from './violationsRoute.jsx';
 import { liveAccumulated, liveFileFor } from './liveSelectors.js';
+import { ownProjectProps } from './explorerProps.js';
 import { mapRoute } from './mapRoute.jsx';
 import { historyRoute } from './historyRoute.jsx';
 import { compareRoute } from './compareRoute.jsx';
@@ -104,13 +105,6 @@ function gradeFormulaScope(params, props) {
   };
 }
 
-/** True when an explorer entry shows the globally selected project. */
-function showsSelectedProject(params, navigation) {
-  const project = params.fromProject || navigation.selectedProject;
-  const source = params.fromSource || navigation.selectedSource;
-  return project === navigation.selectedProject && isSharedSource(source) === isSharedSource(navigation.selectedSource);
-}
-
 export const ROUTE_RENDERERS = {
   overview: (params, props) => dashboardElement(props, false, {
     onRunSelect: props.navigation.handleRunSelect,
@@ -134,12 +128,9 @@ export const ROUTE_RENDERERS = {
       selectedSource={params.fromSource || props.navigation.selectedSource}
       onNavigate={props.navigation.handleNavigate}
       refreshSignal={props.dashboardData.dashboard}
-      // The dashboard's trend is the SELECTED project's: a cross-project
-      // entry (fromProject/fromSource) passes null so the page reads its
-      // own project's history instead of charting the selection's.
-      trend={showsSelectedProject(params, props.navigation) ? (props.dashboardData.dashboard?.trend || []) : null}
       granularity={props.dashboardData.granularity}
       onGranularityChange={props.dashboardData.onGranularityChange}
+      {...ownProjectProps(params, props)}
     />
   ),
   evaluate: (params, props) => {

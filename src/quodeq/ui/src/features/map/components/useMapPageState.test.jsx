@@ -111,27 +111,33 @@ describe('useMapPageState: dimension source while accumulated is loading', () =>
 const firstFile = (node) => (node.isFile ? node : node.children.map(firstFile).find(Boolean));
 
 describe('useMapPageState: View Details on a Circle Pack or Galaxy node', () => {
-  it('a folder opens the Violations workbench under one folder chip', () => {
+  it('a folder opens its scoped Findings view', () => {
     const onNavigate = vi.fn();
     const { result } = setup({ callbacks: { onNavigate } });
     result.current.callbacks.onFileClick({ isFile: false, path: 'src/app', name: 'app' });
-    expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { paths: ['src/app/'] } });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'folder', path: 'src/app' }, asOf: null });
   });
 
-  it('the project root opens the workbench with no chip', () => {
+  it('the project root opens the project\'s', () => {
     const onNavigate = vi.fn();
     const { result } = setup({ callbacks: { onNavigate } });
     result.current.callbacks.onFileClick({ isFile: false, path: '', name: 'proj-x' });
-    expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { paths: [] } });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'project' }, asOf: null });
   });
 
-  it('a file still opens its own page', () => {
+  it('a file opens the file\'s', () => {
     const onNavigate = vi.fn();
     const violations = [{ file: 'src/app/a.py', severity: 'minor', principle: 'P1' }];
     const data = { projectName: 'proj-x', accumulated: { dimensions: [{ dimension: 'Security', violations, compliance: [] }] } };
     const { result } = setup({ data, callbacks: { onNavigate } });
-    const fileNode = firstFile(buildFileTree(data.accumulated.dimensions));
-    result.current.callbacks.onFileClick(fileNode);
-    expect(onNavigate).toHaveBeenCalledWith('file', expect.objectContaining({ sourceTab: 'map', file: expect.objectContaining({ file: 'src/app/a.py' }) }));
+    result.current.callbacks.onFileClick(firstFile(buildFileTree(data.accumulated.dimensions)));
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'file', path: 'src/app/a.py' }, asOf: null });
+  });
+
+  it('a past day of the time-lapse opens the same scope as of that day', () => {
+    const onNavigate = vi.fn();
+    const { result } = setup({ callbacks: { onNavigate } });
+    expect(result.current.callbacks.onPastDetails({ path: 'src/app', isFile: false }, { runId: 'r3', day: '2026-09-01' })).toBe(true);
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'folder', path: 'src/app' }, asOf: { runId: 'r3', day: '2026-09-01' } });
   });
 });

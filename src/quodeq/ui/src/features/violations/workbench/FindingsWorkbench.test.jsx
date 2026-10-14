@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
+import { t } from '../../../strings/index.js';
 import FindingsWorkbench from './FindingsWorkbench.jsx';
 import { LIST_CAP } from './FindingList.jsx';
 import { flattenFindings } from './workbenchModel.js';
@@ -159,16 +160,18 @@ describe('FindingsWorkbench', () => {
     expect(screen.getByTestId('detail')).toHaveTextContent('Key logged');
   });
 
-  it('bulk restore and delete name the whole project and show only when nothing narrows the list', () => {
+  it('bulk restore and delete wait behind a ⋯, name the whole project and show only when nothing narrows the list', () => {
     const actions = { onRestoreAll: vi.fn(), onDeleteAll: vi.fn() };
     const two = [...makeDismissed(), { ...makeDismissed()[0], title: 'Older', line: 9 }];
     const { unmount } = render(<Harness initial={{ status: 'dismissed' }} dismissed={two} actions={actions} />);
-    fireEvent.click(screen.getByRole('button', { name: 'delete all 2 in project' }));
+    expect(screen.queryByRole('button', { name: /delete all/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: t('violations.wbDismissedMore') }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'delete all 2 in project' }));
     expect(actions.onDeleteAll).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('alertdialog')).toBeNull();
     unmount();
     render(<Harness initial={{ status: 'dismissed', q: 'old' }} dismissed={two} actions={actions} />);
-    expect(screen.queryByRole('button', { name: /restore all/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: t('violations.wbDismissedMore') })).toBeNull();
   });
 
   it('a severity, dimension, path or area filter hides the bulk actions too', () => {
@@ -177,7 +180,7 @@ describe('FindingsWorkbench', () => {
     const area = { name: 'legacy', paths: ['src/c/'] };
     [{ severity: 'minor' }, { dimension: 'maintainability' }, { paths: ['src/c/'] }, { area }].forEach((narrow) => {
       const { unmount } = render(<Harness initial={{ status: 'dismissed', ...narrow }} dismissed={two} actions={actions} />);
-      expect(screen.queryByRole('button', { name: /restore all/ })).toBeNull();
+      expect(screen.queryByRole('button', { name: t('violations.wbDismissedMore') })).toBeNull();
       unmount();
     });
   });

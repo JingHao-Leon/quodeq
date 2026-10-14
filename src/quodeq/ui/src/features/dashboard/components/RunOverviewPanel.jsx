@@ -1,21 +1,18 @@
 import { withPending } from '../../../utils/pendingClass.js';
 import { useMemo } from 'react';
 import LoadingScreen from '../../../components/LoadingScreen.jsx';
-import TopOffendingFilesTable from './TopOffendingFilesTable.jsx';
+import TopOffendingFilesTable from '../../../components/TopOffendingFilesTable.jsx';
 import DimensionGaugeCard from './DimensionGaugeCard.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
 
-import { buildProjectRootFile } from '../../../utils/explorerUtils.js';
-import { formatRunId } from '../../../utils/formatters.js';
 import { t } from '../../../strings/index.js';
 import { RunHeroSection } from './RunHeroSection.jsx';
 import { chipDeltas } from '../headlineStats.js';
 import { buildRunViewData } from '../runViewData.js';
 import { useRunReportSpecs } from './runReportSpecs.jsx';
 import { useRunFindings } from '../hooks/useRunFindings.js';
-import { HERO_CARD_KIND } from '../dashboardVocab.js';
-import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
-import { NAV_TAB } from '../../../vocab/navTab.js';
+import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
+import { runAsOf } from '../../violations/asOf.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
 
 export { RunHeroSection };
@@ -77,16 +74,16 @@ function useTrendDeltas(dashboard) {
   }, [dashboard]);
 }
 
-function useCardNavigate({ dimensions, selectedRunId, projectName, runDateLabel, onNavigate }) {
+// A chosen run's findings open as scoped Findings views as of that run,
+// read-only: the hero cards the project on their filter, a file row the file.
+function useRunScopeNavigate({ asOf, onNavigate }) {
   return useMemo(() => {
-    if (!onNavigate) return undefined;
-    return (kind) => {
-      const label = `${projectName || 'project'} · ${runDateLabel || 'run'}`;
-      const projectFile = buildProjectRootFile(dimensions, label);
-      const severityFilter = kind === HERO_CARD_KIND.VIOLATIONS ? SEVERITY_FILTER_ALL : kind;
-      onNavigate(NAV_TAB.FILE, { file: projectFile, severityFilter, runId: selectedRunId, dateLabel: runDateLabel });
+    if (!onNavigate) return {};
+    return {
+      onCardNavigate: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf),
+      onFileClick: (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf),
     };
-  }, [onNavigate, dimensions, projectName, runDateLabel, selectedRunId]);
+  }, [onNavigate, asOf]);
 }
 
 // The run's derived view data: summary, worst files, hero-card navigation and
@@ -101,19 +98,19 @@ function useRunOverviewModel({ dashboard, selectedRunId, selectedProject, select
     () => buildRunViewData(dashboard, findings.dimensions),
     [dashboard, findings.dimensions],
   );
-  const runDateLabel = dashboard?.selectedRun?.dateLabel || formatRunId(selectedRunId);
-  const onCardNavigate = useCardNavigate({ dimensions, selectedRunId, projectName, runDateLabel, onNavigate });
+  const asOf = useMemo(() => runAsOf(runId, dashboard?.selectedRun?.dateISO), [runId, dashboard?.selectedRun?.dateISO]);
+  const { onCardNavigate, onFileClick } = useRunScopeNavigate({ asOf, onNavigate });
   const reportDashboard = useMemo(() => (dashboard ? { ...dashboard, dimensions } : dashboard), [dashboard, dimensions]);
   useRunReportSpecs({ dashboard: reportDashboard, runSummary, selectedRunId, projectName, headline, since });
   const trendDeltas = useTrendDeltas(dashboard);
-  return { runSummary, runTopFiles, onCardNavigate, trendDeltas, since, headline };
+  return { runSummary, runTopFiles, onCardNavigate, onFileClick, trendDeltas, since, headline };
 }
 
 export default function RunOverviewPanel({
   dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName,
-  onDimensionClick, onFileClick, onNavigate, refreshing = false, formulaUpdated = false,
+  onDimensionClick, onNavigate, refreshing = false, formulaUpdated = false,
 }) {
-  const { runSummary, runTopFiles, onCardNavigate, trendDeltas, since, headline } = useRunOverviewModel({
+  const { runSummary, runTopFiles, onCardNavigate, onFileClick, trendDeltas, since, headline } = useRunOverviewModel({
     dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName, onNavigate,
   });
 

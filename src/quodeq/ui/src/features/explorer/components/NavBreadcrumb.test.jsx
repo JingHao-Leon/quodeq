@@ -33,6 +33,22 @@ describe('labelFor — map drill-down entries', () => {
   });
 });
 
+describe('labelFor — scoped Findings views', () => {
+  it('a scoped violations entry reads as its scope', () => {
+    expect(labelFor({ page: 'violations', scope: { kind: 'file', path: 'src/app/models.py' } })).toBe('models.py');
+    expect(labelFor({ page: 'violations', scope: { kind: 'folder', path: 'src/app' } })).toBe('src/app/');
+    expect(labelFor({ page: 'violations', scope: { kind: 'requirement', dimension: 'security', req: 'S-INJ-1', text: 'Escape it' } })).toBe('S-INJ-1');
+    expect(labelFor({ page: 'violations', scope: { kind: 'dimension', dimension: 'Security' } })).toBe('security');
+    expect(labelFor({ page: 'violations', scope: { kind: 'project', filter: 'critical' } })).toBe('project');
+    expect(labelFor({ page: 'violations', scope: { kind: 'area', name: 'checkout', paths: ['src/'] } })).toBe('checkout');
+  });
+
+  it('the list, or a malformed scope, keeps the tab label', () => {
+    expect(labelFor({ page: 'violations', scope: null, wb: { q: 'x' } })).toBe('violations');
+    expect(labelFor({ page: 'violations', scope: { kind: 'file' } })).toBe('violations');
+  });
+});
+
 describe('labelFor — prototype-named pages', () => {
   it('falls back to the entry label instead of an Object.prototype member', () => {
     expect(labelFor({ page: 'constructor' })).toBe('constructor');

@@ -191,6 +191,12 @@ describe('useOverviewReturnReconcile regression: untagged drill-down pages do no
     expect(resolveActiveTab({ page: 'violations' })).toBe('violations');
   });
 
+  it('resolveActiveTab: a scoped Findings view lights the tab it was opened from, not Violations', () => {
+    expect(resolveActiveTab({ page: 'violations', scope: { kind: 'file', path: 'a.py' } }, 'map')).toBe('map');
+    expect(resolveActiveTab({ page: 'violations', scope: { kind: 'project' } }, 'violations')).toBe('violations');
+    expect(resolveActiveTab({ page: 'violations', scope: { kind: 'project' } })).toBe(TAB_OVERVIEW);
+  });
+
   it('resolveActiveTab: falls back to sourceTab when that is itself a known tab', () => {
     expect(resolveActiveTab({ page: 'explorer', sourceTab: 'violations' })).toBe('violations');
   });

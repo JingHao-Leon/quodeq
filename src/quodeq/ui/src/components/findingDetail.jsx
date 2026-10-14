@@ -1,6 +1,7 @@
 /**
  * The parts of a finding's presentation that every list of findings shares:
- * its linked requirement references and its REASON / DETAIL / context body.
+ * its linked requirement references, the tags of a severity a gate lowered,
+ * and its REASON / DETAIL / context body.
  *
  * Explorer's violation cards, the live evaluation feed and the dismissed
  * sub-tab all render these, so they live in the shared component layer rather
@@ -10,6 +11,28 @@ import ContextBlock from './ContextBlock.jsx';
 import DetailSkeleton from './DetailSkeleton.jsx';
 import { filterValidRefs } from '../utils/reqRefs.js';
 import { t } from '../strings/index.js';
+import { scopeGateRuleLabel } from '../strings/labels.js';
+
+/**
+ * The tags of a severity a gate lowered: the provenance gate's (downgraded
+ * from critical) and the scope gate's (capped by a trust-model rule).
+ */
+export function DowngradeTags({ v }) {
+  return (
+    <>
+      {v.provenanceDowngrade && (
+        <span className="provenance-downgrade-tag" title={t('explorer.provenanceDowngradeTitle')}>
+          {t('explorer.downgradedFromCritical')}
+        </span>
+      )}
+      {v.scopeDowngrade && (
+        <span className="scope-downgrade-tag" title={t('explorer.scopeDowngradeTitle')}>
+          {t('explorer.scopeDowngradeBadge', { rule: scopeGateRuleLabel(v.scopeDowngrade.rule) })}
+        </span>
+      )}
+    </>
+  );
+}
 
 /**
  * The linked requirement references beside a finding's REASON label, or

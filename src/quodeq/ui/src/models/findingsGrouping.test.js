@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dirOf, sharedPrefix, groupByRequirement, groupByFolder, splitFolderLabel, folderDimensions } from './findingsGrouping.js';
+import { dirOf, sharedPrefix, groupByRequirement, groupByFolder, splitFolderLabel } from './findingsGrouping.js';
 
 const v = (file, req, severity, over = {}) => ({ file, req, severity, title: `${req} title`, principle: 'P', ...over });
 
@@ -66,15 +66,4 @@ test('splitFolderLabel mutes the lead and keeps the last two folders', () => {
   assert.deepEqual(splitFolderLabel('ui/src/features/dashboard/components'), { lead: 'ui/src/features/', tail: 'dashboard/components/' });
   assert.deepEqual(splitFolderLabel('tools'), { lead: '', tail: 'tools/' });
   assert.deepEqual(splitFolderLabel(''), { lead: '', tail: '' });
-});
-
-test('folderDimensions keeps only that folder\'s findings and checks, and drops dimensions without findings there', () => {
-  const dims = [
-    { dimension: 'a', violations: [v('src/x/a.py', 'X-1', 'minor'), v('src/y/b.py', 'X-1', 'minor')], compliance: [{ file: 'src/x/c.py' }, { file: 'src/y/d.py' }] },
-    { dimension: 'b', violations: [v('src/y/c.py', 'Y-1', 'minor')] },
-  ];
-  const out = folderDimensions(dims, 'src/x');
-  assert.equal(out.length, 1);
-  assert.equal(out[0].violations.length, 1);
-  assert.deepEqual(out[0].compliance, [{ file: 'src/x/c.py' }]);
 });
