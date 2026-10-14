@@ -6,3 +6,4 @@ export function readAsOf(param) {
   return { runId: param.runId, day: isText(param.day) ? param.day : null };
 }
 
+

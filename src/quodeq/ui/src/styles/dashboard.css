@@ -3613,3 +3613,9 @@
   font-size: var(--text-xs);
 }
 .violations-asof .wb-link { margin-left: auto; white-space: nowrap; }
+
+/* A scoped Findings view: the header, then one bar (filters, sort, list) above the cards. */
+.findings-scope__bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-3) 0; }
+.findings-scope__bar .term-flag-row { margin: 0; }
+.findings-scope__list { margin-left: auto; }
+.findings-scope__sort .term-btn { font-size: 11px; }

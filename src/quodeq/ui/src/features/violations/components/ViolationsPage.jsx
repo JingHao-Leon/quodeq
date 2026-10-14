@@ -12,6 +12,7 @@ import FindingsWorkbench from '../workbench/FindingsWorkbench.jsx';
 import { sevAbbr } from '../workbench/sevWords.js';
 import { formatShortDate } from '../../../utils/formatters.js';
 import { useShownData } from '../hooks/useAsOfScores.js';
+import ScopedFindings from '../scope/ScopedFindings.jsx';
 
 const SUMMARY_SEP = ' · ';
 
@@ -66,7 +67,7 @@ function AsOfBanner({ asOf, onBack }) {
 
 export default function ViolationsPage({ data: given, callbacks, workbench = null, onWorkbenchChange }) {
   const data = useShownData(given);
-  const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null } = data;
+  const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null, scope = null } = data;
   const { projects = [], projectsLoaded, projectName, loading, isFetching, error } = data;
   const { onNavigate, onReconcile, onRetry } = callbacks;
 
@@ -83,6 +84,16 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
   if (emptyState) return emptyState;
   const isRefreshing = isFetching && !loading;
 
+  if (scope) {
+    return (
+      <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
+        <AsOfBanner asOf={asOf} onBack={callbacks.onBackToToday} />
+        <Banners restoreError={restoreError} dismissError={dismissError} dismissNotice={dismissNotice} />
+        <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null}
+          onDismissFinding={actions.onDismiss} onList={callbacks.onListScope ? () => callbacks.onListScope(scope) : undefined} />
+      </div>
+    );
+  }
   return (
     <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
       <AsOfBanner asOf={asOf} onBack={callbacks.onBackToToday} />

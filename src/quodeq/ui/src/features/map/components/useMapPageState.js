@@ -1,4 +1,3 @@
-import { treeNodeToFileObj } from '../viz/index.js';
 import { hasBodies } from '../../../models/dimension.js';
 import { useTabScopedPageState } from '../../../hooks/useTabScopedPageState.js';
 import { useDashboardFullHeight } from './useDashboardFullHeight.js';
@@ -77,7 +76,7 @@ function buildMapPageResult({
         if (!callbacks?.onNavigate) return;
         // A folder's details are its findings in the Violations workbench, under one folder chip; a file opens its page.
         if (!treeNode.isFile) callbacks.onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: folderChips(treeNode.path) } });
-        else callbacks.onNavigate(NAV_TAB.FILE, { file: treeNodeToFileObj(treeNode), sourceTab: NAV_TAB.MAP });
+        else callbacks.onNavigate(NAV_TAB.VIOLATIONS, { scope: { kind: 'file', path: treeNode.path } });
       },
       // A past day's details: its findings as of that day, under the folder's or the file's chip.
       onPastDetails: ({ path, isFile }, run) => openPastDetails(callbacks?.onNavigate, { paths: isFile ? [path] : folderChips(path) }, run),

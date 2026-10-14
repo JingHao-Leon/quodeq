@@ -14,6 +14,7 @@ import { NAV_TAB } from '../vocab/navTab.js';
 import { buildEvalPrincipal } from './liveSelectors.js';
 import { isSharedSource, makeDismissHandler } from './dismissWiring.js';
 import { readAsOf } from '../features/violations/asOf.js';
+import { readScope, scopeAsList, SCOPE_KIND } from '../features/violations/scope/scopeModel.js';
 
 // buildEvalPrincipal moved to routes/liveSelectors.js (the Principle page
 // rebuilds it from the live payload there); re-exported for its tests.
@@ -24,6 +25,7 @@ const ViolationsPage = lazy(() => import('../features/violations/components/Viol
 function buildViolationsData({ props, acc, dims, past }) {
   return {
     asOf: past.asOf,
+    scope: past.scope,
     accumulated: acc,
     accumulatedDimensions: dims,
     selectedProject: props.navigation.selectedProject,
@@ -44,11 +46,8 @@ function buildViolationsData({ props, acc, dims, past }) {
 // scheduleDashboardReconcile in useDashboard.js.
 function buildViolationsCallbacks({ props, nav, past }) {
   return {
-    // A past day opens a file inside its own list (that day's findings of the file, a new step back can undo);
-    // today opens the file page.
-    onFileClick: past.asOf
-      ? (fileObj) => past.openFile(fileObj.file)
-      : (fileObj, opts) => nav(NAV_TAB.FILE, { file: fileObj, sourceTab: NAV_TAB.VIOLATIONS, severityFilter: opts?.severity || null }),
+    // A file opens as a scoped Findings view (its findings as one page), today or that past day, as a new step.
+    onFileClick: (fileObj) => past.openFile(fileObj.file),
     onReconcile: props.scheduleDashboardReconcile,
     // The workbench dismisses findings from many runs: each finding carries
     // its dimension's run, and the handler is made per call (undefined for a
@@ -65,6 +64,7 @@ function buildViolationsCallbacks({ props, nav, past }) {
     onNavigate: nav,
     onRetry: props.dashboardData.onRetry,
     onBackToToday: past.asOf ? past.backToToday : undefined,
+    onListScope: past.listScope,
   };
 }
 
@@ -87,12 +87,14 @@ function buildViolationsPageProps({ params, props, acc, dims, nav, past }) {
  * way back to today (the same entry, without `asOf`).
  */
 function pastView(params, props) {
-  const wb = params.wb || {};
   return {
     asOf: readAsOf(params.asOf),
+    scope: readScope(params.scope),
     backToToday: () => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, { ...params, asOf: null }),
-    openFile: (file) => props.navigation.handleNavigate(NAV_TAB.VIOLATIONS, {
-      ...params, wb: { ...wb, paths: [file], area: null, selectedId: null },
+    openFile: (file) => props.navigation.handleNavigate(NAV_TAB.VIOLATIONS, { asOf: params.asOf || null, scope: { kind: SCOPE_KIND.FILE, path: file } }),
+    // The scoped file as the workbench list: the same step, the file as a chip.
+    listScope: (scope) => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, {
+      asOf: params.asOf || null, scope: null, wb: { ...scopeAsList(scope), selectedId: null },
     }),
   };
 }
