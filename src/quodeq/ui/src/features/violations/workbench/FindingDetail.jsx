@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
 import { EvalViolationCard } from '../../explorer/components/EvalCards.jsx';
@@ -12,6 +13,15 @@ function ruleRow(finding, findings) {
   const same = findings.filter((f) => f.status === FINDING_STATUS.OPEN && f.req === finding.req && f.dimension === finding.dimension);
   return { key: `${finding.dimension}:${finding.req}`, req: finding.req, dimension: finding.dimension, runId: finding.runId, principle: finding.principle,
     violations: same.map((f) => ({ ...f.raw, principle: f.principle })), now: same.length };
+}
+
+/**
+ * The dismiss-by-rule row of an open finding, when its menu can show: one
+ * scan of the list per finding (or list) change, not one per render.
+ */
+function useRuleRow(finding, findings, canDismissType) {
+  const shows = canDismissType && finding?.status === FINDING_STATUS.OPEN && finding.runId != null;
+  return useMemo(() => (shows ? ruleRow(finding, findings) : null), [shows, finding, findings]);
 }
 
 /** A filter link; plain text when there is no handler. */
@@ -63,6 +73,7 @@ function DismissedActions({ finding, onRestore, onDelete }) {
 export default function FindingDetail({ finding, dims, findings, onAddPath, actions = {} }) {
   const { onOpenFile, onDismiss, onDismissType, onRestore, onDelete, readOnly = false } = actions;
   const violation = useFindingDetail(finding, dims);
+  const rule = useRuleRow(finding, findings, Boolean(onDismissType));
   if (!finding) {
     return <section className="qd-cards-panel wb-panel wb-detail"><div className="wb-empty">{t('violations.wbPick')}</div></section>;
   }
@@ -83,7 +94,7 @@ export default function FindingDetail({ finding, dims, findings, onAddPath, acti
           {finding.file && onOpenFile && (
             <button type="button" className="eval-pill-btn" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
           )}
-          {open && onDismissType && finding.runId != null && <DismissRuleMenu row={ruleRow(finding, findings)} onDismissType={onDismissType} />}
+          {rule && <DismissRuleMenu row={rule} onDismissType={onDismissType} />}
         </div>
       </div>
     </section>

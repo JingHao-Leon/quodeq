@@ -3678,5 +3678,6 @@
 .wb-row--compliant { border-left-color: color-mix(in srgb, var(--color-accent) 50%, transparent); }
 .findings-scope__divider { cursor: col-resize; position: relative; touch-action: none; }
 .findings-scope__divider::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 1px; background: var(--color-border); transition: background .15s; }
-.findings-scope__divider:hover::after { background: var(--color-accent); }
+.findings-scope__divider:hover::after, .findings-scope__divider:focus-visible::after { background: var(--color-accent); }
+.findings-scope__divider:focus-visible { outline: none; }
 .wb-split--resizable { gap: 0; }

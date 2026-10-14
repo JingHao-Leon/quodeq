@@ -1,22 +1,19 @@
 import { useState } from 'react';
 import ContextBlock from '../../../components/ContextBlock.jsx';
 import DetailSkeleton from '../../../components/DetailSkeleton.jsx';
-import { RefLinks } from '../../../components/findingDetail.jsx';
+import { RefLinks, DowngradeTags } from '../../../components/findingDetail.jsx';
 import { ViolationActions } from '../../explorer/components/violationActions.jsx';
-import { severityLabel, scopeGateRuleLabel } from '../../../strings/labels.js';
+import { severityLabel } from '../../../strings/labels.js';
 import { t } from '../../../strings/index.js';
-import { useSplitWidth } from '../hooks/useSplitWidth.js';
-import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 
-const SEP = ' · ';
-/** A compliant check's mark, and its list row's modifier. */
-const CHECK_MARK = '\u2713';
-const COMPLIANT_ROW = 'compliant';
+export const SEP = ' · ';
+/** A compliant check's mark. */
+export const CHECK_MARK = '\u2713';
 /** The principle beside a finding, left out inside a principle scope (the principle is the page). */
-const principleOf = (item, { inPrinciple }) => (inPrinciple ? null : item.principle);
+export const principleOf = (item, { inPrinciple }) => (inPrinciple ? null : item.principle);
 
 /** Where a finding is: its line inside a file scope (the file is the page), else file:line. */
-function whereOf(item, { inFile }) {
+export function whereOf(item, { inFile }) {
   const range = item.endLine && item.endLine !== item.line ? `${item.line}-${item.endLine}` : item.line;
   if (inFile) return range != null ? t('violations.scopeLine', { line: range }) : null;
   const name = (item.file || '').split('/').pop();
@@ -47,8 +44,7 @@ export function FindingCard({ v, within, onDismiss, readOnly }) {
       </header>
       <div className="findings-card__meta">
         <span>{meta}</span>
-        {v.provenanceDowngrade && <span className="provenance-downgrade-tag" title={t('explorer.provenanceDowngradeTitle')}>{t('explorer.downgradedFromCritical')}</span>}
-        {v.scopeDowngrade && <span className="scope-downgrade-tag" title={t('explorer.scopeDowngradeTitle')}>{t('explorer.scopeDowngradeBadge', { rule: scopeGateRuleLabel(v.scopeDowngrade.rule) })}</span>}
+        <DowngradeTags v={v} />
         <RefLinks reqRefs={v.reqRefs} />
       </div>
       <Body item={v} />
@@ -72,68 +68,16 @@ export function CompliantRow({ c, within }) {
   );
 }
 
-const isViolationRow = (item) => Boolean(item.v);
-const findingOfRow = (item) => item.v || item.c;
-const rowKey = (item, i) => { const f = findingOfRow(item); return `${f.file}:${f.line}:${f.principle}:${i}`; };
-
 /** A compliant check in full, beside the list: its title, where it is, its reason and code. */
-function CompliantDetail({ c, within }) {
+export function CompliantDetail({ c, within }) {
   return (
     <article className="findings-card">
       <header className="findings-card__head">
-        <span className="findings-check__mark">{CHECK_MARK}</span>
+        <span className="findings-check__mark" aria-hidden="true">{CHECK_MARK}</span>
         <h3 className="findings-card__title">{c.title || c.principle}</h3>
       </header>
       <div className="findings-card__meta"><span>{[principleOf(c, within), whereOf(c, within)].filter(Boolean).join(SEP)}</span></div>
       <Body item={c} />
     </article>
-  );
-}
-
-/** One line of the list: the finding's title, where it is, its severity (or compliant) and principle. */
-function ListRow({ item, within, selected, onSelect }) {
-  const f = findingOfRow(item);
-  const violation = isViolationRow(item);
-  const meta = [violation ? severityLabel(f.severity) : t('violations.scopeCompliantShort'), principleOf(f, within)];
-  return (
-    <button type="button" role="option" aria-selected={selected}
-      className={`wb-row wb-row--${violation ? f.severity : COMPLIANT_ROW}${selected ? ' is-sel' : ''}`} onClick={onSelect}>
-      <span className="wb-row__t">{violation ? '' : `${CHECK_MARK} `}{f.title || f.principle}</span>
-      <span className="wb-row__f wb-row__f--line">{whereOf(f, within)}</span>
-      <span className="wb-row__meta">{meta.filter(Boolean).join(SEP)}</span>
-    </button>
-  );
-}
-
-/**
- * The scope as a list beside one finding in full: the same rows the cards
- * read (already filtered and sorted by the scope's controls), one line each,
- * and the selected one on the right with its code open; the divider between
- * them drags (useSplitWidth).
- */
-export function ScopeList({ rows, within, onDismiss, readOnly }) {
-  const findings = rows.filter((item) => item.v || item.c);
-  const [selected, setSelected] = useState(0);
-  const at = Math.min(selected, findings.length - 1);
-  const current = findings[at];
-  const split = useSplitWidth();
-  return (
-    <div ref={split.rootRef} className="wb wb-split findings-scope__split" style={splitColumns(split)}>
-      <section className="qd-cards-panel wb-panel">
-        <div className="wb-list" role="listbox" aria-label={t('violations.scopeListAria')}>
-          {findings.map((item, i) => (
-            <ListRow key={rowKey(item, i)} item={item} within={within} selected={i === at} onSelect={() => setSelected(i)} />
-          ))}
-        </div>
-      </section>
-      <SplitDivider split={split} />
-      <section className="qd-cards-panel wb-panel wb-detail">
-        <div className="wb-detail__body">
-          {current && (isViolationRow(current)
-            ? <FindingCard v={current.v} within={within} onDismiss={onDismiss} readOnly={readOnly} />
-            : <CompliantDetail c={current.c} within={within} />)}
-        </div>
-      </section>
-    </div>
   );
 }

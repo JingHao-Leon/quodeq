@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { useSplitWidth, SPLIT_KEY, DEFAULT_PCT, MIN_PCT, MAX_PCT } from './useSplitWidth.js';
+import { useSplitWidth, SPLIT_KEY, DEFAULT_PCT, MIN_PCT, MAX_PCT, KEY_STEP_PCT } from './useSplitWidth.js';
 import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 import { t } from '../../../strings/index.js';
 
@@ -23,10 +23,11 @@ function renderSplit() {
 }
 
 const columns = () => screen.getByTestId('split').style.gridTemplateColumns;
-function drag(toX) {
-  fireEvent.pointerDown(screen.getByRole('separator', { name: t('violations.scopeResize') }), { clientX: 560 });
+const divider = () => screen.getByRole('slider', { name: t('violations.scopeResize') });
+function drag(toX, end = 'pointerup') {
+  fireEvent.pointerDown(divider(), { clientX: 560 });
   act(() => { window.dispatchEvent(new MouseEvent('pointermove', { clientX: toX })); });
-  act(() => { window.dispatchEvent(new MouseEvent('pointerup')); });
+  act(() => { window.dispatchEvent(new MouseEvent(end)); });
 }
 
 describe('useSplitWidth and SplitDivider', () => {
@@ -71,5 +72,26 @@ describe('useSplitWidth and SplitDivider', () => {
     expect(columns()).toBe(`${DEFAULT_PCT}% 8px minmax(0, 1fr)`);
     drag(600);
     expect(columns()).toBe('50% 8px minmax(0, 1fr)');
+  });
+
+  it('a cancelled pointer ends the drag and keeps where it was', () => {
+    renderSplit();
+    drag(400, 'pointercancel');
+    act(() => { window.dispatchEvent(new MouseEvent('pointermove', { clientX: 900 })); });
+    expect(columns()).toBe('30% 8px minmax(0, 1fr)');
+    expect(localStorage.getItem(SPLIT_KEY)).toBe('30');
+  });
+
+  it('the arrow keys move the focused divider, clamped, and remember it; its value is the list share', () => {
+    renderSplit();
+    expect(divider()).toHaveAttribute('tabindex', '0');
+    fireEvent.keyDown(divider(), { key: 'ArrowRight' });
+    expect(columns()).toBe(`${DEFAULT_PCT + KEY_STEP_PCT}% 8px minmax(0, 1fr)`);
+    expect(divider()).toHaveAttribute('aria-valuenow', String(DEFAULT_PCT + KEY_STEP_PCT));
+    expect(localStorage.getItem(SPLIT_KEY)).toBe(String(DEFAULT_PCT + KEY_STEP_PCT));
+    for (let i = 0; i < 40; i += 1) fireEvent.keyDown(divider(), { key: 'ArrowLeft' });
+    expect(divider()).toHaveAttribute('aria-valuenow', String(MIN_PCT));
+    fireEvent.keyDown(divider(), { key: 'Enter' });
+    expect(divider()).toHaveAttribute('aria-valuenow', String(MIN_PCT));
   });
 });

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CodeOpenByDefault } from '../../../components/codeOpenContext.js';
-import { FindingCard, CompliantRow, ScopeList } from './ScopeCards.jsx';
+import { FindingCard, CompliantRow } from './ScopeCards.jsx';
+import { ScopeList } from './ScopeList.jsx';
 import DeferredViolationList from '../../explorer/components/DeferredViolationList.jsx';
 import { ROW_HEIGHT_PX, fileFindingKey } from '../../explorer/components/fileDetailWidgets.jsx';
 import { severityLabel } from '../../../strings/labels.js';
@@ -133,10 +134,12 @@ export default function ScopedFindings({ scope, dims, projectName, dateLabel, on
   const file = useMemo(() => scopeFindings(scope, dims, projectName), [scope, dims, projectName]);
   const head = usePrincipleHead(scope, dims);
   const within = useMemo(() => withinOf(scope), [scope]);
+  // A new scope starts the page over (filter, order, view); an area's key carries its paths, so it is built once per scope.
+  const scopeKey = useMemo(() => JSON.stringify(scope), [scope]);
   if (!file) return <div className="wb-empty">{t('violations.scopeEmpty')}</div>;
   const sub = [t(`violations.scopeKind_${scope.kind}`), scope.kind === SCOPE_KIND.PRINCIPLE ? scope.dimension : null, dateLabel]
     .filter(Boolean).join(t('violations.wbDot'));
-  return <ScopedFile key={JSON.stringify(scope)} file={file} within={within} dims={dims} sub={sub} head={head} initialFilter={scope.filter}
+  return <ScopedFile key={scopeKey} file={file} within={within} dims={dims} sub={sub} head={head} initialFilter={scope.filter}
     onDismissFinding={onDismissFinding} readOnly={readOnly} />;
 }
 
