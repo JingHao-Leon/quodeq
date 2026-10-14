@@ -240,6 +240,9 @@ function usePageTimelapse({ project, source, vizStyle, dimensionState, grouping 
   });
 }
 
+/** The area to open the Risk tab on (an area clicked on the Overview), if any. */
+const initialAreaOf = (nav) => nav?.area || null;
+
 export default function MapPage(props) {
   const { data = {}, callbacks = {} } = props;
   const { projects = [], projectsLoaded, selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, projectName, loading, isFetching, error } = data;
@@ -286,7 +289,7 @@ export default function MapPage(props) {
         />
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
+      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, initialArea: initialAreaOf(props.nav) }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
     </div>
   );
 }

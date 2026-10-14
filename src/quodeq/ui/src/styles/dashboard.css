@@ -3613,3 +3613,8 @@
   font-size: var(--text-xs);
 }
 .violations-asof .wb-link { margin-left: auto; white-space: nowrap; }
+/* Overview: areas needing rework (the Map's Risk zones). */
+.risk-zone-chip { display: inline-block; padding: 1px 6px; border: 1px solid; border-radius: 3px; font-size: 10px; letter-spacing: 0.04em; white-space: nowrap; }
+.risk-zone-chip--fixFirst { color: var(--color-sev-critical-text); border-color: var(--color-sev-critical-border); background: var(--color-sev-critical-bg); }
+.risk-zone-chip--watch { color: var(--color-sev-major-text); border-color: var(--color-sev-major-border); background: var(--color-sev-major-bg); }
+.risk-areas-panel__none { padding: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
