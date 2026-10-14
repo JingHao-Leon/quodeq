@@ -17,6 +17,7 @@ from flask import Flask, Response
 from quodeq.api._constants import CODE_INTERNAL_ERROR, CODE_NOT_FOUND
 from quodeq.api._http_cache import conditional_json
 from quodeq.api.helpers import json_error, validate_segment
+from quodeq.api.principle_series_payload import principle_series_payload
 from quodeq.api.routes_common import reports_dir
 from quodeq.api.routes_shared_common import with_shared_root
 from quodeq.services.principle_series import UnknownDimension, build_principle_series
@@ -34,7 +35,7 @@ def principle_series_response(root: Path, project: str, dimension: str) -> Respo
     if err is not None:
         return err
     try:
-        payload = build_principle_series(root, project, dimension)
+        series = build_principle_series(root, project, dimension)
     except UnknownDimension as exc:
         return json_error(exc.public_message, HTTPStatus.NOT_FOUND, CODE_NOT_FOUND)
     except FileNotFoundError:
@@ -42,7 +43,7 @@ def principle_series_response(root: Path, project: str, dimension: str) -> Respo
     except (OSError, ValueError, sqlite3.Error):
         _logger.exception("Failed to build the %s principle series for %s", dimension, project)
         return json_error(_FAILED, HTTPStatus.INTERNAL_SERVER_ERROR, CODE_INTERNAL_ERROR)
-    return conditional_json(payload, max_age=0)
+    return conditional_json(principle_series_payload(series), max_age=0)
 
 
 def principle_series(project: str, dimension: str) -> Response | tuple[Response, int]:

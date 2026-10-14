@@ -15,11 +15,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from quodeq.core.run.state import RunState
-from quodeq.core.scoring.report_grades import parse_numeric_score
-from quodeq.core.types import DimensionResult
 from quodeq.core.types.principle_counts import principles_with_counts
-from quodeq.core.types.principle_series import PrincipleDetail, PrincipleSeries, PrincipleSeriesRow
-from quodeq.core.types.report import PrincipleCounts
+from quodeq.core.types.principle_series import PrincipleSeries, PrincipleSeriesRun
 from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services.scoring import ProjectRows, max_history_runs, run_rows
 from quodeq.services.scoring_view import select_trend_runs
@@ -52,7 +49,7 @@ def build_principle_series(reports_root: Path, project: str, dimension: str) -> 
     if not series:
         raise UnknownDimension(dimension)
     visible = load_visible_standard_ids(local_repo_root(reports_root, project))
-    return {"dimension": dimension, "rows": series if dimension.lower() in visible else []}
+    return PrincipleSeries(dimension, series if dimension.lower() in visible else [])
 
 
 def _history_runs(runs: list[RunInfo]) -> list[RunInfo]:
@@ -61,39 +58,16 @@ def _history_runs(runs: list[RunInfo]) -> list[RunInfo]:
     return [r for r in select_trend_runs(runs)[:max_history_runs()] if r.status is not RunState.RUNNING]
 
 
-def _series_rows(rows: ProjectRows, dimension: str) -> list[PrincipleSeriesRow]:
-    """One row per history run that scored *dimension*; a run that skipped it
-    has none (carry-over is the client's bucket rule, as for the trend)."""
+def _series_rows(rows: ProjectRows, dimension: str) -> list[PrincipleSeriesRun]:
+    """One entry per history run that scored *dimension*, each graded principle
+    with its counts; a run that skipped it has none (carry-over is the
+    client's bucket rule, as for the trend)."""
     fetch = run_rows(rows.fetcher)
-    out: list[PrincipleSeriesRow] = []
+    out: list[PrincipleSeriesRun] = []
     for run in _history_runs(rows.runs):
         dim = next((d for d in fetch(run.run_id) if d.dimension == dimension), None)
         if dim is None:
             continue
-        out.append({"runId": run.run_id, "dateISO": run.date_iso, "dateLabel": run.date_label,
-                    "principles": principle_details(dim)})
+        principles = [p for p in principles_with_counts(dim) if p.principle]
+        out.append(PrincipleSeriesRun(run.run_id, run.date_iso, run.date_label, principles))
     return out
-
-
-def principle_details(dim: DimensionResult) -> list[PrincipleDetail]:
-    """Each graded principle of *dim*: the score its grade shows, its grade, and its counts.
-
-    Counted over the live findings (after dismissals), like the dimension's
-    own counts; unknown counts (an older cached row) stay None.
-    """
-    return [
-        {
-            "principle": p.principle,
-            "score": parse_numeric_score(p.score) if p.score else None,
-            "grade": p.grade,
-            **_count_fields(p.counts),
-        }
-        for p in principles_with_counts(dim) if p.principle
-    ]
-
-
-def _count_fields(counts: PrincipleCounts | None) -> dict[str, int | None]:
-    """The wire counts of one principle; ``majors`` adds the criticals, as a dimension's does."""
-    if counts is None:
-        return {"critical": None, "majors": None, "violations": None}
-    return {"critical": counts.critical, "majors": counts.critical + counts.major, "violations": counts.violations}

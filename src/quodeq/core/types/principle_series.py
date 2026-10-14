@@ -1,38 +1,34 @@
-"""Wire shapes of one dimension's per-principle score series.
+"""One dimension's per-principle score series, as the use case returns it.
 
 Served on demand by ``GET .../dimensions/<dimension>/principle-series`` for
-the dimension and principle pages; the trend rows deliberately do not carry
-principles (they would triple the Overview payload).
+the dimension and principle pages (the trend rows carry no principles: they
+would triple the Overview payload). The wire shape is the API layer's
+(``api/principle_series_payload.py``).
 """
 from __future__ import annotations
 
-from typing import TypedDict
+from dataclasses import dataclass, field
+
+from .report import PrincipleGrade
 
 
-class PrincipleDetail(TypedDict):
-    """One principle's score, grade and active-violation counts in one run.
+@dataclass(frozen=True, slots=True)
+class PrincipleSeriesRun:
+    """One run that scored the dimension: its identity and its graded principles.
 
-    ``score`` is the number the principle grade shows; ``majors`` counts
-    criticals and majors, as a dimension's does. The counts are None when the
-    run's cached row predates them (unknown, not zero).
+    Each principle carries its violation counts (``PrincipleGrade.counts``),
+    None where the run's cached row could not know them.
     """
-    principle: str
-    score: float | None
-    grade: str | None
-    critical: int | None
-    majors: int | None
-    violations: int | None
+
+    run_id: str
+    date_iso: str | None
+    date_label: str
+    principles: list[PrincipleGrade] = field(default_factory=list)
 
 
-class PrincipleSeriesRow(TypedDict):
-    """One run that scored the dimension: its identity and its principles."""
-    runId: str
-    dateISO: str | None
-    dateLabel: str
-    principles: list[PrincipleDetail]
+@dataclass(frozen=True, slots=True)
+class PrincipleSeries:
+    """The dimension asked for and its runs, newest first like the trend."""
 
-
-class PrincipleSeries(TypedDict):
-    """The response: the dimension asked for and its rows, newest first like the trend."""
     dimension: str
-    rows: list[PrincipleSeriesRow]
+    runs: list[PrincipleSeriesRun] = field(default_factory=list)

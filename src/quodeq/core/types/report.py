@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .finding import Finding, Totals
-from .wire_fields import WIRE_HIDDEN
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,6 +18,11 @@ class PrincipleCounts:
     critical: int = 0
     major: int = 0
 
+    @property
+    def majors(self) -> int:
+        """Criticals and majors together: the blocking count a dimension's ``majors`` reports too."""
+        return self.critical + self.major
+
 
 @dataclass(frozen=True, slots=True)
 class PrincipleGrade:
@@ -31,8 +35,8 @@ class PrincipleGrade:
     confidence: str | None = None
     # The principle's active violations, when the read counted them; None when
     # it could not (a score-cache row written before the counts were stored).
-    # Carried for the trend's per-principle series, never serialized with the grade.
-    counts: PrincipleCounts | None = field(default=None, metadata=WIRE_HIDDEN)
+    # Carried for the per-principle series; the payloads that serialize a grade leave it out.
+    counts: PrincipleCounts | None = None
 
 
 @dataclass(frozen=True, slots=True)

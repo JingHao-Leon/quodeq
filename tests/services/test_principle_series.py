@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import pytest
 
+from quodeq.api.principle_series_payload import principle_series_payload
 from quodeq.core.observability import NULL_LOG
 from quodeq.core.run.state import RunState
 from quodeq.core.scoring.params import DEFAULT_PARAMS
@@ -10,7 +11,8 @@ from quodeq.core.types import DimensionResult, PrincipleGrade
 from quodeq.core.types.finding import Finding, SeverityTally, Totals
 from quodeq.data.fs.report_parser import RunInfo
 from quodeq.services import principle_series
-from quodeq.services.principle_series import UnknownDimension, build_principle_series
+from quodeq.services.principle_series import UnknownDimension
+from quodeq.services.principle_series import build_principle_series as _build
 from quodeq.services.score_cache import make_cache_backed_fetcher
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
@@ -52,6 +54,11 @@ _DIMS = {
 }
 
 
+def build_principle_series(root, project: str, dimension: str) -> dict:
+    """The series as the route serves it."""
+    return principle_series_payload(_build(root, project, dimension))
+
+
 @pytest.fixture()
 def project(tmp_path, monkeypatch):
     """A project directory whose rows come from *fetcher* (the score-cache row fetcher by default)."""
@@ -87,7 +94,7 @@ def test_a_run_that_skipped_the_dimension_has_no_row_for_it(project):
     assert [r["runId"] for r in build_principle_series(root, _PROJECT, _REL)["rows"]] == ["r3", "r1"]
 
 
-def test_a_hit_serves_the_cached_counts_and_unknown_counts_stay_none(project):
+def test_a_hit_serves_the_counts_the_miss_cached(project):
     root, use = project
     build_principle_series(root, _PROJECT, _SEC)  # the miss persists the rows
 
@@ -97,6 +104,9 @@ def test_a_hit_serves_the_cached_counts_and_unknown_counts_stay_none(project):
     use(make_cache_backed_fetcher(_PROJECT, lambda _rid: "v1", never, log=NULL_LOG))
     assert build_principle_series(root, _PROJECT, _SEC)["rows"][1]["principles"][0]["majors"] == 2
 
+
+def test_counts_an_older_cached_row_could_not_know_stay_none(project):
+    root, use = project
     legacy = DimensionResult(dimension=_SEC, overall_score="7.0/10", principles=[PrincipleGrade("P1", "6.0/10", "Fair")],
                              totals=Totals(violation_count=2, severity=SeverityTally(major=2)))
     use(lambda _rid: [legacy])
@@ -107,10 +117,10 @@ def test_a_hit_serves_the_cached_counts_and_unknown_counts_stay_none(project):
 def test_a_dimension_no_run_scored_is_unknown(project):
     root, _use = project
     with pytest.raises(UnknownDimension) as exc:
-        build_principle_series(root, _PROJECT, "usability")
+        _build(root, _PROJECT, "usability")
     assert "usability" in exc.value.public_message
 
 
 def test_a_missing_project_is_not_found(tmp_path):
     with pytest.raises(FileNotFoundError):
-        build_principle_series(tmp_path, "nope", _SEC)
+        _build(tmp_path, "nope", _SEC)
