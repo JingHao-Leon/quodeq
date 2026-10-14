@@ -121,6 +121,11 @@ function treeDimensions(filteredDimensions, deferTree) {
   return deferTree ? EMPTY_DIMENSIONS : filteredDimensions;
 }
 
+/** The filter's dimensions on mount: a link's (nav `dimensions`) over the tab's cached selection. */
+function initialDimensions(nav, cached) {
+  return nav?.dimensions?.length ? nav.dimensions : cached.selectedDimensionsArr;
+}
+
 export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cache, deferTree = false }) {
   const selectedProject = data?.projectName || data?.selectedProject || '__map__';
   const {
@@ -137,7 +142,7 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
   const { showLabels, setShowLabels, darkMode, setDarkMode } = useMapDisplayPrefs();
 
   const { dimensionNames, effectiveSelected, handleToggleDimension, filteredDimensions } = useMapDimensionFilter({
-    allDimensions, selectedProject, cachedSelectedArr: cached.selectedDimensionsArr, cache,
+    allDimensions, selectedProject, cachedSelectedArr: initialDimensions(nav, cached), cache,
   });
 
   const { fullTree, currentNode, breadcrumb, handleDrillDown, handleBreadcrumbNav } = useMapTreeState({

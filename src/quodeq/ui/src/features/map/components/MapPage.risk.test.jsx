@@ -65,13 +65,13 @@ describe('MapPage: the Risk tab', () => {
     expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual([t('map.vizCirclePack'), t('map.vizRisk'), t('map.vizGalaxy')]);
   });
 
-  it('choosing Risk replaces the entry and hides the Dimensions control', () => {
+  it('choosing Risk replaces the entry and keeps the Dimensions control', () => {
     const log = [];
     render(<NavHarness data={{ ...local(), accumulated: { dimensions: [...DIMS, { ...DIMS[0], dimension: 'performance' }] } }} log={log} />, { wrapper: withStableQueryApi(riskApi()) });
     expect(screen.getByRole('button', { name: t('map.dimensions') })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: t('map.vizRisk') }));
     expect(log).toEqual([['replace', 'vizStyle', 'risk']]);
-    expect(screen.queryByRole('button', { name: t('map.dimensions') })).toBeNull();
+    expect(screen.getByRole('button', { name: t('map.dimensions') })).toBeInTheDocument();
   });
 
   it('View Details opens the area\'s scoped Findings view, of its paths', async () => {

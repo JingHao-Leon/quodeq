@@ -1,5 +1,4 @@
-import { useState, useRef, useCallback, useId } from 'react';
-import { useDismissOnOutside } from '../../../hooks/useDismissOnOutside.js';
+import { useId } from 'react';
 import { GalaxyView, GalaxyFolderView, VizBreadcrumb } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
@@ -13,12 +12,13 @@ import { DATA_THEME_ATTR } from '../../../constants.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { PACK_COLOR_MODES, VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, PACK_COLOR_MODE } from '../mapVocab.js';
 import useMapActivity from '../hooks/useMapActivity.js';
-import useMapAreas from '../hooks/useMapAreas.js';
 import useMapTimelapse from '../hooks/useMapTimelapse.js';
 import MapPackPanel from './MapPackPanel.jsx';
 import MapRiskPanel from './MapRiskPanel.jsx';
 import MapTimelapseFooter from './MapTimelapseFooter.jsx';
 import MapVizToggles from './MapVizToggles.jsx';
+import { DimensionFilter, RiskPrincipleChip, dimensionsFiltered } from './MapDimensionFilter.jsx';
+import useRiskState from './useRiskFilter.js';
 import { TIMELAPSE_STATUS } from '../model/timelapsePlayback.js';
 import { useMapTimelapsePref, useMapLegendPref } from './useMapTimelapsePref.js';
 import useRiskActions from './useRiskActions.js';
@@ -45,46 +45,6 @@ const GALAXY_MODES = [
   { id: GALAXY_MODE.STANDARDS, label: t('map.vizStandards') },
 ];
 
-/** True while the Dimensions filter leaves some dimension out. */
-function dimensionsFiltered({ allDimensions, selectedDimensions }) {
-  return selectedDimensions.size !== allDimensions.length;
-}
-
-function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const close = useCallback(() => setOpen(false), []);
-  useDismissOnOutside(open, ref, close);
-
-  if (allDimensions.length <= 1) return null;
-
-  const isFiltered = dimensionsFiltered({ allDimensions, selectedDimensions });
-
-  return (
-    <div className="map-filter-wrap" ref={ref}>
-      <button
-        type="button"
-        className={`term-btn map-filter-btn${isFiltered ? ' is-filtered' : ''}`}
-        onClick={() => setOpen((v) => !v)}
-        title={isFiltered ? t('map.dimensionsOf', { selected: selectedDimensions.size, total: allDimensions.length }) : t('map.allDimensions')}
-        aria-label={isFiltered ? t('map.dimensionsAria', { selected: selectedDimensions.size, total: allDimensions.length }) : t('map.dimensions')}
-      >
-        {t('map.dimensions')} {open ? '▾' : '▸'}
-      </button>
-      {open && (
-        <div className="map-filter-dropdown">
-          {allDimensions.map((dim) => (
-            <label key={dim} className="map-filter-item">
-              <input type="checkbox" checked={selectedDimensions.has(dim)} onChange={() => onToggle(dim)} />
-              <span>{dim}</span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // A blocked mode stays focusable (aria-disabled, like the style toggles) so
 // keyboard and screen-reader users reach the reason it is unavailable.
 function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
@@ -109,13 +69,15 @@ function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
   );
 }
 
-function MapControls({ viewState, galaxyState, dimensionState, activityUnavailable }) {
+// The Dimensions filter shows on every tab; on Risk it re-measures the areas over the kept dimensions.
+function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activityUnavailable }) {
   const { viewMode, setViewMode, vizStyle, setVizStyle } = viewState;
   const { galaxyMode, setGalaxyMode } = galaxyState;
-  const { allDimensions, selectedDimensions, onToggleDimension } = dimensionState;
+  const { allDimensions, selectedDimensions } = dimensionState;
   return (
     <div className="term-page-top__controls map-controls">
-      {vizStyle !== VIZ_STYLE.RISK && <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={onToggleDimension} />}
+      <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={riskFilter.onToggleDimension} />
+      {vizStyle === VIZ_STYLE.RISK && <RiskPrincipleChip principle={riskFilter.principle} onClear={riskFilter.clearPrinciple} />}
       {vizStyle === VIZ_STYLE.ZOOMPACK && <PackColorSeg viewMode={viewMode} setViewMode={setViewMode} activityUnavailable={activityUnavailable} />}
       {vizStyle === VIZ_STYLE.GALAXY && (
         <div className="term-seg">
@@ -231,12 +193,14 @@ function useTimelapseToggle({ vizStyle, source, timelapse, on, setOn }) {
 }
 
 // The time-lapse plays under the Circle Pack and Risk tabs; a Dimensions
-// filter holds it on the latest run on the pack only (Risk ignores the filter).
-function usePageTimelapse({ project, source, vizStyle, dimensionState, grouping = {}, on }) {
+// filter holds it on the latest run on the pack, and on Risk plays the
+// history the server measured over the filter's selection.
+function usePageTimelapse({ project, source, vizStyle, dimensionState, selection, grouping = {}, on }) {
   return useMapTimelapse({
     project, source, granularity: grouping.granularity, onGranularityChange: grouping.onGranularityChange,
     active: on && hasTimelapse(vizStyle),
     blocked: vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(dimensionState),
+    selection: vizStyle === VIZ_STYLE.RISK ? selection : null,
   });
 }
 
@@ -257,10 +221,12 @@ export default function MapPage(props) {
   const state = useMapPageState({ ...props, deferTree: !ready });
   const { vizStyle } = state.viewState;
   const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, vizStyle === VIZ_STYLE.ZOOMPACK);
-  const areaState = useMapAreas(selectedProject, selectedSource, vizStyle === VIZ_STYLE.RISK);
+  const { riskFilter, areaState } = useRiskState({
+    nav: props.nav, dimensionState: state.dimensionState, project: selectedProject, source: selectedSource, active: vizStyle === VIZ_STYLE.RISK,
+  });
   const [timelapseOn, setTimelapseOn] = useMapTimelapsePref();
   const [legendOn, setLegendOn] = useMapLegendPref();
-  const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState, grouping: props.grouping, on: timelapseOn });
+  const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState, selection: riskFilter.selection, grouping: props.grouping, on: timelapseOn });
   const timelapseToggle = useTimelapseToggle({ vizStyle, source: selectedSource, timelapse, on: timelapseOn, setOn: setTimelapseOn });
 
   if (!projectsLoaded) return <MapLoadingState />;
@@ -287,7 +253,7 @@ export default function MapPage(props) {
           sub={sub}
           badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null}
         />
-        <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
+        <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} riskFilter={riskFilter} activityUnavailable={activityUnavailable} />
       </div>
       <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, initialArea: initialAreaOf(props.nav) }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
     </div>

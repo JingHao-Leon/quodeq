@@ -95,14 +95,16 @@ function usePeriod({ granularity, onGranularityChange, shown }) {
  * its setter). The views get the history itself and the run of the frame
  * shown (`position`), so a change of period reuses their layout and only
  * moves them. `blocked` (a Dimensions filter on the Circle Pack) returns to
- * the latest run. Leaving the views pauses. `granularity` and
- * `onGranularityChange` are the app's history grouping (the Overview's).
- * @param {{project: string, source: string, active: boolean, blocked?: boolean, granularity?: string, onGranularityChange?: Function}} args
+ * the latest run; a `selection` (the Risk tab's, riskSelection.js) plays the
+ * history measured over those findings. Leaving the views pauses.
+ * `granularity` and `onGranularityChange` are the app's history grouping
+ * (the Overview's).
+ * @param {{project: string, source: string, active: boolean, blocked?: boolean, selection?: object|null, granularity?: string, onGranularityChange?: Function}} args
  */
-export default function useMapTimelapse({ project, source, active, blocked = false, granularity, onGranularityChange }) {
+export default function useMapTimelapse({ project, source, active, blocked = false, selection = null, granularity, onGranularityChange }) {
   const api = useApi();
   const enabled = mapHistoryEnabled(project, source, active);
-  const query = useQuery({ ...mapHistoryQuery({ api, project, source, active, frames: MAP_FRAMES.ALL }), select: decodeTimelapse });
+  const query = useQuery({ ...mapHistoryQuery({ api, project, source, active, frames: MAP_FRAMES.ALL, selection }), select: decodeTimelapse });
   const decoded = query.data || NO_TIMELAPSE;
   const [state, dispatch] = useReducer(playbackReducer, decoded.runs.length, (runCount) => initialPlayback(runCount, undefined, project));
   const shown = useRef({ frames: null, frame: state.position });

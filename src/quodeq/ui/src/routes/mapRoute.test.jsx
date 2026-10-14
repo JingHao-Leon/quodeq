@@ -12,4 +12,21 @@ describe('mapRoute', () => {
     const element = mapRoute({}, props({ granularity: 'month', onGranularityChange }));
     expect(element.props.grouping).toEqual({ granularity: 'month', onGranularityChange });
   });
+
+  it('opens the Map filtered by a link\'s dimensions and principle', () => {
+    const element = mapRoute({ vizStyle: 'risk', dimensions: ['security'], principle: 'P1', area: 'app' }, props({}));
+    expect(element.props.nav).toMatchObject({ vizStyle: 'risk', dimensions: ['security'], principle: 'P1', area: 'app' });
+  });
+
+  it('drops the link\'s filter from the entry once the filter is changed on the page', () => {
+    const p = props({});
+    mapRoute({ vizStyle: 'risk', dimensions: ['security'], principle: 'P1', _tabKey: 3 }, p).props.nav.onFilterEdited();
+    expect(p.navigation.handleNavigateReplace).toHaveBeenCalledWith('map', { vizStyle: 'risk', dimensions: undefined, principle: undefined, _tabKey: 3 });
+  });
+
+  it('leaves an entry without a link\'s filter alone', () => {
+    const p = props({});
+    mapRoute({ vizStyle: 'risk' }, p).props.nav.onFilterEdited();
+    expect(p.navigation.handleNavigateReplace).not.toHaveBeenCalled();
+  });
 });

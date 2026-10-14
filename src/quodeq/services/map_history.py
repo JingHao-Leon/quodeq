@@ -6,7 +6,6 @@ neither ever rebuilds a cached day."""
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Mapping
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -16,8 +15,9 @@ from quodeq.core.map_history.activity import estimate_edits
 from quodeq.core.map_history.carry import carry_forward, fold_runs
 from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
 from quodeq.core.map_history.raw_run import (
-    RawHistory, RawHistoryWrite, RawRun, ViolationRecord, build_raw_run, materialise, referenced_records,
+    RawHistory, RawHistoryWrite, RawRun, ViolationRecord, build_raw_run, referenced_records,
 )
+from quodeq.core.map_history.selection import FindingSelection
 from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.core.finding_identity import SuppressionSubject
@@ -26,15 +26,14 @@ from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import has_valid_score
 from quodeq.services._map_git import git_commits_per_transition
 from quodeq.services._run_liveness import run_still_writing
-from quodeq.services._violation_filters import is_suppressed_subject, suppression_subject
+from quodeq.services._map_snapshots import Snapshots, run_snapshots
+from quodeq.services._violation_filters import suppression_subject
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.scoring_view import select_default_view_runs
-from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import (
     eval_report_dimensions,
     iter_readable_eval_reports,
     load_map_snapshots,
-    load_suppression_rules,
     project_dir_exists,
     read_repository_info,
     save_map_snapshots,
@@ -73,6 +72,22 @@ class _DayRun(NamedTuple):
     run: RawRun
     records: dict[str, ViolationRecord]
     built_now: bool
+
+
+class _Days(NamedTuple):
+    """Each day with a counted report (oldest first), the records they refer to and every dimension a run reported."""
+
+    picked: dict[str, _DayRun]
+    records: dict[str, ViolationRecord]
+    dims: frozenset[str]
+
+
+class _Measured(NamedTuple):
+    """The history's days, their snapshots (also of the selected findings only) and each day's last run."""
+
+    days: list[str]
+    snaps: Snapshots
+    day_runs: list[str]
 
 
 def _valid_day(day: str) -> bool:
@@ -169,17 +184,6 @@ def _subject_of(dimension: str, violation: dict) -> SuppressionSubject:
     return suppression_subject(violation, dimension)
 
 
-def _suppression_keys(rows: ProjectRows) -> SuppressionKeys:
-    """The project's dismissed, deleted and pattern-rule state."""
-    return replace(rows.keys, rules=load_suppression_rules(rows.reports_root / rows.project))
-
-
-def _hidden(rows: ProjectRows, records: dict[str, ViolationRecord], needed: set[str]) -> frozenset[str]:
-    """The record keys of *needed* the app hides, each distinct record judged once."""
-    keys = _suppression_keys(rows)
-    return frozenset(k for k in needed if is_suppressed_subject(records[k].subject, keys))
-
-
 def _day_run(rows: ProjectRows, group: list[_Candidate], stored: RawHistory) -> _DayRun | None:
     """The day as its last run left it: its runs (oldest first) folded, each dimension as last reported that day.
 
@@ -214,36 +218,40 @@ def _save(rows: ProjectRows, picked: dict[str, _DayRun], keys: dict[str, str]) -
     ))
 
 
-def _days(rows: ProjectRows) -> tuple[dict[str, _DayRun], dict[str, ViolationRecord]]:
-    """Each day with a counted report (oldest first) and the records the days refer to.
+def _days(rows: ProjectRows) -> _Days:
+    """Each day with a counted report (oldest first), the records the days refer to and the report dimensions.
 
     Days are read from the cache where it holds them, and the fresh ones are
     stored; reports are read only for days it does not hold.
     """
     candidates = _candidates(rows)
     if not candidates:
-        return {}, {}
+        return _Days({}, {}, frozenset())
     by_day = _by_day(candidates)
     keys = _cache_keys(rows, by_day)
     stored = load_map_snapshots(rows.project, keys)
     picked = {day: got for day, group in by_day.items()
               if (got := _day_run(rows, group, stored)) is not None}
     _save(rows, picked, keys)
-    return picked, {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}}
+    return _Days(picked, {**stored.records, **{k: r for p in picked.values() for k, r in p.records.items()}},
+                 frozenset(dim for c in candidates for dim in c.dims))
 
 
-def _history(rows: ProjectRows) -> tuple[list[str], list[RunSnapshot], list[str]]:
+def _history(rows: ProjectRows, selection: FindingSelection | None) -> _Measured:
     """Oldest-first days with reports, their snapshots (the accumulated view as of each day's end) and each day's last run.
 
     Every run the page header counts counts here: a day folds its runs oldest
     first, and a dimension the day did not report is carried from the latest
-    earlier day that did.
+    earlier day that did. Under a *selection* the stored days are filtered as
+    they are read, never stored filtered. Raises SelectionError when a
+    selected dimension is not one the project's runs reported.
     """
-    picked, records = _days(rows)
-    runs = carry_forward([p.run for p in picked.values()], records)
-    hidden = _hidden(rows, records, referenced_records(runs))
-    weights: Mapping[str, float] = rows.params.severity_weight
-    return list(picked), [materialise(run, records, hidden, weights) for run in runs], [p.row_id for p in picked.values()]
+    days = _days(rows)
+    if selection is not None and days.picked:
+        selection.check_known(days.dims)
+    runs = carry_forward([p.run for p in days.picked.values()], days.records)
+    return _Measured(list(days.picked), run_snapshots(rows, runs, days.records, selection),
+                     [p.row_id for p in days.picked.values()])
 
 
 def _estimated_activity(snaps: list[RunSnapshot]) -> RunActivity:
@@ -263,18 +271,29 @@ def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot]) -> R
     return RunActivity(_SOURCE_GIT, tuple(Counter({p: n for p, n in c.items() if p in snaps[i].files}) for i, c in enumerate(got)))
 
 
-def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_FRAMES) -> MapHistory:
+def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_FRAMES,
+                      selection: FindingSelection | None = None) -> MapHistory:
     """The project's map history: the latest frame, or every frame when *frames* is ``ALL_FRAMES``.
 
-    Raises ValueError when *frames* is not one of ``FRAME_CHOICES``.
+    With a *selection* the files, flows, ages and area metrics are measured
+    over its findings only, each area keeps the area it has without one and
+    carries its lift; activity (edits) stays every file's own.
+
+    Raises ValueError when *frames* is not one of ``FRAME_CHOICES``, and
+    SelectionError (a ValueError) when a selected dimension is unknown.
     """
     if frames not in FRAME_CHOICES:
         raise ValueError(f"unknown frames value: {frames!r}")
     if not project_dir_exists(reports_root / project):
         return EMPTY_HISTORY
-    days, snaps, day_runs = _history(ProjectRows.load(reports_root, project, run_limit=0))
-    if not days:
+    m = _history(ProjectRows.load(reports_root, project, run_limit=0), selection)
+    if not m.days:
         return EMPTY_HISTORY
-    frame_runs = list(range(len(snaps))) if frames == ALL_FRAMES else [len(snaps) - 1]
-    history = assemble_history(days, snaps, _activity(reports_root / project, days, snaps), frame_runs)
-    return replace(history, day_runs=tuple(day_runs))
+    frame_runs = list(range(len(m.days))) if frames == ALL_FRAMES else [len(m.days) - 1]
+    activity = _activity(reports_root / project, m.days, m.snaps.snapshots)
+    if selection is None:
+        history = assemble_history(m.days, m.snaps.snapshots, activity, frame_runs)
+    else:
+        history = assemble_history(m.days, m.snaps.selected, activity, frame_runs,
+                                   area_paths={p for s in m.snaps.snapshots for p in s.files}, lift=True)
+    return replace(history, day_runs=tuple(m.day_runs))
