@@ -17,7 +17,7 @@ def write_run(project_dir: Path, run_id: str, day: str, violations: dict[str, li
     (run / "evaluation").mkdir(parents=True, exist_ok=True)
     for dim in dims:
         (run / "evaluation" / f"{dim}.json").write_text(json.dumps({
-            "dimension": dim, "date": f"{day}T{at}+00:00", "principles": [],
+            "dimension": dim, "date": f"{day}T{at}+00:00", "principles": [], "overallScore": "7.0/10", "filesRead": 10,
             "violations": violations.get(dim, []), "compliance": []}))
     (run / "status.json").write_text(json.dumps({"state": state, "started_at": f"{day}T{at}Z"}))
 

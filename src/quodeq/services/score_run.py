@@ -7,23 +7,21 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from quodeq.config.evidence_env import cwe_url_template
-from quodeq.config.services_env import cancel_escalation_window_s
 from quodeq.core.evidence.parser import (
     EvidenceContext, EvidenceParseOptions, parse_jsonl_to_evidence)
 from quodeq.core.run.dimensions import DimState
 from quodeq.core.run.job_status import JobStatus
-from quodeq.core.run.state import STATUS_FILENAME
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.data.fs.standards_loader import load_compiled_refs, read_req_to_principle_map
 from quodeq.core.scoring.engine import score_evidence
 from quodeq.core.utils.io import resolve_child_dir
+from quodeq.services._run_liveness import run_still_writing
 from quodeq.services.scored_jobs_registry import ScoringClaims
 from quodeq.services.background import BackgroundRunner
 from quodeq.services.grade_formula import load_params
@@ -38,7 +36,6 @@ from quodeq.services.wiring import (
     read_dimensions,
     read_queue_files_count,
     read_scan_total_files,
-    resolve_external_pid,
     write_dimension_report,
 )
 
@@ -209,19 +206,6 @@ def score_completed_evidence(
         _score_one_dimension(dim_id, jsonl_path, files_read, ctx, deps)
 
 
-def _terminal_long_ago(run_dir: Path) -> bool:
-    """True once status.json was last written longer ago than any cancel can take.
-
-    By then the escalation has SIGKILLed the run, so a live pid in ``.pid``
-    is a reused one, not ours. A missing status.json counts as long ago.
-    """
-    try:
-        written = (run_dir / STATUS_FILENAME).stat().st_mtime
-    except OSError:
-        return True
-    return time.time() - written > cancel_escalation_window_s()
-
-
 def _job_field(job: Any, name: str) -> Any:
     """*name* off a job snapshot, which is a job object or a plain dict."""
     return job.get(name) if isinstance(job, dict) else getattr(job, name, None)
@@ -231,10 +215,7 @@ def _run_process_alive(reports_dir: str, job: Any) -> bool:
     """True while the run's ``.pid`` names a live process (still writing its own reports)."""
     project, run_id = _job_field(job, "output_project"), _job_field(job, "output_run_id")
     project_dir = resolve_child_dir(reports_dir, project) if project and run_id else None
-    run_dir = resolve_child_dir(project_dir, run_id) if project_dir is not None else None
-    if run_dir is None or _terminal_long_ago(Path(run_dir)):
-        return False
-    return resolve_external_pid(Path(project_dir), run_id) is not None
+    return project_dir is not None and run_still_writing(Path(project_dir), run_id)
 
 
 def score_terminal_run_once(

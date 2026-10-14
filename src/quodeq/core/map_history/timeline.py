@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from datetime import date
 
 from quodeq.core.map_history.activity import first_seen_index
@@ -10,17 +10,6 @@ from quodeq.core.map_history.snapshot import RunSnapshot, is_violation
 
 # The leading characters of an ISO timestamp that make up its calendar day.
 ISO_DAY_LEN = 10
-# Dimensions a run may miss against the usual count and still be a full run.
-FULL_RUN_SLACK = 1
-
-
-def full_run_dimensions(dimension_counts: Iterable[int]) -> int:
-    """How many dimensions a run needs to be a full run: the most common count, less ``FULL_RUN_SLACK`` (at least 1).
-
-    *dimension_counts* holds each run's dimension count (at least one run).
-    """
-    usual = Counter(dimension_counts).most_common(1)[0][0]
-    return max(1, usual - FULL_RUN_SLACK)
 
 
 def running_edits(per_transition: Sequence[Counter[str]]) -> list[Counter[str]]:

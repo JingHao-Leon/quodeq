@@ -5,7 +5,6 @@ from quodeq.core.map_history.timeline import (
     NO_VIOLATION_START,
     ages_from_starts,
     finding_flows,
-    full_run_dimensions,
     running_edits,
     violation_age_starts,
     violation_counts,
@@ -61,11 +60,3 @@ def test_age_survives_a_run_that_skipped_the_dimension():
              _snapshot(("mnt", "sec"), **{"a.py": {"mnt:v:x"}})]
     starts = violation_age_starts(snaps, [violation_ids(s) for s in snaps])
     assert starts[2]["a.py"] == 0 and ages_from_starts(days, starts)[2]["a.py"] == 2
-
-
-def test_a_full_run_has_the_usual_dimension_count_less_one():
-    assert full_run_dimensions([6, 6, 5, 2]) == 5
-
-
-def test_a_full_run_needs_at_least_one_dimension():
-    assert full_run_dimensions([1, 1]) == 1

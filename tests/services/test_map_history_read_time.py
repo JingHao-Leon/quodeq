@@ -66,13 +66,14 @@ def test_a_new_grade_formula_reweighs_without_reading_a_report(env, monkeypatch)
     assert reads == []
 
 
-def test_the_cache_key_holds_only_the_shape_and_the_dimensions(env, cached_runs, monkeypatch):
+def test_the_cache_key_holds_only_the_shape_and_the_days_runs_with_their_dimensions(env, cached_runs, monkeypatch):
     keys_seen = []
     real = map_history.load_map_snapshots
     monkeypatch.setattr(map_history, "load_map_snapshots", lambda project, keys: keys_seen.append(keys) or real(project, keys))
     write_two_runs(env)
     build_map_history(env, "proj")
-    assert set(keys_seen[0].values()) == {f"{map_history.SNAPSHOT_SHAPE}|maintainability,security"}
+    shape = map_history.SNAPSHOT_SHAPE
+    assert keys_seen[0] == {"r1": f"{shape}|r1=maintainability,security", "r2": f"{shape}|r2=maintainability,security"}
 
 
 def test_a_run_cached_under_an_older_shape_is_rebuilt(env, monkeypatch):

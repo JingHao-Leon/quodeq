@@ -80,3 +80,11 @@ def carry_forward(runs: Sequence[RawRun], records: Mapping[str, ViolationRecord]
         out.append(_with_slices(run, {dim: slices.of(j, dim) for dim, j in missing.items()}) if missing else run)
         source.update(dict.fromkeys(run.dims, k))
     return out
+
+
+def fold_runs(runs: Sequence[RawRun], records: Mapping[str, ViolationRecord]) -> RawRun:
+    """The last of *runs* (oldest first, at least one) with every dimension an earlier one reported and it did not.
+
+    What a day's runs leave behind: each dimension as last reported among them.
+    """
+    return carry_forward(runs, records)[-1]
