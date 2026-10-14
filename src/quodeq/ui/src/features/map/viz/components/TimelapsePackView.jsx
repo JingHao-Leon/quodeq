@@ -5,7 +5,9 @@ import { WRAPPER_STYLE } from './canvasLayer.js';
 import { useRunTransition } from './useRunTransition.js';
 import { buildTimelapseModel } from '../core/timelapseModel.js';
 import { createTimelapseLayouts } from '../core/timelapseLayouts.js';
-import { runNodeData, transitionKind, focusIndexFor, cachedRuns } from '../core/timelapseScene.js';
+import { runNodeData, transitionKind, focusIndexFor, cachedRuns, chainEndsIn } from '../core/timelapseScene.js';
+import { LevelInfoPanel } from './galaxyViewInfo.jsx';
+import { computeLevelInfo } from './packLevelInfo.js';
 import { dayDate } from '../core/timelapseBarModel.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from '../core/mapBadness.js';
 import { XYR_STRIDE, XYR_R } from '../core/packLayout.js';
@@ -30,10 +32,10 @@ function useAnchor(layouts) {
 }
 
 /** While playing, lay out the next run ahead so the move can start on time. */
-function usePrefetch(layouts, { position, playing, data }) {
+function usePrefetch(layouts, { playing, nextPosition }) {
   useEffect(() => {
-    if (playing && position + 1 < data.runs.length) layouts.run(position + 1).catch(warnLayoutFailed);
-  }, [layouts, position, playing, data]);
+    if (playing && nextPosition !== null && nextPosition !== undefined) layouts.run(nextPosition).catch(warnLayoutFailed);
+  }, [layouts, playing, nextPosition]);
 }
 
 /** Hover index tied to the folder it was taken under (a zoom or another
@@ -43,6 +45,35 @@ function useHover(focusNode) {
   const [state, setState] = useState({ focusNode, index: null });
   const setHover = useCallback((index) => setState({ focusNode, index }), [focusNode]);
   return [state.focusNode !== focusNode ? null : state.index, setHover];
+}
+
+/** The selected file as a node index, by path through the page's `selection` (shared with today's pack). */
+function usePicked(model, selection) {
+  const fileIndex = useMemo(() => new Map(model.nodes.flatMap((n, i) => (n.children ? [] : [[n.data.path, i]]))), [model]);
+  const pick = useCallback((index) => selection?.onSelect(index === null ? null : model.nodes[index].data.path), [model, selection]);
+  const path = selection?.path;
+  return [path ? fileIndex.get(path) ?? null : null, pick];
+}
+
+/**
+ * The panel, top right: the selected file, else the open folder (the end of
+ * its chain that day), with run k's numbers. No View Details: it would open
+ * today's page for a day that may hold something else.
+ */
+function usePanel({ model, nodeDataAt, k, focusIndex, selected }) {
+  return useMemo(() => {
+    if (k === null) return null;
+    const data = nodeDataAt(k);
+    const ends = chainEndsIn(model, k);
+    const focus = ends[focusIndex] >= 0 ? ends[focusIndex] : focusIndex;
+    const i = selected ?? focus;
+    if (!data[i] || data[i].absent) return null;
+    // Count only what the run holds: a folder's absent children are not its contents that day.
+    const live = (d) => (d.children ? { ...d, children: d.children.filter((c) => !c.absent) } : d);
+    const root = { data: live(data[0]) };
+    const info = computeLevelInfo(i === 0 ? root : { data: live(data[i]) }, root);
+    return info && { ...info, detailAction: null };
+  }, [model, nodeDataAt, k, focusIndex, selected]);
 }
 
 /** The hovered circle with run k's numbers (a run draws only what it holds, so it is always there). */
@@ -70,13 +101,15 @@ function useTimelapseScene({ data, position, moveMs, onSettled }) {
  * per run in the worker, each run showing only what it holds, and every
  * change between runs a move: circles slide with their folder, new ones grow
  * in, gone ones shrink out. Hover shows the run's numbers, playing or
- * paused. Paused: a click goes through `onDrillDown`. Playing: a click pauses. No info panel: it
- * would act on today's data.
+ * paused. A click, playing or paused, opens a folder through `onDrillDown`
+ * or selects a file of the open folder; the panel shows the selected file,
+ * else the open folder, with that run's numbers (no View Details: it would
+ * act on today's data).
  */
 export default function TimelapsePackView({
-  timelapse, colorMode, weights = DEFAULT_SEVERITY_WEIGHTS, dark = false, showLabels = true, currentPath = '', onDrillDown,
+  timelapse, colorMode, weights = DEFAULT_SEVERITY_WEIGHTS, dark = false, showLabels = true, currentPath = '', onDrillDown, selection = null,
 }) {
-  const { data, playing, controls } = timelapse;
+  const { data } = timelapse;
   const { model, layouts, nodeDataAt, anchor, view } = useTimelapseScene(timelapse);
   usePrefetch(layouts, timelapse);
   // A full scan of the tree: only when the focus path or the tree changes, never per frame.
@@ -84,6 +117,9 @@ export default function TimelapsePackView({
   const [hover, setHover] = useHover(model.nodes[focusIndex]);
   const shown = useCallback((i) => Boolean(view && view.to.state[i * XYR_STRIDE + XYR_R] > 0), [view]);
   const tip = useTip({ model, nodeDataAt, k: view ? view.to.k : null, hover, shown });
+  const [selected, onSelectFile] = usePicked(model, selection);
+  const panelSelected = selected !== null && shown(selected) ? selected : null;
+  const panel = usePanel({ model, nodeDataAt, k: view ? view.to.k : null, focusIndex, selected: panelSelected });
   if (!view || !anchor) return null;
   const date = formatShortDate(dayDate(data.runs[view.to.k].day).toISOString());
   return (
@@ -91,9 +127,10 @@ export default function TimelapsePackView({
       <TimelapseCanvas
         scene={{ model, nodeDataAt, anchor, view, focusIndex, label: t('map.timelapsePackAria', { date }) }}
         paintInputs={{ colorMode, weights, dark }}
-        interaction={{ playing, pause: controls.pause, hover, setHover, onDrillDown, showLabels }}
+        interaction={{ hover, setHover, onDrillDown, showLabels, selected, onSelectFile }}
       />
       <PackTooltip node={tip} />
+      <LevelInfoPanel levelInfo={panel} onClose={panelSelected ? () => onSelectFile(null) : undefined} />
     </div>
   );
 }

@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { MAP_FRAMES } from '../mapVocab.js';
 import { decodeTimelapse, NO_TIMELAPSE } from '../model/mapTimelapse.js';
+import { framesByPeriod, periodIndexOf } from '../model/timelapsePeriods.js';
+import { GRANULARITY } from '../../../utils/granularity.js';
 import {
   PLAYBACK_ACTION, MOVE_MS, HOLD_MS, TIMELAPSE_STATUS, initialPlayback, playbackReducer, isPast, showsTimelapse,
 } from '../model/timelapsePlayback.js';
@@ -57,7 +59,6 @@ function shownPosition(state, runCount, blocked) {
 function usePlaybackControls(dispatch) {
   return useMemo(() => ({
     toggle: () => dispatch({ type: PLAYBACK_ACTION.TOGGLE }),
-    pause: () => dispatch({ type: PLAYBACK_ACTION.PAUSE }),
     first: () => dispatch({ type: PLAYBACK_ACTION.SEEK, position: 0 }),
     latest: () => dispatch({ type: PLAYBACK_ACTION.SEEK, position: Infinity }),
     seek: (position) => dispatch({ type: PLAYBACK_ACTION.SEEK, position }),
@@ -67,30 +68,73 @@ function usePlaybackControls(dispatch) {
 }
 
 /**
+ * The period the time-lapse plays by: the app's history grouping (the
+ * Overview's day, week or month, one setting for both). Picking another one
+ * keeps the day on screen: the playback resets onto the period that holds it.
+ */
+function usePeriod({ granularity, onGranularityChange, shown }) {
+  const keepDay = useRef(null);
+  const period = granularity || GRANULARITY.DAY;
+  const setPeriod = useCallback((next) => {
+    keepDay.current = shown.current.frames?.runs[shown.current.frame]?.day ?? null;
+    onGranularityChange?.(next);
+  }, [onGranularityChange, shown]);
+  const takeKeptDay = useCallback(() => {
+    const day = keepDay.current;
+    keepDay.current = null;
+    return day;
+  }, []);
+  return { period, setPeriod, takeKeptDay };
+}
+
+/**
  * The Map's time-lapse: every run of the history (fetched only while the
  * Circle Pack or Risk tab is on screen, local projects only) and the playback
- * state over it. `blocked` (a Dimensions filter on the Circle Pack) returns
- * to the latest run. Leaving the views pauses.
- * @param {{project: string, source: string, active: boolean, blocked?: boolean}} args
+ * state over it, played frame by frame: every day, or the last run of each
+ * week or month (`frames`: the bar's runs, the frame shown, the period and
+ * its setter). The views get the history itself and the run of the frame
+ * shown (`position`), so a change of period reuses their layout and only
+ * moves them. `blocked` (a Dimensions filter on the Circle Pack) returns to
+ * the latest run. Leaving the views pauses. `granularity` and
+ * `onGranularityChange` are the app's history grouping (the Overview's).
+ * @param {{project: string, source: string, active: boolean, blocked?: boolean, granularity?: string, onGranularityChange?: Function}} args
  */
-export default function useMapTimelapse({ project, source, active, blocked = false }) {
+export default function useMapTimelapse({ project, source, active, blocked = false, granularity, onGranularityChange }) {
   const api = useApi();
   const enabled = mapHistoryEnabled(project, source, active);
   const query = useQuery({ ...mapHistoryQuery({ api, project, source, active, frames: MAP_FRAMES.ALL }), select: decodeTimelapse });
-  const data = query.data || NO_TIMELAPSE;
-  const [state, dispatch] = useReducer(playbackReducer, data.runs.length, (runCount) => initialPlayback(runCount, undefined, project));
-  useEffect(() => { dispatch({ type: PLAYBACK_ACTION.RESET, runCount: data.runs.length, owner: project }); }, [data.runs.length, project]);
+  const decoded = query.data || NO_TIMELAPSE;
+  const [state, dispatch] = useReducer(playbackReducer, decoded.runs.length, (runCount) => initialPlayback(runCount, undefined, project));
+  const shown = useRef({ frames: null, frame: state.position });
+  const { period, setPeriod, takeKeptDay } = usePeriod({ granularity, onGranularityChange, shown });
+  const frames = useMemo(() => framesByPeriod(decoded.runs, period), [decoded, period]);
+  // The frames read when the playback resets; a refetch of the same history keeps the playback, so only
+  // the frame count, the project or the period trigger a reset.
+  const latestFrames = useRef(frames);
+  latestFrames.current = frames;
+  const frameCount = frames.runs.length;
+  useEffect(() => {
+    const day = takeKeptDay();
+    const position = day === null ? undefined : periodIndexOf(latestFrames.current.runs, day);
+    dispatch({ type: PLAYBACK_ACTION.RESET, runCount: frameCount, owner: project, position });
+  }, [frameCount, project, period, takeKeptDay]);
   usePlaybackGuard(state, dispatch, { active, blocked });
   usePlaybackClock(state, dispatch);
   const controls = usePlaybackControls(dispatch);
-  const onSettled = useCallback((position) => dispatch({ type: PLAYBACK_ACTION.SETTLED, position }), []);
+  // The views settle on a run of the history; the playback counts frames.
+  const onSettled = useCallback((run) => dispatch({ type: PLAYBACK_ACTION.SETTLED, position: frames.ends.indexOf(run) }), [frames]);
   const status = timelapseStatus(enabled, query);
-  const own = ownState(state, project, data.runs.length);
-  const position = shownPosition(own, data.runs.length, blocked);
+  const own = ownState(state, project, frames.runs.length);
+  const frame = shownPosition(own, frames.runs.length, blocked);
+  shown.current = { frames, frame };
   return {
-    status, data, project, position, speed: state.speed,
+    status, data: decoded, project,
+    position: frames.ends[frame] ?? Math.max(0, decoded.runs.length - 1),
+    nextPosition: frames.ends[frame + 1] ?? null,
+    frames: { runs: frames.runs, position: frame, period, setPeriod },
+    speed: state.speed,
     playing: own.playing && !blocked,
-    past: status === TIMELAPSE_STATUS.READY && !blocked && (position < data.runs.length - 1 || showsTimelapse(own)),
+    past: status === TIMELAPSE_STATUS.READY && !blocked && (frame < frames.runs.length - 1 || showsTimelapse(own)),
     moveMs: prefersReducedMotion() ? 0 : MOVE_MS / state.speed,
     controls, onSettled,
   };

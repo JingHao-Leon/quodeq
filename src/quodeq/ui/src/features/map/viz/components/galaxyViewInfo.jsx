@@ -20,6 +20,22 @@ const PANEL_STYLE = {
   minWidth: 160,
 };
 const TITLE_STYLE = { fontWeight: 600, color: 'var(--color-text)', marginBottom: 8, fontSize: 13 };
+const CLOSABLE_TITLE_STYLE = { ...TITLE_STYLE, paddingRight: 18 };
+const CLOSE_STYLE = {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  width: 24,
+  height: 24,
+  padding: 0,
+  border: 'none',
+  borderRadius: '50%',
+  background: 'transparent',
+  color: 'var(--color-text-muted)',
+  fontSize: 15,
+  lineHeight: '24px',
+  cursor: 'pointer',
+};
 const ROW_STYLE = { display: 'flex', justifyContent: 'space-between', gap: 16, margin: '3px 0' };
 const HINT_STYLE = {
   marginTop: 8,
@@ -58,13 +74,18 @@ function escapeHandler(onEscape) {
  * Presentational component for the level info panel overlay.
  * With `label` it is a named region; `detailRef` reaches the View Details
  * button, and `onEscape` runs when Escape is pressed on it.
+ * With `onClose` (a selection the panel shows) a × in its corner clears it.
  */
-export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape }) {
+export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape, onClose }) {
   if (!levelInfo) return null;
   const onKeyDown = escapeHandler(onEscape);
   return (
     <div style={PANEL_STYLE} role={label ? 'region' : undefined} aria-label={label}>
-      <div style={TITLE_STYLE}>{levelInfo.title}</div>
+      {onClose && (
+        <button type="button" style={CLOSE_STYLE} onClick={onClose} onKeyDown={onKeyDown}
+          aria-label={t('map.panelClose')} title={t('map.panelClose')}>×</button>
+      )}
+      <div style={onClose ? CLOSABLE_TITLE_STYLE : TITLE_STYLE}>{levelInfo.title}</div>
       {levelInfo.path && <div style={PATH_STYLE}>{levelInfo.path}</div>}
       {levelInfo.tag && <div style={TAG_STYLE}>{levelInfo.tag}</div>}
       {levelInfo.lines.map((l, i) => (

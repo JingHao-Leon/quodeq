@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength, fileConcentrationColor,
-  activityScale, activityFileStrength, activityFolderStrength,
+  activityScale, activityFileStrength, activityFolderStrength, labelInk,
 } from './mapPaint.js';
 
 const RED = { r: 240, g: 80, b: 120 };
@@ -53,4 +53,13 @@ test('activity strengths', () => {
   assert.ok(close(activityFileStrength(4, 4), 1));
   assert.ok(activityFolderStrength(1, true) > activityFolderStrength(0.1, true));
   assert.ok(close(activityFolderStrength(0, false), 0.05));
+});
+
+test('label ink: the theme text pushed toward white on dark, toward black on light', () => {
+  const text = { r: 200, g: 200, b: 200 };
+  const dark = labelInk({ dark: true, text });
+  const light = labelInk({ dark: false, text });
+  assert.ok(dark.r > text.r && dark.r < WHITE.r);
+  assert.ok(light.r < text.r && light.r > BLACK.r);
+  assert.deepEqual(labelInk({ dark: true, text: WHITE }), WHITE);
 });

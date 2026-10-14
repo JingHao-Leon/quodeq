@@ -2,7 +2,7 @@ import { isDrawable } from './packCanvasGeometry.js';
 import { TAU } from './galaxyCore.js';
 import { clamp } from './mapBadness.js';
 import { chainLabel } from './chainLabel.js';
-import { rgbCss } from './mapPaint.js';
+import { rgbCss, labelInk } from './mapPaint.js';
 import { isPackFolder } from './packNode.js';
 
 /** Files are drawn at 84 % of their slot, so siblings never touch. */
@@ -27,6 +27,8 @@ const LABEL_FONT_MIN = 8;
 const LABEL_FONT_DIVISOR = 4;
 const LABEL_GAP = 4;
 const LABEL_WEIGHT_FOLDER = '600';
+/** A dark outline behind each label, as on the Risk sky, so a label reads over busy circles. */
+const LABEL_HALO_WIDTH = 3;
 const EVEN_ODD = 'evenodd';
 /** Dash and gap of an absent (ghost) circle's outline, in pixels. */
 export const GHOST_DASH_PX = 2;
@@ -244,38 +246,44 @@ function labelBox(ctx, { text, p, size, font, pinned }) {
   return { text, x: p.px - w / 2, y: y - size, w, h: size, cx: p.px, base: y };
 }
 
-/** The labels that are never skipped: the hovered folder's and the open folder's, kept inside the canvas. */
-function pinnedLabels(ctx, { circles, screenCoords, viewport, hoverIndex, open, label, font, fontScale }) {
+/** The labels that are never skipped: the selected circle's, the hovered folder's and the open folder's, kept inside the canvas. */
+function pinnedLabels(ctx, { circles, screenCoords, viewport, hoverIndex, selectedIndex, open, label, font, fontScale }) {
+  const pin = (i, p, size = labelSize(p.r, fontScale)) => labelBox(ctx, { text: label(i), p, size, font, pinned: true });
   const boxes = [];
-  const hovered = hoverIndex === null ? null : circles[hoverIndex];
-  if (hovered && isPackFolder(hovered)) {
-    const p = toPx(screenCoords[hoverIndex], viewport);
-    boxes.push(labelBox(ctx, { text: label(hoverIndex), p, size: labelSize(p.r, fontScale), font, pinned: true }));
-  }
-  if (open >= 0) boxes.push(labelBox(ctx, { text: label(open), p: toPx(screenCoords[open], viewport), size: LABEL_FONT_MAX * fontScale, font, pinned: true }));
+  // The selected circle's label first: it wins any conflict, file or folder.
+  const selectedAt = selectedIndex !== null && selectedIndex !== undefined && screenCoords[selectedIndex];
+  const sp = selectedAt ? toPx(selectedAt, viewport) : null;
+  if (sp && sp.r > 0) boxes.push(pin(selectedIndex, sp));
+  const hovered = hoverIndex === null || hoverIndex === selectedIndex ? null : circles[hoverIndex];
+  if (hovered && isPackFolder(hovered)) boxes.push(pin(hoverIndex, toPx(screenCoords[hoverIndex], viewport)));
+  if (open >= 0) boxes.push(pin(open, toPx(screenCoords[open], viewport), LABEL_FONT_MAX * fontScale));
   return boxes;
 }
 
 /**
- * Labels, when on: the hovered folder's name and the open folder's name come
- * first (kept inside the canvas), then the open folder's sub-folders, largest
- * first; a label whose box would overlap one already placed is skipped, so
- * labels never collide.
+ * Labels, when on: the selected circle's, the hovered folder's and the open
+ * folder's names come first (kept inside the canvas), then the open folder's
+ * sub-folders, largest first; a label overlapping one already placed is
+ * skipped, so labels never collide. Each is drawn over a halo of the page colour.
  */
-function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale, nameOf }) {
-  ctx.fillStyle = rgbCss(palette.text);
+function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, selectedIndex, palette, font, fontScale, nameOf }) {
+  ctx.fillStyle = rgbCss(labelInk(palette));
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const label = (i) => chainLabel(nameOf ? nameOf(i) : circles[i].data.name);
   const { open, candidates } = labelCandidates({ circles, screenCoords, viewport, focusNode });
-  const boxes = pinnedLabels(ctx, { circles, screenCoords, viewport, hoverIndex, open, label, font, fontScale });
+  const boxes = pinnedLabels(ctx, { circles, screenCoords, viewport, hoverIndex, selectedIndex, open, label, font, fontScale });
   for (const { p, i } of candidates) {
-    if (i === hoverIndex) continue;
+    if (i === hoverIndex || i === selectedIndex) continue;
     const box = labelBox(ctx, { text: label(i), p, size: labelSize(p.r, fontScale), font, pinned: false });
     if (!boxes.some((b) => overlaps(b, box))) boxes.push(box);
   }
+  ctx.lineWidth = LABEL_HALO_WIDTH;
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = rgbCss(palette.bg);
   for (const b of boxes) {
     ctx.font = `${LABEL_WEIGHT_FOLDER} ${b.h}px ${font}`;
+    ctx.strokeText(b.text, b.cx, b.base);
     ctx.fillText(b.text, b.cx, b.base);
   }
 }
@@ -285,8 +293,8 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverInde
  * lives on the static layer (fadesFor). `nameOf(i)`, when given, names circle
  * `i` (the time-lapse names a collapsed chain after its end).
  */
-export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, palette, font, width, height, fontScale = 1, nameOf = null }) {
+export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, selectedIndex = null, focusNode, showLabels, palette, font, width, height, fontScale = 1, nameOf = null }) {
   ctx.clearRect(0, 0, width, height);
   if (hoverIndex !== null) drawHover(ctx, toPx(screenCoords[hoverIndex], viewport), palette);
-  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale, nameOf });
+  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, selectedIndex, palette, font, fontScale, nameOf });
 }

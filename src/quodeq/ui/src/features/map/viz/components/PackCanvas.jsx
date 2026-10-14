@@ -30,16 +30,16 @@ function useStaticLayer(canvasRef, { circles, indexOf, paint, screenCoords, view
 }
 
 function useOverlayLayer(canvasRef, frame) {
-  const { circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, theme, size } = frame;
+  const { circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, theme, size } = frame;
   useEffect(() => {
     if (!theme.palette) return;
     const ctx = prepareLayer(canvasRef.current, size);
     if (!ctx) return;
     drawOverlay(ctx, {
-      circles, screenCoords, viewport, hoverIndex, focusNode, showLabels,
+      circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels,
       palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });
-  }, [canvasRef, circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, theme, size]);
+  }, [canvasRef, circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, theme, size]);
 }
 
 function kbdItems({ circles, paint, focusNode, colorMode, handleClick }) {
@@ -127,7 +127,8 @@ export default function PackCanvas({ view, paintInputs, hoverState, handlers }) 
   const paint = usePackPaint({ circles, colorMode, palette: theme.palette, weights, editsByPath });
   const hoverIndex = validIndex(hover, circles);
   // The selected file keeps its ring while nothing else is hovered.
-  const ringIndex = hoverIndex ?? (selected ? indexOf.get(selected) ?? null : null);
+  const selectedIndex = selected ? indexOf.get(selected) ?? null : null;
+  const ringIndex = hoverIndex ?? selectedIndex;
   const targetFades = useMemo(
     () => fadesFor(circles, indexOf, { focusNode, hoverNode: hoverIndex === null ? null : circles[hoverIndex], selectedNode: selected }),
     [circles, indexOf, focusNode, hoverIndex, selected],
@@ -136,7 +137,7 @@ export default function PackCanvas({ view, paintInputs, hoverState, handlers }) 
 
   useStaticLayer(staticRef, { circles, indexOf, paint, screenCoords, viewport, size, fades });
   useOverlayLayer(overlayRef, {
-    circles, screenCoords, viewport, focusNode, theme, size, hoverIndex: ringIndex,
+    circles, screenCoords, viewport, focusNode, theme, size, hoverIndex: ringIndex, selectedIndex,
     showLabels: showLabels && shown === transform,
   });
   const kbd = useMemo(

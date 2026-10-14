@@ -64,9 +64,9 @@ function clickTarget(model, i) {
 }
 
 /**
- * Pointer and keyboard on the overlay. Hover works playing or paused (it
- * follows its circle from run to run). Playing: any click pauses. Paused: a
- * click goes where it lands: a
+ * Pointer and keyboard on the overlay, the same playing or paused. Hover
+ * follows its circle from run to run. A click on a file of the open folder
+ * selects it; any other click goes where it lands: a
  * folder or ring opens that folder, a file outside the open folder opens its
  * folder, a miss goes to the top. A file is picked only inside the open
  * folder (elsewhere its folder is), and a collapsed chain is picked as its
@@ -91,8 +91,10 @@ function usePointer({ model, coords, viewport, focusIndex, interaction, ends }) 
     },
     onMouseLeave: () => interaction.setHover(null),
     onClick: (e) => {
-      if (interaction.playing) { interaction.pause(); return; }
       const i = hitAt(e);
+      // A file (only reachable inside the open folder) is selected; anything else opens where it lands.
+      if (i !== null && !model.nodes[i].children) { interaction.onSelectFile(i); return; }
+      interaction.onSelectFile(null);
       const target = clickTarget(model, i);
       if (target !== focusIndex) interaction.onDrillDown(target > 0 ? model.nodes[target].data.path : '');
     },
@@ -106,19 +108,15 @@ function usePointer({ model, coords, viewport, focusIndex, interaction, ends }) 
 
 /**
  * The keyboard's way in: one focusable button per sub-folder of the focused
- * folder, doing what a click on that folder does (pause while playing, else
- * zoom in). Escape on the canvas zooms out.
+ * folder, doing what a click on that folder does (zoom in). Escape on the
+ * canvas zooms out.
  */
 function useFolderItems({ model, focusIndex, interaction }) {
-  const { playing, pause, onDrillDown } = interaction;
+  const { onDrillDown } = interaction;
   return useMemo(() => {
     const folders = (model.nodes[focusIndex].children || []).filter((c) => c.children).slice(0, KBD_MAX);
-    return folders.map((c) => ({
-      key: c.data.path,
-      text: c.data.name,
-      onActivate: () => (playing ? pause() : onDrillDown(c.data.path)),
-    }));
-  }, [model, focusIndex, playing, pause, onDrillDown]);
+    return folders.map((c) => ({ key: c.data.path, text: c.data.name, onActivate: () => onDrillDown(c.data.path) }));
+  }, [model, focusIndex, onDrillDown]);
 }
 
 /** The circles canvas, redrawn when the run on screen, the camera, the brightness or the canvas changes. */
@@ -147,12 +145,13 @@ function useCamera({ model, anchor, layer, focusIndex }) {
   return useFollowingTransform(target, focusIndex);
 }
 
-/** Every circle's brightness for the open folder and the hovered circle, eased. */
-function useCircleFades(model, shownFocus, hover) {
+/** Every circle's brightness for the open folder, the hovered circle and the selected file, eased. */
+function useCircleFades(model, shownFocus, { hover, selected }) {
   const hoverNode = hover === null ? null : model.nodes[hover];
+  const selectedNode = selected === null || selected === undefined ? null : model.nodes[selected];
   const target = useMemo(
-    () => fadesFor(model.nodes, model.index, { focusNode: model.nodes[shownFocus], hoverNode }),
-    [model, shownFocus, hoverNode],
+    () => fadesFor(model.nodes, model.index, { focusNode: model.nodes[shownFocus], hoverNode, selectedNode }),
+    [model, shownFocus, hoverNode, selectedNode],
   );
   return useFadeTween(target);
 }
@@ -176,20 +175,20 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const paintAt = usePaintAt({ model, nodeDataAt, endsAt, colorMode, palette: theme.palette, weights });
   const layer = useLayer(view, paintAt, model.parent);
   const camera = useCamera({ model, anchor, layer, focusIndex });
-  const fades = useCircleFades(model, shownFocus, interaction.hover);
+  const fades = useCircleFades(model, shownFocus, interaction);
   useStaticLayer({ ref: refs.front, coords, layer, camera, viewport, size, model, fades });
 
   useEffect(() => {
     const ctx = prepareLayer(refs.overlay.current, size);
     if (!ctx || !theme.palette || !layer) return;
     drawOverlay(ctx, {
-      circles: model.nodes, screenCoords: coords.current, viewport, hoverIndex: interaction.hover,
+      circles: model.nodes, screenCoords: coords.current, viewport, hoverIndex: interaction.hover, selectedIndex: interaction.selected ?? null,
       focusNode: model.nodes[shownFocus], showLabels: interaction.showLabels,
       nameOf: (i) => model.nodes[chainEnd(ends, i)].data.name,
       palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer, camera, viewport, size, model, theme, interaction.hover, interaction.showLabels, shownFocus, ends]);
+  }, [layer, camera, viewport, size, model, theme, interaction.hover, interaction.selected, interaction.showLabels, shownFocus, ends]);
 
   const pointer = usePointer({ model, coords, viewport, focusIndex: shownFocus, interaction, ends });
   const folders = useFolderItems({ model, focusIndex: shownFocus, interaction });

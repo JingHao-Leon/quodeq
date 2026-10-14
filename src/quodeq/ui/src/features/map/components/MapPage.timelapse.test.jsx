@@ -8,6 +8,7 @@ import { t } from '../../../strings/index.js';
 import { formatShortDate } from '../../../utils/formatters.js';
 import { dayDate } from '../viz/core/timelapseBarModel.js';
 import { buildTimelapseModel } from '../viz/core/timelapseModel.js';
+import { STORAGE_FLAG_ON } from '../../../adapters/storage.js';
 
 // Which runs the past sky computed, and how often the past pack built its model.
 const skyRunsAsked = [];
@@ -26,7 +27,11 @@ vi.mock('../viz/core/timelapseModel.js', async (importOriginal) => {
   return { ...real, buildTimelapseModel: vi.fn(real.buildTimelapseModel) };
 });
 
-beforeEach(() => { stubPackCanvas(); skyRunsAsked.length = 0; buildTimelapseModel.mockClear(); });
+// The time-lapse is off until turned on; these tests start with it on (vitest.setup clears storage after each).
+beforeEach(() => {
+  stubPackCanvas(); skyRunsAsked.length = 0; buildTimelapseModel.mockClear();
+  localStorage.setItem('quodeq-map-timelapse', STORAGE_FLAG_ON);
+});
 // Unmount before the stubs go: a pack layout landing after the test would mount a canvas without them.
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -49,7 +54,7 @@ const page = (props) => render(<MapPage data={data(props?.data)} callbacks={{}} 
 const button = (key) => screen.getByRole('button', { name: t(key) });
 
 describe('MapPage: the time-lapse', () => {
-  it('a local project with history shows the bar under the Circle Pack', async () => {
+  it('a local project with history shows the bar in the dock under the Circle Pack', async () => {
     page();
     expect(await screen.findByRole('group', { name: t('map.timelapseAria') })).toBeInTheDocument();
   });

@@ -97,3 +97,13 @@ export function activityFolderStrength(heat, dark) {
   const f = ACT_FOLDER[side(dark)];
   return f.base + f.span * clamp(heat, 0, 1) ** f.exp;
 }
+
+const WHITE = Object.freeze({ r: 255, g: 255, b: 255 });
+const BLACK = Object.freeze({ r: 0, g: 0, b: 0 });
+/** How far canvas labels move from the theme's text colour toward full contrast. */
+const LABEL_INK_SHARE = 0.6;
+
+/** The colour of names drawn on a map canvas: the theme's text, pushed toward white (dark) or black (light) so small labels stay crisp. */
+export function labelInk(palette) {
+  return mixRgb(palette.text, palette.dark ? WHITE : BLACK, LABEL_INK_SHARE);
+}

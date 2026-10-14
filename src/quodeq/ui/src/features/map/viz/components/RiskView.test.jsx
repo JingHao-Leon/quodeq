@@ -44,13 +44,13 @@ describe('RiskView states', () => {
 });
 
 describe('RiskView selection', () => {
-  it('areas under five files get no bubble; selecting one opens its panel with View Details as its one action', () => {
+  it('areas under five files get no bubble; selecting one opens its panel with View Details as its one action besides close', () => {
     const p = props(READY);
     render(<Selecting {...p} />);
     expect(screen.queryByRole('button', { name: /tiny/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /article/ }));
     const region = screen.getByRole('region', { name: t('map.riskPanelAria', { name: 'article' }) });
-    expect(region.querySelectorAll('button')).toHaveLength(1);
+    expect([...region.querySelectorAll('button')].map((b) => b.getAttribute('aria-label') || b.textContent)).toEqual([t('map.panelClose'), t('map.viewDetails')]);
     fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
     expect(p.onViewDetails).toHaveBeenCalledWith(expect.objectContaining({ name: 'article' }));
   });
@@ -92,6 +92,17 @@ describe('RiskView keyboard selection', () => {
     fireEvent.keyDown(document.activeElement, { key: 'Escape' });
     expect(screen.queryByRole('region')).toBeNull();
     expect(document.activeElement).toHaveAccessibleName(t('map.riskSkyAria'));
+  });
+});
+
+describe('RiskView panel close', () => {
+  it('the close button clears the selection', () => {
+    const onSelectName = vi.fn();
+    render(<Selecting {...props(READY)} onSelectName={onSelectName} />);
+    fireEvent.click(screen.getByRole('button', { name: /article/ }));
+    fireEvent.click(screen.getByRole('button', { name: t('map.panelClose') }));
+    expect(onSelectName).toHaveBeenLastCalledWith(null);
+    expect(screen.queryByRole('region')).toBeNull();
   });
 });
 

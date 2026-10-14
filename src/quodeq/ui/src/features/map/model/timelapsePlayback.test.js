@@ -57,3 +57,10 @@ test('a jump to the latest run hands over to the Map at once; a step in waits li
   assert.equal(showsTimelapse(run(past, { type: A.SEEK, position: Infinity })), false);
   assert.equal(showsTimelapse(run(past, { type: A.STEP, delta: 1 })), true);
 });
+
+test('a reset onto a position (another grouping of the same history) stays there, paused and settled', () => {
+  const s = run(initialPlayback(6), { type: A.TOGGLE }, { type: A.RESET, runCount: 3, position: 1 });
+  assert.deepEqual([s.position, s.playing, s.settled, isPast(s)], [1, false, 1, true]);
+  assert.equal(run(initialPlayback(6), { type: A.RESET, runCount: 3, position: 9 }).position, 2);
+  assert.equal(run(initialPlayback(6), { type: A.RESET, runCount: 3 }).position, 2);
+});

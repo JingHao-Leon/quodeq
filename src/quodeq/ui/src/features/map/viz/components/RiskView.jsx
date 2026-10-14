@@ -55,7 +55,7 @@ export default function RiskView({ areaState, dark, showLabels, resetKey, onView
         selected={selected} onSelect={onSelect} onHover={setHover} labelText={riskLabelText} canvasRef={skyRef} />
       <RiskTooltip area={hover && bubbles[hover.index]} />
       <LevelInfoPanel levelInfo={panel} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined}
-        detailRef={detailRef} onEscape={onEscape} />
+        detailRef={detailRef} onEscape={onEscape} onClose={onEscape} />
       <RiskLegend kinds={kinds} />
     </div>
   );
