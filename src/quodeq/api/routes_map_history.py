@@ -50,7 +50,7 @@ def register_map_history_routes(app: Flask) -> None:
             return err
         frames = request.args.get("frames", LATEST_FRAMES)
         if frames not in FRAME_CHOICES:
-            return json_error(_FRAMES_ERROR, HTTPStatus.BAD_REQUEST, "BAD_REQUEST")
+            return json_error(_FRAMES_ERROR, HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
         try:
             selection = selection_from(request.args)
         except SelectionError as exc:

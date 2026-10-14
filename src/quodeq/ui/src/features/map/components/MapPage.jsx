@@ -12,14 +12,13 @@ import { DATA_THEME_ATTR } from '../../../constants.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { PACK_COLOR_MODES, VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, PACK_COLOR_MODE } from '../mapVocab.js';
 import useMapActivity from '../hooks/useMapActivity.js';
-import useMapAreas from '../hooks/useMapAreas.js';
 import useMapTimelapse from '../hooks/useMapTimelapse.js';
 import MapPackPanel from './MapPackPanel.jsx';
 import MapRiskPanel from './MapRiskPanel.jsx';
 import MapTimelapseFooter from './MapTimelapseFooter.jsx';
 import MapVizToggles from './MapVizToggles.jsx';
 import { DimensionFilter, RiskPrincipleChip, dimensionsFiltered } from './MapDimensionFilter.jsx';
-import useRiskFilter from './useRiskFilter.js';
+import useRiskState from './useRiskFilter.js';
 import { TIMELAPSE_STATUS } from '../model/timelapsePlayback.js';
 import { useMapTimelapsePref, useMapLegendPref } from './useMapTimelapsePref.js';
 import useRiskActions from './useRiskActions.js';
@@ -222,8 +221,9 @@ export default function MapPage(props) {
   const state = useMapPageState({ ...props, deferTree: !ready });
   const { vizStyle } = state.viewState;
   const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, vizStyle === VIZ_STYLE.ZOOMPACK);
-  const riskFilter = useRiskFilter({ nav: props.nav, dimensionState: state.dimensionState });
-  const areaState = useMapAreas(selectedProject, selectedSource, vizStyle === VIZ_STYLE.RISK, riskFilter.selection);
+  const { riskFilter, areaState } = useRiskState({
+    nav: props.nav, dimensionState: state.dimensionState, project: selectedProject, source: selectedSource, active: vizStyle === VIZ_STYLE.RISK,
+  });
   const [timelapseOn, setTimelapseOn] = useMapTimelapsePref();
   const [legendOn, setLegendOn] = useMapLegendPref();
   const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState, selection: riskFilter.selection, grouping: props.grouping, on: timelapseOn });

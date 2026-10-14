@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useId } from 'react';
 import { useDismissOnOutside } from '../../../hooks/useDismissOnOutside.js';
 import { t } from '../../../strings/index.js';
 
@@ -10,6 +10,7 @@ export function dimensionsFiltered({ allDimensions, selectedDimensions }) {
 /** The Map's Dimensions filter: a checkbox per dimension, hidden when there is only one. */
 export function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
   const [open, setOpen] = useState(false);
+  const listId = useId();
   const ref = useRef(null);
   const close = useCallback(() => setOpen(false), []);
   useDismissOnOutside(open, ref, close);
@@ -24,13 +25,15 @@ export function DimensionFilter({ allDimensions, selectedDimensions, onToggle })
         type="button"
         className={`term-btn map-filter-btn${isFiltered ? ' is-filtered' : ''}`}
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
         title={isFiltered ? t('map.dimensionsOf', { selected: selectedDimensions.size, total: allDimensions.length }) : t('map.allDimensions')}
         aria-label={isFiltered ? t('map.dimensionsAria', { selected: selectedDimensions.size, total: allDimensions.length }) : t('map.dimensions')}
       >
         {t('map.dimensions')} {open ? '▾' : '▸'}
       </button>
       {open && (
-        <div className="map-filter-dropdown">
+        <div className="map-filter-dropdown" id={listId}>
           {allDimensions.map((dim) => (
             <label key={dim} className="map-filter-item">
               <input type="checkbox" checked={selectedDimensions.has(dim)} onChange={() => onToggle(dim)} />

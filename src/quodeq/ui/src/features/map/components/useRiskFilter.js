@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { navPrinciple, riskSelection } from '../model/riskSelection.js';
+import useMapAreas from '../hooks/useMapAreas.js';
 
 /**
  * The Risk tab's finding selection: the Dimensions filter, narrowed to the
@@ -11,7 +12,7 @@ import { navPrinciple, riskSelection } from '../model/riskSelection.js';
  * @param {{nav?: object, dimensionState: {allDimensions: string[], selectedDimensions: Set<string>, onToggleDimension: Function}}} args
  * @returns {{selection: object|null, principle: {dimension: string, name: string}|null, clearPrinciple: Function, onToggleDimension: Function}}
  */
-export default function useRiskFilter({ nav, dimensionState }) {
+export function useRiskFilter({ nav, dimensionState }) {
   const [principle, setPrinciple] = useState(() => navPrinciple(nav));
   const { allDimensions, selectedDimensions, onToggleDimension } = dimensionState;
   const onFilterEdited = nav?.onFilterEdited;
@@ -22,4 +23,16 @@ export default function useRiskFilter({ nav, dimensionState }) {
     [allDimensions, selectedDimensions, principle],
   );
   return { selection, principle: selection?.principle ? principle : null, clearPrinciple, onToggleDimension: onToggle };
+}
+
+/**
+ * The Risk tab's filter (useRiskFilter) and the areas it measures, fetched
+ * while the tab is on screen (`active`).
+ * @param {{nav?: object, dimensionState: object, project: string, source: string, active: boolean}} args
+ * @returns {{riskFilter: object, areaState: object}}
+ */
+export default function useRiskState({ nav, dimensionState, project, source, active }) {
+  const riskFilter = useRiskFilter({ nav, dimensionState });
+  const areaState = useMapAreas(project, source, active, riskFilter.selection);
+  return { riskFilter, areaState };
 }

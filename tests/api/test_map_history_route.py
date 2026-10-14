@@ -34,7 +34,8 @@ def test_all_frames(client):
 
 
 def test_bad_frames_value_is_400(client):
-    assert client.get("/api/projects/proj/map/history?frames=some").status_code == HTTPStatus.BAD_REQUEST
+    response = client.get("/api/projects/proj/map/history?frames=some")
+    assert response.status_code == HTTPStatus.BAD_REQUEST and response.get_json()["code"] == "INVALID_INPUT"
 
 
 def test_bad_segment_is_400(client):

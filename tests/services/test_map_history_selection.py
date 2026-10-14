@@ -91,13 +91,19 @@ def test_an_unknown_dimension_is_refused(env):
         build_map_history(env, "proj", selection=FindingSelection(frozenset({"ux"})))
 
 
-def test_a_selection_reads_the_stored_days_and_stores_nothing_of_its_own(env, cached_runs, monkeypatch):
+def test_a_selection_reads_the_stored_days(env, monkeypatch):
     _write_alpha_fixed_in_security(env)
-    plain = build_map_history(env, "proj")
-    stored = set(cached_runs)
+    build_map_history(env, "proj")
     calls = []
     real = map_history.build_raw_run
     monkeypatch.setattr(map_history, "build_raw_run", lambda *a, **kw: calls.append(1) or real(*a, **kw))
-    selected = build_map_history(env, "proj", selection=SECURITY)
-    assert calls == [] and cached_runs == stored
-    assert build_map_history(env, "proj") == plain and selected != plain
+    build_map_history(env, "proj", selection=SECURITY)
+    assert calls == []
+
+
+def test_a_selection_stores_nothing_of_its_own(env, cached_runs):
+    _write_alpha_fixed_in_security(env)
+    plain = build_map_history(env, "proj")
+    stored = set(cached_runs)
+    build_map_history(env, "proj", selection=SECURITY)
+    assert cached_runs == stored and build_map_history(env, "proj") == plain

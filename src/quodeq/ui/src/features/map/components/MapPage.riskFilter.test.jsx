@@ -48,6 +48,14 @@ describe('MapPage: the Dimensions filter on the Risk tab', () => {
     expect(fake.getMapHistory.mock.calls.every((call) => call.length === 2)).toBe(true);
   });
 
+  it('tells assistive tech whether its list is open', async () => {
+    page();
+    const button = await screen.findByRole('button', { name: t('map.dimensions') });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('re-measures the sky over the dimensions left', async () => {
     const fake = page();
     await uncheck('reliability');
