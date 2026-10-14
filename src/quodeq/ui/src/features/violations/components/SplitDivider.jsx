@@ -1,12 +1,15 @@
 import { t } from '../../../strings/index.js';
 
-/** The draggable line between a list and its detail (useSplitWidth's `split`). */
+/** The divider's own width between the two columns, in px. */
+const DIVIDER_PX = 8;
+
+/** The draggable line between a list and its detail (useSplitWidth's `split`), a pointer control only. */
 export default function SplitDivider({ split }) {
   return (
     <div className="findings-scope__divider" role="separator" aria-orientation="vertical" aria-label={t('violations.scopeResize')}
-      aria-valuenow={Math.round(split.pct)} onPointerDown={split.onPointerDown} />
+      onPointerDown={split.onPointerDown} />
   );
 }
 
 /** The split's columns: the list at its share, the divider, the detail filling the rest. */
-export const splitColumns = (split) => ({ gridTemplateColumns: `${split.pct}% 8px minmax(0, 1fr)` });
+export const splitColumns = (split) => ({ gridTemplateColumns: `${split.pct}% ${DIVIDER_PX}px minmax(0, 1fr)` });

@@ -37,19 +37,16 @@ function renderPage({ asOf = null, callbacks = {} } = {}) {
 describe('ViolationsPage with a scope', () => {
   it('shows the scope\'s findings as one page, dismissable today', async () => {
     const onDismissFinding = vi.fn();
-    const onListScope = vi.fn();
-    renderPage({ callbacks: { onDismissFinding, onListScope } });
-    expect(await screen.findByText('Today finding')).toBeInTheDocument();
+    renderPage({ callbacks: { onDismissFinding } });
+    expect(await screen.findByRole('option', { name: /Today finding/ })).toBeInTheDocument();
     expect(screen.queryByText(t('violations.termName'))).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
     expect(onDismissFinding).toHaveBeenCalledWith(expect.objectContaining({ title: 'Today finding' }), 'run-1');
-    fireEvent.click(screen.getByRole('button', { name: t('violations.scopeAsList') }));
-    expect(onListScope).toHaveBeenCalledWith({ kind: 'file', path: 'src/a.py', filter: null });
   });
 
   it('as of a past day it reads that day, under the banner, read-only', async () => {
     renderPage({ asOf: { runId: 'run-7', day: '2026-08-07' }, callbacks: { onDismissFinding: vi.fn(), onBackToToday: vi.fn() } });
-    expect(await screen.findByText('Past finding')).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: /Past finding/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: t('violations.asOfBack') })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /dismiss/i })).toBeNull();
   });

@@ -79,7 +79,7 @@ describe('MapPage: the Risk tab', () => {
     renderRisk({ onNavigate });
     fireEvent.click(await screen.findByRole('button', { name: /checkout/ }));
     fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
-    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'area', name: 'checkout', paths: ['src/'] }, asOf: null });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'area', name: 'checkout', paths: ['src/'], small: false }, asOf: null });
   });
 
   it('opens with an area selected when asked to (an area from the Overview)', async () => {

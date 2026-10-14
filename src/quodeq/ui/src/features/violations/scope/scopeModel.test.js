@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SCOPE_KIND, openScope, readScope, scopeAsList, scopeFindings, scopeLabel } from './scopeModel.js';
+import { SCOPE_KIND, openScope, readScope, scopeFindings, scopeLabel, principleGradeOf } from './scopeModel.js';
 
 const v = (over) => ({ title: 'T', severity: 'major', file: 'src/a/x.py', line: 10, req: 'R-1', principle: 'P', ...over });
 const c = (over) => ({ file: 'src/a/x.py', line: 4, req: 'R-1', principle: 'P', ...over });
@@ -23,12 +23,20 @@ test('readScope reads each kind with its own fields', () => {
   assert.deepEqual(readScope({ kind: 'requirement', dimension: 'security', req: 'S-1' }),
     { kind: 'requirement', dimension: 'security', req: 'S-1', text: '', filter: null });
   assert.deepEqual(readScope({ kind: 'project' }), { kind: 'project', filter: null });
-  assert.deepEqual(readScope({ kind: 'area', name: 'api', paths: ['src/api/', '', 3] }), { kind: 'area', name: 'api', paths: ['src/api/'], filter: null });
+  assert.deepEqual(readScope({ kind: 'area', name: 'api', paths: ['src/api/', '', 3] }), { kind: 'area', name: 'api', paths: ['src/api/'], small: false, filter: null });
+  assert.deepEqual(readScope({ kind: 'principle', dimension: 'security', principle: 'Input', extra: 1 }),
+    { kind: 'principle', dimension: 'security', principle: 'Input', filter: null });
+});
+
+test('readScope keeps an area the Map judged small, only when it says so', () => {
+  assert.equal(readScope({ kind: 'area', name: 'api', paths: ['x/'], small: true }).small, true);
+  assert.equal(readScope({ kind: 'area', name: 'api', paths: ['x/'], small: 'yes' }).small, false);
 });
 
 test('readScope refuses a scope missing what its kind needs', () => {
   const bad = [null, 'file', {}, { kind: 'nope' }, { kind: 'file' }, { kind: 'folder', path: '' }, { kind: 'dimension' },
-    { kind: 'requirement', dimension: 'security' }, { kind: 'area', name: 'api', paths: [] }];
+    { kind: 'requirement', dimension: 'security' }, { kind: 'area', name: 'api', paths: [] },
+    { kind: 'principle', dimension: 'security' }, { kind: 'principle', principle: 'P' }];
   for (const p of bad) assert.equal(readScope(p), null, JSON.stringify(p));
 });
 
@@ -74,13 +82,23 @@ test('scopeFindings is null when the scope holds nothing', () => {
   assert.equal(scopeFindings(readScope({ kind: 'project' }), []), null);
 });
 
-test('scopeAsList hands each kind to the workbench as its chips', () => {
-  assert.deepEqual(scopeAsList(readScope({ kind: 'file', path: 'src/a.py' })), { paths: ['src/a.py'] });
-  assert.deepEqual(scopeAsList(readScope({ kind: 'folder', path: 'src/a' })), { paths: ['src/a/'] });
-  assert.deepEqual(scopeAsList(readScope({ kind: 'area', name: 'api', paths: ['x/'] })), { area: { name: 'api', paths: ['x/'] } });
-  assert.deepEqual(scopeAsList(readScope({ kind: 'dimension', dimension: 'security' })), { dimension: 'security' });
-  assert.deepEqual(scopeAsList(readScope({ kind: 'requirement', dimension: 'security', req: 'S-1' })), { dimension: 'security', q: 'S-1' });
-  assert.deepEqual(scopeAsList(readScope({ kind: 'project' })), {});
+test('scopeFindings keeps a principle of its dimension only, titled by the principle', () => {
+  const ds = dims();
+  ds[1].violations.push(v({ principle: 'Q', req: 'S-2' }));
+  const file = scopeFindings(readScope({ kind: 'principle', dimension: 'reliability', principle: 'P' }), ds);
+  assert.equal(file.file, 'P');
+  assert.equal(file.total, 3);
+  assert.equal(file.compliance.length, 2);
+  assert.equal(scopeFindings(readScope({ kind: 'principle', dimension: 'security', principle: 'Q' }), ds).total, 1);
+});
+
+test('principleGradeOf reads a principle scope\'s row from its dimension, by name or principle', () => {
+  const ds = [{ dimension: 'security', principles: [{ name: 'Input', score: 7.5 }, { principle: 'Output', score: 4 }] }];
+  assert.equal(principleGradeOf(readScope({ kind: 'principle', dimension: 'security', principle: 'Input' }), ds).score, 7.5);
+  assert.equal(principleGradeOf(readScope({ kind: 'principle', dimension: 'security', principle: 'Output' }), ds).score, 4);
+  assert.equal(principleGradeOf(readScope({ kind: 'principle', dimension: 'security', principle: 'Gone' }), ds), null);
+  assert.equal(principleGradeOf(readScope({ kind: 'principle', dimension: 'other', principle: 'Input' }), ds), null);
+  assert.equal(principleGradeOf(readScope({ kind: 'dimension', dimension: 'security' }), ds), null);
 });
 
 test('scopeLabel names each kind as its breadcrumb reads', () => {
@@ -90,6 +108,7 @@ test('scopeLabel names each kind as its breadcrumb reads', () => {
   assert.equal(scopeLabel({ kind: 'requirement', dimension: 'security', req: 'S-1', text: 'Long words' }), 'S-1');
   assert.equal(scopeLabel({ kind: 'project' }), 'project');
   assert.equal(scopeLabel({ kind: 'area', name: 'api', paths: ['x/'] }), 'api');
+  assert.equal(scopeLabel({ kind: 'principle', dimension: 'security', principle: 'Dependency Rule' }), 'dependency rule');
   assert.equal(scopeLabel(null), null);
 });
 

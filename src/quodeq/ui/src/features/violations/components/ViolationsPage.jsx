@@ -85,7 +85,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
   const data = useShownData(given);
   const { accumulatedDimensions = [], selectedProject, selectedSource = PROJECT_SOURCE.LOCAL, asOf = null, scope = null } = data;
   const { projects = [], projectsLoaded, projectName, loading, isFetching, error } = data;
-  const { onNavigate, onReconcile, onRetry, onListScope } = callbacks;
+  const { onNavigate, onReconcile, onRetry } = callbacks;
 
   const pageState = useViolationsPageState({ selectedProject, onReconcile, accumulatedDimensions, selectedSource });
   const { dismissed, dismissedLoading, restoreError, visibleDimensions, summary } = pageState;
@@ -107,7 +107,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
     return (
       <PageFrame {...frame}>
         <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null} readOnly={Boolean(asOf)}
-          onDismissFinding={actions.onDismiss} onList={onListScope ? () => onListScope(scope) : undefined} />
+          onDismissFinding={actions.onDismiss} />
       </PageFrame>
     );
   }

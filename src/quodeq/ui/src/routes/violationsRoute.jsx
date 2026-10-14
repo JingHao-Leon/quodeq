@@ -14,7 +14,7 @@ import { NAV_TAB } from '../vocab/navTab.js';
 import { buildEvalPrincipal } from './liveSelectors.js';
 import { isSharedSource, makeDismissHandler } from './dismissWiring.js';
 import { readAsOf } from '../features/violations/asOf.js';
-import { openScope, readScope, scopeAsList, SCOPE_KIND } from '../features/violations/scope/scopeModel.js';
+import { openScope, readScope, SCOPE_KIND } from '../features/violations/scope/scopeModel.js';
 
 // buildEvalPrincipal moved to routes/liveSelectors.js (the Principle page
 // rebuilds it from the live payload there); re-exported for its tests.
@@ -64,7 +64,6 @@ function buildViolationsCallbacks({ props, nav, past }) {
     onNavigate: nav,
     onRetry: props.dashboardData.onRetry,
     onBackToToday: past.asOf ? past.backToToday : undefined,
-    onListScope: past.listScope,
   };
 }
 
@@ -94,10 +93,6 @@ function pastView(params, props) {
     scope: readScope(params.scope),
     backToToday: () => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, { ...params, asOf: null }),
     openFile: (file) => openScope(props.navigation.handleNavigate, { kind: SCOPE_KIND.FILE, path: file }, asOf),
-    // The scope as the workbench list: the same step, the scope as its chips.
-    listScope: (scope) => props.navigation.handleNavigateReplace(NAV_TAB.VIOLATIONS, {
-      asOf, scope: null, wb: { ...scopeAsList(scope), selectedId: null },
-    }),
   };
 }
 

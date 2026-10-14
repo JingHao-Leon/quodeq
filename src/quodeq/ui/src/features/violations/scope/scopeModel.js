@@ -56,7 +56,7 @@ const KEEPS = {
   [SCOPE_KIND.AREA]: (s) => { const inArea = underAny(s.paths); return (item) => inArea(item.file); },
 };
 
-/** The scope's title: the file or folder path, the dimension, the requirement and its text, the project, the area. */
+/** The scope's title: the file or folder path, the dimension, the principle, the requirement and its text, the project, the area. */
 function titleOf(scope, projectName) {
   if (scope.kind === SCOPE_KIND.FOLDER) return `${scope.path}${SLASH}`;
   if (scope.kind === SCOPE_KIND.REQUIREMENT) return scope.text ? `${scope.req} · ${scope.text}` : scope.req;
@@ -88,17 +88,7 @@ export function scopeFindings(scope, dims, projectName) {
   return buildProjectRootFile(narrowed, titleOf(scope, projectName));
 }
 
-/** The workbench filters that show a scope as a list: its path or area chip, its dimension, its rule. */
-export function scopeAsList(scope) {
-  if (scope.kind === SCOPE_KIND.FILE) return { paths: [scope.path] };
-  if (scope.kind === SCOPE_KIND.FOLDER) return { paths: [`${scope.path}${SLASH}`] };
-  if (scope.kind === SCOPE_KIND.AREA) return { area: { name: scope.name, paths: scope.paths } };
-  if (scope.kind === SCOPE_KIND.DIMENSION) return { dimension: scope.dimension };
-  if (scope.kind === SCOPE_KIND.REQUIREMENT) return { dimension: scope.dimension, q: scope.req };
-  return {};
-}
-
-/** The breadcrumb's name of each kind: the file's name, the folder's path, the dimension, the requirement, the project, the area. */
+/** The breadcrumb's name of each kind: the file's name, the folder's path, the dimension, the requirement, the project, the area, the principle. */
 const LABELS = {
   [SCOPE_KIND.FILE]: (s) => s.path.split(SLASH).pop(),
   [SCOPE_KIND.FOLDER]: (s) => `${s.path}${SLASH}`,

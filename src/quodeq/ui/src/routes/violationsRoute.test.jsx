@@ -90,17 +90,6 @@ describe('ViolationsRoute scoped to a file, a folder, a dimension...', () => {
     expect(props.navigation.handleNavigate).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, { scope: { kind: 'file', path: 'src/a.py' }, asOf: null });
   });
 
-  it('shows the scope as the workbench list in the same step, keeping its day', () => {
-    const props = routeProps({ dimensions: dims() });
-    props.navigation.handleNavigateReplace = vi.fn();
-    const params = { scope: { kind: 'area', name: 'api', paths: ['src/api/'] }, asOf: { runId: 'r7', day: '2026-08-07' } };
-    const el = ViolationsRoute({ params, props });
-    el.props.callbacks.onListScope(el.props.data.scope);
-    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith(NAV_TAB.VIOLATIONS, {
-      asOf: { runId: 'r7', day: '2026-08-07' }, scope: null, wb: { area: { name: 'api', paths: ['src/api/'] }, selectedId: null },
-    });
-  });
-
   it('is read-only on a past day and back to today keeps the scope', () => {
     const props = routeProps({ dimensions: dims() });
     props.navigation.handleNavigateReplace = vi.fn();
