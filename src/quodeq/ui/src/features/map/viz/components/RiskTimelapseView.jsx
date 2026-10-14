@@ -35,6 +35,12 @@ function useViewSky(view) {
   }, [view]);
 }
 
+/** The panel of an area on a past day: its numbers that day, and View Details opening that day's findings when the run is known. */
+function pastInfo(area, run, onViewDetails) {
+  const info = riskAreaInfo(area);
+  return onViewDetails && run?.runId ? { ...info, detailAction: () => onViewDetails(area, run) } : info;
+}
+
 /**
  * The Risk sky on a past run: each run shows only the areas it had, under its
  * own rings, as today's sky would have drawn it that day; between runs the
@@ -43,12 +49,12 @@ function useViewSky(view) {
  * run's numbers. A click, playing or paused, selects an area (or clears the
  * selection on empty sky): the selected area stays lit while the runs play,
  * so it can be followed over time, its panel showing each run's numbers
- * (without View Details, which acts on today's data). `timeline` is
- * createSkyTimeline of
+ * (View Details, `onViewDetails`, opens that day's findings for the area,
+ * read-only). `timeline` is createSkyTimeline of
  * `timelapse.data`, built (and warmed) by the Risk tab, so a seek finds its
  * run already laid out.
  */
-export default function RiskTimelapseView({ timelapse, timeline, dark, showLabels, selection }) {
+export default function RiskTimelapseView({ timelapse, timeline, dark, showLabels, selection, onViewDetails }) {
   const { data, position, moveMs, onSettled } = timelapse;
   const load = useCallback((k) => timeline.sceneAt(k), [timeline]);
   const view = useRunTransition({ target: position, load, kindOf: alwaysMove, durationMs: moveMs, onSettled });
@@ -72,7 +78,7 @@ export default function RiskTimelapseView({ timelapse, timeline, dark, showLabel
         selected={selectedIndex < 0 ? null : selectedIndex} onSelect={onSelect} onHover={onHover} labelText={riskLabelText}
         nodes={sky.nodes} rings={sky.rings} label={label} />
       <RiskTooltip area={hovered} />
-      <LevelInfoPanel levelInfo={chosen && riskAreaInfo(chosen)} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined}
+      <LevelInfoPanel levelInfo={chosen && pastInfo(chosen, data.runs[k], onViewDetails)} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined}
         onClose={() => onSelectName(null)} onEscape={() => onSelectName(null)} />
       <RiskLegend kinds={timeline.kinds()} />
     </div>

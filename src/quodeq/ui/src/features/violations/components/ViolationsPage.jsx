@@ -101,7 +101,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
     <div className={`violations-page violations-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
       <AsOfBanner asOf={asOf} onBack={callbacks.onBackToToday} />
       <Banners restoreError={restoreError} dismissError={dismissError} dismissNotice={dismissNotice} />
-      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={dismissedLoading && !dismissed.length ? null : dismissed.length} />
+      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={asOf || (dismissedLoading && !dismissed.length) ? null : dismissed.length} />
       {/* The header paints on the click; the workbench (every finding,
           flattened and filtered) follows in the next commit. */}
       <DeferredMount fallback={<CardListSkeleton />}>

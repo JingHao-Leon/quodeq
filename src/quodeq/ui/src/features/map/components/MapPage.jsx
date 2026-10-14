@@ -155,7 +155,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
   const { fullTree, currentPath, onPathChange } = treeState;
-  const { onDrillDown, onFileClick, onNavigate, onBreadcrumbNav } = callbacks;
+  const { onDrillDown, onFileClick, onPastDetails, onNavigate, onBreadcrumbNav } = callbacks;
   const { showLabels, darkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
   const riskActions = useRiskActions({ areaState: risk.areaState, onNavigate });
   return (
@@ -168,7 +168,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
       )}
       {vizStyle === VIZ_STYLE.ZOOMPACK && (
         <MapPackPanel
-          view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, onDrillDown, onFileClick }}
+          view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, onDrillDown, onFileClick, onPastDetails }}
           pack={pack} timelapse={timelapse}
         />
       )}

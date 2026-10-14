@@ -17,7 +17,7 @@ function useFileSelection(resetKey) {
  * labels and navigation of the normal pack.
  */
 export default function MapPackPanel({ view, pack, timelapse }) {
-  const { fullTree, viewMode, dark, showLabels, resetKey, currentPath, onDrillDown, onFileClick } = view;
+  const { fullTree, viewMode, dark, showLabels, resetKey, currentPath, onDrillDown, onFileClick, onPastDetails } = view;
   const selection = useFileSelection(resetKey);
   const latest = (
     <ZoomablePackView
@@ -30,7 +30,7 @@ export default function MapPackPanel({ view, pack, timelapse }) {
   const renderPast = (held) => (
     <TimelapsePackView
       timelapse={held} colorMode={viewMode} weights={pack.weights} dark={dark}
-      showLabels={showLabels} currentPath={currentPath} onDrillDown={onDrillDown} selection={selection}
+      showLabels={showLabels} currentPath={currentPath} onDrillDown={onDrillDown} selection={selection} onPastDetails={onPastDetails}
     />
   );
   return (

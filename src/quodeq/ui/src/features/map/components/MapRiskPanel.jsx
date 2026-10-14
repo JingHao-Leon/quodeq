@@ -29,7 +29,8 @@ export default function MapRiskPanel({ risk, riskActions, view, timelapse }) {
       onViewDetails={riskActions.onViewDetails} selection={selection} />
   );
   const renderPast = (held) => (
-    <RiskTimelapseView timelapse={held} timeline={timeline} dark={dark} showLabels={showLabels} selection={selection} />
+    <RiskTimelapseView timelapse={held} timeline={timeline} dark={dark} showLabels={showLabels} selection={selection}
+      onViewDetails={riskActions.onViewPastDetails} />
   );
   return <MapTimelapseStage timelapse={timelapse} latest={latest} renderPast={renderPast} />;
 }

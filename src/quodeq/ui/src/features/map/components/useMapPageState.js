@@ -8,16 +8,11 @@ import { useMapDimensionFilter } from './useMapDimensionFilter.js';
 import { useMapTreeState } from './useMapTreeState.js';
 import { MAP_VIEW_MODE, VIZ_STYLE, GALAXY_MODE, normalizePackMode, normalizeVizStyle } from '../mapVocab.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
+import { folderChips, openPastDetails } from '../model/pastDetails.js';
 
 // Re-exported so existing importers of the tree helpers keep one seam; the
 // implementations live in mapTree.js (pure, unit-testable without the hook).
 export { findSubtree, buildBreadcrumbPath } from './mapTree.js';
-
-/** The workbench path chip of a folder (its path with a trailing '/'), none for the project root. */
-function folderChips(path) {
-  if (!path) return [];
-  return [path.endsWith('/') ? path : `${path}/`];
-}
 
 // Stable empty input for the tree while the page defers its heavy body.
 const EMPTY_DIMENSIONS = [];
@@ -84,6 +79,8 @@ function buildMapPageResult({
         if (!treeNode.isFile) callbacks.onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: folderChips(treeNode.path) } });
         else callbacks.onNavigate(NAV_TAB.FILE, { file: treeNodeToFileObj(treeNode), sourceTab: NAV_TAB.MAP });
       },
+      // A past day's details: its findings as of that day, under the folder's or the file's chip.
+      onPastDetails: ({ path, isFile }, run) => openPastDetails(callbacks?.onNavigate, { paths: isFile ? [path] : folderChips(path) }, run),
       onNavigate: callbacks?.onNavigate,
       onBreadcrumbNav: handleBreadcrumbNav,
     },
