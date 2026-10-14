@@ -60,7 +60,11 @@ describe('MapTimelapseStage', () => {
 
 describe('the stage stylesheet', () => {
   const css = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../../styles/mapTimelapse.css'), 'utf8');
-  const rule = (selector) => css.match(new RegExp(`${selector.replace(/[.()]/g, '\\$&')}\\s*\\{([^}]*)\\}`))[1];
+  // A rule's body by its exact selector, found as plain text (no pattern built from the selector).
+  const rule = (selector) => {
+    const start = css.indexOf(`${selector} {`);
+    return start < 0 ? '' : css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start));
+  };
 
   it('today\'s layer never fades: hidden, it stays opaque under the past layer (no dim dip mid-swap)', () => {
     expect(rule('.map-stage__layer:not(.map-stage__layer--past).is-hidden')).toMatch(/opacity:\s*1\b/);
