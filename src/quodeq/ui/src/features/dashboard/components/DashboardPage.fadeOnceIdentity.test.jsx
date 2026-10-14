@@ -3,6 +3,9 @@ import { describe, it, expect, vi } from 'vitest';
 import DashboardPage from './DashboardPage.jsx';
 import { SidePaneProvider } from '../../side-pane/index.js';
 
+// The areas card reads the Map's history through react-query; this test is about the panels around it.
+vi.mock('./RiskAreasPanel.jsx', () => ({ default: () => null }));
+
 // Split from DashboardPage.test.jsx: frame-node identity across branch
 // transitions and the dashboard-appear fade-once contract,
 // part 1 (DOM-node identity + the first-appearance/grace-elapsed fade).

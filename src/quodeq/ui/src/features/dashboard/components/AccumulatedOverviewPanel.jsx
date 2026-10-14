@@ -4,6 +4,8 @@ import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import TopOffendingFilesTable from './TopOffendingFilesTable.jsx';
 import FindingsByFolderPanel from './FindingsByFolderPanel.jsx';
 import FixFirstPanel from './FixFirstPanel.jsx';
+import RiskAreasPanel from './RiskAreasPanel.jsx';
+import { VIZ_STYLE } from '../../map/mapVocab.js';
 import ListShowMore from './ListShowMore.jsx';
 import { buildTopOffendingFiles, buildProjectRootFile } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
@@ -208,6 +210,10 @@ function AccumulatedOverviewSections({
         notEvaluated={notEvaluated}
         onEvaluate={onEvaluate}
       />
+
+      <RiskAreasPanel project={data.selectedProject} source={data.selectedSource}
+        onAreaClick={onNavigate ? (area) => onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK, area: area.name }) : undefined}
+        onOpenRisk={onNavigate ? () => onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK }) : undefined} />
 
       <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={onRequirementClick} />
 

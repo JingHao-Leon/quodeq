@@ -81,6 +81,11 @@ describe('MapPage: the Risk tab', () => {
     fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
     expect(onNavigate).toHaveBeenCalledWith('violations', { wb: { area: { name: 'checkout', paths: ['src/'] } } });
   });
+
+  it('opens with an area selected when asked to (an area from the Overview)', async () => {
+    renderRisk({}, { area: 'checkout' });
+    expect(await screen.findByRole('region', { name: t('map.riskPanelAria', { name: 'checkout' }) })).toBeInTheDocument();
+  });
 });
 
 describe('MapPage: a visit to the Circle Pack', () => {
