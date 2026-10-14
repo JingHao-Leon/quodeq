@@ -4,6 +4,20 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .finding import Finding, Totals
+from .wire_fields import WIRE_HIDDEN
+
+
+@dataclass(frozen=True, slots=True)
+class PrincipleCounts:
+    """One principle's active violations in a run: all of them, the criticals, and the majors.
+
+    ``major`` counts the major severity alone; a view that groups criticals
+    with majors adds the two.
+    """
+
+    violations: int = 0
+    critical: int = 0
+    major: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +29,10 @@ class PrincipleGrade:
     grade: str | None = None
     # The evidence confidence level ("low", "medium", "high"); low marks thin evidence.
     confidence: str | None = None
+    # The principle's active violations, when the read counted them; None when
+    # it could not (a score-cache row written before the counts were stored).
+    # Carried for the trend's per-principle series, never serialized with the grade.
+    counts: PrincipleCounts | None = field(default=None, metadata=WIRE_HIDDEN)
 
 
 @dataclass(frozen=True, slots=True)
