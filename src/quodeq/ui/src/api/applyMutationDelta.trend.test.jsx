@@ -95,3 +95,49 @@ describe("applyMutationDelta: the trend entry of the rescored run", () => {
   });
 });
 
+
+// The principle page's history reads the same trend detail, one level down:
+// the rescored principle grades patch its points by name.
+describe("applyMutationDelta: the principle points of the rescored run", () => {
+  const point = (principle, score, grade) => ({ principle, score, grade, critical: 0, majors: 1, violations: 2 });
+
+  function seed(store, principles) {
+    const dashKey = projectKeys.dashboard(PROJECT, "latest");
+    const detail = { dimension: "security", score: 5.0, grade: "C", ...(principles ? { principles } : {}) };
+    store.set(JSON.stringify(dashKey), { dimensions: [securityDim()], trend: [{ runId: RUN, dimensionDetails: [detail] }] });
+    return dashKey;
+  }
+
+  function dismissWithPrinciples(client) {
+    applyMutationDelta(client, PROJECT, {
+      kind: "dismiss", runId: RUN, isLatest: true,
+      dismissed: { req: "R1", file: "a.py", line: 10 },
+      dimensions: [{
+        dimension: "security", overallScore: "6.5/10", overallGrade: "B",
+        principles: [{ principle: "Integrity", score: "8.0/10", grade: "Good" }, { principle: "Gone", score: null, grade: null }],
+      }],
+    });
+  }
+
+  it("patches the rescored principles' score and grade, keeping their counts and the untouched ones", () => {
+    const { client, store } = makeClient();
+    const untouched = point("Confidentiality", 4.0, "Poor");
+    const dashKey = seed(store, [point("Integrity", 6.0, "Fair"), untouched]);
+
+    dismissWithPrinciples(client);
+
+    const [detail] = store.get(JSON.stringify(dashKey)).trend[0].dimensionDetails;
+    expect(detail.principles[0]).toEqual(point("Integrity", 8.0, "Good"));
+    expect(detail.principles[1]).toBe(untouched);
+  });
+
+  it("leaves a detail from before the field without principles", () => {
+    const { client, store } = makeClient();
+    const dashKey = seed(store, null);
+
+    dismissWithPrinciples(client);
+
+    const [detail] = store.get(JSON.stringify(dashKey)).trend[0].dimensionDetails;
+    expect(detail).toEqual({ dimension: "security", score: 6.5, grade: "B" });
+  });
+});
