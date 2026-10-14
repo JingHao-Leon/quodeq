@@ -25,6 +25,15 @@ Overview shows the latest scored result for each dimension, even when those resu
 
 When you pick an older run in the score history, these open the findings as of that run, read-only.
 
+### The dimension page
+
+Opening a dimension (a bar or a card) shows its page in the Explorer, top to bottom:
+
+- **The header** the dimension's score ring and its change since the previous period, the standard's description of it, and its numbers: violations with their severity badges, the pass rate, violations per 100 files read and critical findings per 1,000. Click the violations, a badge or the pass rate to open the dimension's findings on that filter.
+- **Principles** one card per principle with its score. Click one to open that principle's findings as one page.
+- **Score history and principles radial** side by side. Click a bar to show the dimension as of that run; the radial opens a principle like its card.
+- **Violations by file** the dimension's worst files. Click a row to open that file's findings.
+
 ### The report
 
 The **Report** button in the top bar renders the whole overview as a Markdown report in the side pane, ready to download and share outside quodeq. The report opens with the header's numbers (score, violations, compliance, ratio, then criticals, majors, open types, density) and one since-baseline section with counts only. The raw violations total also appears in its summary at the end.
