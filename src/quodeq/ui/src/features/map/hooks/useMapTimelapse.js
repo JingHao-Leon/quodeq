@@ -4,7 +4,7 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { MAP_FRAMES } from '../mapVocab.js';
 import { decodeTimelapse, NO_TIMELAPSE } from '../model/mapTimelapse.js';
 import {
-  PLAYBACK_ACTION, MOVE_MS, HOLD_MS, TIMELAPSE_STATUS, initialPlayback, playbackReducer, isPast,
+  PLAYBACK_ACTION, MOVE_MS, HOLD_MS, TIMELAPSE_STATUS, initialPlayback, playbackReducer, isPast, showsTimelapse,
 } from '../model/timelapsePlayback.js';
 import { mapHistoryQuery, mapHistoryEnabled } from './mapHistoryQuery.js';
 import { prefersReducedMotion } from '../viz/core/packTween.js';
@@ -90,7 +90,7 @@ export default function useMapTimelapse({ project, source, active, blocked = fal
   return {
     status, data, project, position, speed: state.speed,
     playing: own.playing && !blocked,
-    past: status === TIMELAPSE_STATUS.READY && position < data.runs.length - 1,
+    past: status === TIMELAPSE_STATUS.READY && !blocked && (position < data.runs.length - 1 || showsTimelapse(own)),
     moveMs: prefersReducedMotion() ? 0 : MOVE_MS / state.speed,
     controls, onSettled,
   };

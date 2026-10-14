@@ -12,11 +12,6 @@ describe('PackTooltip', () => {
     expect(container.querySelectorAll('.map-tooltip-row')[2]).toHaveTextContent(`${t('map.rate')}${t('map.rateNone')}`);
   });
 
-  it('a note replaces the numbers', () => {
-    const { container } = render(<PackTooltip node={node({ violations: 1, compliance: 1 })} note="Gone" />);
-    expect(container.querySelector('.map-tooltip')).toHaveTextContent(/^a\.jssrc\/a\.jsGone$/);
-  });
-
   it('the title is the circle\'s own name, its path on the line under it', () => {
     const { container } = render(<PackTooltip node={node({ violations: 1, compliance: 1 })} />);
     expect(container.querySelector('.map-tooltip-title')).toHaveTextContent(/^a\.js$/);

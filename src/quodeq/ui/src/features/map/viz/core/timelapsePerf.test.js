@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { syntheticPayload } from './timelapseSynthetic.js';
 import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { buildTimelapseModel } from './timelapseModel.js';
-import { anchorLayout, runLayout } from './timelapseLayout.js';
+import { runLayout } from './timelapseLayout.js';
 import { layoutModelOf } from './timelapseLayouts.js';
 import { runNodeData, runPaint, lerpXyr, screenCoordsInto } from './timelapseScene.js';
 import { createPaintTween, paintTweenAt } from './timelapseTween.js';
@@ -33,7 +33,6 @@ const PALETTE = {
 const DATA = decodeTimelapse(syntheticPayload({ files: FILES, runs: RUNS, seed: 11 }));
 const MODEL = buildTimelapseModel(DATA);
 const LAYOUT = layoutModelOf(MODEL);
-const ANCHOR = anchorLayout(LAYOUT);
 const IDENTITY = { k: 1, tx: 0, ty: 0 };
 
 /** A 2D context whose every method does nothing and whose properties take any value. */
@@ -55,8 +54,8 @@ function paintOfRun(k) {
 
 const lastRunPaint = () => paintOfRun(RUNS - 1);
 
-test('a 3,000-file run lays out within the worker budget', () => {
-  const { ms } = timed(() => runLayout(LAYOUT, ANCHOR, RUNS - 1));
+test('a 3,000-file past run lays out within the worker budget', () => {
+  const { ms } = timed(() => runLayout(LAYOUT, RUNS - 2));
   assert.ok(ms < RUN_LAYOUT_BUDGET_MS, `${ms.toFixed(0)} ms`);
 });
 
@@ -66,11 +65,11 @@ test('a run\'s node data and paint fit the step budget', () => {
 });
 
 test('a move frame (interpolate positions and colours, project, draw) averages under one 60 fps frame and allocates no coordinates or paint', () => {
-  const from = runLayout(LAYOUT, ANCHOR, RUNS - 2);
-  const to = runLayout(LAYOUT, ANCHOR, RUNS - 1);
+  const from = runLayout(LAYOUT, RUNS - 2);
+  const to = runLayout(LAYOUT, RUNS - 1);
   const tween = createPaintTween(paintOfRun(RUNS - 2), lastRunPaint());
   const buffer = new Float32Array(to.length);
-  const coords = screenCoordsInto(lerpXyr(from, to, 0, buffer), IDENTITY, []);
+  const coords = screenCoordsInto(lerpXyr(MODEL.parent, from, to, 0, buffer), IDENTITY, []);
   const firstCoord = coords[0];
   const paint = paintTweenAt(tween, 0);
   const firstPaint = [...paint];
@@ -79,7 +78,7 @@ test('a move frame (interpolate positions and colours, project, draw) averages u
   let drawn = 0;
   const { ms } = timed(() => {
     for (let f = 0; f < FRAMES; f++) {
-      screenCoordsInto(lerpXyr(from, to, f / FRAMES, buffer), IDENTITY, coords);
+      screenCoordsInto(lerpXyr(MODEL.parent, from, to, f / FRAMES, buffer), IDENTITY, coords);
       const frame = paintTweenAt(tween, f / FRAMES);
       drawn = drawStatic(ctx, { circles: MODEL.nodes, screenCoords: coords, viewport, paint: frame, index: MODEL.index, width: SIZE.w, height: SIZE.h });
     }
@@ -93,7 +92,7 @@ test('a move frame (interpolate positions and colours, project, draw) averages u
 });
 
 test('hover hit testing stays far under a frame', () => {
-  const coords = screenCoordsInto(runLayout(LAYOUT, ANCHOR, RUNS - 1), IDENTITY, []);
+  const coords = screenCoordsInto(runLayout(LAYOUT, RUNS - 1), IDENTITY, []);
   const { ms } = timed(() => { for (let i = 0; i < HOVERS; i++) hitCircle(MODEL.nodes, coords, (i * 3) % 600, (i * 7) % 600); });
   assert.ok(ms / HOVERS < HOVER_BUDGET_MS, `${(ms / HOVERS).toFixed(2)} ms per hover`);
 });

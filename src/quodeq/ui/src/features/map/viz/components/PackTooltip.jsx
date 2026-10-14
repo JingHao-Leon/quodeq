@@ -17,19 +17,15 @@ function FindingCounts({ counts }) {
 }
 
 
-/**
- * Tooltip of the picked pack circle (`node` is `{depth, data}`). With a
- * `note` (time-lapse: the circle is absent from the run shown) the note
- * replaces the numbers.
- */
-export default function PackTooltip({ node, note = null }) {
+/** Tooltip of the picked pack circle (`node` is `{depth, data}`), docked in the map's corner. */
+export default function PackTooltip({ node }) {
   if (!node || node.depth === 0) return null;
   const circle = node.data;
   return (
     <div className="map-tooltip map-tooltip--docked">
       <div className="map-tooltip-title">{circleTitle(circle)}</div>
       <div className="map-tooltip-path">{circlePath(circle)}</div>
-      {note ? <div className="map-tooltip-row"><span>{note}</span></div> : <FindingCounts counts={circle} />}
+      <FindingCounts counts={circle} />
     </div>
   );
 }

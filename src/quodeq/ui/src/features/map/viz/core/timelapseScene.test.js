@@ -2,10 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { buildTimelapseModel } from './timelapseModel.js';
-import { anchorLayout, runLayout } from './timelapseLayout.js';
+import { runLayout } from './timelapseLayout.js';
 import { XYR_STRIDE, PACK_BASE_SIZE } from './packLayout.js';
 import {
-  runNodeData, runPaint, absenceNote, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, runFocusTransform, cachedRuns, TRANSITION, ABSENCE,
+  runNodeData, runPaint, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, runFocusTransform, chainEndsIn, cachedRuns, TRANSITION, ABSENCE,
 } from './timelapseScene.js';
 import { PACK_COLOR_MODE } from '../../mapVocab.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from './mapBadness.js';
@@ -48,12 +48,6 @@ test('paint per run: present nodes painted as usual, absent ones as dotted ghost
   assert.notEqual(paint[at('src/b.py')].ghost, true);
 });
 
-test('an absent node says since when it is gone or when it first appears', () => {
-  assert.deepEqual(absenceNote(MODEL, DATA.runs, 1, at('lib/c.py')), { kind: ABSENCE.GONE_SINCE, day: '2026-09-08' });
-  assert.deepEqual(absenceNote(MODEL, DATA.runs, 0, at('src/b.py')), { kind: ABSENCE.FIRST_APPEARS, day: '2026-09-08' });
-  assert.equal(absenceNote(MODEL, DATA.runs, 0, at('src')), null);
-});
-
 test('the absence rule reads presence through a callback, so other views can share it', () => {
   const runs = [{ day: 'd0' }, { day: 'd1' }, { day: 'd2' }, { day: 'd3' }];
   const presentIn = (set) => (j) => set.includes(j);
@@ -64,21 +58,28 @@ test('the absence rule reads presence through a callback, so other views can sha
 });
 
 test('interpolation and screen coords write into reused arrays', () => {
+  const parent = Int32Array.from([-1]);
   const out = new Float32Array(3);
-  assert.deepEqual([...lerpXyr(Float32Array.from([0, 0, 1]), Float32Array.from([10, 20, 3]), 0.5, out)], [5, 10, 2]);
+  assert.deepEqual([...lerpXyr(parent, Float32Array.from([0, 0, 1]), Float32Array.from([10, 20, 3]), 0.5, out)], [5, 10, 2]);
   const coords = [];
   assert.equal(screenCoordsInto(Float32Array.from([10, 20, 5]), { k: 2, tx: 1, ty: 0 }, coords), coords);
   assert.deepEqual(coords[0], { cx: 21, cy: 40, r: 10 });
 });
 
-test('big structural changes and far seeks cross-fade; small steps move', () => {
-  const model = { parent: Int32Array.from([-1, 0, 0, 0, 0, 0]), sizes: [
-    Float32Array.from([0, 1, 1, 1, 1, 1]), Float32Array.from([0, 1, 1, 1, 1, 1]), Float32Array.from([0, 1, 1, 1, 0, 0]),
-  ], maxSize: Float32Array.from([0, 1, 1, 1, 1, 1]) };
-  assert.equal(transitionKind(model, 0, 1), TRANSITION.MOVE);
-  assert.equal(transitionKind(model, 1, 2), TRANSITION.FADE);
-  assert.equal(transitionKind(model, 0, 2), TRANSITION.FADE);
-  assert.equal(transitionKind(model, 1, 1), TRANSITION.NONE);
+test('a circle moves with its parent; one absent on a side grows or shrinks in place', () => {
+  const parent = Int32Array.from([-1, 0, 0]);
+  // The root slides 10 right; child 1 keeps its offset; child 2 is new (radius 0 before, offset 5 in the new run).
+  const from = Float32Array.from([0, 0, 50, 3, 0, 4, 99, 99, 0]);
+  const to = Float32Array.from([10, 0, 50, 13, 0, 4, 15, 0, 2]);
+  const mid = lerpXyr(parent, from, to, 0.5, new Float32Array(9));
+  assert.deepEqual([...mid.slice(3, 6)], [8, 0, 4]);
+  assert.deepEqual([...mid.slice(6, 9)], [10, 0, 1]);
+});
+
+test('every change between runs moves; nothing cross-fades', () => {
+  assert.equal(transitionKind(0, 1), TRANSITION.MOVE);
+  assert.equal(transitionKind(0, 9), TRANSITION.MOVE);
+  assert.equal(transitionKind(1, 1), TRANSITION.NONE);
 });
 
 test('the camera frames the nearest folder of the path that exists in the history', () => {
@@ -107,24 +108,34 @@ const circleAt = (xyr, i) => ({ x: xyr[i * XYR_STRIDE], y: xyr[i * XYR_STRIDE + 
 
 test('a dashboard path missing from the history never leaves a blank map or a NaN camera', () => {
   for (const [model, path] of [[MODEL, 'src/gone/deeper'], [MODEL, 'nowhere/x.py'], [CHAIN, 'a/b'], [CHAIN, 'a']]) {
-    const anchor = anchorLayout(model);
     const i = focusIndexFor(model, path);
-    const { k, tx, ty } = runFocusTransform(anchor, runLayout(model, anchor, 0), i);
+    const { k, tx, ty } = runFocusTransform(model.parent, runLayout(model, 0), i);
     assert.ok([k, tx, ty].every(Number.isFinite) && k > 0, `${path}: camera ${k} ${tx} ${ty}`);
     assert.ok(model.nodes[i].children?.length, `${path}: frames a folder with circles in it`);
   }
 });
 
-test('the camera centres a folder where the run draws it, at the zoom of its size today', () => {
-  const anchor = anchorLayout(MODEL);
-  const run = runLayout(MODEL, anchor, 0);
-  const i = at('src');
-  const inRun = circleAt(run, i);
-  assert.notEqual(inRun.x, circleAt(anchor, i).x, 'run 0 draws src away from where it sits today');
-  const { k, tx, ty } = runFocusTransform(anchor, run, i);
-  assert.ok(Math.abs(inRun.x * k + tx - PACK_BASE_SIZE / 2) < 1e-3);
-  assert.ok(Math.abs(inRun.y * k + ty - PACK_BASE_SIZE / 2) < 1e-3);
-  assert.ok(Math.abs(k - PACK_BASE_SIZE / (2 * circleAt(anchor, i).r)) < 1e-6);
+test('the camera frames a folder at the run\'s size where the run draws it, or its nearest drawn ancestor', () => {
+  const run = runLayout(MODEL, 0);
+  const src = circleAt(run, at('src'));
+  const cam = runFocusTransform(MODEL.parent, run, at('src'));
+  assert.ok(Math.abs(src.x * cam.k + cam.tx - PACK_BASE_SIZE / 2) < 1e-3);
+  assert.ok(Math.abs(src.r * cam.k - PACK_BASE_SIZE / 2) < 1e-3);
+  // Run 2 does not hold lib/c.py, so lib is not drawn: the camera frames the root.
+  const later = runLayout(MODEL, 2);
+  assert.deepEqual(runFocusTransform(MODEL.parent, later, at('lib')), runFocusTransform(MODEL.parent, later, 0));
+});
+
+test('a folder holding only one folder in a run is drawn as that folder\'s chain end', () => {
+  const ends = chainEndsIn(CHAIN, 0);
+  const bc = CHAIN.pathIndex.get('a/b/c');
+  assert.equal(ends[CHAIN.pathIndex.get('a')], CHAIN.pathIndex.get('a'));
+  assert.equal(ends[bc], bc);
+  const lone = buildTimelapseModel(decodeTimelapse({ ...PAYLOAD, fileNames: ['x/y/z.py', 'x/w.py'],
+    frames: [{ day: '2026-09-01', files: [row(0, 1)], gone: [] }, { day: '2026-09-08', files: [row(1, 1)], gone: [] }] }));
+  const x = lone.pathIndex.get('x');
+  assert.equal(chainEndsIn(lone, 0)[x], lone.pathIndex.get('x/y'));
+  assert.equal(chainEndsIn(lone, 1)[x], x);
 });
 
 test('cachedRuns computes each run once and forgets the oldest', () => {
