@@ -9,7 +9,7 @@ import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import DimensionScoreHistoryPanel from './DimensionScoreHistoryPanel.jsx';
 import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
 import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
-import ExplorerRadialPanel from './ExplorerRadialPanel.jsx';
+import RadialPanel from '../../../components/radial/RadialPanel.jsx';
 import { ExplorerHead, PrinciplesPanel, DimensionFindingsPanels, pastRunNote } from './explorerPageSections.jsx';
 import { useExplorerPageSpecs } from './useExplorerPageSpecs.jsx';
 import { buildRadialPrinciples, buildEnrichedPrinciples } from './explorerPrincipleView.js';
@@ -115,7 +115,7 @@ function ExplorerTopGrid({ d, trend, granularity, onGranularityChange, setActive
         granularity={granularity} onGranularityChange={onGranularityChange}
         onBarClick={(point) => { setActiveRunId(point.runId); setActiveDateLabel(point.dateLabel); }}
       />
-      <ExplorerRadialPanel radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick} highlighted={lit.principle} onHover={lit.setPrinciple} />
+      <RadialPanel radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick} highlighted={lit.principle} onHover={lit.setPrinciple} />
     </div>
   );
 }

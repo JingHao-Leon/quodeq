@@ -4,7 +4,7 @@ import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
-import RiskAreasPanel from './RiskAreasPanel.jsx';
+import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import { VIZ_STYLE } from '../../map/mapVocab.js';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';

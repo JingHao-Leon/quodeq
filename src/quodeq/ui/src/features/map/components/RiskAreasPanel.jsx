@@ -8,9 +8,9 @@
 import { useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
-import useMapAreas from '../../map/hooks/useMapAreas.js';
-import { areasNeedingRework } from '../../map/model/areasNeedingRework.js';
-import { SKY_ZONE, AREA_KIND } from '../../map/mapVocab.js';
+import useMapAreas from '../hooks/useMapAreas.js';
+import { areasNeedingRework } from '../model/areasNeedingRework.js';
+import { SKY_ZONE, AREA_KIND } from '../mapVocab.js';
 import { SeverityAndFilesCells } from '../../../components/SeverityBadges.jsx';
 
 // Two-line rows, as many as the folders panel shows.

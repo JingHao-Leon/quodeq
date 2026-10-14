@@ -11,7 +11,7 @@ import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import FindingsWorkbench from '../workbench/FindingsWorkbench.jsx';
 import { sevAbbr } from '../workbench/sevWords.js';
 import { formatShortDate } from '../../../utils/formatters.js';
-import { useShownData } from '../hooks/useAsOfScores.js';
+import { useShownData } from '../hooks/useShownData.js';
 import ScopedFindings from '../scope/ScopedFindings.jsx';
 
 const SUMMARY_SEP = ' · ';

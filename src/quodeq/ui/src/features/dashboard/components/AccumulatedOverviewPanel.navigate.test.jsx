@@ -5,7 +5,7 @@ import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
 // Each panel is a button that hands its callback one row: this test is about where the Overview sends it.
-vi.mock('./RiskAreasPanel.jsx', () => ({ default: () => null }));
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
 vi.mock('./AccumulatedHeroSection.jsx', () => ({
   AccumulatedHeroSection: ({ onCardNavigate }) => (
     <>

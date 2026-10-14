@@ -3,9 +3,9 @@
  * lines with its score under it, on a ring just outside the plot; a label
  * opens its principle and, hovered or focused, lights it.
  */
-import { scoreGradeColorVar } from '../../../utils/formatters.js';
+import { scoreGradeColorVar } from '../../utils/formatters.js';
 import { polar, hoverProps } from './radialGeometry.js';
-import { t } from '../../../strings/index.js';
+import { t } from '../../strings/index.js';
 
 const LABEL_OFFSET = 18;     // svg units beyond the outer ring (name baseline)
 // Text-anchor flips once a label's angle leans far enough left/right that

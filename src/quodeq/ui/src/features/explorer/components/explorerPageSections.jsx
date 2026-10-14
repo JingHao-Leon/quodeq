@@ -9,6 +9,7 @@ import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FindingsHead from '../../../components/FindingsHead.jsx';
+import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { scopeMetrics, runDimensionMetrics, tileChanges } from '../../../models/findingMetrics.js';
@@ -64,25 +65,8 @@ export function PrinciplesPanel({ radialPrinciples, enrichedPrinciples, onPrinci
   );
 }
 
-/** What the "Where" panel shows: the folders or the files (the Map's areas wait for Risk by dimension). */
-export const WHERE = Object.freeze({ FOLDERS: 'folders', FILES: 'files' });
-const WHERE_VIEWS = [WHERE.FOLDERS, WHERE.FILES];
-
-/** Where this dimension's findings are, one level at a time: a switch over the one panel it shows. */
-function WherePanel({ view, onView, children }) {
-  return (
-    <section className="explorer-where" aria-label={t('explorer.whereAria')}>
-      <div className="term-seg explorer-where__switch" role="group" aria-label={t('explorer.whereAria')}>
-        {WHERE_VIEWS.map((v) => (
-          <button key={v} type="button" className={`term-btn${v === view ? ' term-btn--on' : ''}`} aria-pressed={v === view} onClick={() => onView(v)}>
-            {t(`explorer.where_${v}`)}
-          </button>
-        ))}
-      </div>
-      {children}
-    </section>
-  );
-}
+// The Map's areas wait for Risk by dimension.
+const DIMENSION_WHERE_VIEWS = [WHERE.FOLDERS, WHERE.FILES];
 
 /**
  * The page's bottom, what to fix beside where it is: Fix first on the left
@@ -94,7 +78,7 @@ export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinc
   return (
     <div className="explorer-bottom">
       <FixFirstPanel dimensions={fixFirstDims} oneDimension litPrinciple={litPrinciple} onRequirementClick={findingsNav.onRequirementClick} />
-      <WherePanel view={where} onView={setWhere}>
+      <WherePanel view={where} onView={setWhere} views={DIMENSION_WHERE_VIEWS}>
         {where === WHERE.FOLDERS && <FindingsByFolderPanel dimensions={fixFirstDims} onFolderClick={findingsNav.onFolderClick} />}
         {where === WHERE.FILES && <OffendingFilesSection topFiles={d.topFiles} onFileClick={findingsNav.onFileClick} />}
       </WherePanel>
