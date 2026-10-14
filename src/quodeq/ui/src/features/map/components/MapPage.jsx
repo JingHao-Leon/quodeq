@@ -17,6 +17,9 @@ import useMapTimelapse from '../hooks/useMapTimelapse.js';
 import MapPackPanel from './MapPackPanel.jsx';
 import MapRiskPanel from './MapRiskPanel.jsx';
 import MapTimelapseFooter from './MapTimelapseFooter.jsx';
+import MapVizToggles from './MapVizToggles.jsx';
+import { TIMELAPSE_STATUS } from '../model/timelapsePlayback.js';
+import { useMapTimelapsePref, useMapLegendPref } from './useMapTimelapsePref.js';
 import useRiskActions from './useRiskActions.js';
 import useSeverityWeights from '../hooks/useSeverityWeights.js';
 import { THEME_FAMILY } from '../../../vocab/theme.js';
@@ -152,28 +155,18 @@ function hasBreadcrumb(vizStyle) {
   return vizStyle === VIZ_STYLE.ZOOMPACK;
 }
 
-function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk, timelapse }) {
+function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk, timelapse, dock }) {
   const appIsDark = useThemeIsDark();
   const { vizStyle, viewMode, galaxyMode } = vizState;
   const { fullTree, currentPath, onPathChange } = treeState;
   const { onDrillDown, onFileClick, onNavigate, onBreadcrumbNav } = callbacks;
-  const { showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
+  const { showLabels, darkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
   const riskActions = useRiskActions({ areaState: risk.areaState, onNavigate });
   return (
-    <div className="map-viz-container" {...(darkMode && !appIsDark ? { [DATA_THEME_ATTR]: getDarkThemeAttr() } : {})}>
+    <div className={`map-viz-container${dock.shown ? ' has-dock' : ''}${dock.legend.on ? '' : ' hide-legends'}`} {...(darkMode && !appIsDark ? { [DATA_THEME_ATTR]: getDarkThemeAttr() } : {})}>
       {hasBreadcrumb(vizStyle) && <MapBreadcrumb path={breadcrumb} onNavigate={onBreadcrumbNav} projectName={projectName} />}
-      <div className="map-viz-toggles">
-        <label className="map-label-toggle">
-          <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
-          {t('map.labels')}
-        </label>
-        {!appIsDark && (
-          <label className="map-label-toggle">
-            <input type="checkbox" checked={!darkMode} onChange={(e) => setDarkMode(!e.target.checked)} />
-            {t('map.light')}
-          </label>
-        )}
-      </div>
+      <MapVizToggles display={display} appIsDark={appIsDark} timelapseToggle={dock.toggle} legendToggle={dock.legend} />
+      <div className="map-viz-area">
       {vizStyle === VIZ_STYLE.RISK && (
         <MapRiskPanel risk={risk} riskActions={riskActions} view={{ dark: darkMode || appIsDark, showLabels, resetKey }} timelapse={timelapse} />
       )}
@@ -185,6 +178,8 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
       )}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.STANDARDS && <GalaxyView dimensions={dimensions} onNavigate={onNavigate} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} standardTypes={standardTypes} />}
       {vizStyle === VIZ_STYLE.GALAXY && galaxyMode === GALAXY_MODE.FILESYSTEM && <GalaxyFolderView node={fullTree} currentPath={currentPath} onPathChange={onPathChange} onFileClick={onFileClick} showLabels={showLabels} darkMode={darkMode} resetKey={resetKey} projectName={projectName} />}
+      </div>
+      {dock.shown && <div className="map-timelapse-dock"><MapTimelapseFooter timelapse={timelapse} filtered={dock.filtered} /></div>}
     </div>
   );
 }
@@ -200,15 +195,22 @@ function nodeSummary(node) {
   return `${viol} violation${viol !== 1 ? 's' : ''} · ratio ${complianceRatio(viol, node.compliance)}`;
 }
 
-function MapBody({ ready, state, pack, risk, timelapse }) {
+/** The time-lapse dock at the bottom of the map: shown while the time-lapse is on, unless the history has a single run. */
+function dockOf(state, timelapse, toggle, legend) {
+  const single = timelapse.status === TIMELAPSE_STATUS.READY && timelapse.data.runs.length < 2;
+  return {
+    toggle,
+    legend,
+    shown: toggle.available && toggle.on && !single,
+    filtered: state.vizState.vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(state.dimensionState),
+  };
+}
+
+function MapBody({ ready, state, pack, risk, timelapse, timelapseToggle, legendToggle }) {
   if (!ready) return <MapVizSkeleton />;
-  const filtered = state.vizState.vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(state.dimensionState);
   return (
-    <>
-      <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks}
-        display={state.display} pack={pack} risk={risk} timelapse={timelapse} />
-      <MapTimelapseFooter timelapse={timelapse} filtered={filtered} />
-    </>
+    <MapVizContainer vizState={state.vizState} treeState={state.treeState} dimensions={state.dimensions} callbacks={state.callbacks}
+      display={state.display} pack={pack} risk={risk} timelapse={timelapse} dock={dockOf(state, timelapse, timelapseToggle, legendToggle)} />
   );
 }
 
@@ -221,12 +223,23 @@ function useMapPackData(project, source, packShown) {
   return { pack: { weights, activity, loading, failed }, activityUnavailable };
 }
 
+const hasTimelapse = (vizStyle) => vizStyle === VIZ_STYLE.ZOOMPACK || vizStyle === VIZ_STYLE.RISK;
+
+/** The time-lapse switch: offered on the Circle Pack and Risk for local projects; turning it off returns to today. */
+function useTimelapseToggle({ vizStyle, source, timelapse, on, setOn }) {
+  return {
+    available: hasTimelapse(vizStyle) && source !== PROJECT_SOURCE.SHARED,
+    on,
+    onChange: (v) => { if (!v) timelapse.controls.latest(); setOn(v); },
+  };
+}
+
 // The time-lapse plays under the Circle Pack and Risk tabs; a Dimensions
 // filter holds it on the latest run on the pack only (Risk ignores the filter).
-function usePageTimelapse({ project, source, vizStyle, dimensionState }) {
+function usePageTimelapse({ project, source, vizStyle, dimensionState, grouping = {}, on }) {
   return useMapTimelapse({
-    project, source,
-    active: vizStyle === VIZ_STYLE.ZOOMPACK || vizStyle === VIZ_STYLE.RISK,
+    project, source, granularity: grouping.granularity, onGranularityChange: grouping.onGranularityChange,
+    active: on && hasTimelapse(vizStyle),
     blocked: vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(dimensionState),
   });
 }
@@ -246,7 +259,10 @@ export default function MapPage(props) {
   const { vizStyle } = state.viewState;
   const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, vizStyle === VIZ_STYLE.ZOOMPACK);
   const areaState = useMapAreas(selectedProject, selectedSource, vizStyle === VIZ_STYLE.RISK);
-  const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState });
+  const [timelapseOn, setTimelapseOn] = useMapTimelapsePref();
+  const [legendOn, setLegendOn] = useMapLegendPref();
+  const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState, grouping: props.grouping, on: timelapseOn });
+  const timelapseToggle = useTimelapseToggle({ vizStyle, source: selectedSource, timelapse, on: timelapseOn, setOn: setTimelapseOn });
 
   if (!projectsLoaded) return <MapLoadingState />;
   if (projects.length === 0 && selectedSource !== PROJECT_SOURCE.SHARED) return <MapNoProjectsState onNavigate={onNavigate} />;
@@ -274,7 +290,7 @@ export default function MapPage(props) {
         />
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState }} timelapse={timelapse} />
+      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
     </div>
   );
 }

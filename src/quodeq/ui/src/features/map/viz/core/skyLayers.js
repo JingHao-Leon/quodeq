@@ -1,6 +1,6 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLayers.js
 import { TAU } from './galaxyCore.js';
-import { rgbCss } from './mapPaint.js';
+import { rgbCss, labelInk } from './mapPaint.js';
 import { SKY_RIM } from './skyLayout.js';
 import { RING_STYLE } from './skyPaint.js';
 import { SKY_ZONE } from '../../mapVocab.js';
@@ -254,7 +254,7 @@ function drawLabel(ctx, label, { palette, font, fontScale }) {
   ctx.strokeStyle = halo;
   ctx.font = skyTitleFont(font, fontScale);
   ctx.strokeText(label.title, label.x, label.y);
-  ctx.fillStyle = rgbCss(palette.text);
+  ctx.fillStyle = rgbCss(labelInk(palette));
   ctx.fillText(label.title, label.x, label.y);
 }
 

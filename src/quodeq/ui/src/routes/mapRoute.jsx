@@ -66,6 +66,7 @@ export function mapRoute(params, props) {
       onViewModeChange: (v) => replaceView({ viewMode: v }),
       onGalaxyModeChange: (v) => replaceView({ galaxyMode: v }),
     }}
+    grouping={{ granularity: props.dashboardData.granularity, onGranularityChange: props.dashboardData.onGranularityChange }}
     isDirectNav={isDirectNav}
     tabKey={params._tabKey || 0}
   />;

@@ -9,6 +9,7 @@ import '@testing-library/jest-dom/vitest';
 import {
   LevelInfoPanel, computeLevelInfo, buildBreadcrumb, computeDimensionLevelInfo, computePrincipleLevelInfo,
 } from './galaxyViewInfo.jsx';
+import { t } from '../../../../strings/index.js';
 
 function makeScene() {
   const star = {
@@ -214,5 +215,17 @@ describe('LevelInfoPanel', () => {
     expect(screen.getByText('a hint')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button'));
     expect(detailAction).toHaveBeenCalled();
+  });
+
+  it('with onClose, a close button in its corner calls it', () => {
+    const onClose = vi.fn();
+    render(<LevelInfoPanel levelInfo={{ title: 'a.js', lines: [] }} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: t('map.panelClose') }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('without onClose there is no close button', () => {
+    render(<LevelInfoPanel levelInfo={{ title: 'a.js', lines: [] }} />);
+    expect(screen.queryByRole('button', { name: t('map.panelClose') })).toBeNull();
   });
 });

@@ -51,7 +51,7 @@ function Past({ tl, showLabels = true, initial = null }) {
   const [selectedName, onSelectName] = useState(initial);
   return <RiskTimelapseView timelapse={tl} timeline={timelineOf(tl.data)} dark={false} showLabels={showLabels} selection={{ selectedName, onSelectName }} />;
 }
-const timelapse = (over = {}) => ({ data: DATA, position: 0, playing: false, moveMs: 0, onSettled: vi.fn(), controls: { pause: vi.fn() }, ...over });
+const timelapse = (over = {}) => ({ data: DATA, position: 0, playing: false, moveMs: 0, onSettled: vi.fn(), ...over });
 
 /** Render, then wait for the run's sky to settle and be drawn. */
 async function drawn(tl, props = {}) {
@@ -162,11 +162,17 @@ describe('RiskTimelapseView: selection', () => {
     expect(panelOf('lib')).toBeNull();
   });
 
-  it('a click while playing pauses and keeps the selection', async () => {
-    const tl = timelapse({ playing: true });
-    const { sky } = await drawn(tl, { initial: 'app' });
-    fireEvent.click(sky, { clientX: 1, clientY: 1 });
-    expect(tl.controls.pause).toHaveBeenCalled();
+  it('while playing a click selects an area, and a click off the bubbles clears it (it never pauses)', async () => {
+    const { sky } = await drawn(timelapse({ playing: true }));
+    fireEvent.click(sky, bubbleAt(0, 'app'));
     expect(panelOf('app')).not.toBeNull();
+    fireEvent.click(sky, { clientX: 1, clientY: 1 });
+    expect(panelOf('app')).toBeNull();
+  });
+
+  it('the panel\'s close button clears the selection', async () => {
+    await drawn(timelapse({ playing: true }), { initial: 'app' });
+    fireEvent.click(within(panelOf('app')).getByRole('button', { name: t('map.panelClose') }));
+    expect(panelOf('app')).toBeNull();
   });
 });

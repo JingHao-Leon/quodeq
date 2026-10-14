@@ -75,3 +75,15 @@ test('must labels whose near spots hold other labels move further out', () => {
   assert.equal(placed.length, STACKED);
   assert.equal(anyLabelsOverlap(placed), false);
 });
+
+test('the selected area (first) is placed before every other label, so it wins a conflict', () => {
+  // Two bubbles side by side, both must show: the larger one's label would take the shared spot below first.
+  const bubbles = [{ px: 100, py: 100, R: 30 }, { px: 110, py: 100, R: 10 }];
+  const args = { bubbles, wanted: new Set(), must: new Set([0, 1]), measure: () => 80 };
+  const alone = placeSkyLabels({ ...args, must: new Set([1]) })[0];
+  const plain = placeSkyLabels(args);
+  const selected = placeSkyLabels({ ...args, first: 1 });
+  assert.equal(plain[0].index, 0);
+  assert.notDeepEqual(plain.find((p) => p.index === 1), alone);
+  assert.deepEqual(selected[0], alone);
+});

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { hierarchy } from 'd3-hierarchy';
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
 import { drawStatic, drawOverlay, fadesFor, strokeGhostCircle, FADE, GHOST_DASH_PX, GHOST_STROKE_ALPHA } from './packLayers.js';
+import { rgbCss, labelInk } from './mapPaint.js';
 
 const VIEWPORT = { scale: 1, ox: 0, oy: 0 };
 const SIZE = 600;
@@ -173,6 +174,36 @@ describe('drawOverlay labels', () => {
       return parseFloat(ctx.font.split(' ')[1]);
     };
     expect(fontAt(1.5)).toBeCloseTo(fontAt(1) * 1.5);
+  });
+});
+
+describe('drawOverlay: the selected circle and the label ink', () => {
+  const palette = { dark: true, bg: { r: 10, g: 20, b: 30 }, text: { r: 200, g: 200, b: 200 } };
+  const folder = (name) => ({ name, path: name, children: [{ name: `${name}.py`, path: `${name}/${name}.py` }] });
+  // Breadth first: 0 root, 1 y, 2 x, 3 y/y.py, 4 x/x.py; y and x overlap, x is the larger.
+  function siblings(selectedIndex) {
+    const ctx = fakeCanvasContext();
+    const circles = hierarchy({ name: '', children: [folder('y'), folder('x')] }).descendants();
+    const screenCoords = [[300, 300, 100], [305, 300, 15], [300, 300, 20], [305, 300, 5], [300, 300, 5]].map(([cx, cy, r]) => ({ cx, cy, r }));
+    drawOverlay(ctx, { circles, screenCoords, viewport: VIEWPORT, hoverIndex: null, selectedIndex, focusNode: circles[0], showLabels: true, palette, font: 'sans', width: SIZE, height: SIZE });
+    return ctx;
+  }
+  const names = (ctx) => ctx.fillText.mock.calls.map((c) => c[0]);
+
+  it('the selected circle\'s label is placed first, so it wins an overlap', () => {
+    expect(names(siblings(null))).toEqual(['x']);
+    expect(names(siblings(1))).toEqual(['y']);
+  });
+
+  it('a selected file is labelled too (files otherwise never are)', () => {
+    expect(names(siblings(3))[0]).toBe('y.py');
+  });
+
+  it('labels are drawn in the label ink over a halo of the page colour', () => {
+    const ctx = siblings(null);
+    expect(ctx.fillStyle).toBe(rgbCss(labelInk(palette)));
+    expect(ctx.strokeStyle).toBe(rgbCss(palette.bg));
+    expect(ctx.strokeText.mock.calls.map((c) => c[0])).toEqual(['x']);
   });
 });
 

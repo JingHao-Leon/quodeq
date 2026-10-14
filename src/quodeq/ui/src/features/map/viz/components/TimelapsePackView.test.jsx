@@ -60,7 +60,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(
 
 const timelapse = (over = {}) => ({
   data: DATA, position: 0, playing: false, speed: 1, moveMs: 0, onSettled: vi.fn(),
-  controls: { pause: vi.fn(), toggle: vi.fn() }, ...over,
+  controls: { toggle: vi.fn() }, ...over,
 });
 const overlayOf = (container) => container.querySelector('canvas[tabindex="0"]');
 const shortDate = (day) => formatShortDate(dayDate(day).toISOString());
@@ -87,11 +87,11 @@ describe('TimelapsePackView', () => {
     expect(ghostStrokes()).toBe(0);
   });
 
-  it('a click while playing pauses', async () => {
-    const tl = timelapse({ playing: true });
-    const { container } = await renderView({ timelapse: tl });
+  it('a click while playing goes where it lands, as paused (it never pauses)', async () => {
+    const onDrillDown = vi.fn();
+    const { container } = await renderView({ timelapse: timelapse({ playing: true }), onDrillDown });
     fireEvent.click(overlayOf(container));
-    expect(tl.controls.pause).toHaveBeenCalled();
+    expect(onDrillDown).toHaveBeenCalledWith('');
   });
 
   it('Escape zooms out of the folder shown (src/ui is one collapsed folder, so out is the root)', async () => {
@@ -123,7 +123,7 @@ describe('TimelapsePackView while paused', () => {
     expect(onDrillDown).toHaveBeenLastCalledWith('docs');
   });
 
-  it('a file click inside the open folder does nothing', async () => {
+  it('a file click inside the open folder opens nothing (it selects the file)', async () => {
     const onDrillDown = vi.fn();
     const { container } = await renderView({ timelapse: timelapse(), onDrillDown });
     hitPath = 'src/ui/a.js';
@@ -176,12 +176,11 @@ describe('TimelapsePackView background click', () => {
     expect(onDrillDown).toHaveBeenCalledWith('docs');
   });
 
-  it('the keyboard list pauses a playing time-lapse instead of zooming', async () => {
-    const tl = timelapse({ playing: true });
+  it('the keyboard list opens a sub-folder while playing too', async () => {
     const onDrillDown = vi.fn();
-    const view = await renderView({ timelapse: tl, onDrillDown, currentPath: '' });
+    const view = await renderView({ timelapse: timelapse({ playing: true }), onDrillDown, currentPath: '' });
     fireEvent.click(view.getByRole('button', { name: 'docs' }));
-    expect([tl.controls.pause.mock.calls.length, onDrillDown.mock.calls.length]).toEqual([1, 0]);
+    expect(onDrillDown).toHaveBeenCalledWith('docs');
   });
 
   it('the overlay canvas is announced as an image of the run', async () => {

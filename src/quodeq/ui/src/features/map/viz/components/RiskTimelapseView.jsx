@@ -39,27 +39,25 @@ function useViewSky(view) {
  * The Risk sky on a past run: each run shows only the areas it had, under its
  * own rings, as today's sky would have drawn it that day; between runs the
  * bubbles move, new areas grow in, gone ones shrink out, and the rings slide.
- * The legend's ring rows hold every kind of the history. Playing: a click
- * pauses. Hover shows the run's numbers (and follows its area while the runs
- * play). Paused: a click selects an area
- * (or clears the selection): the selected area stays lit while the runs play,
- * so it can be followed over time, its panel showing that run's numbers
- * (without View Details, which acts on today's data). `timeline` is createSkyTimeline of
+ * The legend's ring rows hold every kind of the history. Hover shows the
+ * run's numbers. A click, playing or paused, selects an area (or clears the
+ * selection on empty sky): the selected area stays lit while the runs play,
+ * so it can be followed over time, its panel showing each run's numbers
+ * (without View Details, which acts on today's data). `timeline` is
+ * createSkyTimeline of
  * `timelapse.data`, built (and warmed) by the Risk tab, so a seek finds its
  * run already laid out.
  */
 export default function RiskTimelapseView({ timelapse, timeline, dark, showLabels, selection }) {
-  const { data, position, playing, moveMs, onSettled, controls } = timelapse;
+  const { data, position, moveMs, onSettled } = timelapse;
   const load = useCallback((k) => timeline.sceneAt(k), [timeline]);
   const view = useRunTransition({ target: position, load, kindOf: alwaysMove, durationMs: moveMs, onSettled });
   const sky = useViewSky(view);
   const k = view ? view.to.k : null;
   const [hover, onHover] = useState(null);
   const { selectedName, onSelectName } = selection;
-  const onSelect = useCallback((i) => {
-    if (playing) controls.pause();
-    else onSelectName(i === null ? null : sky?.areas[i]?.name ?? null);
-  }, [playing, controls, onSelectName, sky]);
+  // Playing or paused, a click selects the area (or clears on empty sky): the selection follows it as the runs play.
+  const onSelect = useCallback((i) => onSelectName(i === null ? null : sky?.areas[i]?.name ?? null), [onSelectName, sky]);
   if (!view) return null;
   const selectedIndex = sky.areas.findIndex((a) => a.name === selectedName && !a.absent);
   const chosen = selectedIndex < 0 ? null : sky.areas[selectedIndex];
@@ -74,7 +72,8 @@ export default function RiskTimelapseView({ timelapse, timeline, dark, showLabel
         selected={selectedIndex < 0 ? null : selectedIndex} onSelect={onSelect} onHover={onHover} labelText={riskLabelText}
         nodes={sky.nodes} rings={sky.rings} label={label} />
       <RiskTooltip area={hovered} />
-      <LevelInfoPanel levelInfo={chosen && riskAreaInfo(chosen)} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined} />
+      <LevelInfoPanel levelInfo={chosen && riskAreaInfo(chosen)} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined}
+        onClose={() => onSelectName(null)} />
       <RiskLegend kinds={timeline.kinds()} />
     </div>
   );

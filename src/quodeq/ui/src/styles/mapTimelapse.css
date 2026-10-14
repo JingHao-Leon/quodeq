@@ -3,16 +3,36 @@
 .map-timelapse {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 0 0;
+  gap: 16px;
+  width: 100%;
   min-width: 0;
 }
-.map-timelapse__buttons { display: flex; gap: 4px; }
+/* Transport: borderless icon buttons around one round play button in the accent colour. */
+.map-timelapse__transport { display: flex; align-items: center; gap: 2px; flex: none; }
+.map-timelapse__icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; padding: 0;
+  border: none; border-radius: 50%; background: transparent;
+  color: var(--color-text-muted); cursor: pointer;
+}
+.map-timelapse__icon-btn:hover { color: var(--color-text); background: color-mix(in srgb, var(--color-text) 8%, transparent); }
+.map-timelapse__play {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; margin: 0 4px; padding: 0;
+  border: none; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-on-accent); cursor: pointer;
+}
+.map-timelapse__play:hover { filter: brightness(1.1); }
+.map-timelapse__icon-btn:focus-visible, .map-timelapse__play:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.map-timelapse__timeline { display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 120px; }
+.map-timelapse__timeline .map-timelapse__legend { justify-content: flex-end; }
+.map-timelapse__timeline .map-timelapse__track { flex: none; }
+.map-timelapse__played { fill: color-mix(in srgb, var(--color-accent) 7%, transparent); }
 .map-timelapse__track {
   position: relative;
   flex: 1;
   min-width: 120px;
-  height: 60px;
+  height: 44px;
   cursor: pointer;
 }
 .map-timelapse__track:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
@@ -45,15 +65,45 @@
   white-space: nowrap;
   pointer-events: none;
 }
-/* A fixed width, so the track keeps its size while the readout changes from run to run. */
-.map-timelapse__info { display: flex; flex-direction: column; gap: 2px; flex: none; width: 25em; min-width: 0; }
-.map-timelapse__readout {
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* A fixed width, so the track keeps its size while the readout changes from frame to frame. */
+.map-timelapse__readout { display: flex; flex-direction: column; gap: 2px; flex: none; width: 13em; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; }
+.map-timelapse__when { font-size: var(--text-sm); color: var(--color-text); overflow: hidden; text-overflow: ellipsis; }
+.map-timelapse__count { font-size: 11px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; }
+.map-timelapse__settings { position: relative; flex: none; }
+.map-timelapse__settings-btn { font-size: 11px; white-space: nowrap; }
+.map-timelapse__menu {
+  position: absolute; right: 0; bottom: calc(100% + 6px);
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 12px;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 30;
 }
+.map-timelapse__choice { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.map-timelapse__choice-label { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
+.map-timelapse__choice .term-btn { padding: 2px 8px; font-size: 11px; }
+
+/* The dock: the time-lapse inside the map frame, along its bottom edge; the
+   map, its legend and its switches sit above it (--map-dock-h). */
+.map-viz-container { --map-dock-h: 0px; }
+.map-viz-container.has-dock { --map-dock-h: 78px; }
+.map-viz-area { position: absolute; inset: 0 0 var(--map-dock-h) 0; }
+.map-viz-container .map-viz-toggles { bottom: calc(var(--space-2) + var(--map-dock-h)); }
+.map-timelapse-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--map-dock-h);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-3) 10px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  /* Above the map's corner switches, so the settings menu opens over them. */
+  z-index: 11;
+}
+.map-timelapse-dock .map-timelapse-note { margin: 0; }
 .map-timelapse__legend {
   display: flex;
   gap: 10px;
@@ -71,8 +121,9 @@
 .map-timelapse-note { margin: 8px 0 0; color: var(--color-text-muted); font-size: 12px; }
 
 @media (max-width: 720px) {
+  .map-viz-container.has-dock { --map-dock-h: 150px; }
   .map-timelapse { flex-wrap: wrap; }
-  .map-timelapse__info { width: 100%; }
+  .map-timelapse__readout { width: auto; }
 }
 
 /* The stage: the latest view and a past run stacked, cross-fading.
@@ -90,7 +141,9 @@
   pointer-events: none;
   transition: opacity var(--map-stage-fade) ease, visibility 0s linear var(--map-stage-fade);
 }
-.map-stage__layer--past { animation: map-stage-in var(--map-stage-fade) ease; }
+.map-stage__layer--past { animation: map-stage-in var(--map-stage-fade) ease; background: var(--color-surface); }
+/* Today's layer never fades: it stays opaque under the past layer, which fades in or out over it (no dim dip mid-swap). */
+.map-stage__layer:not(.map-stage__layer--past).is-hidden { opacity: 1; transition: visibility 0s linear var(--map-stage-fade); }
 @keyframes map-stage-in { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .map-stage__layer, .map-stage__layer.is-hidden { transition: none; }

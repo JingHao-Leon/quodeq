@@ -44,8 +44,19 @@ function tick(s) {
   return { ...s, position, playing: position < lastRun(s) };
 }
 
+/**
+ * A reset that keeps the viewer where they were (another grouping of the same
+ * history): that frame, paused, taken as settled (the view is on it, or moves
+ * to it and settles again).
+ */
+function atPosition(s, position) {
+  if (!Number.isInteger(position)) return s;
+  const at = clampRun(s, position);
+  return { ...s, position: at, settled: at };
+}
+
 const HANDLERS = {
-  [PLAYBACK_ACTION.RESET]: (s, a) => initialPlayback(a.runCount, s.speed, a.owner ?? null),
+  [PLAYBACK_ACTION.RESET]: (s, a) => atPosition(initialPlayback(a.runCount, s.speed, a.owner ?? null), a.position),
   [PLAYBACK_ACTION.TOGGLE]: toggle,
   [PLAYBACK_ACTION.PAUSE]: (s) => (s.playing ? { ...s, playing: false } : s),
   [PLAYBACK_ACTION.SEEK]: (s, a) => ({ ...s, position: clampRun(s, a.position), playing: false }),

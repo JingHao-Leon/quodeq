@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import PackCanvas from './PackCanvas.jsx';
 import { usePackLayout } from '../core/usePackLayout.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from '../core/mapBadness.js';
@@ -25,6 +25,18 @@ function useHover(circles, focusNode) {
   return [current ? state.index : null, setHover];
 }
 
+/**
+ * The picked file: by path through `selection` when the page shares it (the
+ * time-lapse keeps it), else held here. Returns the circle and its setter.
+ */
+function usePickedFile(circles, selection) {
+  const [own, setOwn] = useState(null);
+  const path = selection ? selection.path : own?.data.path ?? null;
+  const picked = useMemo(() => (path ? circles.find((c) => c.data.isFile && c.data.path === path) || null : null), [circles, path]);
+  const setPicked = useCallback((c) => (selection ? selection.onSelect(c ? c.data.path : null) : setOwn(c)), [selection]);
+  return [picked, setPicked];
+}
+
 /** The picked file while it is still a file of the open folder in this tree, else null. */
 function selectedIn(picked, focusNode, root) {
   if (!picked || picked.parent !== focusNode) return null;
@@ -39,11 +51,11 @@ function selectedIn(picked, focusNode, root) {
  */
 export default function ZoomablePackView({
   node, colorMode = PACK_COLOR_MODE.CONCENTRATION, weights = DEFAULT_SEVERITY_WEIGHTS, editsByPath = NO_EDITS, dark = false,
-  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '',
+  onDrillDown, onFileClick, showLabels = true, resetKey = 0, currentPath = '', selection,
 }) {
   const { root, circles } = usePackLayout(node);
   // A file click selects the file: the panel shows it and its View details opens it.
-  const [picked, setPicked] = useState(null);
+  const [picked, setPicked] = usePickedFile(circles, selection);
   const focus = useFocusManager({ root, circles, resetKey, currentPath, onDrillDown, onFileSelect: setPicked });
   const [hover, setHover] = useHover(circles, focus.focusNode);
   const selected = selectedIn(picked, focus.focusNode, root);
@@ -69,7 +81,7 @@ export default function ZoomablePackView({
           />        )}
       </FadeIn>
       {ready && <PackTooltip node={hover === null ? null : circles[hover]} />}
-      {ready && <PackInfoPanel focusNode={selected || focus.focusNode} root={root} onFileClick={onFileClick} />}
+      {ready && <PackInfoPanel focusNode={selected || focus.focusNode} root={root} onFileClick={onFileClick} onClose={selected ? () => setPicked(null) : undefined} />}
     </div>
   );
 }
