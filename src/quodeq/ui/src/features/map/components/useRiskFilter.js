@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import { navPrinciple, riskSelection } from '../model/riskSelection.js';
 import useMapAreas from '../hooks/useMapAreas.js';
+import { useSettledValue } from '../../../hooks/useSettledValue.js';
+
+// Ticking several dimensions in a row asks the server once, for the last selection.
+const SELECTION_SETTLE_MS = 450;
 
 /**
  * The Risk tab's finding selection: the Dimensions filter, narrowed to the
@@ -33,6 +37,7 @@ export function useRiskFilter({ nav, dimensionState }) {
  */
 export default function useRiskState({ nav, dimensionState, project, source, active }) {
   const riskFilter = useRiskFilter({ nav, dimensionState });
-  const areaState = useMapAreas(project, source, active, riskFilter.selection);
+  const selection = useSettledValue(riskFilter.selection, SELECTION_SETTLE_MS);
+  const areaState = useMapAreas(project, source, active, selection);
   return { riskFilter, areaState };
 }
