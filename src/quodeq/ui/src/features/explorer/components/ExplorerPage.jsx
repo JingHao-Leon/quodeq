@@ -8,6 +8,9 @@ import DeferredMount from '../../../components/DeferredMount.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import DimensionScoreHistoryPanel from './DimensionScoreHistoryPanel.jsx';
 import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
+import { usePeriodDiffs } from '../../../hooks/usePeriodDiffs.js';
+import { sinceSummary } from '../../../models/sinceSummary.js';
+import SinceStrip from '../../../components/SinceStrip.jsx';
 import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
 import RadialPanel from '../../../components/radial/RadialPanel.jsx';
 import { ExplorerHead, PrinciplesPanel, DimensionFindingsPanels, pastRunNote } from './explorerPageSections.jsx';
@@ -129,16 +132,22 @@ function ExplorerTopGrid({ d, trend, granularity, onGranularityChange, setActive
 function useDimensionPageState({ project, selectedSource, trend, dim, granularity, activeRunId, enrichedPrinciples, d }) {
   const [principle, setPrinciple] = useState(null);
   const lit = useMemo(() => ({ principle, setPrinciple }), [principle]);
-  const { principles: principleDeltas, previous } = usePrinciplePeriodDeltas({
+  const { principles: principleDeltas, previous, beforeRunId } = usePrinciplePeriodDeltas({
     project, selectedSource, trend, dimension: dim, granularity, activeRunId, principles: enrichedPrinciples,
   });
   const { dimension } = d.evalData;
   const fixFirstDims = useMemo(() => [{ dimension, violations: d.allViolations }], [dimension, d.allViolations]);
-  return { lit, principleDeltas, previous, fixFirstDims };
+  return { lit, principleDeltas, previous, beforeRunId, fixFirstDims };
 }
 
-/** The happy-path render: header, principle cards, top grid (score
- * history + radial), then Fix first, the folders and the files. */
+/** The dimension's since line: the run on show compared, finding by finding, with the run that closed the previous period. */
+function useDimensionSince({ project, selectedSource, runOnShow, beforeRunId, dim }) {
+  const { payloads } = usePeriodDiffs({ project, source: selectedSource, runs: [runOnShow], against: beforeRunId });
+  return useMemo(() => sinceSummary(payloads, (name) => name.toLowerCase() === dim), [payloads, dim]);
+}
+
+/** The happy-path render: header, since line, principle cards, top grid
+ * (score history + radial), then Fix first beside where the findings are. */
 function ExplorerPageBody({
   isRefreshing, dim, standardDescription, standardInfo, activeDateLabel, activeRunId, overallScoreNum, d,
   findingsNav, headActions, trend, granularity, onGranularityChange,
@@ -151,9 +160,10 @@ function ExplorerPageBody({
     () => dimensionPeriodDeltas(trend, dim, granularity, activeRunId),
     [trend, dim, granularity, activeRunId],
   );
-  const { lit, principleDeltas, previous, fixFirstDims } = useDimensionPageState({
+  const { lit, principleDeltas, previous, beforeRunId, fixFirstDims } = useDimensionPageState({
     project, selectedSource, trend, dim, granularity, activeRunId, enrichedPrinciples, d,
   });
+  const since = useDimensionSince({ project, selectedSource, runOnShow: activeRunId || latestRunId, beforeRunId, dim });
   const pastRun = pastRunNote({ latestRunId, activeRunId, activeDateLabel, trend, setActiveRunId, setActiveDateLabel });
   return (
     <div className={`explorer-page dashboard-fade${isRefreshing ? ' section-pending' : ''}`}>
@@ -162,6 +172,7 @@ function ExplorerPageBody({
         activeDateLabel={activeDateLabel} activeRunId={activeRunId} periodDeltas={periodDeltas}
         actions={headActions} filesRead={filesRead} previous={previous} pastRun={pastRun}
       />
+      <SinceStrip summary={since} granularity={granularity} />
 
       {/* The header paints first; the card row and the findings panels are the
           heavy part and follow in the next commit. */}

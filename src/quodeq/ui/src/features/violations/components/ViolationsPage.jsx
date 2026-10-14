@@ -65,6 +65,11 @@ function AsOfBanner({ asOf, onBack }) {
   );
 }
 
+/** A past day on show, as a scoped view's header says it: which day, and the way back to today; null on today. */
+function pastRunOf(asOf, onBackToToday) {
+  return asOf && onBackToToday ? { when: asOf.day || asOf.runId, onBack: onBackToToday } : null;
+}
+
 /** The dismissed count the header shows: none on a past day, nor while the dismissed list first loads. */
 function shownDismissedCount({ asOf, dismissed, dismissedLoading }) {
   return asOf || (dismissedLoading && !dismissed.length) ? null : dismissed.length;
@@ -104,10 +109,11 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
   };
 
   if (scope) {
+    // A scoped view says it shows a past run in its header (with the way back), not in the banner above it.
     return (
-      <PageFrame {...frame}>
+      <PageFrame {...frame} asOf={null}>
         <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null} readOnly={Boolean(asOf)}
-          history={{ project: selectedProject, selectedSource, trend, granularity, runId: asOf?.runId || null }}
+          history={{ project: selectedProject, selectedSource, trend, granularity, runId: asOf?.runId || null, pastRun: pastRunOf(asOf, callbacks.onBackToToday) }}
           onDismissFinding={actions.onDismiss} />
       </PageFrame>
     );

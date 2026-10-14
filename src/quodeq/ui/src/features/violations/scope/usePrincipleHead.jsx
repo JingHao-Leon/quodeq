@@ -1,0 +1,117 @@
+/**
+ * What a principle's page adds to its header: the standard's description of
+ * it, its score and grade, its change since the previous day, week or month
+ * (as its card on the dimension page shows it), the same numbers in the
+ * previous period's run (for the tiles' and severities' changes), when its
+ * dimension was evaluated, and its since line. Every other scope gets none.
+ */
+import { useMemo } from 'react';
+import TrendBadge from '../../../components/TrendBadge.jsx';
+import { scoreChangeShows } from '../../../utils/trendUtils.js';
+import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
+import { usePeriodDiffs } from '../../../hooks/usePeriodDiffs.js';
+import { sinceSummary } from '../../../models/sinceSummary.js';
+import { useStandardDescriptions } from '../../explorer/hooks/useStandardDescriptions.js';
+import { principleGradeOf, SCOPE_KIND } from './scopeModel.js';
+import { GRADE } from '../../../vocab/grade.js';
+import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
+import { SEVERITY, SEVERITY_ORDER } from '../../../vocab/severity.js';
+import { t } from '../../../strings/index.js';
+
+const lower = (s) => String(s ?? '').toLowerCase();
+
+/** A principle's grade for its header ring: its score, whether the evidence grades it at all, and what the evidence says. */
+function gradeOf(row) {
+  if (!row) return null;
+  const insufficient = row.grade === GRADE.INSUFFICIENT;
+  const hint = insufficient ? t('explorer.notEnoughEvidence')
+    : row.confidence === EVIDENCE_CONFIDENCE.LOW ? t('explorer.thinEvidenceHint') : null;
+  return { score: row.score, insufficient, hint };
+}
+
+/** The principle's change as its header's badge, as its card shows it. */
+function changeBadge(change) {
+  return scoreChangeShows(change) ? <TrendBadge delta={change} /> : null;
+}
+
+/**
+ * The principle's own numbers in the previous period's run (`previousDim`, a
+ * run's dimension with its findings): its violations by severity (one of no
+ * known severity counts as minor) and its compliant checks; null without
+ * that run.
+ * @param {?{violations?: object[], compliance?: object[]}} previousDim
+ * @param {string} principle
+ * @returns {?{sevCounts: object, total: number, compliance: number}}
+ */
+export function previousPrincipleCounts(previousDim, principle) {
+  if (!previousDim) return null;
+  const mine = (list) => (list || []).filter((f) => lower(f.principle) === lower(principle));
+  const violations = mine(previousDim.violations);
+  const sevCounts = Object.fromEntries(SEVERITY_ORDER.map((level) => [level, 0]));
+  for (const v of violations) {
+    const level = lower(v.severity);
+    sevCounts[level in sevCounts ? level : SEVERITY.MINOR] += 1;
+  }
+  return { sevCounts, total: violations.length, compliance: mine(previousDim.compliance).length };
+}
+
+/**
+ * The severities' change since the previous period (now minus then), as
+ * the header's badges read it; undefined without the previous counts.
+ * @param {object} sevCounts the live counts now
+ * @param {?{sevCounts: object}} previous previousPrincipleCounts output
+ */
+export function severityDeltas(sevCounts, previous) {
+  if (!previous) return undefined;
+  return Object.fromEntries(SEVERITY_ORDER.map((level) => [level, (sevCounts[level] || 0) - (previous.sevCounts[level] || 0)]));
+}
+
+/**
+ * What the period hooks need for a principle scope: the project (none for
+ * any other scope, so nothing is fetched), the history and its grouping, and
+ * the run on show (the past day's, else the dimension's own).
+ */
+function periodArgs({ isPrinciple, scope, dim, history, principles }) {
+  return {
+    project: isPrinciple ? history?.project : null, selectedSource: history?.selectedSource, trend: history?.trend,
+    dimension: scope.dimension, granularity: history?.granularity, activeRunId: history?.runId || dim?.fromRunId || null, principles,
+  };
+}
+
+/**
+ * The principle's since line: the run on show compared with the run that
+ * closed the previous period, narrowed to the principle's findings.
+ */
+function usePrincipleSince({ args, beforeRunId, scope, isPrinciple }) {
+  const { payloads } = usePeriodDiffs({ project: args.project, source: args.selectedSource, runs: [args.activeRunId], against: beforeRunId });
+  return useMemo(
+    () => (isPrinciple ? sinceSummary(payloads, (name) => lower(name) === lower(scope.dimension), scope.principle) : null),
+    [isPrinciple, payloads, scope.dimension, scope.principle],
+  );
+}
+
+/**
+ * @param {object} scope readScope output
+ * @param {object[]} dims the dimensions on show
+ * @param {?{project: string, selectedSource: string, trend: object[], granularity: string, runId: ?string}} history
+ * @returns {{description?: string, grade?: ?object, badge?: React.ReactNode, when?: ?string, previous?: ?object, since?: ?object}}
+ */
+export function usePrincipleHead(scope, dims, history) {
+  const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;
+  const { principleDescriptions } = useStandardDescriptions(isPrinciple ? scope.dimension : null);
+  const row = isPrinciple ? principleGradeOf(scope, dims) : null;
+  const dim = isPrinciple ? dims.find((d) => d.dimension === scope.dimension) : null;
+  const principles = useMemo(() => (row ? [{ principle: scope.principle, score: row.score }] : []), [row, scope.principle]);
+  const args = periodArgs({ isPrinciple, scope, dim, history, principles });
+  const { principles: changes, previous, beforeRunId } = usePrinciplePeriodDeltas(args);
+  const since = usePrincipleSince({ args, beforeRunId, scope, isPrinciple });
+  if (!isPrinciple) return {};
+  return {
+    description: principleDescriptions?.[scope.principle] || '',
+    grade: gradeOf(row),
+    badge: changeBadge(changes.get(scope.principle)),
+    when: dim?.fromDateLabel || null,
+    previous: previousPrincipleCounts(previous, scope.principle),
+    since,
+  };
+}

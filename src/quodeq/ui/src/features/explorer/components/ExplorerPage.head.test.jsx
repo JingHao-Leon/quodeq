@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { t } from '../../../strings/index.js';
 
-const data = vi.hoisted(() => ({ d: null, previous: null, info: null }));
+const data = vi.hoisted(() => ({ d: null, previous: null, info: null, diffs: [] }));
 
 // The page's own-trend query needs a QueryClient; these render it bare.
 vi.mock('./useExplorerTrend.js', () => ({ useExplorerTrend: (_p, _s, trend) => trend ?? [] }));
@@ -15,9 +15,11 @@ vi.mock('../hooks/useStandardDescriptions.js', () => ({
   useStandardDescriptions: () => ({ standardDescription: 'Keeps the core clean', standardInfo: data.info }),
 }));
 vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: data.previous }) }));
+// The since line's run comparisons read through react-query too.
+vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: data.diffs }) }));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => <div data-testid="history" /> }));
-vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => <div data-testid="radial" /> }));
+vi.mock('../../../components/radial/RadialPanel.jsx', () => ({ default: () => <div data-testid="radial" /> }));
 vi.mock('./PrinciplesCardsRow.jsx', () => ({
   default: ({ onPrincipleClick }) => <button type="button" onClick={() => onPrincipleClick('Dependency Rule')}>principle card</button>,
 }));
@@ -45,6 +47,7 @@ describe('ExplorerPage header', () => {
       topFiles: [{ file: 'src/a.py', total: 2 }], severityCounts: { critical: 1, major: 1 }, totalCompliant: 8,
     };
     data.previous = null;
+    data.diffs = [];
     data.info = null;
   });
 
@@ -99,10 +102,19 @@ describe('ExplorerPage header', () => {
     expect(onNavigate).toHaveBeenLastCalledWith(...scope({ kind: 'file', path: 'src/a.py' }));
   });
 
-  it('the sub line says where the standard comes from, its sources by name, then the date', () => {
+  it('the sub line says what it is, where the standard comes from, its sources by name, then the date', () => {
     data.info = { type: 'iso', subtype: '25010', version: '2023.11', source: 'iso25010, cisq, asvs' };
     const { container } = page({ dateLabel: 'Oct 14' });
-    expect(container.querySelector('.findings-head .term-header')).toHaveTextContent('iso-25010 · v2023.11 · based on ISO 25010, CISQ, ASVS · Oct 14');
+    expect(container.querySelector('.findings-head .term-header__sub')).toHaveTextContent('dimension · iso-25010 · v2023.11 · based on ISO 25010, CISQ, ASVS · Oct 14');
+  });
+
+  it('reads the since line for this dimension only, in the chart\'s period', () => {
+    const counts = (added, fixed) => ({ counts: { new: added, resolved: fixed }, types: { opened: [], closed: [] } });
+    data.diffs = [{ dimensions: { security: counts(4, 2), reliability: counts(9, 9) } }];
+    page({ granularity: 'week' });
+    const since = screen.getByRole('region', { name: 'since the previous week' });
+    expect(since).toHaveTextContent('4 new');
+    expect(since).toHaveTextContent('2 fixed');
   });
 
   it('the tiles read their change since the previous period: the pass rate in points, the rates as rates', () => {

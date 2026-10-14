@@ -19,11 +19,12 @@ import { t } from '../../../strings/index.js';
 import PrinciplesCardsRow from './PrinciplesCardsRow.jsx';
 
 /**
- * The header's sub line: where the standard comes from (its family and
- * edition, its version, what it is based on), then the run's date.
+ * The header's sub line, as every findings page's: what it is (a
+ * dimension), where its standard comes from (its family and edition, its
+ * version, what it is based on), then the run's date.
  */
 export function headSub(standardInfo, when) {
-  return [...standardOriginParts(standardInfo), when].filter(Boolean).join(t('violations.wbDot')) || null;
+  return [t('violations.scopeKind_dimension'), ...standardOriginParts(standardInfo), when].filter(Boolean).join(t('violations.wbDot'));
 }
 
 /**

@@ -41,11 +41,10 @@ describe('pointChange', () => {
 });
 
 describe('the score history chart\'s grade bands and change marks', () => {
-  it('are on for the dimension page and stay off on the Overview', () => {
+  it('are on for the dimension page and the Overview alike', () => {
     seen.props = [];
     render(<RunHistoryPanel trend={TREND} selectedRunId="r2" granularity="day" onGranularityChange={() => {}} />);
-    expect(seen.props.at(-1)).not.toHaveProperty('gradeBands');
-    expect(seen.props.at(-1)).not.toHaveProperty('changeMarks');
+    expect(seen.props.at(-1)).toMatchObject({ gradeBands: true, changeMarks: true });
     render(<DimensionScoreHistoryPanel trend={TREND} dimension="security" />);
     expect(seen.props.at(-1)).toMatchObject({ gradeBands: true, changeMarks: true });
   });

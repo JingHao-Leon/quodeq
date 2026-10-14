@@ -25,9 +25,11 @@ vi.mock('../../../utils/explorerUtils.js', async (importOriginal) => {
 vi.mock('../hooks/useStandardDescriptions.js', () => ({ useStandardDescriptions: () => ({ standardDescription: '' }) }));
 // The previous period's run is a query of its own; these pages have none.
 vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: null }) }));
+// The since line's run comparisons read through react-query too.
+vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: [] }) }));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => null }));
-vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => null }));
+vi.mock('../../../components/radial/RadialPanel.jsx', () => ({ default: () => null }));
 vi.mock('./PrinciplesCardsRow.jsx', () => ({ default: () => null }));
 vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({ default: () => null, OffendingFilesHead: () => null }));
 
