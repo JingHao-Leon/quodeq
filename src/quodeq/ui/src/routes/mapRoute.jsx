@@ -59,6 +59,7 @@ export function mapRoute(params, props) {
     nav={{
       path: params.path || '',
       vizStyle: params.vizStyle,
+      area: params.area || null,
       viewMode: params.viewMode,
       galaxyMode: params.galaxyMode,
       onPathChange: handlePathChange,
