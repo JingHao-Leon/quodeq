@@ -18,7 +18,7 @@ vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => <div data-testid="r
 vi.mock('./PrinciplesCardsRow.jsx', () => ({
   default: ({ onPrincipleClick }) => <button type="button" onClick={() => onPrincipleClick('Dependency Rule')}>principle card</button>,
 }));
-vi.mock('../../dashboard/components/TopOffendingFilesTable.jsx', () => ({
+vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({
   default: ({ onFileClick }) => <button type="button" onClick={() => onFileClick({ file: 'src/a.py' })}>file row</button>,
   OffendingFilesHead: () => null,
 }));

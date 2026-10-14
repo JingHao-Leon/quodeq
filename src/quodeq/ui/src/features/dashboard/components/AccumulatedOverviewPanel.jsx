@@ -1,12 +1,12 @@
 import { useMemo, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
-import TopOffendingFilesTable, { OffendingFilesHead } from './TopOffendingFilesTable.jsx';
-import FindingsByFolderPanel from './FindingsByFolderPanel.jsx';
-import FixFirstPanel from './FixFirstPanel.jsx';
+import TopOffendingFilesTable, { OffendingFilesHead } from '../../../components/TopOffendingFilesTable.jsx';
+import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
+import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
 import RiskAreasPanel from './RiskAreasPanel.jsx';
 import { VIZ_STYLE } from '../../map/mapVocab.js';
-import ListShowMore from './ListShowMore.jsx';
+import ListShowMore from '../../../components/ListShowMore.jsx';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';

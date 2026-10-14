@@ -13,7 +13,7 @@ vi.mock('../runViewData.js', () => ({
 vi.mock('./RunHeroSection.jsx', () => ({
   RunHeroSection: ({ onCardNavigate }) => <button type="button" onClick={() => onCardNavigate('major')}>hero major</button>,
 }));
-vi.mock('./TopOffendingFilesTable.jsx', () => ({
+vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({
   default: ({ onFileClick }) => <button type="button" onClick={() => onFileClick({ file: 'src/a.py' })}>file row</button>,
 }));
 

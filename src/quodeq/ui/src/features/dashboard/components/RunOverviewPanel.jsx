@@ -1,7 +1,7 @@
 import { withPending } from '../../../utils/pendingClass.js';
 import { useMemo } from 'react';
 import LoadingScreen from '../../../components/LoadingScreen.jsx';
-import TopOffendingFilesTable from './TopOffendingFilesTable.jsx';
+import TopOffendingFilesTable from '../../../components/TopOffendingFilesTable.jsx';
 import DimensionGaugeCard from './DimensionGaugeCard.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
 

@@ -15,16 +15,16 @@ vi.mock('./AccumulatedHeroSection.jsx', () => ({
     </>
   ),
 }));
-vi.mock('./TopOffendingFilesTable.jsx', () => ({
+vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({
   default: ({ onFileClick }) => <button type="button" onClick={() => onFileClick({ file: 'src/a.py' })}>file row</button>,
   OffendingFilesHead: () => null,
 }));
-vi.mock('./FixFirstPanel.jsx', () => ({
+vi.mock('../../../components/FixFirstPanel.jsx', () => ({
   default: ({ onRequirementClick }) => (
     <button type="button" onClick={() => onRequirementClick({ dimension: 'security', req: 'S-1', text: 'Hash it' })}>req row</button>
   ),
 }));
-vi.mock('./FindingsByFolderPanel.jsx', () => ({
+vi.mock('../../../components/FindingsByFolderPanel.jsx', () => ({
   default: ({ onFolderClick }) => <button type="button" onClick={() => onFolderClick({ dir: 'src/api' })}>folder row</button>,
 }));
 

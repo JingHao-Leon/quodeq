@@ -11,9 +11,9 @@ import { useMemo } from 'react';
 
 // Two-line rows: five sit beside the score history chart without a scroll.
 export const FOLDERS_SHOWN = 5;
-import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
-import { t, LOCALE } from '../../../strings/index.js';
-import { groupByFolder, splitFolderLabel } from '../findingsGrouping.js';
+import { GridTable, GridRow, GridCell, SectionLabel } from './terminal/index.js';
+import { t, LOCALE } from '../strings/index.js';
+import { groupByFolder, splitFolderLabel } from '../models/findingsGrouping.js';
 import { SeverityAndFilesCells } from './SeverityBadges.jsx';
 
 /** The folder on top, bright; the folders above it below, small and quiet. */

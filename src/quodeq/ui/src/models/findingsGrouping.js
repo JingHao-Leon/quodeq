@@ -3,7 +3,7 @@
  * live" panels: the visible dimensions' findings by requirement and by
  * folder, most severe first.
  */
-import { SEVERITY_ORDER } from '../../vocab/severity.js';
+import { SEVERITY_ORDER } from '../vocab/severity.js';
 
 const ROOT_FOLDER = '';
 

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import TopOffendingFilesTable, { OffendingFilesHead } from '../../dashboard/components/TopOffendingFilesTable.jsx';
+import TopOffendingFilesTable, { OffendingFilesHead } from '../../../components/TopOffendingFilesTable.jsx';
 import { buildProjectRootFile } from '../../../utils/explorerUtils.js';
 import { useExplorerData, buildEvalPrincipalFn } from './explorerDataHooks.js';
 import { useStandardDescriptions } from '../hooks/useStandardDescriptions.js';

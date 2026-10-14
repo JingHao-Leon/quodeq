@@ -4,8 +4,8 @@
 // onFileClick is called with the file object when a row is clicked.
 
 import { memo } from 'react';
-import { GridTable, GridRow, GridCell, SevBadge, SectionLabel } from '../../../components/terminal/index.js';
-import { t } from '../../../strings/index.js';
+import { GridTable, GridRow, GridCell, SevBadge, SectionLabel } from './terminal/index.js';
+import { t } from '../strings/index.js';
 
 /** Basename and directory from a single lastIndexOf, computed once per row. */
 function splitPath(filepath) {

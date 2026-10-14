@@ -15,7 +15,7 @@ vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} })
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => null }));
 vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => null }));
 vi.mock('./PrinciplesCardsRow.jsx', () => ({ default: () => null }));
-vi.mock('../../dashboard/components/TopOffendingFilesTable.jsx', () => ({ default: () => null, OffendingFilesHead: () => null }));
+vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({ default: () => null, OffendingFilesHead: () => null }));
 
 import ExplorerPage from './ExplorerPage.jsx';
 

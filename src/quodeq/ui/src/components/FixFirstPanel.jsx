@@ -4,9 +4,9 @@
  * selector the Violations page's By type view uses.
  */
 import { useMemo, useState } from 'react';
-import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
-import { t, LOCALE } from '../../../strings/index.js';
-import { groupByRequirement } from '../findingsGrouping.js';
+import { GridTable, GridRow, GridCell, SectionLabel } from './terminal/index.js';
+import { t, LOCALE } from '../strings/index.js';
+import { groupByRequirement } from '../models/findingsGrouping.js';
 import ListShowMore from './ListShowMore.jsx';
 import { SeverityAndFilesCells } from './SeverityBadges.jsx';
 
