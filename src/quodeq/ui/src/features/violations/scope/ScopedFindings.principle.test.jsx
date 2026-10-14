@@ -7,7 +7,7 @@ import { SidePaneProvider } from '../../side-pane/index.js';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
 
-const deltas = vi.hoisted(() => ({ map: new Map(), args: null, previous: null, diffs: [] }));
+const deltas = vi.hoisted(() => ({ map: new Map(), args: null, previous: null, diffs: [], areas: [], riskArgs: null }));
 
 vi.mock('../../../utils/pretext.js', async (importOriginal) => ({
   ...(await importOriginal()), measureWidth: () => 0, cssFontFromElement: () => '12px monospace',
@@ -17,6 +17,9 @@ vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({
   usePrinciplePeriodDeltas: (args) => { deltas.args = args; return { principles: deltas.map, previous: deltas.previous, beforeRunId: 'run-before' }; },
 }));
 vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: ['run-sec'], payloads: deltas.diffs }) }));
+vi.mock('../../map/hooks/useRiskAreas.js', () => ({
+  default: (args) => { if (args.active) deltas.riskArgs = args; return { areas: deltas.areas, loading: false, failed: false, unavailable: false }; },
+}));
 
 const v = (over) => ({ file: 'src/app.py', dimension: 'security', principle: 'Input', ...over });
 const DIMS = [{
@@ -30,10 +33,10 @@ const DIMS = [{
 }];
 const HISTORY = { project: 'p1', selectedSource: 'local', trend: [], granularity: 'week', runId: null };
 
-function renderPrinciple(history = HISTORY) {
+function renderPrinciple(history = HISTORY, onOpenMap = undefined) {
   return render(
     <SidePaneProvider>
-      <ScopedFindings dims={DIMS} projectName="proj" dateLabel={null} onDismissFinding={vi.fn()} history={history}
+      <ScopedFindings dims={DIMS} projectName="proj" dateLabel={null} onDismissFinding={vi.fn()} history={history} onOpenMap={onOpenMap}
         scope={readScope({ kind: 'principle', dimension: 'security', principle: 'Input' })} />
     </SidePaneProvider>,
     { wrapper: withQueryClient() },
@@ -45,7 +48,7 @@ const kindButtons = () => within(screen.getByRole('group', { name: t('violations
 const railItem = (container, id) => [...container.querySelectorAll('.req-rail__item')].find((n) => n.querySelector('.req-rail__id')?.textContent.endsWith(id));
 
 describe('ScopedFindings, a principle', () => {
-  beforeEach(() => { deltas.map = new Map(); deltas.previous = null; deltas.diffs = []; });
+  beforeEach(() => { deltas.map = new Map(); deltas.previous = null; deltas.diffs = []; deltas.areas = []; deltas.riskArgs = null; });
 
   it('heads with its requirements failing of checked, in place of the per-file tiles', () => {
     renderPrinciple();
@@ -109,5 +112,23 @@ describe('ScopedFindings, a principle', () => {
     expect(container.querySelector('.findings-head__past')).toHaveTextContent('Viewing 2026-10-01');
     fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it('reads its Risk: the Map\'s areas measured over its findings, per zone, opening the Risk tab on it', () => {
+    const zone = (name, z) => ({ name, zone: z });
+    deltas.areas = [zone('api', 'fixFirst'), zone('core', 'fixFirst'), zone('ui', 'watch'), zone('docs', 'healthy')];
+    const onOpenMap = vi.fn();
+    renderPrinciple(HISTORY, onOpenMap);
+    expect(deltas.riskArgs).toMatchObject({ project: 'p1', dimensions: ['security'], principle: 'Input' });
+    const tile = screen.getByText(t('violations.scopeStatRisk')).closest('.findings-head__stat');
+    expect(tile).toHaveTextContent('2 fix first · 1 watch');
+    fireEvent.click(within(tile).getByRole('button'));
+    expect(onOpenMap).toHaveBeenCalledWith({ vizStyle: 'risk', dimensions: ['security'], principle: 'Input' });
+  });
+
+  it('reads "none" when no area of its findings needs rework', () => {
+    deltas.areas = [{ name: 'docs', zone: 'healthy' }];
+    renderPrinciple();
+    expect(screen.getByText(t('violations.scopeStatRisk')).closest('.findings-head__stat')).toHaveTextContent('none');
   });
 });

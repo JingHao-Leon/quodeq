@@ -5,6 +5,7 @@ import { useWorkbenchActions } from '../hooks/useWorkbenchActions.js';
 import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
 import { t } from '../../../strings/index.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
+import { NAV_TAB } from '../../../vocab/navTab.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import DeferredMount from '../../../components/DeferredMount.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
@@ -65,6 +66,11 @@ function AsOfBanner({ asOf, onBack }) {
   );
 }
 
+/** The Map opened on these nav params (a principle's Risk tile), when the page can navigate. */
+function mapOpener(onNavigate) {
+  return onNavigate ? (params) => onNavigate(NAV_TAB.MAP, params) : undefined;
+}
+
 /** A past day on show, as a scoped view's header says it: which day, and the way back to today; null on today. */
 function pastRunOf(asOf, onBackToToday) {
   return asOf && onBackToToday ? { when: asOf.day || asOf.runId, onBack: onBackToToday } : null;
@@ -114,7 +120,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
       <PageFrame {...frame} asOf={null}>
         <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null} readOnly={Boolean(asOf)}
           history={{ project: selectedProject, selectedSource, trend, granularity, runId: asOf?.runId || null, pastRun: pastRunOf(asOf, callbacks.onBackToToday) }}
-          onDismissFinding={actions.onDismiss} />
+          onDismissFinding={actions.onDismiss} onOpenMap={mapOpener(onNavigate)} />
       </PageFrame>
     );
   }

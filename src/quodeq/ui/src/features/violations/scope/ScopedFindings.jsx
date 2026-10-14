@@ -118,11 +118,12 @@ function filesBase(file, dims, within) {
  * findings, and its change since the previous period from `history` (the
  * project, its score history and grouping, the run on show), its tiles'
  * and severities' changes and its since line. A past run on show says so in
- * the header (`history.pastRun`: which, and the way back to today).
+ * the header (`history.pastRun`: which, and the way back to today). A
+ * principle's Risk tile opens the Map through `onOpenMap` (its nav params).
  */
-export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false, history = null }) {
+export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false, history = null, onOpenMap }) {
   const file = useMemo(() => scopeFindings(scope, dims, projectName), [scope, dims, projectName]);
-  const head = usePrincipleHead(scope, dims, history);
+  const head = usePrincipleHead(scope, dims, history, onOpenMap);
   const within = useMemo(() => withinOf(scope), [scope]);
   // A new scope starts the page over (filter, order, view); an area's key carries its paths, so it is built once per scope.
   const scopeKey = useMemo(() => JSON.stringify(scope), [scope]);
@@ -188,7 +189,7 @@ function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFin
   return (
     <div className="findings-scope">
       <FindingsHead title={within.inPrinciple ? String(file.file).toLowerCase() : file.file} sub={sub} description={head.description} grade={head.grade}
-        badge={head.badge} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} metrics={metrics} filesHint={filesHint}
+        badge={head.badge} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} metrics={metrics} filesHint={filesHint}
         changes={head.previous ? tileChanges(metrics, scopeMetrics({ ...head.previous, files: metrics.files })) : undefined}
         deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={period.pastRun} />
       {head.since && <SinceStrip summary={head.since} granularity={period.granularity} />}
