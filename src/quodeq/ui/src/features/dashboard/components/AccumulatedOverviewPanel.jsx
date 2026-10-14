@@ -1,16 +1,15 @@
-import { useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
-import TopOffendingFilesTable, { OffendingFilesHead } from '../../../components/TopOffendingFilesTable.jsx';
+import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
 import RiskAreasPanel from './RiskAreasPanel.jsx';
 import { VIZ_STYLE } from '../../map/mapVocab.js';
-import ListShowMore from '../../../components/ListShowMore.jsx';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';
-import { t, LOCALE } from '../../../strings/index.js';
+import { t } from '../../../strings/index.js';
 import { DEFAULT_SCORE_HISTORY_GRANULARITY } from '../../../constants.js';
 import { buildHeadline, filterSinceBaseline, periodChipDeltas, sumSinceBaseline } from '../headlineStats.js';
 import { useAccumulatedComputations, computeAccumulatedStats } from '../hooks/useAccumulatedComputations.js';
@@ -94,28 +93,6 @@ function HistoryPanelsRow({
   );
 }
 
-// The files table opens on the most severe few; the rest are one click away.
-const FILES_SHOWN = 8;
-
-function OffendingFilesSection({ topFiles, onNavigate, asOf, pending }) {
-  const [open, setOpen] = useState(false);
-  if (topFiles.length === 0) return null;
-  return (
-    <section className={withPending('qd-cards-panel offending-panel', pending)} aria-label={t('overview.violationsByFileAria')} aria-busy={pending || undefined}>
-      <OffendingFilesHead count={topFiles.length} />
-      <TopOffendingFilesTable
-        files={open ? topFiles : topFiles.slice(0, FILES_SHOWN)}
-        onFileClick={onNavigate ? (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf) : undefined}
-      />
-      <ListShowMore
-        open={open} total={topFiles.length} shown={FILES_SHOWN}
-        allLabel={t('overview.showAllFiles', { count: topFiles.length.toLocaleString(LOCALE) })}
-        onToggle={() => setOpen(!open)}
-      />
-    </section>
-  );
-}
-
 // Every finding view below opens as a scoped Findings view, today's or, on a
 // past run (`asOf`, see overviewAsOf), that run's, read-only.
 
@@ -137,13 +114,23 @@ function makeFolderNavigate({ onNavigate, asOf }) {
   return (row) => openScope(onNavigate, { kind: SCOPE_KIND.FOLDER, path: row.dir }, asOf);
 }
 
+/** Violations by file: a file opens on its findings. */
+function makeFileNavigate({ onNavigate, asOf }) {
+  if (!onNavigate) return undefined;
+  return (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf);
+}
+
+/** What the panels below the cards open: a requirement, a folder, a file. */
+function makeFindingsNavigate(args) {
+  return { requirement: makeRequirementNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
+}
+
 function AccumulatedOverviewSections({
   data, callbacks, currentOverviewRun, selectedDayDimNames, filteredPeriodTrend, filteredDimensions,
   filteredAccumulated, filteredStats, chartMountable, dimTrends, topFiles, onCardNavigate, headline, notEvaluated, asOf,
 }) {
   const { onRunClick, onRunHover, onRunHoverEnd, onDimensionClick, onNavigate } = callbacks;
-  const onFolderClick = useMemo(() => makeFolderNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
-  const onRequirementClick = useMemo(() => makeRequirementNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
+  const opens = useMemo(() => makeFindingsNavigate({ onNavigate, asOf }), [onNavigate, asOf]);
   const onEvaluate = onNavigate ? () => onNavigate(NAV_TAB.EVALUATE) : undefined;
   // A run or date switch refetches the dashboard and the scores; every
   // section shows the previous values, muted, meanwhile.
@@ -173,7 +160,7 @@ function AccumulatedOverviewSections({
         granularity={data.granularity}
         onGranularityChange={callbacks.onGranularityChange}
         filteredDimensions={filteredDimensions}
-        onFolderClick={onFolderClick}
+        onFolderClick={opens.folder}
         onOpenMap={onNavigate ? () => onNavigate(NAV_TAB.MAP) : undefined}
       />
 
@@ -191,9 +178,9 @@ function AccumulatedOverviewSections({
         onAreaClick={onNavigate ? (area) => onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK, area: area.name }) : undefined}
         onOpenRisk={onNavigate ? () => onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK }) : undefined} />
 
-      <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={onRequirementClick} />
+      <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={opens.requirement} />
 
-      <OffendingFilesSection topFiles={topFiles} onNavigate={onNavigate} asOf={asOf} pending={pending} />
+      <OffendingFilesSection topFiles={topFiles} pending={pending} onFileClick={opens.file} />
     </>
   );
 }

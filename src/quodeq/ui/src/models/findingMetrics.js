@@ -74,3 +74,42 @@ export function scopeMetrics({ sevCounts, total, compliance, files, risk = null 
     risk,
   };
 }
+
+/**
+ * A run's dimension (the run-scores shape: `totals` and `filesRead`) read as
+ * scopeMetrics reads a scope; null without totals.
+ * @param {?{totals?: {severity?: object, violationCount?: number, complianceCount?: number}, filesRead?: number}} dim
+ */
+export function runDimensionMetrics(dim) {
+  const totals = dim?.totals;
+  if (!totals) return null;
+  return scopeMetrics({ sevCounts: totals.severity || {}, total: totals.violationCount, compliance: totals.complianceCount || 0, files: dim.filesRead || 0 });
+}
+
+// The smallest changes worth an arrow: a pass-rate point, a twentieth of a per-file rate (less shows as 0.0).
+const MIN_PASS_POINTS = 1;
+const MIN_RATE_CHANGE = 0.05;
+
+/** `now - before` when both are numbers and it moved at least `min`; null otherwise. */
+function changeOf(now, before, min) {
+  if (now == null || before == null) return null;
+  const delta = now - before;
+  return Math.abs(delta) >= min ? delta : null;
+}
+
+/**
+ * The header tiles' changes since `previous` (the same numbers for the
+ * previous day, week or month): the pass rate in points, per 100 files and
+ * critical per 1,000 as rates. Each null when it barely moved or either side
+ * has no number; all null without `previous`.
+ * @param {object} now scopeMetrics output
+ * @param {?object} previous scopeMetrics output
+ * @returns {{passPct: ?number, per100: ?number, criticalPerK: ?number}}
+ */
+export function tileChanges(now, previous) {
+  return {
+    passPct: changeOf(now.passPct, previous?.passPct, MIN_PASS_POINTS),
+    per100: changeOf(now.per100, previous?.per100, MIN_RATE_CHANGE),
+    criticalPerK: changeOf(now.criticalPerK, previous?.criticalPerK, MIN_RATE_CHANGE),
+  };
+}

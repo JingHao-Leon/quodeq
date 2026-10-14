@@ -3,6 +3,9 @@ import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
 import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { runAsOf } from '../../violations/asOf.js';
 
+// A path chip ending in '/' is a folder: everything under it.
+const FOLDER_SUFFIX = '/';
+
 /**
  * The run the explorer shows, as its scoped views' `asOf`. The rule: it is
  * today when it shows the dimension's latest run (`latestRunId`, from
@@ -26,6 +29,9 @@ function scopedNav({ dimension, scoped, onNavigate, activeRunId, trend }) {
     toCard: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.DIMENSION, dimension, filter: cardFilter(kind) }, asOf),
     toFile: (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf),
     toPrinciple: (name) => openScope(onNavigate, { kind: SCOPE_KIND.PRINCIPLE, dimension, principle: name }, asOf),
+    toRequirement: onNavigate && ((row) => openScope(onNavigate, { kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }, asOf)),
+    // A folder opens the findings list on that folder and this dimension.
+    toFolder: onNavigate && ((row) => onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: [`${row.dir}${FOLDER_SUFFIX}`], dimension, selectedId: null }, asOf })),
   };
 }
 
@@ -35,6 +41,9 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
     toCard: (kind) => onNavigate?.(NAV_TAB.FILE, { file: dimFile, severityFilter: cardFilter(kind) || SEVERITY_FILTER_ALL, ...at }),
     toFile: (f) => onNavigate?.(NAV_TAB.FILE, { file: f, ...at }),
     toPrinciple: (name) => onNavigate?.(NAV_TAB.EVAL_PRINCIPLE, { evalPrincipal: buildEvalPrincipal?.(name), sourceTab }),
+    // The Violations tab reads the selected project only: another project's requirements and folders open nothing.
+    toRequirement: undefined,
+    toFolder: undefined,
   };
 }
 
@@ -43,15 +52,20 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
  * the explorer shows the selected project) they open scoped Findings views:
  * the header's tiles and severity badges the dimension on their filter, a
  * row of the files table the file, a principle (card or radial) the
- * principle. A cross-project explorer (Compare) keeps the File page with
- * the snapshot it is handed, and the principle page, as the Violations tab
- * only reads the selected project.
+ * principle, a Fix first row its requirement, a folder the findings list on
+ * that folder and the dimension. A cross-project explorer (Compare) keeps the File page with
+ * the snapshot it is handed, and the principle page, and its requirements
+ * and folders open nothing, as the Violations tab only reads the selected project.
  * @param {{dimension: string, scoped: ({latestRunId: (string|null)}|null), dimFile: object, onNavigate?: Function,
  *   project: string, activeRunId: (string|null), activeDateLabel: (string|null), sourceTab?: string, trend?: object[],
  *   buildEvalPrincipal?: (name: string) => object}} args
- * @returns {{handleCardNavigate: Function, onSeverityBadge: Function, onFileClick: Function, onPrincipleClick: Function}}
+ * @returns {{handleCardNavigate: Function, onSeverityBadge: Function, onFileClick: Function, onPrincipleClick: Function,
+ *   onRequirementClick: (Function|undefined), onFolderClick: (Function|undefined)}}
  */
 export function buildExplorerFindingsNav(args) {
-  const { toCard, toFile, toPrinciple } = args.scoped ? scopedNav(args) : filePageNav(args);
-  return { handleCardNavigate: toCard, onSeverityBadge: (level) => () => toCard(level), onFileClick: toFile, onPrincipleClick: toPrinciple };
+  const { toCard, toFile, toPrinciple, toRequirement, toFolder } = args.scoped ? scopedNav(args) : filePageNav(args);
+  return {
+    handleCardNavigate: toCard, onSeverityBadge: (level) => () => toCard(level), onFileClick: toFile, onPrincipleClick: toPrinciple,
+    onRequirementClick: toRequirement, onFolderClick: toFolder,
+  };
 }

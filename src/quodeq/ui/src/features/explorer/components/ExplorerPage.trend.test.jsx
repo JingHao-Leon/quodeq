@@ -11,6 +11,8 @@ vi.mock('./explorerDataHooks.js', () => ({
   buildEvalPrincipalFn: () => () => ({}),
 }));
 vi.mock('../hooks/useStandardDescriptions.js', () => ({ useStandardDescriptions: () => ({ standardDescription: '' }) }));
+// The previous period's run is a query of its own; these pages have none.
+vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: null }) }));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => null }));
 vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => null }));

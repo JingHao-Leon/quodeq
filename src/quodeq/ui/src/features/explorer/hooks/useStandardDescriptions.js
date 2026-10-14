@@ -15,7 +15,7 @@ import { useApi } from '../../../api/ApiContext.jsx';
  */
 export function useStandardDescriptions(dimension) {
   const { getStandard } = useApi();
-  const [state, setState] = useState({ standardDescription: '', principleDescriptions: {} });
+  const [state, setState] = useState({ standardDescription: '', principleDescriptions: {}, standardInfo: null });
 
   useEffect(() => {
     if (!dimension) return;
@@ -30,6 +30,8 @@ export function useStandardDescriptions(dimension) {
         setState({
           standardDescription: std.description || '',
           principleDescriptions,
+          // Where the standard comes from: its family and edition, its version, what it is based on.
+          standardInfo: { type: std.type, subtype: std.subtype, version: std.version || '', source: std.source || '' },
         });
       })
       .catch((err) => {

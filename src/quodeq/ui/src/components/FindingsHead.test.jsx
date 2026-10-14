@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import FindingsHead from './FindingsHead.jsx';
 import { scopeMetrics, RISK_SMALL } from '../models/findingMetrics.js';
@@ -71,5 +71,78 @@ describe('FindingsHead', () => {
     head({ metrics: scopeMetrics({ sevCounts: {}, total: 0, compliance: 0, files: 4 }), actions: { onViolations: vi.fn(), onCompliance: vi.fn() } });
     expect(screen.queryAllByRole('button')).toHaveLength(0);
     expect(screen.queryByText(t('helpHint.learnMore'))).toBeNull();
+  });
+
+  it('a graded ring holds the score only; the grade word sits under it, in the ring\'s colour', () => {
+    const { container, unmount } = head({ grade: { score: 7.7, insufficient: false, hint: null } });
+    expect(container.querySelector('.findings-head__ring svg .dim-gauge-card__grade')).toBeNull();
+    const word = container.querySelector('.findings-head__gradeword');
+    expect(word.textContent).toMatch(/^[A-Z]+$/);
+    expect(word.style.color).not.toBe('');
+    unmount();
+    const insufficient = head({ grade: { score: null, insufficient: true, hint: null } });
+    expect(insufficient.container.querySelector('.findings-head__gradeword')).toHaveTextContent(t('overview.insufficientGrade'));
+  });
+
+  it('a tile\'s change: the arrow follows the number, the colour says whether that is good', () => {
+    const { container } = head({ changes: { passPct: -10, per100: 2.5, criticalPerK: -3 } });
+    const [pass, per100, critical] = [...container.querySelectorAll('.findings-head__change .trend-badge')];
+    expect(pass).toHaveTextContent('-10');
+    expect(pass).toHaveClass('trend-badge-down');
+    expect(pass.querySelector('.trend-arrow')).toHaveClass('trend-down');
+    expect(per100).toHaveTextContent('+2.5');
+    expect(per100).toHaveClass('trend-badge-down');
+    expect(per100.querySelector('.trend-arrow')).toHaveClass('trend-up');
+    expect(critical).toHaveClass('trend-badge-up');
+    expect(critical.querySelector('.trend-arrow')).toHaveClass('trend-down');
+  });
+
+  it('no change, no arrow', () => {
+    const { container } = head({ changes: { passPct: null, per100: null, criticalPerK: null } });
+    expect(container.querySelector('.findings-head__change')).toBeNull();
+  });
+
+  it('a principle\'s requirements replace per 100 files and critical per 1k', () => {
+    const { container } = head({ requirements: { failing: 2, total: 5 } });
+    expect(tileLabels(container)).toEqual([t('violations.scopeStatViolations'), t('violations.scopeStatPass'), t('violations.scopeStatReqs')]);
+    expect(statOf(t('violations.scopeStatReqs'))).toHaveTextContent(t('violations.scopeStatReqsValue', { failing: 2, total: 5 }));
+  });
+
+  it('a past run says which, and offers the way back to the latest', () => {
+    const onBack = vi.fn();
+    head({ pastRun: { when: 'Oct 1', onBack } });
+    expect(screen.getByText(t('violations.headPast', { when: 'Oct 1' }))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
+    expect(onBack).toHaveBeenCalled();
+  });
+
+  it('a long description is cut to two lines, with more and less', () => {
+    const tall = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(80);
+    const { container } = head({ grade: { score: 7.7, insufficient: false, hint: null }, description: 'A long one' });
+    expect(container.querySelector('.findings-head__desc')).toHaveClass('findings-head__desc--clamped');
+    fireEvent.click(screen.getByRole('button', { name: t('violations.scopeDescMore') }));
+    expect(container.querySelector('.findings-head__desc')).not.toHaveClass('findings-head__desc--clamped');
+    expect(screen.getByRole('button', { name: t('violations.scopeDescLess') })).toHaveAttribute('aria-expanded', 'true');
+    tall.mockRestore();
+  });
+
+  it('a short description offers no more', () => {
+    head({ grade: { score: 7.7, insufficient: false, hint: null }, description: 'Short' });
+    expect(screen.queryByRole('button', { name: t('violations.scopeDescMore') })).toBeNull();
+  });
+
+  it('the slim bar shows once the header scrolls away above', () => {
+    let report = null;
+    vi.stubGlobal('IntersectionObserver', class { constructor(cb) { report = cb; } observe() {} disconnect() {} });
+    const { container } = head({ grade: { score: 7.7, insufficient: false, hint: null } });
+    const slim = container.querySelector('.findings-head__slim');
+    expect(slim).not.toHaveClass('is-shown');
+    expect(container.querySelector('.findings-head__sticky')).toHaveAttribute('aria-hidden', 'true');
+    act(() => report([{ isIntersecting: false, boundingClientRect: { top: -50 } }]));
+    expect(slim).toHaveClass('is-shown');
+    expect(slim).toHaveTextContent('src/api');
+    expect(slim).toHaveTextContent(t('violations.scopeViolations', { count: 3 }));
+    expect(slim).toHaveTextContent(t('overview.cardPass', { pct: 70 }));
+    vi.unstubAllGlobals();
   });
 });

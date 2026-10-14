@@ -37,4 +37,30 @@ describe('FixFirstPanel', () => {
     const { container } = render(<FixFirstPanel dimensions={[{ dimension: 'x', violations: [] }]} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('lights the rows of the principle lit elsewhere (any case), and marks the selected requirement', () => {
+    const dimensions = [{ dimension: 'reliability', violations: [v('R-1', 'major'), { ...v('R-2', 'minor'), principle: 'Recoverability' }] }];
+    render(<FixFirstPanel dimensions={dimensions} litPrinciple="fault tolerance" selectedReq="R-2" onRequirementClick={vi.fn()} />);
+    const [first, second] = screen.getAllByRole('row');
+    expect(first).toHaveClass('term-grid__row--lit');
+    expect(first).not.toHaveClass('term-grid__row--selected');
+    expect(second).toHaveClass('term-grid__row--selected');
+    expect(second).toHaveAttribute('aria-selected', 'true');
+    expect(second).not.toHaveClass('term-grid__row--lit');
+  });
+
+  it('names as much of where a requirement sits as the page does not already say', () => {
+    const { container, rerender } = render(<FixFirstPanel dimensions={dims(0)} />);
+    const place = () => container.querySelector('.offending-file-path').textContent;
+    expect(place()).toBe('reliability · Fault Tolerance');
+    rerender(<FixFirstPanel dimensions={dims(0)} oneDimension />);
+    expect(place()).toBe('Fault Tolerance');
+    rerender(<FixFirstPanel dimensions={dims(0)} onePrinciple />);
+    expect(place()).toBe('');
+  });
+
+  it('a note replaces the panel\'s own', () => {
+    render(<FixFirstPanel dimensions={dims(0)} note="in this principle" />);
+    expect(screen.getByText('in this principle')).toBeInTheDocument();
+  });
 });

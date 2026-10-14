@@ -67,3 +67,23 @@ test('a cross-project explorer keeps the principle page', () => {
   nav.onPrincipleClick('Dependency Rule');
   assert.deepEqual(calls, [['evalprinciple', { evalPrincipal: { principle: 'Dependency Rule' }, sourceTab: 'overview' }]]);
 });
+
+test('a Fix first row opens its requirement, a folder the list on that folder and this dimension, of the run on show', () => {
+  const { nav, calls } = navFor({ activeRunId: 'r5' });
+  nav.onRequirementClick({ dimension: 'security', req: 'SEC-1', text: 'Validate input' });
+  nav.onFolderClick({ dir: 'src/api' });
+  const asOf = { runId: 'r5', day: '2026-09-30' };
+  assert.deepEqual(calls, [
+    ['violations', { scope: { kind: 'requirement', dimension: 'security', req: 'SEC-1', text: 'Validate input' }, asOf }],
+    ['violations', { wb: { paths: ['src/api/'], dimension: 'security', selectedId: null }, asOf }],
+  ]);
+});
+
+test('requirements and folders open nothing in a cross-project explorer, or without navigation', () => {
+  const cross = navFor({ scoped: null }).nav;
+  assert.equal(cross.onRequirementClick, undefined);
+  assert.equal(cross.onFolderClick, undefined);
+  const bare = navFor({ onNavigate: undefined }).nav;
+  assert.ok(!bare.onRequirementClick);
+  assert.ok(!bare.onFolderClick);
+});

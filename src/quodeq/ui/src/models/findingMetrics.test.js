@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { scopeMetrics, areaRisk, filesChecked, RISK_SMALL } from './findingMetrics.js';
+import { scopeMetrics, areaRisk, filesChecked, RISK_SMALL, runDimensionMetrics, tileChanges } from './findingMetrics.js';
 import { RISK_ZONE } from '../vocab/riskZone.js';
 
 const live = () => true;
@@ -64,4 +64,26 @@ test('areaRisk: under three production files, or judged small by the Map, it is 
   const three = scope({ major: [v('a.py')] }, [v('b.py'), v('c.py')]);
   assert.equal(areaRisk(three, live).zone, RISK_ZONE.WATCH);
   assert.equal(areaRisk(three, live, true).zone, RISK_SMALL);
+});
+
+test('runDimensionMetrics reads a run\'s dimension as scopeMetrics reads a scope', () => {
+  const m = runDimensionMetrics({ totals: { severity: { critical: 1, major: 1 }, violationCount: 2, complianceCount: 8 }, filesRead: 40 });
+  assert.equal(m.per100, 5);
+  assert.equal(m.criticalPerK, 25);
+  assert.equal(m.passPct, 80);
+  assert.equal(runDimensionMetrics({ filesRead: 3 }), null);
+  assert.equal(runDimensionMetrics(null), null);
+});
+
+test('tileChanges: the pass rate from a whole point, the rates from a twentieth', () => {
+  const now = { passPct: 80, per100: 5, criticalPerK: 25 };
+  assert.deepEqual(tileChanges(now, { passPct: 90, per100: 2.5, criticalPerK: 25 }), { passPct: -10, per100: 2.5, criticalPerK: null });
+  assert.deepEqual(tileChanges(now, { passPct: 79.5, per100: 4.96, criticalPerK: 25.5 }), { passPct: null, per100: null, criticalPerK: -0.5 });
+  assert.equal(tileChanges(now, { passPct: 79, per100: 5.05, criticalPerK: 25 }).passPct, 1);
+});
+
+test('tileChanges: nothing without a previous period, or where either side has no number', () => {
+  const none = { passPct: null, per100: null, criticalPerK: null };
+  assert.deepEqual(tileChanges({ passPct: 80, per100: 5, criticalPerK: 25 }, null), none);
+  assert.deepEqual(tileChanges({ passPct: null, per100: null, criticalPerK: null }, { passPct: 70, per100: 1, criticalPerK: 2 }), none);
 });

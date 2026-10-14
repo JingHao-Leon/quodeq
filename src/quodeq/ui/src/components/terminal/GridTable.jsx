@@ -50,19 +50,24 @@ export function GridTable({ columns, children, dense = false, role = 'table' }) 
  * @param {boolean} [props.muted]   De-emphasized row.
  * @param {(e: any) => void} [props.onClick]  Also makes the row focusable
  *   and keyboard-activatable.
+ * @param {boolean} [props.lit]  Lit from elsewhere on the page (a related item hovered).
+ * @param {boolean} [props.selected]  The row the view is narrowed to (a filter it applies).
  * @param {number} [props.ariaRowIndex]  1-based aria-rowindex, for grids whose
  *   rows are virtualized and so do not match their DOM position.
  */
-export function GridRow({ header = false, muted = false, onClick, children, ariaRowIndex }) {
+export function GridRow({ header = false, muted = false, selected = false, lit = false, onClick, children, ariaRowIndex }) {
   const classes = ['term-grid__row'];
   if (header) classes.push('term-grid__row--header');
   if (muted) classes.push('term-grid__row--muted');
   if (onClick) classes.push('term-grid__row--clickable');
+  if (selected) classes.push('term-grid__row--selected');
+  if (lit) classes.push('term-grid__row--lit');
   return (
     <div
       className={classes.join(' ')}
       role="row"
       aria-rowindex={ariaRowIndex}
+      aria-selected={selected || undefined}
       onClick={onClick}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? activateOnKey(onClick) : undefined}
