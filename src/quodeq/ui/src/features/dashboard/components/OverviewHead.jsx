@@ -70,10 +70,11 @@ function projectMetrics(summary, headline) {
  * @param {{scoreDelta: *, lastRun: {date: ?string, runId: ?string}}} props.stats
  * @param {object} props.headline buildHeadline output (files read)
  * @param {?object} props.previous the previous period's scopeMetrics
+ * @param {?object} props.deltas the severities' change since the previous period
  * @param {?{when: string, onBack: Function}} props.pastRun
  * @param {?Function} props.onCardNavigate
  */
-export default function OverviewHead({ data, accumulated, stats, headline, previous, pastRun, onCardNavigate }) {
+export default function OverviewHead({ data, accumulated, stats, headline, previous, deltas, pastRun, onCardNavigate }) {
   const summary = accumulated?.summary || {};
   const dimensions = accumulated?.dimensions || [];
   const shared = data.selectedSource === PROJECT_SOURCE.SHARED;
@@ -87,7 +88,7 @@ export default function OverviewHead({ data, accumulated, stats, headline, previ
       grade={{ score: summary.numericAverage, insufficient: false, hint: data.customFormula ? t('overview.customFormulaNote') : null }}
       badge={<HeadBadge delta={stats.scoreDelta} shared={shared} publishedBy={data.projectInfo?.publishedBy} />}
       metrics={metrics} filesHint={t('overview.per100Hint', { count: dimensions.length })}
-      changes={tileChanges(metrics, previous)} pastRun={pastRun}
+      deltas={deltas || undefined} changes={tileChanges(metrics, previous)} pastRun={pastRun}
       actions={{ onViolations: handlers.handleViolations, onCompliance: handlers.handleCompliance, onSeverity: handlers.handleSeverity }}
     />
   );
