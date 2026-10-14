@@ -29,12 +29,17 @@ const ZONE_KEY = {
 const KIND_KEY = { [AREA_KIND.HOTSPOT]: 'map.riskKindHotspot', [AREA_KIND.DORMANT]: 'map.riskKindDormant' };
 const NO_DIMENSIONS = [];
 
-/** The line under an area's name: its kind when it has a ring on the sky, its files, and its lift over a selection. */
+/**
+ * The line under an area's name: its kind when it has a ring on the sky and
+ * its files; over a selection its lift leads instead of the files (the last
+ * column counts them), so the figure is never the part cut off.
+ */
 function areaSub(area) {
   const kind = KIND_KEY[area.kind] ? t(KIND_KEY[area.kind]) : null;
-  const base = kind ? t('overview.riskAreaSubKind', { kind, files: area.files }) : t('overview.riskAreaSub', { files: area.files });
-  if (area.lift == null) return base;
-  return `${base}${t('violations.wbDot')}${t('overview.riskLift', { lift: area.lift.toFixed(LIFT_DECIMALS) })}`;
+  if (area.lift != null) {
+    return [t('overview.riskLift', { lift: area.lift.toFixed(LIFT_DECIMALS) }), kind].filter(Boolean).join(t('violations.wbDot'));
+  }
+  return kind ? t('overview.riskAreaSubKind', { kind, files: area.files }) : t('overview.riskAreaSub', { files: area.files });
 }
 
 function AreaRow({ area, onClick }) {
