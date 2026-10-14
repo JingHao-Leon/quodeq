@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { initialPlayback, playbackReducer, isPast, PLAYBACK_ACTION as A } from './timelapsePlayback.js';
+import { initialPlayback, playbackReducer, isPast, showsTimelapse, PLAYBACK_ACTION as A } from './timelapsePlayback.js';
 
 const run = (state, ...actions) => actions.reduce(playbackReducer, state);
 
@@ -43,4 +43,17 @@ test('a single run cannot play', () => {
 test('a reset names whose history it is and keeps the speed', () => {
   const s = run(initialPlayback(3, 2, 'a'), { type: A.SEEK, position: 0 }, { type: A.RESET, runCount: 5, owner: 'b' });
   assert.deepEqual([s.owner, s.position, s.speed], ['b', 4, 2]);
+});
+
+test('playing into the latest run keeps the time-lapse on screen until that move settles', () => {
+  let s = run(initialPlayback(3), { type: A.TOGGLE }, { type: A.SETTLED, position: 0 }, { type: A.TICK }, { type: A.SETTLED, position: 1 }, { type: A.TICK });
+  assert.deepEqual([s.position, isPast(s), showsTimelapse(s)], [2, false, true]);
+  s = run(s, { type: A.SETTLED, position: 2 });
+  assert.equal(showsTimelapse(s), false);
+});
+
+test('a jump to the latest run hands over to the Map at once; a step in waits like playback', () => {
+  const past = run(initialPlayback(3), { type: A.SEEK, position: 1 });
+  assert.equal(showsTimelapse(run(past, { type: A.SEEK, position: Infinity })), false);
+  assert.equal(showsTimelapse(run(past, { type: A.STEP, delta: 1 })), true);
 });

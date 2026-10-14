@@ -20,7 +20,7 @@ export function createTimelapseHandler() {
       return { id, xyr: held.anchor.slice() };
     }
     if (!held || held.modelId !== modelId) return { id, error: NO_MODEL };
-    return { id, xyr: runLayout(held.model, held.anchor, run) };
+    return { id, xyr: runLayout(held.model, run) };
   };
 }
 

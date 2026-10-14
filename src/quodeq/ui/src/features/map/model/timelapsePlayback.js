@@ -58,5 +58,27 @@ const HANDLERS = {
 /** The playback state after `action` (a PLAYBACK_ACTION with its fields). */
 export function playbackReducer(state, action) {
   const handle = HANDLERS[action.type];
-  return handle ? handle(state, action) : state;
+  return withArrival(state, handle ? handle(state, action) : state, action);
+}
+
+/** Steps that move into the latest run on screen (playback and stepping); a jump hands over at once. */
+const ARRIVING_STEPS = new Set([PLAYBACK_ACTION.TICK, PLAYBACK_ACTION.STEP]);
+
+/**
+ * `arriving` is true from the moment playback or a step moves a past run to
+ * the latest until the time-lapse settles there, so that last move plays on
+ * the time-lapse instead of handing over to the normal Map mid-move.
+ */
+function withArrival(prev, next, action) {
+  const latest = lastRun(next);
+  if (action.type === PLAYBACK_ACTION.RESET) return next.arriving ? { ...next, arriving: false } : next;
+  const steppedIn = ARRIVING_STEPS.has(action.type) && next.position === latest && prev.position < latest;
+  if (steppedIn && prev.runCount === next.runCount) return { ...next, arriving: true };
+  if (next.arriving && (next.position < latest || next.settled === latest)) return { ...next, arriving: false };
+  return next;
+}
+
+/** True while the time-lapse is on screen: on a past run, or moving into the latest. */
+export function showsTimelapse(state) {
+  return isPast(state) || Boolean(state.arriving);
 }

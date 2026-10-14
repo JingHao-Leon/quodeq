@@ -6,7 +6,6 @@ import TimelapsePackView from './TimelapsePackView.jsx';
 import { timelapseNoteText } from './timelapseNote.js';
 import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { ABSENCE } from '../core/timelapseScene.js';
-import { GHOST_DASH_PX } from '../core/packLayers.js';
 import { packViewport } from '../core/packCanvasGeometry.js';
 import { PACK_BASE_SIZE } from '../core/packLayout.js';
 import { DEFAULT_CANVAS_W, DEFAULT_CANVAS_H } from '../core/galaxyTunables.js';
@@ -82,12 +81,12 @@ async function renderView(props) {
 }
 
 describe('TimelapsePackView', () => {
-  it('draws the run and tells the playback it settled', async () => {
+  it('draws only what the run holds (no dotted circles) and tells the playback it settled', async () => {
     const tl = timelapse();
     const { container } = await renderView({ timelapse: tl });
     expect(overlayOf(container)).toHaveAttribute('aria-label', t('map.timelapsePackAria', { date: shortDate('2026-09-01') }));
     expect(tl.onSettled).toHaveBeenCalledWith(0);
-    expect(ctx.setLineDash).toHaveBeenCalledWith([GHOST_DASH_PX, GHOST_DASH_PX]);
+    expect(ghostStrokes()).toBe(0);
   });
 
   it('a click while playing pauses', async () => {
@@ -112,16 +111,6 @@ describe('TimelapsePackView', () => {
 });
 
 describe('TimelapsePackView while paused', () => {
-  it('hovering a dotted file says when it first appears, without redrawing the circles', async () => {
-    const { container } = await renderView({ timelapse: timelapse() });
-    const before = ghostStrokes();
-    hitPath = 'src/ui/b.js';
-    fireEvent.mouseMove(overlayOf(container));
-    expect(container.querySelector('.map-tooltip')).toHaveTextContent(t('map.timelapseFirstAppears', { date: shortDate('2026-09-08') }));
-    expect(overlayOf(container).style.cursor).toBe('pointer');
-    expect(ghostStrokes()).toBe(before);
-  });
-
   it('hovering a present file shows that run\'s numbers', async () => {
     const { container } = await renderView({ timelapse: timelapse() });
     hitPath = 'src/ui/a.js';
@@ -148,6 +137,29 @@ describe('TimelapsePackView while paused', () => {
     hitPath = 'src/ui/a.js';
     fireEvent.click(overlayOf(container));
     expect(onDrillDown).not.toHaveBeenCalled();
+  });
+});
+
+describe('TimelapsePackView chains', () => {
+  // app/ holds only app/core/ on the first day, so that day it is one circle named after its end.
+  const CHAINED = decodeTimelapse({
+    activitySource: 'git', fileNames: ['app/core/x.py', 'app/y.py'], fileArea: ['x', 'x'], fileLayer: ['', ''],
+    frameEncoding: 'delta',
+    frames: [
+      { day: '2026-09-01', new: 0, fixed: 0, areas: [], files: [row(0, 1)], gone: [] },
+      { day: '2026-09-08', new: 1, fixed: 0, areas: [], files: [row(1, 1)], gone: [] },
+    ],
+  });
+  const labels = () => ctx.fillText.mock.calls.map(([text]) => text);
+
+  it('a folder holding only one folder that day is labelled as its end, and zooming out skips it', async () => {
+    const onDrillDown = vi.fn();
+    const { container } = await renderView({ timelapse: timelapse({ data: CHAINED }), currentPath: '', onDrillDown });
+    expect(labels()).toContain('core');
+    expect(labels()).not.toContain('app');
+    hitPath = 'app';
+    fireEvent.click(overlayOf(container));
+    expect(onDrillDown).toHaveBeenLastCalledWith('app/core');
   });
 });
 
@@ -216,17 +228,16 @@ describe('TimelapsePackView while playing', () => {
 });
 
 describe('TimelapsePackView across runs', () => {
-  it('a seek spanning more than one run cross-fades the two runs', async () => {
+  it('a seek spanning more than one run moves too, never cross-fades', async () => {
     const tl = timelapse({ data: DATA3, moveMs: 900 });
     const { container, rerender } = await renderView({ timelapse: tl });
+    paintTweenAt.mockClear();
     vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
     rerender(<TimelapsePackView {...baseProps()} timelapse={{ ...tl, position: 2 }} />);
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     act(() => { vi.advanceTimersByTime(450); });
-    const [back, front] = [...container.querySelectorAll('canvas')].slice(0, 2).map((c) => Number(c.style.opacity));
-    expect(front).toBeGreaterThan(0);
-    expect(front).toBeLessThan(1);
-    expect(back).toBeCloseTo(1 - front);
+    expect(paintTweenAt.mock.calls.some(([, at]) => at > 0 && at < 1)).toBe(true);
+    expect(container.querySelectorAll('canvas')).toHaveLength(2);
   });
 
   it('a one-run move paints through the colour tween at the move\'s eased t, not the target run\'s paint at once', async () => {

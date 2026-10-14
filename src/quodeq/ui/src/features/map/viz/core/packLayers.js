@@ -250,11 +250,11 @@ function labelBox(ctx, { text, p, size, font, pinned }) {
  * first; a label whose box would overlap one already placed is skipped, so
  * labels never collide.
  */
-function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale }) {
+function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale, nameOf }) {
   ctx.fillStyle = rgbCss(palette.text);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  const label = (i) => chainLabel(circles[i].data.name);
+  const label = (i) => chainLabel(nameOf ? nameOf(i) : circles[i].data.name);
   const { open, candidates } = labelCandidates({ circles, screenCoords, viewport, focusNode });
   const boxes = [];
   const hovered = hoverIndex === null ? null : circles[hoverIndex];
@@ -274,9 +274,13 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverInde
   }
 }
 
-/** The overlay: the hover ring and, with labels on, the labels. Brightness lives on the static layer (fadesFor). */
-export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, palette, font, width, height, fontScale = 1 }) {
+/**
+ * The overlay: the hover ring and, with labels on, the labels. Brightness
+ * lives on the static layer (fadesFor). `nameOf(i)`, when given, names circle
+ * `i` (the time-lapse names a collapsed chain after its end).
+ */
+export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, focusNode, showLabels, palette, font, width, height, fontScale = 1, nameOf = null }) {
   ctx.clearRect(0, 0, width, height);
   if (hoverIndex !== null) drawHover(ctx, toPx(screenCoords[hoverIndex], viewport), palette);
-  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale });
+  if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, palette, font, fontScale, nameOf });
 }

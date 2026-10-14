@@ -20,7 +20,7 @@ export function createTimelapseLayouts(model) {
   const layoutModel = layoutModelOf(model);
   let local = null;
   const localAnchor = () => { local = local || anchorLayout(layoutModel); return local; };
-  const runLocally = (k) => runLayout(layoutModel, localAnchor(), k);
+  const runLocally = (k) => runLayout(layoutModel, k);
   const sent = requestTimelapseModel(layoutModel);
   const anchor = sent ? sent.anchor.catch(localAnchor) : Promise.resolve().then(localAnchor);
   const runs = new Map();
