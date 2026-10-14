@@ -3673,8 +3673,12 @@
 .findings-check__meta { margin-left: auto; color: var(--color-text-muted); white-space: nowrap; }
 .findings-check__body { padding: 4px 4px 12px 22px; }
 .findings-scope__split { margin-top: var(--space-2); gap: 0; }
-/* The list's detail reads in the body font, as the cards do (the workbench split around it is monospace). */
-.findings-scope__split .wb-detail__body .findings-card { border: 0; padding: 0; background: none; font-family: var(--font-sans); }
+/* The list's detail is the card without its frame. */
+.findings-scope__split .wb-detail__body .findings-card { border: 0; padding: 0; background: none; }
+/* A finding reads the same in the list's detail and in the cards: its title and meta line (severity, principle,
+   file:line) in the app's monospace, its reason in the body font. */
+.findings-card__head, .findings-card__meta { font-family: var(--term-font-mono); }
+.findings-card__reason { font-family: var(--font-sans); }
 .wb-row--compliant { border-left-color: color-mix(in srgb, var(--color-accent) 50%, transparent); }
 .findings-scope__divider { cursor: col-resize; position: relative; touch-action: none; }
 .findings-scope__divider::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 1px; background: var(--color-border); transition: background .15s; }
