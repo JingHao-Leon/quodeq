@@ -6,10 +6,11 @@ may import the other.
 
 Two projections of a dimension live here. ``row_dimension`` is what the store
 keeps: everything but the findings (score, grade, counts, coverage, exit
-reason, evidence date, principle grades), enough to build any view that does
-not list findings, the accumulated walk and the Compare screen included.
-``scalar_dimension`` is the narrower shape the trend serves, pinned by the
-golden payloads: no principles, no files read.
+reason, evidence date, principle grades with their counts), enough to build
+any view that does not list findings, the accumulated walk, the Compare
+screen and the trend's per-principle series included.
+``scalar_dimension`` is the narrower history-context shape (previous and
+stale dimensions), pinned by the golden payloads: no principles, no files read.
 """
 from __future__ import annotations
 
@@ -18,6 +19,7 @@ from dataclasses import replace
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.dimension import open_types_of
 from quodeq.core.types.finding import SeverityTally, Totals
+from quodeq.core.types.principle_counts import principles_with_counts
 from quodeq.core.types.severity import SEVERITY_ORDER
 
 #: The count columns after ``dimension, overall_score, overall_grade``, in
@@ -47,12 +49,16 @@ def column_type(column: str) -> str:
 
 
 def row_dimension(d: DimensionResult) -> DimensionResult:
-    """*d* without its findings: every scalar the store keeps, principles included."""
-    return replace(d, violations=[], compliance=[], principles=list(d.principles), open_types=open_types_of(d))
+    """*d* without its findings: every scalar the store keeps, principles included.
+
+    Each principle keeps its violation counts, counted here from the findings
+    about to be dropped when the read did not count them already.
+    """
+    return replace(d, violations=[], compliance=[], principles=principles_with_counts(d), open_types=open_types_of(d))
 
 
 def scalar_dimension(d: DimensionResult) -> DimensionResult:
-    """*d* reduced to what the trend serves: score, grade and counts, no findings.
+    """*d* reduced to the history-context shape: score, grade and counts, no findings.
 
     History's majors and open-types columns read the counts, so they travel
     with it. Principles, files read, the hidden counts and the confidence marker stay behind (see the

@@ -52,9 +52,10 @@ _EXPECTED = {
 
 
 def test_principle_rows_skip_unnamed_principles():
+    unknown = (None, None, None)
     assert principle_rows(_dims()) == [
-        ("security", "P1", "6.0/10", "Fair", None), ("security", "P2", "8.0/10", "Good", None),
-        ("reliability", "R1", None, None, None),
+        ("security", "P1", "6.0/10", "Fair", None, *unknown), ("security", "P2", "8.0/10", "Good", None, *unknown),
+        ("reliability", "R1", None, None, None, *unknown),
     ]
 
 
@@ -114,7 +115,8 @@ class TestStore:
     def test_schema_declares_the_table(self):
         with open_score_cache() as conn:
             cols = [row[1] for row in conn.execute("PRAGMA table_info(run_principle_scalars)")]
-        assert cols == ["project", "run_id", "version", "dimension", "principle", "score", "grade", "confidence"]
+        assert cols == ["project", "run_id", "version", "dimension", "principle", "score", "grade", "confidence",
+                        "violation_count", "critical", "major"]
 
 
 def test_scalar_dimension_drops_principles_and_files_read():
@@ -127,7 +129,8 @@ def test_row_dimension_is_the_dimension_without_its_findings():
                    compliance=[Finding(file="b.py", line=2, req="R2")])
     row = row_dimension(full)
     assert row.violations == [] and row.compliance == []
-    assert replace(row, open_types=None) == replace(_dims()[0], open_types=None)
+    assert replace(row, open_types=None, principles=[]) == replace(_dims()[0], open_types=None, principles=[])
+    assert [replace(p, counts=None) for p in row.principles] == _dims()[0].principles
     assert row.open_types == 1
 
 
