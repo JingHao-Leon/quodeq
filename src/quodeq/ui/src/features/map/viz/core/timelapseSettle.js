@@ -48,9 +48,12 @@ function siblingGap(a, b) {
 function separate(p, q, nudgeSeed) {
   let dx = q.x - p.x;
   let dy = q.y - p.y;
+  const reach = p.r + q.r + siblingGap(p.r, q.r);
+  // Most pairs are apart: skip the square root for them.
+  if (dx * dx + dy * dy >= reach * reach) return;
   if (dx === 0 && dy === 0) { dx = Math.cos(nudgeSeed * GOLDEN_ANGLE) * NUDGE; dy = Math.sin(nudgeSeed * GOLDEN_ANGLE) * NUDGE; }
   const d = Math.hypot(dx, dy) || TINY;
-  const m = p.r + q.r + siblingGap(p.r, q.r) - d;
+  const m = reach - d;
   if (m <= 0) return;
   dx /= d; dy /= d;
   const wp = q.r / (p.r + q.r);
