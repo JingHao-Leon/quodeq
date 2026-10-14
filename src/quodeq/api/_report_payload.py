@@ -13,6 +13,8 @@ from quodeq.api._http_cache import conditional_json
 from quodeq.api.helpers import json_error
 from quodeq.api.routes_common import reports_dir
 
+_BAD_REQUEST = "Bad request"
+
 
 @dataclass(frozen=True)
 class PayloadFailure:
@@ -22,7 +24,8 @@ class PayloadFailure:
     message: str  # the 500 body's error text
     log: Callable[[], None]  # logs the failure with its traceback (called inside the except block)
     not_found: str | None = None  # when set, a FileNotFoundError answers 404 with this text
-    bad_request: tuple[type[Exception], ...] = ()  # the exceptions that mean a bad request, answered 400 with their text
+    # the exceptions that mean a bad request, answered 400 with their ``public_message`` (a fixed text without one)
+    bad_request: tuple[type[Exception], ...] = ()
 
 
 def serve_report_payload(build: Callable[[Path], object], failure: PayloadFailure) -> Response | tuple[Response, int]:
@@ -30,7 +33,7 @@ def serve_report_payload(build: Callable[[Path], object], failure: PayloadFailur
     try:
         payload = build(Path(reports_dir()))
     except failure.bad_request as exc:
-        return json_error(str(exc), HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
+        return json_error(getattr(exc, "public_message", _BAD_REQUEST), HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
     except failure.errors as exc:
         if failure.not_found is not None and isinstance(exc, FileNotFoundError):
             return json_error(failure.not_found, HTTPStatus.NOT_FOUND, "NOT_FOUND")

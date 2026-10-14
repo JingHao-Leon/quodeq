@@ -54,7 +54,7 @@ def register_map_history_routes(app: Flask) -> None:
         try:
             selection = selection_from(request.args)
         except SelectionError as exc:
-            return json_error(str(exc), HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
+            return json_error(exc.public_message, HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
         failure = PayloadFailure(
             errors=(OSError, ValueError, sqlite3.Error), message="Failed to build the map history",
             log=lambda: _logger.exception("Failed to build the map history for %s", project),

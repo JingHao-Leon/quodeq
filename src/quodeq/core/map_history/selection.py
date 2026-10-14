@@ -26,7 +26,14 @@ ALL_PRINCIPLES = ""
 
 
 class SelectionError(ValueError):
-    """A selection that cannot be measured: no dimension, a principle without exactly one dimension, or an unknown dimension."""
+    """A selection that cannot be measured: no dimension, a principle without exactly one dimension, or an unknown dimension.
+
+    ``public_message`` is its hand-written text, safe to return to a client.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.public_message = message
 
 
 @dataclass(frozen=True)
