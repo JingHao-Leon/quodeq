@@ -3,10 +3,9 @@ import assert from 'node:assert/strict';
 import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { buildTimelapseModel } from './timelapseModel.js';
 import { anchorLayout, runLayout } from './timelapseLayout.js';
-import { focusTransformFor } from './packCanvasGeometry.js';
-import { XYR_STRIDE } from './packLayout.js';
+import { XYR_STRIDE, PACK_BASE_SIZE } from './packLayout.js';
 import {
-  runNodeData, runPaint, absenceNote, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, cachedRuns, TRANSITION, ABSENCE,
+  runNodeData, runPaint, absenceNote, absenceIn, lerpXyr, screenCoordsInto, transitionKind, focusIndexFor, runFocusTransform, cachedRuns, TRANSITION, ABSENCE,
 } from './timelapseScene.js';
 import { PACK_COLOR_MODE } from '../../mapVocab.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from './mapBadness.js';
@@ -110,10 +109,22 @@ test('a dashboard path missing from the history never leaves a blank map or a Na
   for (const [model, path] of [[MODEL, 'src/gone/deeper'], [MODEL, 'nowhere/x.py'], [CHAIN, 'a/b'], [CHAIN, 'a']]) {
     const anchor = anchorLayout(model);
     const i = focusIndexFor(model, path);
-    const { k, tx, ty } = focusTransformFor(circleAt(runLayout(model, anchor, 0), i));
+    const { k, tx, ty } = runFocusTransform(anchor, runLayout(model, anchor, 0), i);
     assert.ok([k, tx, ty].every(Number.isFinite) && k > 0, `${path}: camera ${k} ${tx} ${ty}`);
     assert.ok(model.nodes[i].children?.length, `${path}: frames a folder with circles in it`);
   }
+});
+
+test('the camera centres a folder where the run draws it, at the zoom of its size today', () => {
+  const anchor = anchorLayout(MODEL);
+  const run = runLayout(MODEL, anchor, 0);
+  const i = at('src');
+  const inRun = circleAt(run, i);
+  assert.notEqual(inRun.x, circleAt(anchor, i).x, 'run 0 draws src away from where it sits today');
+  const { k, tx, ty } = runFocusTransform(anchor, run, i);
+  assert.ok(Math.abs(inRun.x * k + tx - PACK_BASE_SIZE / 2) < 1e-3);
+  assert.ok(Math.abs(inRun.y * k + ty - PACK_BASE_SIZE / 2) < 1e-3);
+  assert.ok(Math.abs(k - PACK_BASE_SIZE / (2 * circleAt(anchor, i).r)) < 1e-6);
 });
 
 test('cachedRuns computes each run once and forgets the oldest', () => {

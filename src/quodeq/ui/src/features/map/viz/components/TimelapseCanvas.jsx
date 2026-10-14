@@ -2,10 +2,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useCanvasSize } from './galaxyCanvasSize.js';
 import { prepareLayer, useLayerTheme, WRAPPER_STYLE, LAYER_STYLE, KBD_MAX } from './canvasLayer.js';
 import { drawStatic, drawOverlay } from '../core/packLayers.js';
-import { packViewport, toLayoutPoint, hitCircle, focusTransformFor } from '../core/packCanvasGeometry.js';
-import { useTweenedTransform } from '../core/packTween.js';
-import { circleAt } from '../core/packLayout.js';
-import { runPaint, lerpXyr, screenCoordsInto, cachedRuns, TRANSITION } from '../core/timelapseScene.js';
+import { packViewport, toLayoutPoint, hitCircle } from '../core/packCanvasGeometry.js';
+import { useFollowingTransform } from '../core/packTween.js';
+import { runPaint, lerpXyr, screenCoordsInto, cachedRuns, runFocusTransform, TRANSITION } from '../core/timelapseScene.js';
 import { createPaintTween, paintTweenAt } from '../core/timelapseTween.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 import { t } from '../../../../strings/index.js';
@@ -124,8 +123,9 @@ function useStaticLayers({ refs, coords, layers, camera, viewport, size, model }
 /**
  * The time-lapse pack on three stacked canvases: a back layer (the run being
  * faded out), a front layer (the run shown, or the move in progress) and an
- * overlay (veil, hover ring, labels once settled). The camera frames the
- * focused folder's whole-history circle, so it holds still while runs change.
+ * overlay (veil, hover ring, labels once settled). The camera centres the
+ * focused folder where the run on screen draws it, at the zoom of its size
+ * today, and follows it while runs change.
  */
 export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const { model, nodeDataAt, anchor, view, focusIndex, label } = scene;
@@ -136,9 +136,10 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
   const viewport = useMemo(() => packViewport(size.w, size.h), [size.w, size.h]);
   const theme = useLayerTheme(refs.overlay, dark);
   const paintAt = usePaintAt({ model, nodeDataAt, colorMode, palette: theme.palette, weights });
-  const target = useMemo(() => focusTransformFor(circleAt(anchor, focusIndex)), [anchor, focusIndex]);
-  const camera = useTweenedTransform(target);
   const layers = useLayers(view, paintAt);
+  // A move writes its positions into one reused buffer, so the target follows `layers`, not the array.
+  const target = useMemo(() => runFocusTransform(anchor, layers ? layers.front.xyr : anchor, focusIndex), [anchor, layers, focusIndex]);
+  const camera = useFollowingTransform(target, focusIndex);
   const settled = Boolean(view && !view.from);
   useStaticLayers({ refs, coords, layers, camera, viewport, size, model });
 

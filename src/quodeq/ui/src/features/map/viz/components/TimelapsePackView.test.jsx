@@ -7,6 +7,9 @@ import { timelapseNoteText } from './timelapseNote.js';
 import { decodeTimelapse } from '../../model/mapTimelapse.js';
 import { ABSENCE } from '../core/timelapseScene.js';
 import { GHOST_DASH_PX } from '../core/packLayers.js';
+import { packViewport } from '../core/packCanvasGeometry.js';
+import { PACK_BASE_SIZE } from '../core/packLayout.js';
+import { DEFAULT_CANVAS_W, DEFAULT_CANVAS_H } from '../core/galaxyTunables.js';
 import { createTimelapseLayouts } from '../core/timelapseLayouts.js';
 import { paintTweenAt } from '../core/timelapseTween.js';
 import { dayDate } from '../core/timelapseBarModel.js';
@@ -136,6 +139,19 @@ describe('TimelapsePackView while paused', () => {
     hitPath = 'docs';
     fireEvent.click(overlayOf(container));
     expect(onDrillDown).toHaveBeenCalledWith('docs');
+  });
+});
+
+describe('TimelapsePackView zoom', () => {
+  // Run 0 has less than today (b.js is absent), so its folders sit closer to
+  // the root centre than in today's layout: the zoom has to follow them there.
+  it('centres the open folder where the run on screen draws it, not where it sits today', async () => {
+    await renderView({ timelapse: timelapse(), currentPath: 'docs' });
+    const vp = packViewport(DEFAULT_CANVAS_W, DEFAULT_CANVAS_H);
+    const centre = vp.ox + (PACK_BASE_SIZE / 2) * vp.scale;
+    const middle = vp.oy + (PACK_BASE_SIZE / 2) * vp.scale;
+    const centred = ctx.arc.mock.calls.filter(([x, y]) => Math.abs(x - centre) < 0.01 && Math.abs(y - middle) < 0.01);
+    expect(centred.length).toBeGreaterThan(0);
   });
 });
 

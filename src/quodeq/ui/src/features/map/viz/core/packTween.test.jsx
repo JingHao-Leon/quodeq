@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { easeInOut, lerpTransform, useTweenedTransform, PACK_TWEEN_MS } from './packTween.js';
+import { easeInOut, lerpTransform, useTweenedTransform, useFollowingTransform, PACK_TWEEN_MS } from './packTween.js';
 
 const A = { k: 1, tx: 0, ty: 0 };
 const B = { k: 3, tx: -100, ty: -50 };
@@ -87,6 +87,43 @@ describe('useTweenedTransform', () => {
     const sameAsA = { ...A };
     rerender({ target: sameAsA });
     expect(result.current).toBe(sameAsA);
+    expect(frames.hasFrame()).toBe(false);
+  });
+});
+
+describe('useFollowingTransform', () => {
+  const C = { k: 3, tx: -90, ty: -40 };
+  const follow = (props) => renderHook(({ target, key }) => useFollowingTransform(target, key), { initialProps: props });
+
+  it('follows a moving target at once while the key stays the same', () => {
+    const frames = fakeFrames();
+    const { result, rerender } = follow({ target: B, key: 1 });
+    rerender({ target: C, key: 1 });
+    expect(result.current).toBe(C);
+    expect(frames.hasFrame()).toBe(false);
+  });
+
+  it('eases from the camera shown to the live target when the key changes', () => {
+    const frames = fakeFrames();
+    const { result, rerender } = follow({ target: A, key: 0 });
+    rerender({ target: B, key: 1 });
+    expect(result.current).toEqual(A);
+    act(() => frames.tick(PACK_TWEEN_MS / 2));
+    expect(result.current.k).toBeGreaterThan(A.k);
+    expect(result.current.k).toBeLessThan(B.k);
+    // The target moves mid-zoom (a run moving under it): the zoom lands on where it is now.
+    rerender({ target: C, key: 1 });
+    act(() => frames.tick(PACK_TWEEN_MS));
+    expect(result.current).toBe(C);
+    expect(frames.hasFrame()).toBe(false);
+  });
+
+  it('snaps to the new key under reduced motion', () => {
+    const frames = fakeFrames();
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { result, rerender } = follow({ target: A, key: 0 });
+    rerender({ target: B, key: 1 });
+    expect(result.current).toBe(B);
     expect(frames.hasFrame()).toBe(false);
   });
 });
