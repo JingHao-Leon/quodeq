@@ -61,7 +61,7 @@ const RING_CY = RING_SIZE / 2;
 const SCORE_TEXT_OFFSET_Y = 4;
 const GRADE_TEXT_OFFSET_Y = 16;
 
-function InsufficientGauge() {
+export function InsufficientGauge() {
   return (
     <>
       <div className="dim-gauge-card__gauge dim-gauge-card__gauge--insuf" aria-hidden="true">
@@ -81,7 +81,7 @@ function InsufficientGauge() {
   );
 }
 
-function ScoreGauge({ scoreDisplay, gradeWord, ringColor, dashOffset }) {
+export function ScoreGauge({ scoreDisplay, gradeWord, ringColor, dashOffset }) {
   return (
     <div className="dim-gauge-card__gauge" aria-hidden="true">
       <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
@@ -138,7 +138,7 @@ function DimensionScoreBody({ scoreDisplay, gradeWord, ringColor, dashOffset, vi
  * Ring geometry and colour for one dimension's score. A dimension with no
  * parsable score draws an empty muted ring and no grade word.
  */
-function computeGaugeRing(overallScore) {
+export function computeGaugeRing(overallScore) {
   const { value: scoreDisplay } = splitScore(overallScore);
   const scoreNum = parseFloat(overallScore);
   const hasScore = !Number.isNaN(scoreNum);

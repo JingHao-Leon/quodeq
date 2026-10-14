@@ -42,6 +42,12 @@ export function latestRunOf(props, dimension) {
   return dims.find((d) => d.dimension === dimension)?.fromRunId ?? null;
 }
 
+/** The files today's run of a dimension read, or null when the dashboard does not know it. */
+export function latestFilesReadOf(props, dimension) {
+  const dims = props?.dashboardData?.latestAccumulated?.dimensions || [];
+  return dims.find((d) => d.dimension === dimension)?.filesRead ?? null;
+}
+
 function dimensionNamed(accumulated, name) {
   return (accumulated?.dimensions || []).find((d) => d.dimension === name) || null;
 }

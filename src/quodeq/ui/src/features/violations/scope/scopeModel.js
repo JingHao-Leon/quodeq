@@ -6,7 +6,7 @@ import { t } from '../../../strings/index.js';
 
 /** What a scoped Findings view is about. */
 export const SCOPE_KIND = Object.freeze({
-  FILE: 'file', FOLDER: 'folder', DIMENSION: 'dimension', REQUIREMENT: 'requirement', PROJECT: 'project', AREA: 'area',
+  FILE: 'file', FOLDER: 'folder', DIMENSION: 'dimension', REQUIREMENT: 'requirement', PROJECT: 'project', AREA: 'area', PRINCIPLE: 'principle',
 });
 const KINDS = new Set(Object.values(SCOPE_KIND));
 /** The kinds a scope can open filtered to: a severity, or the compliant checks. */
@@ -23,7 +23,8 @@ const READERS = {
   [SCOPE_KIND.DIMENSION]: (p) => (isText(p.dimension) ? { dimension: p.dimension } : null),
   [SCOPE_KIND.REQUIREMENT]: (p) => (isText(p.dimension) && isText(p.req) ? { dimension: p.dimension, req: p.req, text: isText(p.text) ? p.text : '' } : null),
   [SCOPE_KIND.PROJECT]: () => ({}),
-  [SCOPE_KIND.AREA]: (p) => (isText(p.name) && textList(p.paths).length ? { name: p.name, paths: textList(p.paths) } : null),
+  [SCOPE_KIND.PRINCIPLE]: (p) => (isText(p.dimension) && isText(p.principle) ? { dimension: p.dimension, principle: p.principle } : null),
+  [SCOPE_KIND.AREA]: (p) => (isText(p.name) && textList(p.paths).length ? { name: p.name, paths: textList(p.paths), small: p.small === true } : null),
 };
 
 /**
@@ -51,6 +52,7 @@ const KEEPS = {
   [SCOPE_KIND.DIMENSION]: (s) => (item, dim) => dim.dimension === s.dimension,
   [SCOPE_KIND.REQUIREMENT]: (s) => (item, dim) => dim.dimension === s.dimension && item.req === s.req,
   [SCOPE_KIND.PROJECT]: () => () => true,
+  [SCOPE_KIND.PRINCIPLE]: (s) => (item, dim) => dim.dimension === s.dimension && item.principle === s.principle,
   [SCOPE_KIND.AREA]: (s) => { const inArea = underAny(s.paths); return (item) => inArea(item.file); },
 };
 
@@ -59,7 +61,14 @@ function titleOf(scope, projectName) {
   if (scope.kind === SCOPE_KIND.FOLDER) return `${scope.path}${SLASH}`;
   if (scope.kind === SCOPE_KIND.REQUIREMENT) return scope.text ? `${scope.req} · ${scope.text}` : scope.req;
   if (scope.kind === SCOPE_KIND.PROJECT) return projectName || SCOPE_KIND.PROJECT;
-  return scope.path || scope.dimension || scope.name;
+  return scope.principle || scope.path || scope.dimension || scope.name;
+}
+
+/** A principle scope's score, grade and evidence confidence, from its dimension's principle rows; null for other kinds. */
+export function principleGradeOf(scope, dims) {
+  if (scope.kind !== SCOPE_KIND.PRINCIPLE) return null;
+  const dim = (dims || []).find((d) => d.dimension === scope.dimension);
+  return (dim?.principles || []).find((p) => (p.name ?? p.principle) === scope.principle) || null;
 }
 
 /**
@@ -97,6 +106,7 @@ const LABELS = {
   [SCOPE_KIND.REQUIREMENT]: (s) => s.req,
   [SCOPE_KIND.PROJECT]: () => t('violations.scopeKind_project'),
   [SCOPE_KIND.AREA]: (s) => s.name,
+  [SCOPE_KIND.PRINCIPLE]: (s) => s.principle.toLowerCase(),
 };
 
 /** A `scope` navigation param as its breadcrumb reads; null when it is no scope. */
