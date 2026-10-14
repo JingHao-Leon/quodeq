@@ -59,7 +59,7 @@ def _delta_frames(frames: Iterable[MapFrame]) -> list[dict[str, Any]]:
 
 def map_history_payload(history: MapHistory, *, delta: bool = False) -> dict[str, Any]:
     """The JSON body of ``GET /api/projects/<project>/map/history`` (delta frames when *delta*)."""
-    return {"activitySource": history.activity_source, "days": list(history.days),
+    return {"activitySource": history.activity_source, "days": list(history.days), "dayRuns": list(history.day_runs),
             "fileNames": list(history.file_names), "fileArea": list(history.file_area),
             "fileTest": [_flag(t) for t in history.file_test], "fileLayer": list(history.file_layer),
             "frameEncoding": FRAME_ENCODING_DELTA if delta else FRAME_ENCODING_FULL,

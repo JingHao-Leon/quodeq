@@ -52,6 +52,7 @@ class MapHistory:
     file_test: tuple[bool, ...]
     frames: tuple[MapFrame, ...]
     file_layer: tuple[str, ...] = ()   # display layer per file ("" when none), parallel to file_names
+    day_runs: tuple[str, ...] = ()     # each day's last run (the run the day is as of), parallel to days
 
 
 EMPTY_HISTORY = MapHistory("none", (), (), (), (), ())

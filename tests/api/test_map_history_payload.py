@@ -22,7 +22,7 @@ def _history(*frames: MapFrame) -> MapHistory:
 
 def test_empty_history_shape():
     assert map_history_payload(EMPTY_HISTORY) == {
-        "activitySource": "none", "days": [], "fileNames": [], "fileArea": [], "fileTest": [], "fileLayer": [],
+        "activitySource": "none", "days": [], "dayRuns": [], "fileNames": [], "fileArea": [], "fileTest": [], "fileLayer": [],
         "frameEncoding": "full", "frames": []}
 
 
@@ -48,3 +48,10 @@ def test_file_layer_is_sent_parallel_to_file_names():
     history = MapHistory("git", ("2026-10-01",), ("a.kt", "b.py"), ("article", "api"), (False, False), (),
                          file_layer=("feature", ""))
     assert map_history_payload(history)["fileLayer"] == ["feature", ""]
+
+
+def test_each_days_last_run_is_sent_parallel_to_days():
+    history = MapHistory("git", ("2026-10-01", "2026-10-02"), (), (), (), (), day_runs=("r1", "r3"))
+    body = map_history_payload(history)
+    assert body["days"] == ["2026-10-01", "2026-10-02"]
+    assert body["dayRuns"] == ["r1", "r3"]

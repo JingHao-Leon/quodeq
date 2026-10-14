@@ -29,6 +29,16 @@ def test_estimated_history_with_a_new_dimension_midway(env):
     assert [next(r for r in f.files if r.file == a).edits for f in out.frames] == [0, 1, 1]
 
 
+def test_each_day_is_as_of_its_last_run(env):
+    p = env / "proj"
+    write_run(p, "r1", "2026-09-01", {"security": [violation("feature-a/src/A.kt")]})
+    write_run(p, "r2", "2026-09-08", {"security": [violation("feature-a/src/A.kt")]})
+    write_run(p, "r3", "2026-09-08", {"security": [violation("feature-a/src/A.kt", snip="later()")]})
+    out = build_map_history(env, "proj", frames="all")
+    assert list(out.days) == ["2026-09-01", "2026-09-08"]
+    assert list(out.day_runs) == ["r1", "r3"]
+
+
 def test_latest_frame_only_by_default(env):
     write_two_runs(env)
     assert [f.day for f in build_map_history(env, "proj").frames] == ["2026-09-08"]

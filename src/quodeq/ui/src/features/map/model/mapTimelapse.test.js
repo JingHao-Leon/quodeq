@@ -49,3 +49,9 @@ test('rows handed out for a run never change when a later run is read', () => {
   rowsAt(2);
   assert.deepEqual([...first], held);
 });
+
+test('each run is as of its day\'s last run, when the payload names it', () => {
+  const named = decodeTimelapse({ ...payload(FULL_FRAMES, 'full'), days: ['2026-09-01', '2026-09-08', '2026-09-15'], dayRuns: ['r1', 'r3', 'r4'] });
+  assert.deepEqual(named.runs.map((r) => r.runId), ['r1', 'r3', 'r4']);
+  assert.deepEqual(decodeTimelapse(payload(FULL_FRAMES, 'full')).runs.map((r) => r.runId), [null, null, null]);
+});

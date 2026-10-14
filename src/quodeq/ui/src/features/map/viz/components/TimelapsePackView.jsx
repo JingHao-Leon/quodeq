@@ -57,10 +57,10 @@ function usePicked(model, selection) {
 
 /**
  * The panel, top right: the selected file, else the open folder (the end of
- * its chain that day), with run k's numbers. No View Details: it would open
- * today's page for a day that may hold something else.
+ * its chain that day), with run k's numbers. View Details (`onPastDetails`)
+ * opens that day's findings for it, read-only, not today's page.
  */
-function usePanel({ model, nodeDataAt, k, focusIndex, selected }) {
+function usePanel({ model, nodeDataAt, k, focusIndex, selected, run, onPastDetails }) {
   return useMemo(() => {
     if (k === null) return null;
     const data = nodeDataAt(k);
@@ -72,8 +72,10 @@ function usePanel({ model, nodeDataAt, k, focusIndex, selected }) {
     const live = (d) => (d.children ? { ...d, children: d.children.filter((c) => !c.absent) } : d);
     const root = { data: live(data[0]) };
     const info = computeLevelInfo(i === 0 ? root : { data: live(data[i]) }, root);
-    return info && { ...info, detailAction: null };
-  }, [model, nodeDataAt, k, focusIndex, selected]);
+    const own = data[i];
+    const detailAction = i > 0 && onPastDetails && run?.runId ? () => onPastDetails({ path: own.path, isFile: Boolean(own.isFile) }, run) : null;
+    return info && { ...info, detailAction };
+  }, [model, nodeDataAt, k, focusIndex, selected, run, onPastDetails]);
 }
 
 /** The hovered circle with run k's numbers (a run draws only what it holds, so it is always there). */
@@ -103,11 +105,11 @@ function useTimelapseScene({ data, position, moveMs, onSettled }) {
  * in, gone ones shrink out. Hover shows the run's numbers, playing or
  * paused. A click, playing or paused, opens a folder through `onDrillDown`
  * or selects a file of the open folder; the panel shows the selected file,
- * else the open folder, with that run's numbers (no View Details: it would
- * act on today's data).
+ * else the open folder, with that run's numbers, and View Details
+ * (`onPastDetails`) opens that day's findings for it, read-only.
  */
 export default function TimelapsePackView({
-  timelapse, colorMode, weights = DEFAULT_SEVERITY_WEIGHTS, dark = false, showLabels = true, currentPath = '', onDrillDown, selection = null,
+  timelapse, colorMode, weights = DEFAULT_SEVERITY_WEIGHTS, dark = false, showLabels = true, currentPath = '', onDrillDown, selection = null, onPastDetails,
 }) {
   const { data } = timelapse;
   const { model, layouts, nodeDataAt, anchor, view } = useTimelapseScene(timelapse);
@@ -119,7 +121,8 @@ export default function TimelapsePackView({
   const tip = useTip({ model, nodeDataAt, k: view ? view.to.k : null, hover, shown });
   const [selected, onSelectFile] = usePicked(model, selection);
   const panelSelected = selected !== null && shown(selected) ? selected : null;
-  const panel = usePanel({ model, nodeDataAt, k: view ? view.to.k : null, focusIndex, selected: panelSelected });
+  const k = view ? view.to.k : null;
+  const panel = usePanel({ model, nodeDataAt, k, focusIndex, selected: panelSelected, run: k === null ? null : data.runs[k], onPastDetails });
   if (!view || !anchor) return null;
   const date = formatShortDate(dayDate(data.runs[view.to.k].day).toISOString());
   return (

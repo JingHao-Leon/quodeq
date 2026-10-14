@@ -55,7 +55,13 @@ function DismissedActions({ finding, onRestore, onDelete }) {
   );
 }
 
-export default function FindingDetail({ finding, dims, findings, onAddPath, onOpenFile, onDismiss, onDismissType, onRestore, onDelete }) {
+/**
+ * The selected finding in full. `actions` holds what the finding allows
+ * (onOpenFile, onDismiss, onDismissType, onRestore, onDelete) and `readOnly`
+ * (a past day: no fix plan); a missing handler hides its control.
+ */
+export default function FindingDetail({ finding, dims, findings, onAddPath, actions = {} }) {
+  const { onOpenFile, onDismiss, onDismissType, onRestore, onDelete, readOnly = false } = actions;
   const violation = useFindingDetail(finding, dims);
   if (!finding) {
     return <section className="qd-cards-panel wb-panel wb-detail"><div className="wb-empty">{t('violations.wbPick')}</div></section>;
@@ -70,7 +76,7 @@ export default function FindingDetail({ finding, dims, findings, onAddPath, onOp
       </div>
       <div className="wb-detail__body">
         <Where finding={finding} confidence={violation?.confidence ?? finding.raw.confidence} onAddPath={onAddPath} />
-        <EvalViolationCard v={{ ...violation, principle: finding.principle, dimension: finding.dimension }} principle={finding.principle} index={0}
+        <EvalViolationCard v={{ ...violation, principle: finding.principle, dimension: finding.dimension }} principle={finding.principle} index={0} readOnly={readOnly}
           onDismiss={open && onDismiss ? (v) => onDismiss(v, finding.runId) : undefined} />
         {!open && <DismissedActions finding={finding} onRestore={onRestore} onDelete={onDelete} />}
         <div className="wb-actions">

@@ -2002,6 +2002,8 @@
   "violations.wbGroupDimension": "dimension",
   "violations.wbPathChip": "path: {path}",
   "violations.wbRemoveChip": "Remove {path}",
+  "violations.asOfBanner": "Showing the findings of {date}. Read-only: dismissing and fix plans act on today.",
+  "violations.asOfBack": "Back to today",
   "violations.wbAreaChip": "area: {name}",
   "violations.wbRemoveAreaChip": "Remove the {name} area",
   "violations.wbClearChips": "clear",
