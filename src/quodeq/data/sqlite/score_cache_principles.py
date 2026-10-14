@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import replace
+from typing import NamedTuple
 
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.report import PrincipleCounts, PrincipleGrade
@@ -31,8 +32,18 @@ _VALUE_COLUMN_NAMES: tuple[str, ...] = ("principle", "score", "grade", "confiden
 _VALUE_COLUMNS = ", ".join(_VALUE_COLUMN_NAMES)
 _VALUE_PLACEHOLDERS = ", ".join("?" * len(_VALUE_COLUMN_NAMES))
 
-#: One row to write: ``(dimension, principle, score, grade, confidence, violations, critical, major)``.
-PrincipleRow = tuple[str, str, str | None, str | None, str | None, int | None, int | None, int | None]
+
+class PrincipleRow(NamedTuple):
+    """One row to write, in ``dimension`` + ``_VALUE_COLUMN_NAMES`` order (counts None when unknown)."""
+
+    dimension: str
+    principle: str
+    score: str | None
+    grade: str | None
+    confidence: str | None
+    violations: int | None
+    critical: int | None
+    major: int | None
 
 
 def _count_values(counts: PrincipleCounts | None) -> tuple[int | None, int | None, int | None]:
@@ -44,7 +55,7 @@ def _count_values(counts: PrincipleCounts | None) -> tuple[int | None, int | Non
 
 def principle_rows(dims: list[DimensionResult]) -> list[PrincipleRow]:
     """The principle rows of *dims*, skipping unnamed principles and dimensions."""
-    return [(d.dimension, p.principle, p.score, p.grade, p.confidence, *_count_values(p.counts))
+    return [PrincipleRow(d.dimension, p.principle, p.score, p.grade, p.confidence, *_count_values(p.counts))
             for d in dims if d.dimension for p in d.principles if p.principle]
 
 
