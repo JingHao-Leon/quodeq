@@ -108,13 +108,16 @@ export default function useMapTimelapse({ project, source, active, blocked = fal
   const shown = useRef({ frames: null, frame: state.position });
   const { period, setPeriod, takeKeptDay } = usePeriod({ granularity, onGranularityChange, shown });
   const frames = useMemo(() => framesByPeriod(decoded.runs, period), [decoded, period]);
+  // The frames read when the playback resets; a refetch of the same history keeps the playback, so only
+  // the frame count, the project or the period trigger a reset.
+  const latestFrames = useRef(frames);
+  latestFrames.current = frames;
+  const frameCount = frames.runs.length;
   useEffect(() => {
     const day = takeKeptDay();
-    const position = day === null ? undefined : periodIndexOf(frames.runs, day);
-    dispatch({ type: PLAYBACK_ACTION.RESET, runCount: frames.runs.length, owner: project, position });
-    // A refetch of the same history keeps the playback; only its length, the project or the period reset it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frames.runs.length, project, period]);
+    const position = day === null ? undefined : periodIndexOf(latestFrames.current.runs, day);
+    dispatch({ type: PLAYBACK_ACTION.RESET, runCount: frameCount, owner: project, position });
+  }, [frameCount, project, period, takeKeptDay]);
   usePlaybackGuard(state, dispatch, { active, blocked });
   usePlaybackClock(state, dispatch);
   const controls = usePlaybackControls(dispatch);

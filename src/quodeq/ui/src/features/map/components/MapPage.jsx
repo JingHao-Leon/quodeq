@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useId } from 'react';
+import { useState, useRef, useCallback, useId } from 'react';
+import { useDismissOnOutside } from '../../../hooks/useDismissOnOutside.js';
 import { GalaxyView, GalaxyFolderView, VizBreadcrumb } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
@@ -52,13 +53,8 @@ function dimensionsFiltered({ allDimensions, selectedDimensions }) {
 function DimensionFilter({ allDimensions, selectedDimensions, onToggle }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClickOutside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [open]);
+  const close = useCallback(() => setOpen(false), []);
+  useDismissOnOutside(open, ref, close);
 
   if (allDimensions.length <= 1) return null;
 

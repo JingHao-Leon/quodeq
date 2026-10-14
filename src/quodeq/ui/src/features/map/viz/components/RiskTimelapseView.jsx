@@ -73,7 +73,7 @@ export default function RiskTimelapseView({ timelapse, timeline, dark, showLabel
         nodes={sky.nodes} rings={sky.rings} label={label} />
       <RiskTooltip area={hovered} />
       <LevelInfoPanel levelInfo={chosen && riskAreaInfo(chosen)} label={chosen ? t('map.riskPanelAria', { name: chosen.name }) : undefined}
-        onClose={() => onSelectName(null)} />
+        onClose={() => onSelectName(null)} onEscape={() => onSelectName(null)} />
       <RiskLegend kinds={timeline.kinds()} />
     </div>
   );

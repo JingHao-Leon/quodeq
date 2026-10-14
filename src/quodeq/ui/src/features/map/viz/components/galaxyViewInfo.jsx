@@ -25,15 +25,15 @@ const CLOSE_STYLE = {
   position: 'absolute',
   top: 8,
   right: 8,
-  width: 22,
-  height: 22,
+  width: 24,
+  height: 24,
   padding: 0,
   border: 'none',
   borderRadius: '50%',
   background: 'transparent',
   color: 'var(--color-text-muted)',
   fontSize: 15,
-  lineHeight: '22px',
+  lineHeight: '24px',
   cursor: 'pointer',
 };
 const ROW_STYLE = { display: 'flex', justifyContent: 'space-between', gap: 16, margin: '3px 0' };

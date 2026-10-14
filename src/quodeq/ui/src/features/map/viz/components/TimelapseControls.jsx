@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useDismissOnOutside } from '../../../../hooks/useDismissOnOutside.js';
 import Icon from '../../../../components/Icon.jsx';
 import { t } from '../../../../strings/index.js';
-import { KEY } from '../../../../vocab/keyboard.js';
 import { PLAYBACK_SPEEDS } from '../../model/timelapsePlayback.js';
 import { GRANULARITY } from '../../../../utils/granularity.js';
 
@@ -60,27 +60,21 @@ function Choices({ label, options, value, labelOf, onPick }) {
   );
 }
 
-/** Closes `setOpen` on a press outside `ref` or on Escape, while open. */
-function useDismiss(ref, open, setOpen) {
-  useEffect(() => {
-    if (!open) return undefined;
-    const outside = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const escape = (e) => { if (e.key === KEY.ESCAPE) setOpen(false); };
-    document.addEventListener('mousedown', outside);
-    document.addEventListener('keydown', escape);
-    return () => { document.removeEventListener('mousedown', outside); document.removeEventListener('keydown', escape); };
-  }, [ref, open, setOpen]);
-}
-
 /** One small button ("Week · 1×") opening the grouping and the speed. */
 export function PlaySettings({ period, setPeriod, speed, setSpeed }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
-  useDismiss(ref, open, setOpen);
+  const trigger = useRef(null);
+  // Closing hands focus back to the button, so a keyboard user is not dropped on the page.
+  const close = useCallback(() => {
+    setOpen(false);
+    if (ref.current?.contains(document.activeElement)) trigger.current?.focus();
+  }, []);
+  useDismissOnOutside(open, ref, close);
   const summary = t('map.timelapseSettingsSummary', { period: t(PERIOD_KEY[period]), speed: t('map.timelapseSpeed', { n: speed }) });
   return (
     <div className="map-timelapse__settings" ref={ref}>
-      <button type="button" className="term-btn map-timelapse__settings-btn" aria-expanded={open} aria-haspopup="true"
+      <button ref={trigger} type="button" className="term-btn map-timelapse__settings-btn" aria-expanded={open} aria-haspopup="true"
         aria-label={t('map.timelapseSettingsAria', { summary })} onClick={() => setOpen((v) => !v)}>
         {summary} {open ? '▾' : '▸'}
       </button>

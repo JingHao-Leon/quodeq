@@ -128,6 +128,16 @@ describe('TimelapseBar frames by period', () => {
     expect(menu()).toBeNull();
   });
 
+  it('Escape from inside the settings hands focus back to their button', () => {
+    render(<TimelapseBar timelapse={byPeriod('day')} />);
+    fireEvent.click(settingsButton());
+    const choice = screen.getByRole('button', { name: t('map.timelapsePeriodWeek') });
+    choice.focus();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(menu()).toBeNull();
+    expect(settingsButton()).toHaveFocus();
+  });
+
   it('a bare history (no period setter) plays by day and offers the speed only', () => {
     render(<TimelapseBar timelapse={bar()} />);
     fireEvent.click(settingsButton());
