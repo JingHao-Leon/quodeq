@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import NamedTuple
 
 from quodeq.core.map_history.area_metrics import WEIGHT_DECIMALS, AreaMetrics, PathActivity, area_metrics_per_run
 from quodeq.core.map_history.areas import AreaAssignment, assign_areas, display_layer
+from quodeq.core.map_history.lift import selection_density, with_lift
 from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import (
     ages_from_starts,
@@ -101,8 +103,23 @@ def _frame(k: int, day: str, snap: RunSnapshot, index: dict[str, int], facts: _R
     return MapFrame(day, *facts.flows[k], _rows(k, snap, index, facts), tuple(facts.metrics[k]))
 
 
+def _assignments(names: list[str], area_paths: Iterable[str] | None) -> dict[str, AreaAssignment]:
+    """Each of *names*' area, assigned over *area_paths* when given (a superset of *names*), else over *names*."""
+    if area_paths is None:
+        return assign_areas(names)
+    every = assign_areas(area_paths)
+    return {p: every[p] for p in names}
+
+
+def _lifted(metrics: list[list[AreaMetrics]], snapshots: list[RunSnapshot],
+            assignments: dict[str, AreaAssignment]) -> list[list[AreaMetrics]]:
+    """Every run's area metrics with their lift over that run's project-wide density."""
+    return [with_lift(run, selection_density(snap, assignments)) for run, snap in zip(metrics, snapshots, strict=True)]
+
+
 def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: RunActivity,
-                     frame_runs: list[int]) -> MapHistory:
+                     frame_runs: list[int], *, area_paths: Iterable[str] | None = None,
+                     lift: bool = False) -> MapHistory:
     """The history of *snapshots* (one per day of *days*, oldest first) with frames for the run indexes *frame_runs*.
 
     Each snapshot carries every dimension forward (``carry_forward``), so it is
@@ -110,11 +127,17 @@ def assemble_history(days: list[str], snapshots: list[RunSnapshot], activity: Ru
 
     Area kinds are smoothed over every run, so every run is measured; file rows
     and flows are built only for the requested frames.
+
+    Under a finding selection the snapshots hold only its findings: *area_paths*
+    (every path of the unselected history) keeps each file in the area it has
+    without a selection, and *lift* gives each area its lift (``lift.with_lift``).
     """
     names = sorted({p for s in snapshots for p in s.files})
     index = {p: i for i, p in enumerate(names)}
-    assignments = assign_areas(names)
+    assignments = _assignments(names, area_paths)
     facts = _run_facts(days, snapshots, activity, assignments, frame_runs)
+    if lift:
+        facts = facts._replace(metrics=_lifted(facts.metrics, snapshots, assignments))
     frames = tuple(_frame(k, days[k], snapshots[k], index, facts) for k in frame_runs)
     return MapHistory(activity.source, tuple(days), tuple(names), tuple(assignments[p].area for p in names),
                       tuple(assignments[p].is_test for p in names), frames,
