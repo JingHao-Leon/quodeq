@@ -56,8 +56,9 @@ export function principleChanges(previousDim, principles) {
  * with the ones on show.
  * @param {{project: ?string, selectedSource?: string, trend: object[], dimension: string,
  *   granularity: string, activeRunId: ?string, principles: {principle: string, score: *}[]}} args
- * @returns {{principles: Map<string, number>, previous: ?object}} each principle's change,
- *   and the previous period's dimension (its totals and files read) for the header's tiles
+ * @returns {{principles: Map<string, number>, previous: ?object, beforeRunId: ?string}} each principle's change,
+ *   the previous period's dimension (its totals, files read and findings) for the header's tiles, and
+ *   the run that closed that period (what the since line compares the run on show with)
  */
 export function usePrinciplePeriodDeltas({ project, selectedSource = PROJECT_SOURCE.LOCAL, trend, dimension, granularity, activeRunId, principles }) {
   const { getRunScores, sharedGetRunScores } = useApi();
@@ -74,6 +75,6 @@ export function usePrinciplePeriodDeltas({ project, selectedSource = PROJECT_SOU
   });
   return useMemo(() => {
     const previous = (before.data?.dimensions || []).find((d) => nameKey(d.dimension) === nameKey(dimension)) || null;
-    return { principles: principleChanges(previous, principles), previous };
-  }, [before.data, dimension, principles]);
+    return { principles: principleChanges(previous, principles), previous, beforeRunId };
+  }, [before.data, dimension, principles, beforeRunId]);
 }

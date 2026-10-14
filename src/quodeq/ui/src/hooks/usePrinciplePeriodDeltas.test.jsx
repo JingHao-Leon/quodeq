@@ -46,12 +46,13 @@ describe('usePrinciplePeriodDeltas', () => {
     await waitFor(() => expect(result.current.previous).toEqual(dim));
     expect(getRunScores).toHaveBeenCalledWith('p1', 'r2');
     expect(result.current.principles.get('Secrets')).toBe(1);
+    expect(result.current.beforeRunId).toBe('r2');
   });
 
   it('asks nothing without a previous period', () => {
     const getRunScores = vi.fn();
     const { result } = renderHook(() => usePrinciplePeriodDeltas({ ...args, activeRunId: 'r1' }), { wrapper: withStableQueryApi({ getRunScores }) });
     expect(getRunScores).not.toHaveBeenCalled();
-    expect(result.current).toEqual({ principles: new Map(), previous: null });
+    expect(result.current).toEqual({ principles: new Map(), previous: null, beforeRunId: null });
   });
 });
