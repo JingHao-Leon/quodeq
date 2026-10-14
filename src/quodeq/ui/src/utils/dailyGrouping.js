@@ -177,14 +177,40 @@ export function buildPeriodRuns(availableRuns, trend, granularity = GRANULARITY.
 }
 
 /**
- * Per-dimension score series collapsed to one entry per period bucket.
+ * A score series collapsed to one point per period bucket.
  *
- * Walks the trend newest-first; for each bucket keeps the newest run that
- * actually scored `dimensionName` (so a bucket whose newest run skipped the
- * dimension still surfaces the newest run in that bucket that did score it).
- * Buckets are keyed by bucketKey(dateISO, granularity); entries without a
- * usable date share the empty-key bucket. Returns oldest-first so callers read
- * left-to-right chronologically.
+ * Walks the trend newest-first; for each bucket keeps the newest eligible
+ * run that `pickPoint` scores (a point with a finite `score`), so a bucket
+ * whose newest run skipped the subject still surfaces the newest run in it
+ * that did (carry-over). Buckets are keyed by bucketKey(dateISO, granularity);
+ * undated entries share the "" bucket. Returns oldest-first.
+ *
+ * @param {Array} trend  Trend entries, newest-first.
+ * @param {(entry: Object) => (Object|null)} pickPoint  The entry's point, or null when it did not score the subject.
+ * @param {'day'|'week'|'month'} [granularity='day']
+ * @param {number} [limit=Infinity] Max buckets to keep (newest buckets win).
+ * @returns {Array<Object>} The picked points, oldest-first.
+ */
+export function extractPeriodSeries(trend, pickPoint, granularity = GRANULARITY.DAY, limit = Infinity) {
+  if (!Array.isArray(trend)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const entry of trend) {
+    if (!isBucketEligible(entry)) continue; // partial mid-scan point
+    const key = bucketKey(entry?.dateISO, granularity);
+    if (seen.has(key)) continue;
+    const point = pickPoint(entry);
+    if (!point || !Number.isFinite(point.score)) continue;
+    seen.add(key);
+    out.push(point);
+    if (out.length >= limit) break;
+  }
+  return out.reverse();
+}
+
+/**
+ * Per-dimension score series collapsed to one entry per period bucket: the
+ * newest run per bucket that scored `dimensionName` (extractPeriodSeries).
  *
  * @param {Array} trend            Trend entries, newest-first.
  * @param {string} dimensionName   Case-insensitive match.
@@ -194,33 +220,24 @@ export function buildPeriodRuns(availableRuns, trend, granularity = GRANULARITY.
  *   `critical` and `majors` are the representative run's counts, when the row carries them.
  */
 export function extractDimensionPeriodSeries(trend, dimensionName, granularity = GRANULARITY.DAY, limit = Infinity) {
-  if (!Array.isArray(trend) || !dimensionName) return [];
+  if (!dimensionName) return [];
   const want = String(dimensionName).toLowerCase();
-  const seen = new Set();
-  const out = [];
-  for (const entry of trend) {
-    if (!isBucketEligible(entry)) continue; // partial mid-scan point
-    const key = bucketKey(entry?.dateISO, granularity);
-    if (seen.has(key)) continue;
-    const details = entry?.dimensionDetails;
-    if (!Array.isArray(details)) continue;
-    const match = details.find((d) => (d.dimension || '').toLowerCase() === want);
-    const score = match ? parseFloat(match.score) : NaN;
-    if (!Number.isFinite(score)) continue;
-    seen.add(key);
-    out.push({
-      runId: entry.runId,
-      dateISO: entry.dateISO,
-      dateLabel: entry.dateLabel,
-      score,
-      grade: match.grade,
-      overallGrade: entry.overallGrade,
-      critical: match.critical,
-      majors: match.majors,
-    });
-    if (out.length >= limit) break;
-  }
-  return out.reverse();
+  return extractPeriodSeries(trend, (entry) => {
+    const match = findDimensionDetail(entry, want);
+    if (!match) return null;
+    return {
+      runId: entry.runId, dateISO: entry.dateISO, dateLabel: entry.dateLabel,
+      score: parseFloat(match.score), grade: match.grade, overallGrade: entry.overallGrade,
+      critical: match.critical, majors: match.majors,
+    };
+  }, granularity, limit);
+}
+
+/** The trend entry's dimension detail for a lowercase dimension id, or undefined. */
+export function findDimensionDetail(entry, wantLower) {
+  const details = entry?.dimensionDetails;
+  if (!Array.isArray(details)) return undefined;
+  return details.find((d) => (d.dimension || '').toLowerCase() === wantLower);
 }
 
 /**
