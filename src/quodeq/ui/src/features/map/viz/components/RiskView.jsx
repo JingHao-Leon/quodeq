@@ -9,7 +9,6 @@ import { skyAreas } from '../core/skyLayout.js';
 import { t } from '../../../../strings/index.js';
 
 function stateMessage({ areaState, bubbles }) {
-  if (areaState.unavailable) return t('map.activityUnavailable');
   if (areaState.loading) return t('map.riskLoading');
   if (areaState.failed) return t('map.riskFailed');
   return bubbles.length ? null : t('map.riskEmpty');

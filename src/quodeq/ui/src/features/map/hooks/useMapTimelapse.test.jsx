@@ -41,9 +41,13 @@ function setup(props, fake = api()) {
 }
 
 describe('useMapTimelapse', () => {
-  it('is off for a shared project and never fetches', () => {
-    const { result, fake } = setup({ source: 'shared' });
-    expect(result.current.status).toBe(TIMELAPSE_STATUS.OFF);
+  it('a shared project plays the shared clone\'s history', async () => {
+    const fake = api();
+    fake.sharedGetMapHistory = fake.getMapHistory;
+    fake.getMapHistory = vi.fn();
+    const { result } = setup({ source: 'shared' }, fake);
+    await waitFor(() => expect(result.current.status).toBe(TIMELAPSE_STATUS.READY));
+    expect(fake.sharedGetMapHistory).toHaveBeenCalledWith('p1', 'all');
     expect(fake.getMapHistory).not.toHaveBeenCalled();
   });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mapHistoryUrl } from './mapHistory.js';
+import { sharedProjectPath } from './paths.js';
 
 describe('mapHistoryUrl', () => {
   it('asks for every finding without a selection', () => {
@@ -13,5 +14,9 @@ describe('mapHistoryUrl', () => {
 
   it('leaves the principle out when none is selected', () => {
     expect(mapHistoryUrl('p1', 'latest', { dimensions: ['security'], principle: '' })).not.toMatch(/principle/);
+  });
+
+  it('reads a shared project from the shared clone', () => {
+    expect(mapHistoryUrl('p1', 'latest', null, sharedProjectPath('p1'))).toBe(`${sharedProjectPath('p1')}/map/history?frames=latest`);
   });
 });

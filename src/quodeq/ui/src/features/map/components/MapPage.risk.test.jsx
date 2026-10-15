@@ -59,10 +59,11 @@ describe('MapPage: the Risk tab', () => {
     return render(<MapPage data={local()} callbacks={callbacks} nav={{ vizStyle: 'risk', ...nav }} />, { wrapper: withStableQueryApi(riskApi()) });
   }
 
-  it('the tabs are Circle Pack, Risk and Galaxy', () => {
+  it('the tabs are Circle Pack, Activity, Risk and Galaxy', () => {
     render(<MapPage data={local()} callbacks={{}} />, { wrapper: withStableQueryApi(riskApi()) });
-    const group = screen.getByRole('button', { name: t('map.vizCirclePack') }).parentElement;
-    expect([...group.querySelectorAll('button')].map((b) => b.textContent)).toEqual([t('map.vizCirclePack'), t('map.vizRisk'), t('map.vizGalaxy')]);
+    const group = screen.getByRole('group', { name: t('map.vizStyleAria') });
+    expect([...group.querySelectorAll('button')].map((b) => b.textContent))
+      .toEqual([t('map.vizCirclePack'), t('map.vizActivity'), t('map.vizRisk'), t('map.vizGalaxy')]);
   });
 
   it('choosing Risk replaces the entry and keeps the Dimensions control', () => {

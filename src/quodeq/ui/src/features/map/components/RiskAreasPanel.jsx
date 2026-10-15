@@ -118,7 +118,7 @@ function AreaRow({ area, onOpen, onShowInMap }) {
  * @param {() => void} [props.onOpenRisk]
  */
 export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENSIONS, onAreaFindings, onAreaInMap, onOpenRisk }) {
-  const { areas, files, loading, unavailable } = useRiskAreas({ project, source, dimensions });
+  const { areas, files, loading } = useRiskAreas({ project, source, dimensions });
   const openArea = useMemo(() => {
     if (!onAreaFindings) return undefined;
     const selection = dimensions.length ? { dimensions } : null;
@@ -127,7 +127,7 @@ export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENS
   const { rows: rework, fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
   // Over a selection every area judged is listed, zones first, then by lift.
   const rows = useMemo(() => (dimensions.length ? areas.filter((a) => a.zone) : rework), [dimensions, areas, rework]);
-  if (unavailable || loading || !total) return null;
+  if (loading || !total) return null;
   return (
     <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')}>
       <div className="qd-cards-panel__head">

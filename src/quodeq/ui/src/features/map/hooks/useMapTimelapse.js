@@ -103,7 +103,7 @@ function usePeriod({ granularity, onGranularityChange, shown }) {
  */
 export default function useMapTimelapse({ project, source, active, blocked = false, selection = null, granularity, onGranularityChange }) {
   const api = useApi();
-  const enabled = mapHistoryEnabled(project, source, active);
+  const enabled = mapHistoryEnabled(project, active);
   const query = useQuery({ ...mapHistoryQuery({ api, project, source, active, frames: MAP_FRAMES.ALL, selection }), select: decodeTimelapse });
   const decoded = query.data || NO_TIMELAPSE;
   const [state, dispatch] = useReducer(playbackReducer, decoded.runs.length, (runCount) => initialPlayback(runCount, undefined, project));

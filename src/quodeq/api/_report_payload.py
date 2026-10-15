@@ -28,10 +28,14 @@ class PayloadFailure:
     bad_request: tuple[type[Exception], ...] = ()
 
 
-def serve_report_payload(build: Callable[[Path], object], failure: PayloadFailure) -> Response | tuple[Response, int]:
-    """``build(reports_dir)`` as a cacheable JSON response, or the route's 400/404/500 error."""
+def serve_report_payload(build: Callable[[Path], object], failure: PayloadFailure,
+                         root: Path | None = None) -> Response | tuple[Response, int]:
+    """``build(root)`` as a cacheable JSON response, or the route's 400/404/500 error.
+
+    *root* defaults to the local reports directory; a shared mirror passes the shared clone's.
+    """
     try:
-        payload = build(Path(reports_dir()))
+        payload = build(root if root is not None else Path(reports_dir()))
     except failure.bad_request as exc:
         return json_error(getattr(exc, "public_message", _BAD_REQUEST), HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
     except failure.errors as exc:

@@ -77,7 +77,8 @@ export function mapRoute(params, props) {
       viewMode: params.viewMode,
       galaxyMode: params.galaxyMode,
       onPathChange: handlePathChange,
-      onVizStyleChange: (v) => replaceView({ vizStyle: v }),
+      // A tab carries its own colour: an old entry's pack colour (viewMode) must not follow it.
+      onVizStyleChange: (v) => replaceView({ vizStyle: v, viewMode: undefined }),
       onViewModeChange: (v) => replaceView({ viewMode: v }),
       onGalaxyModeChange: (v) => replaceView({ galaxyMode: v }),
     }}
