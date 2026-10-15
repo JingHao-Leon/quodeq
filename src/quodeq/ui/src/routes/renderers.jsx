@@ -206,7 +206,6 @@ export const ROUTE_RENDERERS = {
     <GradeFormulaPage
       navigation={props.navigation}
       scope={gradeFormulaScope(params, props)}
-      runLabel={props.dashboardData.dashboard?.selectedRun?.dateLabel ?? null}
     />
   ),
   projects: (params, props) => (
