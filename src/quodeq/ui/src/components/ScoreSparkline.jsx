@@ -26,6 +26,15 @@ function Bands() {
   });
 }
 
+/** One period's point, titled with its date and score; the last one larger and full strength. */
+function SparkDot({ x, y, point, isLast }) {
+  return (
+    <circle cx={x} cy={y} r={isLast ? LAST_DOT_R : DOT_R} className={isLast ? 'score-spark__dot score-spark__dot--last' : 'score-spark__dot'}>
+      <title>{t('violations.sparkPoint', { date: point.dateLabel || '', score: point.score.toFixed(ONE_DECIMAL) })}</title>
+    </circle>
+  );
+}
+
 /**
  * A score's recent history in one line: the score per period (oldest first)
  * over the grade bands, each point titled with its date and score, the last
@@ -42,12 +51,7 @@ export default function ScoreSparkline({ points, label }) {
       <svg className="score-spark__svg" viewBox={`0 0 ${SPARK_W} ${SPARK_H}`} preserveAspectRatio="none" role="img" aria-label={label}>
         <Bands />
         <polyline className="score-spark__line" points={xy.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" vectorEffect="non-scaling-stroke" />
-        {xy.map(([x, y], i) => (
-          <circle key={points[i].dateLabel || i} cx={x} cy={y} r={i === xy.length - 1 ? LAST_DOT_R : DOT_R}
-            className={i === xy.length - 1 ? 'score-spark__dot score-spark__dot--last' : 'score-spark__dot'}>
-            <title>{t('violations.sparkPoint', { date: points[i].dateLabel || '', score: points[i].score.toFixed(ONE_DECIMAL) })}</title>
-          </circle>
-        ))}
+        {xy.map(([x, y], i) => <SparkDot key={points[i].dateLabel || i} x={x} y={y} point={points[i]} isLast={points[i] === last} />)}
       </svg>
       <span className="score-spark__range">{t('violations.sparkRange', { count: points.length, first: points[0].dateLabel || '', last: last.dateLabel || '' })}</span>
     </div>
