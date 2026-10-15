@@ -82,9 +82,12 @@ beforeEach(() => {
     .mockResolvedValueOnce(payload(CURRENT, IDLE_START));
   saveGradeFormula.mockResolvedValue(payload(SAVED, rescore()));
   previewGradeFormula.mockResolvedValue({
-    project: 'proj', runId: 'r1',
-    before: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
-    after: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
+    projects: [{
+      id: 'proj',
+      before: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
+      after: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
+    }],
+    runsToRescore: 1,
   });
 });
 

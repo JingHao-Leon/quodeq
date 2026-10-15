@@ -830,7 +830,7 @@
   "gradeFormula.liftCompress": "lift compress",
   "gradeFormula.loadFailed": "Could not load grade formula",
   "gradeFormula.minorOnly": "minor only",
-  "gradeFormula.noEventLog": "No evaluation with an event log yet. Run an evaluation to see a live preview.",
+  "gradeFormula.noEventLog": "No finished evaluation for this project yet. Run one to see a live preview.",
   "gradeFormula.noPreviewProject": "no project selected for preview",
   "gradeFormula.partialRescoreMany": "Applied, but {count} runs could not be rescored and still show the old formula. Try applying again.",
   "gradeFormula.partialRescoreOne": "Applied, but {count} run could not be rescored and still shows the old formula. Try applying again.",
