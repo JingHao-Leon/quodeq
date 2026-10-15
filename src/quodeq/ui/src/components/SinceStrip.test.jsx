@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import SinceStrip from './SinceStrip.jsx';
 
@@ -25,13 +25,6 @@ describe('SinceStrip', () => {
     rerender(<SinceStrip summary={summary({ typesOpened: 3, typesClosed: 1 })} />);
     expect(screen.getByText('3 rule types opened')).toBeInTheDocument();
     expect(screen.getByText('1 closed')).toBeInTheDocument();
-  });
-
-  it('opens a dimension that moved most', () => {
-    const onMover = vi.fn();
-    render(<SinceStrip summary={summary()} movers={[{ name: 'security', delta: -0.6 }]} onMover={onMover} />);
-    fireEvent.click(screen.getByRole('button', { name: /security/ }));
-    expect(onMover).toHaveBeenCalledWith('security');
   });
 
   it('renders nothing without a summary', () => {

@@ -1,11 +1,10 @@
 /**
- * What the Overview's and the run page's numbers, rows and movers open:
+ * What the Overview's and the run page's numbers and rows open:
  * every finding view as a scoped Findings view, today's or, for a past run
- * (`asOf`, see overviewAsOf and runAsOf), that run's, read-only; a mover
- * its dimension. Each is undefined without an `onNavigate`.
+ * (`asOf`, see overviewAsOf and runAsOf), that run's, read-only.
+ * Each is undefined without an `onNavigate`.
  */
 import { SCOPE_KIND, openScope, cardFilter } from '../violations/scope/scopeModel.js';
-import { nameKey } from '../../utils/nameKey.js';
 
 /**
  * What opens a scoped Findings view from a row: the view of the scope
@@ -38,10 +37,4 @@ function makeAreaNavigate({ onNavigate }) {
 /** What the panels below the cards open: a requirement, an area, a folder, a file. */
 export function makeFindingsNavigate(args) {
   return { requirement: makeRequirementNavigate(args), area: makeAreaNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
-}
-
-/** The dimension a mover's name (lowercase) opens, if one is on show. */
-export function moverNavigate(sorted, onDimensionClick) {
-  if (!onDimensionClick) return undefined;
-  return (name) => { const d = sorted.find((x) => nameKey(x.dimension) === name); if (d) onDimensionClick(d); };
 }

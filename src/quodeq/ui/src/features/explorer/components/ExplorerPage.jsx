@@ -170,8 +170,8 @@ function ExplorerPageBody({
         dim={dim} d={d} overallScoreNum={overallScoreNum} standardDescription={standardDescription} standardInfo={standardInfo}
         activeDateLabel={activeDateLabel} activeRunId={activeRunId} periodDeltas={periodDeltas}
         actions={headActions} filesRead={filesRead} previous={previous} pastRun={pastRun}
+        since={<SinceStrip summary={since} granularity={granularity} />}
       />
-      <SinceStrip summary={since} granularity={granularity} />
 
       {/* The header paints first; the card row and the findings panels are the
           heavy part and follow in the next commit. */}

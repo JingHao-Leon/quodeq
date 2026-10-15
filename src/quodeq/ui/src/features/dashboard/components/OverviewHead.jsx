@@ -78,8 +78,9 @@ function projectMetrics(summary, headline) {
  * @param {?object} props.deltas the severities' change since the previous period
  * @param {?{when: string, onBack: Function}} props.pastRun
  * @param {?Function} props.onCardNavigate
+ * @param {React.ReactNode} [props.since] what changed since the previous period, under the sub line
  */
-export default function OverviewHead({ data, accumulated, stats, headline, previous, deltas, pastRun, onCardNavigate }) {
+export default function OverviewHead({ data, accumulated, stats, headline, previous, deltas, pastRun, onCardNavigate, since = null }) {
   const summary = accumulated?.summary || {};
   const dimensions = accumulated?.dimensions || [];
   const shared = data.selectedSource === PROJECT_SOURCE.SHARED;
@@ -92,7 +93,7 @@ export default function OverviewHead({ data, accumulated, stats, headline, previ
       grade={{ score: summary.numericAverage, insufficient: false, hint: data.customFormula ? t('overview.customFormulaNote') : null }}
       badge={<HeadBadge delta={stats.scoreDelta} shared={shared} publishedBy={data.projectInfo?.publishedBy} />}
       metrics={metrics} filesHint={t('overview.per100Hint', { count: dimensions.length })}
-      deltas={deltas || undefined} changes={tileChanges(metrics, previous)} pastRun={pastRun}
+      deltas={deltas || undefined} changes={tileChanges(metrics, previous)} pastRun={pastRun} since={since}
       actions={headActions(onCardNavigate, metrics)}
     />
   );

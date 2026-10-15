@@ -1,8 +1,5 @@
-import { useRef } from 'react';
-import TrendBadge from './TrendBadge.jsx';
 import { GRANULARITY } from '../utils/granularity.js';
 import { t } from '../strings/index.js';
-import { useRowStarts } from '../hooks/useRowStarts.js';
 
 /** New and fixed findings, or, when neither moved, one quiet line saying so. */
 function FindingCounts({ summary }) {
@@ -28,44 +25,21 @@ function SinceCounts({ summary }) {
   );
 }
 
-/** The dimensions that moved most, each opening its page. */
-function Movers({ movers, onMover }) {
-  if (!movers.length) return null;
-  return (
-    <span className="overview-since__movers">
-      <span className="overview-since__label">{t('overview.sinceMovers')}</span>
-      {movers.map((m) => (
-        <button key={m.name} type="button" className="overview-since__mover" onClick={onMover ? () => onMover(m.name) : undefined}>
-          {m.name} <TrendBadge delta={m.delta} />
-        </button>
-      ))}
-    </span>
-  );
-}
-
 /**
  * "Since the previous day / week / month" (the chart's grouping), or the
  * caller's `label` ("since the previous run"), in one line: new and fixed
- * findings, the rule types that appeared or went away, and, on the
- * Overview and the run page, the dimensions that moved most. Without a
- * summary (sinceSummary), the `emptyNote` saying why, or nothing.
- * @param {{summary: ?object, granularity?: string, label?: string, emptyNote?: ?string,
- *   movers?: {name: string, delta: number}[], onMover?: (name: string) => void}} props
+ * findings and the rule types that appeared or went away. It sits in the
+ * page's header (FindingsHead's `since`), under the title's sub line.
+ * Without a summary (sinceSummary), the `emptyNote` saying why, or nothing.
+ * @param {{summary: ?object, granularity?: string, label?: string, emptyNote?: ?string}} props
  */
-export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, label = null, emptyNote = null, movers = [], onMover }) {
+export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, label = null, emptyNote = null }) {
   if (!summary && !emptyNote) return null;
-  return <SinceStripBody summary={summary} label={label || t(`overview.sincePeriod_${granularity}`)} emptyNote={emptyNote} movers={movers} onMover={onMover} />;
-}
-
-// Mounted only with something to say, so the row marks start with the strip itself.
-function SinceStripBody({ summary, label, emptyNote, movers, onMover }) {
-  const stripRef = useRef(null);
-  useRowStarts(stripRef);
+  const name = label || t(`overview.sincePeriod_${granularity}`);
   return (
-    <section ref={stripRef} className="overview-since" aria-label={label}>
-      <span className="overview-since__label">{label}</span>
+    <section className="overview-since" aria-label={name}>
+      <span className="overview-since__label">{name}</span>
       {summary ? <SinceCounts summary={summary} /> : <span className="overview-since__num overview-since__num--quiet">{emptyNote}</span>}
-      {summary && <Movers movers={movers} onMover={onMover} />}
     </section>
   );
 }

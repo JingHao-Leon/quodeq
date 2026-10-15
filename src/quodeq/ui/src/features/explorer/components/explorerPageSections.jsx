@@ -41,7 +41,7 @@ const filesReadOf = (d, borrowed) => d.evalData.filesRead ?? d.runFilesRead ?? b
  * 100 files read, critical per 1,000), each with its change since the
  * previous period, the violations and pass rate opening their findings.
  */
-export function ExplorerHead({ dim, d, overallScoreNum, standardDescription, standardInfo, activeDateLabel, activeRunId, periodDeltas, actions, filesRead: borrowedFilesRead, previous, pastRun }) {
+export function ExplorerHead({ dim, d, overallScoreNum, standardDescription, standardInfo, activeDateLabel, activeRunId, periodDeltas, actions, filesRead: borrowedFilesRead, previous, pastRun, since = null }) {
   const filesRead = filesReadOf(d, borrowedFilesRead);
   const metrics = scopeMetrics({ sevCounts: d.severityCounts || {}, total: d.allViolations.length, compliance: d.totalCompliant, files: filesRead });
   return (
@@ -50,7 +50,7 @@ export function ExplorerHead({ dim, d, overallScoreNum, standardDescription, sta
       grade={{ score: overallScoreNum, insufficient: d.overallGrade?.grade === GRADE.INSUFFICIENT, hint: null }}
       badge={periodDeltas.score !== null ? <TrendBadge delta={periodDeltas.score} /> : null}
       metrics={metrics} filesHint={t('violations.scopeStatFilesRead', { count: filesRead })} deltas={periodDeltas.chips} actions={actions}
-      changes={tileChanges(metrics, runDimensionMetrics(previous))} pastRun={pastRun}
+      changes={tileChanges(metrics, runDimensionMetrics(previous))} pastRun={pastRun} since={since}
     />
   );
 }

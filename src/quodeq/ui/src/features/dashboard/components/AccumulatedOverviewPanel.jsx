@@ -19,11 +19,10 @@ import { buildHeadline, filterSinceBaseline, periodChipDeltas, sumSinceBaseline 
 import { useAccumulatedComputations, computeAccumulatedStats } from '../hooks/useAccumulatedComputations.js';
 import { usePreviousPeriodMetrics, useOverviewSince } from '../hooks/useOverviewPeriod.js';
 import { weakestDimensionFirst, dimensionPoints, overviewPastRun } from '../overviewHeadModel.js';
-import { topMovers } from '../../../models/sinceSummary.js';
 import { useAccumulatedReportSpec } from './accumulatedReportSpecs.jsx';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { withPending } from '../../../utils/pendingClass.js';
-import { makeCardNavigate, makeFindingsNavigate, moverNavigate } from '../overviewNavigate.js';
+import { makeCardNavigate, makeFindingsNavigate } from '../overviewNavigate.js';
 import { overviewAsOf } from '../overviewAsOf.js';
 import { nameKey } from '../../../utils/nameKey.js';
 
@@ -158,9 +157,8 @@ function AccumulatedOverviewSections({
   return (
     <>
       <OverviewHead data={data} accumulated={filteredAccumulated} stats={filteredStats} headline={headline} previous={view.previous}
-        deltas={periodChipDeltas(filteredPeriodTrend, currentOverviewRun)} pastRun={view.pastRun} onCardNavigate={onCardNavigate} />
-
-      <SinceStrip summary={view.since} granularity={granularity} movers={topMovers(dimTrends)} onMover={moverNavigate(view.sorted, onDimensionClick)} />
+        deltas={periodChipDeltas(filteredPeriodTrend, currentOverviewRun)} pastRun={view.pastRun} onCardNavigate={onCardNavigate}
+        since={<SinceStrip summary={view.since} granularity={granularity} />} />
 
       <AccumulatedDimensionsSection
         sortedDimensions={view.sorted}

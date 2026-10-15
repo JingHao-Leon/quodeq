@@ -1901,10 +1901,9 @@
 .overview-skeleton__bar--tile-label { width: 80px; height: 10px; }
 .overview-skeleton__bar--tile-value { width: 56px; height: 23px; }
 .overview-skeleton__bar--tile-sub { width: 112px; height: 10px; }
-/* The since strip: its label, the counts, the movers (a trend badge tall). */
+/* The since line in the header: its label and the counts. */
 .overview-skeleton__bar--since-label { width: 140px; height: 10px; }
 .overview-skeleton__bar--since-num { width: 64px; height: 12px; }
-.overview-skeleton__bar--since-movers { width: 360px; max-width: 100%; height: 25px; }
 /* A compact dimension card: the name, the 56px ring, the grade word, the
    severity pills and the pass rate beside it. */
 .overview-skeleton__bar--name { width: 60%; height: 14px; }
@@ -3749,8 +3748,10 @@
    never basis, so the wrap itself (and its row marks) stays decided by the tiles' natural width */
 .findings-head__stats[data-row-start] { flex-grow: 1; }
 .findings-head__stats[data-row-start] > .findings-head__stat { flex-grow: 1; }
-/* the Violations tile's severity pills wrap inside the tile */
+/* the Violations tile's severity pills wrap inside the tile while the tiles share the name's row;
+   once the tiles have their own row there is room, so the pills stay on one line */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
+.findings-head__stats[data-row-start] > .findings-head__stat:first-child .findings-head__sub { max-width: none; }
 
 /* a principle's score per period, under its description */
 .score-spark { display: flex; align-items: center; gap: 12px; margin-top: 8px; max-width: 520px; }
