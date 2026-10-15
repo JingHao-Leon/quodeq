@@ -3,10 +3,11 @@
 .wb {
   --wb-hover-bg: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
   --wb-hover-bar: inset 2px 0 0 var(--color-accent);
-  display: flex; flex-direction: column; gap: var(--term-space-2); font-family: var(--term-font-mono);
+  --page-flow-gap: var(--term-space-2);
+  display: flex; flex-direction: column; gap: var(--page-flow-gap); font-family: var(--term-font-mono);
 }
-.wb-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 11px; }
-.wb-search { position: relative; flex: 1 1 420px; max-width: 620px; }
+.wb-toolbar .page-toolbar__controls { font-size: 11px; }
+.wb-search { position: relative; }
 .wb-search .term-input { width: 100%; }
 .wb-search .term-input__field, .wb-search .term-input__field:focus { border: 0; box-shadow: none; background: transparent; height: auto; padding: 0; }
 .wb-sugg { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; display: flex; flex-direction: column; padding: 6px 0;

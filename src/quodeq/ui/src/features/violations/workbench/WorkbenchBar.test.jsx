@@ -43,6 +43,15 @@ describe('WorkbenchBar', () => {
     expect(api.set).toHaveBeenCalledWith({ status: 'dismissed' });
   });
 
+  it('the menus sit in the page toolbar beside its facts; the search row is outside it', () => {
+    const { container } = render(<WorkbenchBar findings={findings} state={WORKBENCH_DEFAULTS} set={vi.fn()} addPath={vi.fn()}
+      removePath={vi.fn()} setPaths={vi.fn()} dimensions={[]} statusCounts={{}} toolbar={{ facts: '5 open' }} />);
+    const bar = container.querySelector('.page-toolbar');
+    expect(bar).toHaveTextContent('5 open');
+    expect(bar.querySelector('.page-toolbar__controls')).toContainElement(screen.getByRole('button', { name: /^status: open/ }));
+    expect(bar).not.toContainElement(screen.getByRole('textbox', { name: 'Search findings' }));
+  });
+
   it('each menu button keeps its current value in its name', () => {
     setup({ severity: 'major' });
     expect(screen.getByRole('button', { name: /^severity: major/ })).toBeInTheDocument();

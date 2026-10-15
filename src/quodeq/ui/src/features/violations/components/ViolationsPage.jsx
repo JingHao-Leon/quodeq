@@ -32,10 +32,21 @@ function summaryLine(summary, dismissedCount) {
   return parts.join(SUMMARY_SEP);
 }
 
-function ViolationsHeader({ summary, selectedSource, dismissedCount }) {
+/** The page's PageToolbar props; the workbench adds its filter menus on the right. */
+function toolbarOf({ summary, selectedSource, dismissedCount }) {
+  return {
+    title: t('violations.termName'), facts: summaryLine(summary, dismissedCount),
+    badge: selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null,
+  };
+}
+
+/** What paints on the click: the toolbar's facts and skeleton rows, until the workbench mounts. */
+function WorkbenchPending({ toolbar }) {
   return (
-    <PageToolbar title={t('violations.termName')} facts={summaryLine(summary, dismissedCount)}
-      badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null} />
+    <>
+      <PageToolbar {...toolbar} />
+      <CardListSkeleton />
+    </>
   );
 }
 
@@ -120,6 +131,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
     refreshing: isFetching && !loading, asOf, onBackToToday: callbacks.onBackToToday,
     banners: { restoreError, dismissError, dismissNotice },
   };
+  const toolbar = toolbarOf({ summary, selectedSource, dismissedCount: shownDismissedCount({ asOf, dismissed, dismissedLoading }) });
 
   if (scope) {
     // A scoped view says it shows a past run in its header (with the way back), not in the banner above it.
@@ -133,12 +145,11 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
   }
   return (
     <PageFrame {...frame}>
-      <ViolationsHeader summary={summary} selectedSource={selectedSource} dismissedCount={shownDismissedCount({ asOf, dismissed, dismissedLoading })} />
-      {/* The header paints on the click; the workbench (every finding,
-          flattened and filtered) follows in the next commit. */}
-      <DeferredMount fallback={<CardListSkeleton />}>
+      {/* The toolbar's facts paint on the click; the workbench (every finding,
+          flattened and filtered, with its menus in that toolbar) follows in the next commit. */}
+      <DeferredMount fallback={<WorkbenchPending toolbar={toolbar} />}>
         <FindingsWorkbench dims={visibleDimensions} dismissed={dismissed} dismissedLoading={dismissedLoading} workbench={workbench}
-          onWorkbenchChange={onWorkbenchChange} actions={actions} />
+          onWorkbenchChange={onWorkbenchChange} actions={actions} toolbar={toolbar} />
       </DeferredMount>
     </PageFrame>
   );

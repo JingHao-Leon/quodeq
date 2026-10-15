@@ -62,7 +62,7 @@ const canOpenFile = (f, actions) => Boolean(f && actions.onOpenFile && (!actions
 /** The list's filters (not the search text, so typing keeps the scroll) as a string: a new value starts the row cap over. */
 const listKeyOf = (s) => [s.severity, s.dimension, s.status, s.group, s.area?.name, ...s.paths].join(KEY_SEP);
 
-export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = false, workbench, onWorkbenchChange, actions = {} }) {
+export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = false, workbench, onWorkbenchChange, actions = {}, toolbar = null }) {
   const searchRef = useRef(null);
   const split = useSplitWidth();
   const all = useMemo(() => flattenFindings(dims, dismissed), [dims, dismissed]);
@@ -87,7 +87,7 @@ export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = 
   return (
     <div className="wb">
       <WorkbenchBar findings={all} state={state} set={set} addPath={wb.addPath} removePath={wb.removePath} setPaths={wb.setPaths}
-        dimensions={openByDimension(all)} statusCounts={statusCountsOf(all, state)} inputRef={searchRef} />
+        dimensions={openByDimension(all)} statusCounts={statusCountsOf(all, state)} inputRef={searchRef} toolbar={toolbar} />
       {state.status === FINDING_STATUS.DISMISSED && !isNarrowed(state) && (
         <DismissedBulk count={all.filter((f) => f.status === FINDING_STATUS.DISMISSED).length}
           onRestoreAll={actions.onRestoreAll} onDeleteAll={actions.onDeleteAll} />

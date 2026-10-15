@@ -5,6 +5,7 @@ import { FINDING_GROUP, FINDING_STATUS } from '../violationsVocab.js';
 import { severityCounts, statusPool } from './workbenchModel.js';
 import WorkbenchMenu from './WorkbenchMenu.jsx';
 import WorkbenchSearch from './WorkbenchSearch.jsx';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 
 const MENU_KEY = Object.freeze({ SEVERITY: 'severity', DIMENSION: 'dimension', STATUS: 'status', GROUP: 'group' });
 const GROUP_LABEL = Object.freeze({
@@ -66,15 +67,19 @@ function menus({ state, set, dimensions, statusCounts, sev }) {
   ];
 }
 
-/** Search, the four filter menus and the path chips above the list. */
-export default function WorkbenchBar({ findings, state, set, addPath, removePath, setPaths, dimensions, statusCounts, inputRef }) {
+/**
+ * The page's toolbar with the four filter menus on its right (where every
+ * tool page keeps its controls), then the search across the full width and
+ * the path chips. `toolbar` is the page's PageToolbar props (title, facts, badge).
+ */
+export default function WorkbenchBar({ findings, state, set, addPath, removePath, setPaths, dimensions, statusCounts, inputRef, toolbar = null }) {
   const sev = severityCounts(statusPool(findings, state.status));
   return (
     <>
-      <div className="wb-bar">
-        <WorkbenchSearch findings={findings} q={state.q} onQuery={(q) => set({ q })} onPickPath={addPath} inputRef={inputRef} />
+      <PageToolbar title={t('violations.termName')} {...toolbar} className="wb-toolbar">
         {menus({ state, set, dimensions, statusCounts, sev }).map(({ key, ...m }) => <WorkbenchMenu key={key} {...m} />)}
-      </div>
+      </PageToolbar>
+      <WorkbenchSearch findings={findings} q={state.q} onQuery={(q) => set({ q })} onPickPath={addPath} inputRef={inputRef} />
       <AreaChip area={state.area} onRemove={() => set({ area: null })} />
       <PathChips paths={state.paths} removePath={removePath} setPaths={setPaths} />
     </>
