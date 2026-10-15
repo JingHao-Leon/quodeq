@@ -34,14 +34,26 @@ export function projectPreview(payload, projectId) {
  * @returns {{requestPreview: Function, update: Function}}
  */
 export function useGradePreview({ projectId, draft, updateDraft, showPreview, debounceRef, loaded }) {
+  // A preview scores every project and can take seconds, so answers may land
+  // out of order: only the latest request's answer is shown.
+  const latestRef = useRef(0);
   const requestPreview = useCallback((params) => {
     if (!projectId) return;
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
+      const request = ++latestRef.current;
+      const land = (value) => { if (request === latestRef.current) showPreview(value); };
       previewGradeFormula(params)
-        .then((payload) => showPreview(projectPreview(payload, projectId)))
-        .catch(() => showPreview(null));
+        .then((payload) => land(projectPreview(payload, projectId)))
+        .catch(() => land(null));
     }, PREVIEW_DEBOUNCE_MS);
+  }, [projectId]);
+
+  // Another project: its strip must not show the previous project's numbers
+  // while its own preview is on the way, and an answer in flight is dropped.
+  useEffect(() => {
+    latestRef.current += 1;
+    showPreview(null);
   }, [projectId]);
 
   // Fire the preview once both the draft (post-load) and the project are
