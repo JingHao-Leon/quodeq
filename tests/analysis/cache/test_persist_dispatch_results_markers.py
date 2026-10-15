@@ -29,11 +29,11 @@ def _hash_inputs(config: RunConfig, dimension: str) -> CachePersistProvenance:
     from quodeq.analysis.fingerprint import hash_standards, dimension_params_state
 
     standards_hash = (
-        hash_standards(config.standards_dir, dimension, config.src)
+        hash_standards(config.standards_dir, dimension, config.standards_settings)
         if config.standards_dir else ""
     ) or ""
     params_hash, effective_params = dimension_params_state(
-        config.standards_dir, dimension, config.src,
+        config.standards_dir, dimension, config.standards_settings,
     )
     prompts_hash = hash_prompts_combined(config.prompts_dir)
     return CachePersistProvenance(

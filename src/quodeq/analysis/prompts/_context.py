@@ -49,8 +49,9 @@ class PromptContext:
     extra_vars: dict[str, str] = field(default_factory=dict)
     work_dir: Path | None = None
     previous_findings: list[dict] = field(default_factory=list)
-    project_root: Path | None = None
-    # None = production default (load_project_overrides, looked up at call
+    # The run project's machine settings file the overrides come from.
+    standards_settings: Path | None = None
+    # None = production default (load_overrides_file, looked up at call
     # time so tests can inject a fixed overrides map without patching the
     # data-layer loader).
     overrides_loader: Callable[[Path | None], Mapping[str, dict]] | None = None

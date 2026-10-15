@@ -23,8 +23,8 @@ def _make_config(
 ) -> RunConfig:
     opts = AnalysisOptions(subagent_model=model)
     return RunConfig(
-        src=src, language=language, standards_dir=standards_dir,
-        work_dir=work_dir or src, options=opts,
+        src=src, language=language, standards_dir=standards_dir, work_dir=work_dir or src,
+        options=opts, standards_settings=_settings_file_for(src),
     )
 
 
@@ -35,7 +35,7 @@ def _write_compiled_standards(standards_dir: Path, dim: str, payload: str) -> No
 
 
 def _write_project_overrides(src: Path, payload: str) -> None:
-    path = src / ".quodeq" / "standards-overrides.json"
+    path = _settings_file_for(src)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload)
 
@@ -47,14 +47,19 @@ def _hash_inputs(config: RunConfig, dimension: str) -> CachePersistProvenance:
     from quodeq.analysis.fingerprint import hash_standards, dimension_params_state
 
     standards_hash = (
-        hash_standards(config.standards_dir, dimension, config.src)
+        hash_standards(config.standards_dir, dimension, config.standards_settings)
         if config.standards_dir else ""
     ) or ""
     params_hash, effective_params = dimension_params_state(
-        config.standards_dir, dimension, config.src,
+        config.standards_dir, dimension, config.standards_settings,
     )
     prompts_hash = hash_prompts_combined(config.prompts_dir)
     return CachePersistProvenance(
         standards_hash=standards_hash, params_hash=params_hash,
         effective_params=effective_params, prompts_hash=prompts_hash,
     )
+
+
+def _settings_file_for(src: Path) -> Path:
+    """The machine settings file the test project under *src* reads overrides from."""
+    return src.parent / "quodeq-home" / "projects" / src.name / "standards.json"

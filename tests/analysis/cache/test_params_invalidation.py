@@ -15,7 +15,6 @@ import pytest
 from quodeq.analysis import fingerprint
 from quodeq.analysis.run_types import RunConfig
 from quodeq.analysis.cache.dimension_helpers import build_cache_key_for_file
-from quodeq.core.standards.overrides import OVERRIDES_RELPATH
 
 DIM = "maintainability"
 OTHER_DIM = "standards"
@@ -48,11 +47,15 @@ def config(tmp_path: Path) -> RunConfig:
     standards_dir = tmp_path / "standards"
     _write_compiled(standards_dir, DIM)
     _write_compiled(standards_dir, OTHER_DIM)
-    return RunConfig(src=src, language="python", standards_dir=standards_dir)
+    return RunConfig(
+        src=src, language="python", standards_dir=standards_dir,
+        standards_settings=tmp_path / "home" / "projects" / "p" / "standards.json",
+    )
 
 
 def _set_override(config: RunConfig, value: int | None) -> None:
-    path = config.src / OVERRIDES_RELPATH
+    path = config.standards_settings
+    assert path is not None
     if value is None:
         path.unlink(missing_ok=True)
     else:

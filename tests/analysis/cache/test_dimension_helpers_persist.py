@@ -175,7 +175,7 @@ class TestPersist:
 
         entry = cache.get(miss_keys["a.py"])
         assert entry is not None
-        expected = hash_standards(standards_dir, "security", src)
+        expected = hash_standards(standards_dir, "security", config.standards_settings)
         assert entry.provenance["standards_hash"] == expected
         assert entry.provenance["standards_hash"] != hash_standards(
             standards_dir, "security",

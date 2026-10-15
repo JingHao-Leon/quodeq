@@ -71,7 +71,7 @@ class TestProvenanceDrift:
         self, tmp_path: Path, cache: LocalFileBackend,
     ):
         # Threshold overrides fold into the standards hash: entries produced
-        # before a project tuned .quodeq/standards-overrides.json must show
+        # before a project tuned its settings-file overrides must show
         # standards drift on reuse — the compiled JSON alone is unchanged.
         from quodeq.analysis.fingerprint import hash_standards
 

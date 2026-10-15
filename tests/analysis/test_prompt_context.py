@@ -114,17 +114,19 @@ def test_build_subagent_prompt_passes_inline_findings():
 def test_build_analysis_prompt_uses_injected_overrides_loader(tmp_path):
     """PromptContext.overrides_loader is a call-time seam: when set,
     the standards checklist must be rendered with the loader's overrides
-    instead of calling the concrete load_project_overrides."""
+    instead of calling the concrete load_overrides_file."""
     _write_security_compiled(tmp_path / "standards" / "compiled")
     loader_calls: list = []
     sentinel_overrides = {"S-CON-1": {"floorMajor": 9.0}}
 
-    def _fake_loader(project_root):
-        loader_calls.append(project_root)
+    settings_file = tmp_path / "home" / "projects" / "p" / "standards.json"
+
+    def _fake_loader(path):
+        loader_calls.append(path)
         return sentinel_overrides
 
     with patch(
-        "quodeq.analysis.prompts.builder.load_project_overrides",
+        "quodeq.analysis.prompts.builder.load_overrides_file",
         side_effect=AssertionError("the concrete loader must not be called"),
     ), patch(
         "quodeq.analysis.prompts.builder.render_compiled_standards",
@@ -137,9 +139,9 @@ def test_build_analysis_prompt_uses_injected_overrides_loader(tmp_path):
                 dimension="security", source_file_count=42,
                 dimensions_data=_sample_dimensions(),
                 standards_dir=tmp_path / "standards",
-                project_root=tmp_path,
+                standards_settings=settings_file,
                 overrides_loader=_fake_loader,
             ),
         )
-    assert loader_calls == [tmp_path]
+    assert loader_calls == [settings_file]
     assert spy_render.call_args.kwargs["overrides"] is sentinel_overrides

@@ -25,7 +25,7 @@ from quodeq.data.fs.standards_loader import load_compiled_refs as _load_compiled
 from quodeq.context.project_shape import detect_shape
 from quodeq.context.trust_model import resolve_trust_model
 from quodeq.data.fs.standards_loader import load_compiled_requirements as _load_compiled_requirements
-from quodeq.data.fs.standards_prefs import load_project_overrides
+from quodeq.data.fs.standards_prefs import load_overrides_file, project_settings_file
 from quodeq.shared.fault_isolation import run_isolated
 
 # Re-export public API so existing imports keep working.
@@ -72,10 +72,25 @@ def _send_dispatch_error_response(msg: dict, exc: Exception) -> None:
         })
 
 
+def findings_standards_settings(findings_path: str) -> Path | None:
+    """The run project's standards settings file, or None when *findings_path*
+    is not inside a run's evidence dir.
+
+    The findings path is ``<reports>/<project>/<run>/evidence/<dim>_evidence.jsonl``,
+    so the project dir is its great-grandparent. This server is its own process:
+    it resolves the same file the parent run's ``RunConfig.standards_settings``
+    holds (the parent already migrated any legacy repo files).
+    """
+    project_dir = Path(findings_path).parent.parent.parent
+    if not project_dir.name:
+        return None
+    return project_settings_file(project_dir.parent, project_dir.name)
+
+
 def _build_compiled_context(sa: ServerArgs) -> CompiledContext:
     """Build compiled-standards context from parsed server args."""
     work_dir = Path(sa.work_dir) if sa.work_dir else None
-    overrides = load_project_overrides(work_dir)
+    overrides = load_overrides_file(findings_standards_settings(sa.findings_file))
 
     compiled_refs = _load_compiled_refs(sa.compiled_dir, sa.dimension)
     compiled_reqs = _load_compiled_requirements(sa.compiled_dir, sa.dimension, overrides=overrides)
@@ -186,6 +201,9 @@ def _resolve_dimension_cache_writer(server_args: ServerArgs):
         # crosses the process boundary, so resolve the same default the
         # parent's RunConfig.prompts_dir carries.
         prompts_dir=default_paths().prompts_dir,
+        # Must be the file classify's cache key reads, or entries written
+        # here land under a different params_hash.
+        standards_settings=findings_standards_settings(server_args.findings_file),
     )
     return build_cache_writer(spec)
 

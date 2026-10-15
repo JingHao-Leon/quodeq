@@ -77,11 +77,11 @@ def _compute_persist_hash_inputs(config: RunConfig, dimension: str) -> CachePers
     persist_dispatch_results recomputing them on every tick.
     """
     standards_hash = (
-        hash_standards(config.standards_dir, dimension, config.src)
+        hash_standards(config.standards_dir, dimension, config.standards_settings)
         if config.standards_dir else ""
     ) or ""
     params_hash, effective_params = dimension_params_state(
-        config.standards_dir, dimension, config.src,
+        config.standards_dir, dimension, config.standards_settings,
     )
     return CachePersistProvenance(
         standards_hash=standards_hash, params_hash=params_hash,

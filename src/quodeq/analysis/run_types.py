@@ -113,6 +113,10 @@ class RunConfig:
     dimensions_data: DimensionsConfig | None = None
     target: AnalysisTarget | None = None
     evaluators_dir: Path | None = None
+    # Machine-local standards settings file for this run's project
+    # (~/.quodeq/projects/<owner>/standards.json). Overrides are read from it;
+    # None (tests, one-shot callers) means no overrides.
+    standards_settings: Path | None = None
     # Prompts directory whose rules-bearing *.md files fold into cache
     # provenance (``prompts_hash``). Composition roots pass it explicitly;
     # the default keeps direct constructors (tests, one-shot callers) on the

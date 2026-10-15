@@ -81,6 +81,7 @@ def build_agent_config(
         # still resolves to the same run-shared instance.
         drop_counter=bc.drop_counter,
         mcp_registry=bc.mcp_registry,
+        standards_settings=bc.standards_settings,
     )
     return ac, jsonl_file, stream_file
 

@@ -126,3 +126,14 @@ def dimensions_filter_for(args: argparse.Namespace) -> list[str] | None:
     dimensions_filter = split_csv(expanded_dimensions) if expanded_dimensions else None
     log_info(f"Dimensions: {', '.join(dimensions_filter)}" if dimensions_filter else "Dimensions: all")
     return dimensions_filter
+
+
+def standards_settings_for_run(reports_root: Path, evidence_dir: Path, src: Path) -> Path:
+    """The run project's settings file, migrated from *src*'s legacy repo files on first use.
+
+    *evidence_dir* is ``<reports>/<project>/<run>/evidence``, so the project
+    id is its grandparent's name.
+    """
+    from quodeq.data.fs.standards_prefs import project_settings_file  # noqa: PLC0415
+    project_id = evidence_dir.parent.parent.name
+    return project_settings_file(reports_root, project_id, repo_root=src)

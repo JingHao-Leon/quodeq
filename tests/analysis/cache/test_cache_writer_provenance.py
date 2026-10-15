@@ -5,7 +5,7 @@ import json
 
 from quodeq.config.paths import default_paths
 
-from ._cache_writer_helpers import _make_config
+from ._cache_writer_helpers import _make_config, _write_settings
 
 
 def test_cache_writer_records_provenance_and_content_hash(tmp_path):
@@ -51,7 +51,7 @@ def test_cache_writer_records_provenance_and_content_hash(tmp_path):
 
 def test_cache_writer_provenance_folds_project_overrides(tmp_path):
     """The written standards_hash is the override-aware value (folding
-    .quodeq/standards-overrides.json under src_root), matching what
+    the project's settings-file overrides), matching what
     classify-time provenance computes — otherwise every later run would
     report phantom standards drift on entries this writer produced."""
     from quodeq.analysis.cache.cache_writer import CacheWriterSpec, build_cache_writer
@@ -60,11 +60,9 @@ def test_cache_writer_provenance_folds_project_overrides(tmp_path):
     from quodeq.analysis.fingerprint import hash_standards
 
     src_root = tmp_path / "src"
-    (src_root / ".quodeq").mkdir(parents=True)
+    src_root.mkdir()
     (src_root / "Foo.kt").write_text("class Foo")
-    (src_root / ".quodeq" / "standards-overrides.json").write_text(
-        '{"version": 1, "overrides": {"F-ADP-1": {"max_lines": 60}}}'
-    )
+    settings = _write_settings(tmp_path, '{"F-ADP-1": {"max_lines": 60}}')
     standards_dir = tmp_path / "standards"
     (standards_dir / "compiled").mkdir(parents=True)
     (standards_dir / "compiled" / "flexibility.json").write_text('{"rule": "v1"}')
@@ -72,7 +70,7 @@ def test_cache_writer_provenance_folds_project_overrides(tmp_path):
     cache_root = tmp_path / "cache"
     write = build_cache_writer(CacheWriterSpec(
         cache_root=cache_root,
-        src_root=src_root,
+        src_root=src_root, standards_settings=settings,
         standards_dir=standards_dir,
         dimension="flexibility",
         model_id="sonnet",
@@ -81,11 +79,13 @@ def test_cache_writer_provenance_folds_project_overrides(tmp_path):
     ))
     write("Foo.kt", [])
 
-    config = _make_config(src_root, standards_dir=standards_dir, model="sonnet")
+    config = _make_config(
+        src_root, standards_dir=standards_dir, model="sonnet", standards_settings=settings,
+    )
     key = build_cache_key_for_file(config, "Foo.kt", "flexibility")
     entry = LocalFileBackend(root=cache_root).get(key)
     assert entry is not None
-    expected = hash_standards(standards_dir, "flexibility", src_root)
+    expected = hash_standards(standards_dir, "flexibility", settings)
     assert entry.provenance["standards_hash"] == expected
     assert entry.provenance["standards_hash"] != hash_standards(
         standards_dir, "flexibility",
@@ -144,11 +144,9 @@ def test_written_entry_records_effective_params(tmp_path):
     from quodeq.analysis.cache.local import LocalFileBackend
 
     src_root = tmp_path / "src"
-    (src_root / ".quodeq").mkdir(parents=True)
+    src_root.mkdir()
     (src_root / "auth.py").write_text("class Auth: pass")
-    (src_root / ".quodeq" / "standards-overrides.json").write_text(
-        '{"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}'
-    )
+    settings = _write_settings(tmp_path, '{"M-ANA-2": {"max_lines": 60}}')
     standards_dir = tmp_path / "standards"
     (standards_dir / "compiled").mkdir(parents=True)
     (standards_dir / "compiled" / "maintainability.json").write_text(json.dumps({
@@ -162,7 +160,7 @@ def test_written_entry_records_effective_params(tmp_path):
     cache_root = tmp_path / "cache"
     write = build_cache_writer(CacheWriterSpec(
         cache_root=cache_root,
-        src_root=src_root,
+        src_root=src_root, standards_settings=settings,
         standards_dir=standards_dir,
         dimension="maintainability",
         model_id="m",
@@ -171,7 +169,9 @@ def test_written_entry_records_effective_params(tmp_path):
     ))
     write("auth.py", [])
 
-    config = _make_config(src_root, standards_dir=standards_dir, model="m", language="python")
+    config = _make_config(
+        src_root, standards_dir=standards_dir, model="m", language="python", standards_settings=settings,
+    )
     key = build_cache_key_for_file(config, "auth.py", "maintainability")
     entry = LocalFileBackend(root=cache_root).get(key)
     assert entry is not None

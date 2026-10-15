@@ -17,7 +17,6 @@ import json
 from pathlib import Path
 
 from quodeq.analysis import fingerprint
-from quodeq.core.standards.overrides import OVERRIDES_RELPATH
 
 _COMPILED_BODY = '{"id": "flexibility", "principles": []}'
 # Independently computed: `printf '%s' '<body>' | shasum -a 256`.
@@ -30,8 +29,8 @@ def _write_compiled(standards_dir: Path, dimension: str, body: str) -> None:
     (compiled / f"{dimension}.json").write_text(body)
 
 
-def test_hash_standards_pinned_output_no_project_root(tmp_path: Path):
-    """No *project_root*: the hash is the plain SHA-256 of the compiled
+def test_hash_standards_pinned_output_no_settings_file(tmp_path: Path):
+    """No *settings_file*: the hash is the plain SHA-256 of the compiled
     dimension JSON bytes -- both the literal pin and an independently
     computed oracle must agree with the implementation."""
     standards_dir = tmp_path / "standards"
@@ -44,19 +43,20 @@ def test_hash_standards_pinned_output_no_project_root(tmp_path: Path):
 
 
 def test_hash_standards_pinned_output_with_overrides(tmp_path: Path):
-    """With *project_root* overrides present, the hash is the SHA-256 of
+    """With overrides in the *settings_file*, the hash is the SHA-256 of
     ``base\\x00overrides\\x00overrides_hash`` -- the exact composition
     ``hash_standards`` documents, independently reproduced here."""
     standards_dir = tmp_path / "standards"
     _write_compiled(standards_dir, "flexibility", _COMPILED_BODY)
-    project_root = tmp_path / "repo"
-    project_root.mkdir()
-    overrides_path = project_root / OVERRIDES_RELPATH
-    overrides_path.parent.mkdir(parents=True, exist_ok=True)
-    overrides_body = {"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}
-    overrides_path.write_text(json.dumps(overrides_body))
+    settings_file = tmp_path / "home" / "projects" / "p" / "standards.json"
+    settings_file.parent.mkdir(parents=True)
+    overrides_body = {
+        "version": 2, "enabled": ["iso-25010"],
+        "overrides": {"M-ANA-2": {"max_lines": 60}},
+    }
+    settings_file.write_text(json.dumps(overrides_body))
 
-    result = fingerprint.hash_standards(standards_dir, "flexibility", project_root)
+    result = fingerprint.hash_standards(standards_dir, "flexibility", settings_file)
 
     base = hashlib.sha256(_COMPILED_BODY.encode()).hexdigest()
     canonical_overrides = json.dumps(
