@@ -36,10 +36,25 @@ it('records tool_call and action_draft frames', () => {
     es.emit('message', { type: 'tool_call', name: 'get_scores' });
     es.emit('message', { type: 'action_draft', actionId: 'a1', actionType: 'create_standard',
       summary: { id: 'x', name: 'X', principleCount: 2 } });
+    es.emit('message', { type: 'done' });
   });
   flush();
   expect(result.current.messages.some((m) => m.role === 'tool' && m.name === 'get_scores')).toBe(true);
   expect(result.current.messages.some((m) => m.role === 'action' && m.actionId === 'a1')).toBe(true);
+});
+
+it('holds a drafted action card until the turn ends, below the hand-over text', () => {
+  const { result } = renderHook(() => useAssistantStream('s1'));
+  const es = MockES.instances[0];
+  act(() => {
+    es.emit('message', { type: 'action_draft', actionId: 'a1', actionType: 'create_standard',
+      summary: { id: 'x', name: 'X', principleCount: 2 } });
+    es.emit('message', { type: 'token', text: 'The card is ready.' });
+  });
+  flush();
+  expect(result.current.messages.some((m) => m.role === 'action')).toBe(false);
+  act(() => { es.emit('message', { type: 'done' }); }); flush();
+  expect(result.current.messages.map((m) => m.role)).toEqual(['assistant', 'action']);
 });
 
 it('done ends the turn (streaming false, onDone) but keeps the stream OPEN', () => {

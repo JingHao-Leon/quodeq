@@ -118,7 +118,7 @@ export const SCORE_HISTORY_GRANULARITY_STORAGE_KEY = 'quodeq-score-history-granu
 export const DEFAULT_SCORE_HISTORY_GRANULARITY = GRANULARITY.DAY;
 
 // Fired (same-tab) by the assistant's ActionPreviewCard after a successful
-// apply, with { actionType, scores, delta } as detail. App-level effects and
+// apply, with { actionType, standardId, scores, delta } as detail. App-level effects and
 // the verified-findings context listen so caches converge like a manual dismiss.
 export const ASSISTANT_ACTION_APPLIED_EVENT = 'quodeq:assistant-action-applied';
 

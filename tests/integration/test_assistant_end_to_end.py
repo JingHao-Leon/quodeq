@@ -24,6 +24,8 @@ _STANDARD = {
     "weight": 1.0, "source": "assistant",
     "principles": [{"name": "Errors", "description": "", "requirements": [
         {"id": "r1", "text": "Error bodies follow RFC7807", "description": "", "refs": []},
+        {"id": "r2", "text": "Error responses set the problem+json content type", "description": "", "refs": []},
+        {"id": "r3", "text": "Validation errors list each invalid field", "description": "", "refs": []},
     ]}],
 }
 

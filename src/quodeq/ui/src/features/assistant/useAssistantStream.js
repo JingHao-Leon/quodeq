@@ -53,9 +53,14 @@ function withRevealedChunk(prev, chunk, startNewBubble) {
 // turn-end latch. A factory rather than lifted functions because drain,
 // scheduleFlush, finishTurn and endTurn are mutually recursive over the same
 // refs -- they only make sense as one closure set, bound once per effect run.
-function createTurnRevealer({ pending, raf, timer, turnBoundary, endPending, setMessages, setStreaming, onDoneRef }) {
+function createTurnRevealer({ pending, raf, timer, turnBoundary, endPending, heldActions, setMessages, setStreaming, onDoneRef }) {
   const finishTurn = () => {
     endPending.current = false;
+    // Drafted action cards land after the turn's last text, so Apply is
+    // always the final thing in the turn, never mid-reply.
+    const held = heldActions.current;
+    heldActions.current = [];
+    if (held.length) setMessages((prev) => [...prev, ...held]);
     setStreaming(false);
     turnBoundary.current = true;
     onDoneRef.current?.();
@@ -114,7 +119,7 @@ function createContentGate({ turnBoundary, setError, setStreaming }) {
   return () => { if (turnBoundary.current) setError(null); setStreaming(true); };
 }
 
-function makeFrameHandlers({ revealer, append, beginContent, setError, endPending, setMessages }) {
+function makeFrameHandlers({ revealer, append, beginContent, setError, endPending, heldActions, setMessages }) {
   const { drain, flushTokens, revealText, endTurn } = revealer;
   const settleTools = (status) => setMessages((prev) => settleRunningTools(prev, status));
   return {
@@ -125,8 +130,10 @@ function makeFrameHandlers({ revealer, append, beginContent, setError, endPendin
       beginContent(); revealText(f.text || '');
     },
     onToolCall: (f) => { beginContent(); flushTokens(); setMessages((prev) => withToolFrame(prev, f)); },
-    onActionDraft: (f) => { beginContent(); flushTokens();
-      append({ role: MESSAGE_ROLE.ACTION, actionId: f.actionId, actionType: f.actionType, summary: f.summary }); },
+    // Held until the turn ends (see finishTurn): the model keeps writing
+    // its hand-over after drafting, and the card belongs below it.
+    onActionDraft: (f) => { beginContent();
+      heldActions.current.push({ role: MESSAGE_ROLE.ACTION, actionId: f.actionId, actionType: f.actionType, summary: f.summary }); },
     onWarning: (f) => { beginContent(); flushTokens(); append({ role: MESSAGE_ROLE.WARNING, message: f.message }); },
     onError: (f) => { flushTokens(); settleTools(TOOL_STATUS.ERROR); setError(f.message || 'error'); endTurn(); },
     onStopped: () => { flushTokens(); settleTools(TOOL_STATUS.ERROR); append({ role: MESSAGE_ROLE.WARNING, message: t('assistant.turnStopped') }); endTurn(); },
@@ -139,16 +146,16 @@ function makeFrameHandlers({ revealer, append, beginContent, setError, endPendin
 // frame dispatch table. They close over the same refs, so they are built
 // together rather than assembled at the call site.
 function buildStreamPipeline({
-  pending, raf, timer, turnBoundary, endPending, inactivity,
+  pending, raf, timer, turnBoundary, endPending, heldActions, inactivity,
   setMessages, setStreaming, setError, onDoneRef,
 }) {
   const revealer = createTurnRevealer({
-    pending, raf, timer, turnBoundary, endPending, setMessages, setStreaming, onDoneRef,
+    pending, raf, timer, turnBoundary, endPending, heldActions, setMessages, setStreaming, onDoneRef,
   });
   const resetInactivity = createInactivityGuard({ inactivity, setError, endTurn: revealer.endTurn });
   const append = (msg) => setMessages((prev) => [...prev, msg]);
   const beginContent = createContentGate({ turnBoundary, setError, setStreaming });
-  const handlers = makeFrameHandlers({ revealer, append, beginContent, setError, endPending, setMessages });
+  const handlers = makeFrameHandlers({ revealer, append, beginContent, setError, endPending, heldActions, setMessages });
   return { revealer, resetInactivity, handlers };
 }
 
@@ -169,6 +176,7 @@ export function useAssistantStream(sessionId, { onDone } = {}) {
   // answer doesn't concatenate onto turn 1's ("A"+"B" → "AB"). One SSE stream
   // serves the whole session, so bubbles from separate turns must stay split.
   const turnBoundary = useRef(false);
+  const heldActions = useRef([]); // the running turn's drafts, shown when it ends
   onDoneRef.current = onDone;
 
   const reset = useCallback(() => { setMessages([]); setError(null); }, []);
@@ -180,10 +188,10 @@ export function useAssistantStream(sessionId, { onDone } = {}) {
     setStreaming(true);
     pending.current = '';
     turnBoundary.current = false;
-    endPending.current = false;
+    endPending.current = false; heldActions.current = [];
 
     const { revealer, resetInactivity, handlers } = buildStreamPipeline({
-      pending, raf, timer, turnBoundary, endPending, inactivity,
+      pending, raf, timer, turnBoundary, endPending, heldActions, inactivity,
       setMessages, setStreaming, setError, onDoneRef,
     });
 

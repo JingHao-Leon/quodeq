@@ -69,12 +69,14 @@ async function runCardAction({ setStatus, run, done, logLabel }) {
   }
 }
 
-async function applyAction({ actionId, actionType, setStatus }) {
+async function applyAction({ actionId, actionType, summary, setStatus }) {
   await runCardAction({
     setStatus,
     run: async () => {
       const res = await applyAssistantAction(actionId);
-      notifyAssistantActionApplied({ actionType, scores: res?.result?.scores, delta: res?.result?.delta });
+      notifyAssistantActionApplied({
+        actionType, standardId: summary?.id, scores: res?.result?.scores, delta: res?.result?.delta,
+      });
     },
     done: CARD_STATUS.APPLIED,
     logLabel: '[ActionPreviewCard] apply action failed:',
@@ -132,7 +134,7 @@ export function ActionPreviewCard({ action }) {
       <CardSummary actionType={actionType} summary={summary} />
       <ActionCardButtons
         disabled={disabled}
-        onApply={() => applyAction({ actionId, actionType, setStatus })}
+        onApply={() => applyAction({ actionId, actionType, summary, setStatus })}
         onReject={() => rejectAction({ actionId, setStatus })}
       />
       <ActionStatusBanner status={status} />

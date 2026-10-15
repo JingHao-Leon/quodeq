@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStandards } from './hooks/useStandards.js';
 import { useVisibleStandards } from './hooks/useVisibleStandards.js';
 import { useStandardsOverrides } from './hooks/useStandardsOverrides.js';
@@ -9,6 +9,8 @@ import PageToolbar from '../../components/PageToolbar.jsx';
 import { useAppState } from '../../hooks/useAppState.js';
 import { t } from '../../strings/index.js';
 import { PROJECT_SOURCE } from '../../vocab/projectSource.js';
+import { ACTION_TYPE } from '../../vocab/actionType.js';
+import { ASSISTANT_ACTION_APPLIED_EVENT } from '../../constants.js';
 
 // Which screen the page shows: the table, or the editor in create/edit mode.
 const VIEW_MODE = { LIST: 'list', EDIT: 'edit', NEW: 'new' };
@@ -33,12 +35,33 @@ export function useStandardsPageActions(refresh, handleDelete, addVisible, remov
     }
   };
 
+  useAssistantCreatedStandard({ view, setView, addVisible });
+
   return {
     view,
     showImport, setShowImport,
     handleEdit, handleNewStandard, handleEditorBack,
     handleSaved, handleImported, handleDeleteWithCleanup,
   };
+}
+
+// A standard the assistant created while this page is open: make it visible
+// for the project, as a manual create does, and open it from the list. An
+// open editor stays put so unsaved edits are never thrown away; the app-level
+// handler refetches the list either way.
+function useAssistantCreatedStandard({ view, setView, addVisible }) {
+  const latest = useRef(null);
+  latest.current = { view, addVisible };
+  useEffect(() => {
+    const onApplied = (event) => {
+      const { actionType, standardId } = event.detail || {};
+      if (actionType !== ACTION_TYPE.CREATE_STANDARD || !standardId) return;
+      latest.current.addVisible(standardId);
+      if (latest.current.view.mode === VIEW_MODE.LIST) setView({ mode: VIEW_MODE.EDIT, standardId });
+    };
+    window.addEventListener(ASSISTANT_ACTION_APPLIED_EVENT, onApplied);
+    return () => window.removeEventListener(ASSISTANT_ACTION_APPLIED_EVENT, onApplied);
+  }, [setView]);
 }
 
 function StandardsListView({ grouped, loading, error, actions, customizedCounts }) {
