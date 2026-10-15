@@ -2091,85 +2091,46 @@ textarea:focus {
   padding: 0;
 }
 
-.server-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.server-dot--online { background: #4ade80; }
-.server-dot--offline { background: #f87171; }
-.server-dot--unknown { background: var(--color-text-muted); }
-
-.server-status-pill {
-  display: flex;
-  align-items: stretch;
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin: var(--space-3) var(--space-5);
-}
-
-.server-status-pill__status {
-  flex: 1 1 auto;
-  display: flex;
+/* Server status row (ServerStatusRow.jsx): a local server as one settings
+   row. Name and address left, state and console right; the facts as a
+   caption while it runs, how to start it while it is down. */
+.server-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-xs);
-  min-width: 0;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) var(--space-5);
 }
-
-.server-status-pill__divider {
-  width: 1px;
-  background: var(--color-border);
-  flex: 0 0 auto;
+.server-row__name { display: flex; align-items: baseline; gap: var(--space-2); min-width: 0; flex-wrap: wrap; }
+.server-row__address {
+  font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--color-text-muted);
+  background: none; border: none; padding: 0; cursor: copy;
+  border-bottom: 1px dotted var(--color-border);
 }
-
-/* The ConsoleButton has its own border/radius/padding — drop those when
-   it sits inside the pill so the outer surface owns the framing, but
-   keep the hover background so the right segment lights up on hover. */
-.server-status-pill .console-button {
-  border: none;
-  border-radius: 0;
-  padding: 0 var(--space-3);
-  align-self: stretch;
+.server-row__address:hover { color: var(--color-text); }
+.server-row__state { display: flex; align-items: center; gap: var(--space-3); justify-self: end; }
+.server-row__status { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); }
+.server-row__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-muted); flex: none; }
+.server-row--online .server-row__status { color: var(--color-success); }
+.server-row--online .server-row__dot { background: var(--color-success); }
+.server-row--offline .server-row__status { color: var(--color-danger-text); }
+.server-row--offline .server-row__dot { background: var(--color-danger-text); }
+.server-row--checking .server-row__status { color: var(--color-text-muted); }
+.server-row--checking .server-row__dot { animation: server-row-pulse 1.2s ease-in-out infinite; }
+@keyframes server-row-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .server-row--checking .server-row__dot { animation: none; } }
+.server-row__facts {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4);
+  font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--color-text-muted);
 }
-
-.server-details {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  /* The pill above has vertical margin; align the details caption with the
-     pill's horizontal padding and give it a small bottom padding so it
-     doesn't read as glued to the pill's underside. */
-  padding: 0 var(--space-5) var(--space-3);
+.server-row__facts b { color: var(--color-text); font-weight: 500; }
+.server-row__help {
+  grid-column: 1 / -1; display: flex; flex-direction: column; gap: var(--space-1);
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  background: var(--color-danger-bg); border: 1px solid var(--color-danger-border);
+  font-size: var(--text-xs); color: var(--color-text);
 }
-
-.server-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.server-status--online {
-  background: color-mix(in srgb, #4ade80 10%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, #4ade80 30%, var(--color-border));
-  color: #4ade80;
-}
-
-.server-status--offline {
-  background: color-mix(in srgb, #f87171 10%, var(--color-surface));
-  border: 1px solid color-mix(in srgb, #f87171 30%, var(--color-border));
-  color: #f87171;
-}
-
-.server-address {
-  margin-left: auto;
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
+.server-row__recheck { color: var(--color-text-muted); }
 
 .settings-error {
   color: #f87171;

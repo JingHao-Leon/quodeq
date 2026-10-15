@@ -858,11 +858,8 @@ button.term-sev-badge--clickable:focus-visible {
   /* Compact view: hide all side-pane triggers. The pane itself is too
      narrow to be useful below 900px, and without triggers users can't
      open it (it stays at 0 width as long as no window is registered).
-     Affects ConsoleButton (in ScanProgress + ServerStatusPill). The
-     divider inside ServerStatusPill is hidden too so the pill doesn't
-     end with an orphan vertical rule. */
-  .console-button,
-  .server-status-pill__divider { display: none !important; }
+     Affects ConsoleButton (in ScanProgress + ServerStatusRow). */
+  .console-button { display: none !important; }
 
   /* Hide the side-pane itself in compact view. Without this, if a user
      opens Report on desktop, then resizes to mobile, the body grid
