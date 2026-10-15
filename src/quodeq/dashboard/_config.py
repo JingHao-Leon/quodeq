@@ -23,6 +23,7 @@ class BuildConfig:
     dev: bool = False
     use_native: bool = True
     verbose: bool = False
+    foreground: bool = False
 
 
 @dataclass(frozen=True)
