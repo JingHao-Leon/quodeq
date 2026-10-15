@@ -1,4 +1,4 @@
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import { t } from '../../../strings/index.js';
 import { evalBlockedClass, evalBlockedProps } from '../../../utils/evalBlocked.js';
 import { pluralKey } from '../../../utils/plural.js';
@@ -48,7 +48,7 @@ function MoreMenu({ configured, onConnectEvaluations, onImportProject }) {
 }
 
 /**
- * The Repositories header: title, counts, and two controls, on the empty
+ * The Repositories toolbar: counts, and two controls, on the empty
  * page too (they are the ways in). The primary `add project` opens the add
  * panel directly (never the welcome). `more ▾` holds the two rare actions:
  * `add evaluations repository` (or `change repository` once one is
@@ -58,8 +58,7 @@ function MoreMenu({ configured, onConnectEvaluations, onImportProject }) {
 export function ProjectsPageHeader({ counts, configured, onConnectEvaluations, onImportProject, onAddProject, isEvaluating }) {
   const showMore = Boolean(onConnectEvaluations || onImportProject);
   return (
-    <div className="projects-page__header">
-      <TermHeader name={t('projects.termName')} sub={headerSub({ ...counts, configured })} />
+    <PageToolbar title={t('projects.termName')} facts={headerSub({ ...counts, configured })}>
       <div className="projects-page__header-actions">
         {showMore && (
           <MoreMenu configured={configured} onConnectEvaluations={onConnectEvaluations} onImportProject={onImportProject} />
@@ -76,6 +75,6 @@ export function ProjectsPageHeader({ counts, configured, onConnectEvaluations, o
           </button>
         )}
       </div>
-    </div>
+    </PageToolbar>
   );
 }

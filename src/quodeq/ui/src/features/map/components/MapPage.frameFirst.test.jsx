@@ -51,7 +51,7 @@ describe('MapPage paints its frame first', () => {
 
   it('settles on the visualisation once the deferred body mounts', () => {
     const { container } = render(<MapPage data={data()} callbacks={{}} />, WRAP);
-    expect(container.querySelector('.term-header')).toBeInTheDocument();
+    expect(container.querySelector('.page-toolbar')).toBeInTheDocument();
     expect(container.querySelector('.map-viz-container--skeleton')).toBeNull();
     expect(container.querySelector('.map-viz-container')).toBeInTheDocument();
     expect(container.textContent).toContain('2 violations');

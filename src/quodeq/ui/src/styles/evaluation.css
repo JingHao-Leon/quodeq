@@ -2,42 +2,19 @@
 .evaluate-screen {
   width: 100%;
   max-width: 1180px;
-  margin: 0 auto;
+  /* No page title: the topbar names the page and the first card carries
+     the heading, starting on the line every page's first row shares. */
+  margin: var(--page-top-gap) auto 0;
   /* Redesign radii, scoped so the global --term-radius stays untouched. */
   --eval-card-radius: 12px;
   --eval-tile-radius: 10px;
   --eval-inner-radius: 8px;
 }
 
-.evaluate-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--term-space-2);
-  margin-bottom: 12px;
-}
-
 @media (max-width: 600px) {
-  /* On narrow viewports stack the title above the right-hand cluster
-     (countdown timer + provider badge) so neither truncates. */
-  .evaluate-header {
-    align-items: flex-start;
-  }
-  .evaluate-header__right {
-    width: 100%;
-    justify-content: flex-start;
-  }
   .evaluate-panel__top--row {
     flex-wrap: wrap;
   }
-}
-
-.evaluate-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 2rem;
-  font-weight: 600;
-  color: var(--color-text);
 }
 
 .evaluate-subtitle {
@@ -713,10 +690,6 @@ button.eval-provider-badge--clickable:focus-visible {
   0%, 100% { transform: translateX(0) rotate(0deg); }
   40%       { transform: translateX(4px) rotate(3deg); }
   60%       { transform: translateX(-4px) rotate(-3deg); }
-}
-
-.evaluate-header h1 {
-  font-size: 1.75rem;
 }
 
 .panel-header {
@@ -2839,7 +2812,6 @@ button.eval-provider-badge--clickable:focus-visible {
 }
 
 /* Screen head + card titles */
-.evaluate-header--terminal .term-header__name { font-size: 25px; }
 .evaluate-panel--terminal .term-header__name { font-size: 19px; }
 
 /* ── Status pill in the job card title ── */
