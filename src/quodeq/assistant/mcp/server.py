@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TextIO
 
@@ -13,6 +15,7 @@ from quodeq.assistant.tools import ToolContext, build_registry
 from quodeq.assistant.tools.registry import ToolRegistry
 from quodeq.assistant.tools.write_tools import register_write_tools
 from quodeq.assistant import AssistantRepository
+from quodeq.config.assistant_env import assistant_mcp_log_path
 from quodeq.data.fs.standards_prefs import load_visible_standard_ids
 from quodeq.core.jsonrpc import JsonRpcErrorCode
 from quodeq.core.mcp_method import McpMethod
@@ -166,11 +169,37 @@ def _build_arg_parser(parser: argparse.ArgumentParser) -> argparse.ArgumentParse
     return parser
 
 
+# One rotation keeps the log bounded; a tool traceback is a few KB.
+_LOG_MAX_BYTES = 1_000_000
+_PACKAGE_LOGGER = "quodeq"
+
+
+def configure_logging(log_path: Path, *, fallback: TextIO) -> logging.Handler:
+    """Route WARNING and worse (a tool crash with its traceback, see
+    ``ToolRegistry.dispatch``) to *log_path*, or to *fallback* when that file
+    cannot be opened. Returns the handler so a caller can detach it."""
+    try:
+        handler: logging.Handler = RotatingFileHandler(
+            log_path, maxBytes=_LOG_MAX_BYTES, backupCount=1, encoding="utf-8")
+    except OSError:
+        handler = logging.StreamHandler(fallback)
+    handler.setLevel(logging.WARNING)
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    # quodeq's loggers do not propagate to the root (shared/logging.py), so
+    # the handler sits on the package logger every tool and store logs under.
+    package = logging.getLogger(_PACKAGE_LOGGER)
+    package.addHandler(handler)
+    if package.getEffectiveLevel() > logging.WARNING:
+        package.setLevel(logging.WARNING)
+    return handler
+
+
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point: build the registry from argv, then serve on stdio."""
     parser = argparse.ArgumentParser()
     _build_arg_parser(parser)
     ns = parser.parse_args(argv)
+    configure_logging(assistant_mcp_log_path(), fallback=sys.stderr)
     registry = _build_registry_from_args(ns)
     if ns.score_cache_override:
         from quodeq.services.score_cache import score_cache_path_override  # noqa: PLC0415

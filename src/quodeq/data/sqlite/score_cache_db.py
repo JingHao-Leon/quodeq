@@ -15,6 +15,7 @@ from typing import Iterator
 
 from quodeq.data.sqlite.constants import SQLITE_BUSY_TIMEOUT_MS
 from quodeq.data.sqlite._score_cache_epoch import CACHE_WRITER_EPOCH
+from quodeq.data.sqlite.read_only import connect_read_only, unwritable
 from quodeq.data.sqlite.score_cache_schema import (
     SCHEMA, ensure_principle_columns, ensure_run_scalars_columns, sync_cache_meta,
 )
@@ -105,6 +106,22 @@ def _connect_initialized(path: Path) -> sqlite3.Connection:
     return conn
 
 
+def _connect_read_only(path: Path) -> sqlite3.Connection:
+    """A read-only connection to a cache this process may not write to (the
+    assistant's MCP server inside the Codex sandbox): hits are served, and
+    ``read_through`` skips the write. Not memoized: nothing was initialized."""
+    conn = connect_read_only(path)
+    try:
+        row = conn.execute("SELECT value FROM cache_meta WHERE key='writer_epoch'").fetchone()
+    except sqlite3.DatabaseError:
+        conn.close()
+        raise
+    if row is None or row[0] != CACHE_WRITER_EPOCH:
+        conn.close()
+        raise sqlite3.OperationalError("score cache not initialized for this epoch and not writable")
+    return conn
+
+
 def _open_locked(path: Path) -> sqlite3.Connection:
     """Open *path*, running the full init only on a memo miss. Caller holds _OPEN_LOCK."""
     ident = _identity(path)
@@ -115,10 +132,13 @@ def _open_locked(path: Path) -> sqlite3.Connection:
             _INITIALIZED.discard(ident)
     try:
         conn = _init(path)
-    except sqlite3.OperationalError:
+    except sqlite3.OperationalError as exc:
         # Lock contention, not corruption -- another connection is mid-write.
         # Propagate so the caller can retry; deleting the file here would
-        # destroy a live, healthy database out from under its writer.
+        # destroy a live, healthy database out from under its writer. A file
+        # this process may not write to is served read-only instead.
+        if path.is_file() and unwritable(exc):
+            return _connect_read_only(path)
         raise
     except sqlite3.DatabaseError:
         _logger.warning("score cache at %s unreadable; rebuilding", path)

@@ -13,6 +13,7 @@ import sqlite3
 from dataclasses import dataclass
 
 from quodeq.core.types import DimensionResult
+from quodeq.data.sqlite.read_only import is_read_only
 from quodeq.data.sqlite.score_cache_db import open_score_cache, rollback_quietly
 from quodeq.data.sqlite.score_cache_map_snapshot import load_map_snapshots, save_map_snapshots  # noqa: F401
 from quodeq.data.sqlite.score_cache_principles import (
@@ -53,8 +54,11 @@ def write_cached_rows(
 
     Each dimension's scalars go to ``run_scalars`` and its principle grades to
     ``run_principle_scalars``, in one commit. Best-effort: logs and returns on
-    any SQLite error (the caller still has the computed result).
+    any SQLite error (the caller still has the computed result), and skips a
+    connection the cache opened read-only.
     """
+    if is_read_only(conn):
+        return
     try:
         conn.execute("DELETE FROM run_scalars WHERE project=? AND run_id=?", (project, run_id))
         write_principle_rows(conn, project, run_id, version, principle_rows(dims))
@@ -105,6 +109,8 @@ def _write_payload(
     conn: sqlite3.Connection, slot: _PayloadSlot, project: str, version: str, payload: dict,
 ) -> None:
     """Replace *project*'s payload in *slot* with *payload* at *version* (best-effort)."""
+    if is_read_only(conn):
+        return
     try:
         blob = json.dumps(payload)
     except (TypeError, ValueError):
@@ -143,6 +149,8 @@ def store_run_keys(
     dismiss_keys: set[tuple], class_keys: set[tuple],
 ) -> None:
     """Persist a run's key sets (best-effort)."""
+    if is_read_only(conn):
+        return
     try:
         conn.execute(
             "INSERT OR REPLACE INTO run_keys (project, run_id, dismiss_keys, class_keys) "
@@ -193,6 +201,8 @@ def _decode_keys(dj: str, cj: str) -> tuple[set[tuple], set[tuple]] | None:
 
 def store_run_change(conn: sqlite3.Connection, project: str, run_id: str, key: str, payload: dict) -> None:
     """Persist one run's History change data under *key* (best-effort)."""
+    if is_read_only(conn):
+        return
     store_run_payload(conn, RUN_CHANGE, RunKey(project, run_id, key), payload)
 
 
@@ -203,6 +213,8 @@ def load_run_changes(conn: sqlite3.Connection, project: str, keys: dict[str, str
 
 def prune_run_changes(conn: sqlite3.Connection, project: str, keep_run_ids: set[str]) -> None:
     """Drop *project*'s change rows for runs outside *keep_run_ids* (best-effort)."""
+    if is_read_only(conn):
+        return
     prune_run_payloads(conn, RUN_CHANGE, project, keep_run_ids)
 
 
