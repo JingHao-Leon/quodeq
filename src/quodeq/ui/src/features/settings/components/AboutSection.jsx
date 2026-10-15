@@ -6,17 +6,13 @@ import { t } from '../../../strings/index.js';
 const SITE_DOMAIN = 'quodeq.ai';
 const REPO_PATH = 'github.com/quodeq/quodeq';
 
-export default function AboutSection({ appVersion, settingsPhrase }) {
+export default function AboutSection({ settingsPhrase }) {
   return (
     <section className="panel settings-section">
       <div className="panel-header">
         <SectionLabel marker="▶">{t('settings.aboutLabel')}</SectionLabel>
       </div>
       <div className="settings-about-rows">
-        <div className="settings-about-row">
-          <span className="settings-about-key">{t('settings.versionLabel')}</span>
-          <span className="settings-about-value">{appVersion ?? '\u2014'}</span>
-        </div>
         <div className="settings-about-row">
           <span className="settings-about-key">{t('settings.website')}</span>
           <a className="settings-about-link" href="https://quodeq.ai" target="_blank" rel="noopener noreferrer">{SITE_DOMAIN}</a>
