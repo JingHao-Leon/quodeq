@@ -32,8 +32,8 @@ export async function postWhenTurnSlotFree(post) {
 
 /**
  * Assistant session actions: send a message, stop the in-flight turn, and
- * record a client-answered local exchange. Extracted verbatim from
- * useAssistantSession.js; useSessionLifecycle.js is the sibling half.
+ * record a client-answered local exchange. useSessionLifecycle.js owns the
+ * session itself; useAssistantSession.js joins the two.
  */
 export function useSessionActions({ sessionId, turnActive, stream, webEnabled, writeEnabled, setUserTurns, setTurnActive, setLocalError }) {
   const { postAssistantMessage, stopAssistantTurn } = useApi();
