@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from quodeq.services import shared_publish
-from quodeq.services.standards_share_content import with_share_extras
+from quodeq.services.standards_share_content import extra_texts, with_share_extras
 from quodeq.services._publish_git import prepare_clone, push_with_rebase_fallback
 from quodeq.services.import_validator import scan_injection, scan_text, validate_import
 from quodeq.services.standards_sharing import SHARED_HASH_KEY, share_hash, shareable_payload
@@ -199,7 +199,7 @@ def _write_from_remote(standard_id: str, remote: dict, evaluators_dir: Path) -> 
         raise ShareError("invalid", f"The shared copy of {standard_id} is not a valid standard: "
                                     + "; ".join(validation["errors"]))
     content = with_share_extras(validation["data"], shareable_payload(remote))
-    warnings = scan_injection(content) + _param_label_warnings(content)
+    warnings = scan_injection(content) + _extra_text_warnings(content)
     if warnings:
         raise ShareError("unsafe", "This standard contains text that looks like instructions to the "
                                    f"model: {'; '.join(warnings)}. It was not installed.")
@@ -209,8 +209,6 @@ def _write_from_remote(standard_id: str, remote: dict, evaluators_dir: Path) -> 
     return {"id": standard_id, "warnings": []}
 
 
-def _param_label_warnings(content: dict) -> list[str]:
-    """Injection warnings for requirement parameter labels, which ``scan_injection`` does not read."""
-    labels = [spec["label"] for p in content.get("principles", [])
-              for r in p.get("requirements", []) for spec in r.get("params", {}).values()]
-    return [f"Suspicious text in a parameter label: {w}" for label in labels for w in scan_text(label)]
+def _extra_text_warnings(content: dict) -> list[str]:
+    """Injection warnings for the share extras (hints, names, parameter labels)."""
+    return [f"Suspicious text in {where}: {w}" for where, text in extra_texts(content) for w in scan_text(text)]
