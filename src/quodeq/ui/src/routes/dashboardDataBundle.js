@@ -35,6 +35,7 @@ export function buildDashboardDataBundle({ state, sharedHasContent = false }) {
     accumulated: state.accumulated,
     latestAccumulated: state.latestAccumulated,
     loading: state.loading,
+    lastKnown: state.lastKnown,
     isFetching: state.isFetching,
     error: state.error,
     onRetry: state.refreshDashboardActive,

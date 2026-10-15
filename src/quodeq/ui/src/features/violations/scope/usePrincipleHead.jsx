@@ -3,9 +3,9 @@
  * it, its score and grade, its change since the previous day, week or month
  * (as its card on the dimension page shows it), the same numbers in the
  * previous period's run (for the tiles' and severities' changes), when its
- * dimension was evaluated, its since line, and its Risk: how many of the
- * Map's areas its findings put in fix first and watch. Every other scope
- * gets none.
+ * dimension was evaluated, its since line, its Risk: how many of the
+ * Map's areas its findings put in fix first and watch, and its score per
+ * period for the line under its description. Every other scope gets none.
  */
 import { useMemo } from 'react';
 import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
@@ -13,6 +13,8 @@ import { usePeriodDiffs } from '../../../hooks/usePeriodDiffs.js';
 import { sinceSummary } from '../../../models/sinceSummary.js';
 import { useStandardDescriptions } from '../../explorer/hooks/useStandardDescriptions.js';
 import useRiskAreas from '../../map/hooks/useRiskAreas.js';
+import { usePrincipleSeries } from '../../../hooks/usePrincipleSeries.js';
+import { principlePeriodSeries } from '../../../utils/principlePeriodSeries.js';
 import { reworkSummary } from '../../map/model/rankedAreas.js';
 import { riskMapParams } from '../../map/model/riskLinks.js';
 import { principleGradeOf, SCOPE_KIND } from './scopeModel.js';
@@ -109,13 +111,31 @@ function usePrincipleRisk({ isPrinciple, scope, history, onOpenMap }) {
   return { fixFirst, watch, onOpen, today: Boolean(history?.runId) };
 }
 
+// The header's line shows this many periods at most (the dimension chart shows 16).
+const HISTORY_PERIODS = 16;
+
+/**
+ * The principle's score per period of the chart's grouping (at most
+ * HISTORY_PERIODS, oldest first), from its dimension's series, for the
+ * header's score line; null for any other scope and until the series loads.
+ * @returns {?{points: object[], label: string}}
+ */
+export function usePrincipleScoreHistory({ isPrinciple, scope, history }) {
+  const { rows } = usePrincipleSeries(isPrinciple ? history?.project : null, history?.selectedSource, isPrinciple ? scope.dimension : null);
+  return useMemo(() => {
+    if (!isPrinciple) return null;
+    const points = principlePeriodSeries(rows, scope.principle, history?.granularity, HISTORY_PERIODS);
+    return points.length ? { points, label: t('violations.sparkAria', { principle: scope.principle }) } : null;
+  }, [isPrinciple, rows, scope.principle, history?.granularity]);
+}
+
 /**
  * @param {object} scope readScope output
  * @param {object[]} dims the dimensions on show
  * @param {?{project: string, selectedSource: string, trend: object[], granularity: string, runId: ?string}} history
  * @param {(params: object) => void} [onOpenMap] opens the Map with these nav params
  * @returns {{description?: string, grade?: ?object, change?: ?number, when?: ?string, previous?: ?object, since?: ?object,
- *   riskAreas?: ?{fixFirst: number, watch: number, onOpen?: Function, today: boolean}}}
+ *   riskAreas?: ?{fixFirst: number, watch: number, onOpen?: Function, today: boolean}, scoreHistory?: ?{points: object[], label: string}}}
  */
 export function usePrincipleHead(scope, dims, history, onOpenMap) {
   const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;
@@ -127,6 +147,7 @@ export function usePrincipleHead(scope, dims, history, onOpenMap) {
   const { principles: changes, previous, beforeRunId } = usePrinciplePeriodDeltas(args);
   const since = usePrincipleSince({ args, beforeRunId, scope, isPrinciple });
   const riskAreas = usePrincipleRisk({ isPrinciple, scope, history, onOpenMap });
+  const scoreHistory = usePrincipleScoreHistory({ isPrinciple, scope, history });
   if (!isPrinciple) return {};
   return {
     description: principleDescriptions?.[scope.principle] || '',
@@ -136,5 +157,6 @@ export function usePrincipleHead(scope, dims, history, onOpenMap) {
     previous: previousPrincipleCounts(previous, scope.principle),
     since,
     riskAreas,
+    scoreHistory,
   };
 }
