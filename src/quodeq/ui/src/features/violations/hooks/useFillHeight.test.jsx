@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { useRef } from 'react';
 import { render } from '@testing-library/react';
 import { FILL_VAR, fillHeightOf, useFillHeight } from './useFillHeight.js';
@@ -19,6 +19,8 @@ function layout({ height, pad, top, scrolled = 0 }) {
 }
 
 describe('useFillHeight', () => {
+  afterEach(() => { document.body.replaceChildren(); });
+
   it('measures the room from the split down to the scroller\'s bottom padding, wherever the page is scrolled', () => {
     expect(fillHeightOf(layout({ height: 750, pad: 32, top: 117 }).el)).toBe(601);
     expect(fillHeightOf(layout({ height: 750, pad: 32, top: 117, scrolled: 50 }).el)).toBe(601);
