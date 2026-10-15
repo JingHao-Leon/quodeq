@@ -7,6 +7,9 @@
 // the user drags (each slider used to clamp itself inline; centralizing it
 // here means every caller of update() gets the same behaviour for free).
 
+const FLOOR_MINOR = 'floorMinor';
+const FLOOR_MAJOR = 'floorMajor';
+
 /**
  * Keep `floorMinor >= floorMajor` when a patch touches either floor.
  *
@@ -22,15 +25,17 @@
  */
 export function clampFloors(draft, patch) {
   if (!draft || !patch) return patch;
-  if (!('floorMinor' in patch) && !('floorMajor' in patch)) return patch;
+  const movesMinor = FLOOR_MINOR in patch;
+  const movesMajor = FLOOR_MAJOR in patch;
+  if (!movesMinor && !movesMajor) return patch;
 
   // The other floor is the patch's own when it carries both (Undo all
   // restores a whole saved formula), else the draft's.
-  const minor = 'floorMinor' in patch ? patch.floorMinor : draft.floorMinor;
-  const major = 'floorMajor' in patch ? patch.floorMajor : draft.floorMajor;
+  const minor = movesMinor ? patch.floorMinor : draft.floorMinor;
+  const major = movesMajor ? patch.floorMajor : draft.floorMajor;
   const next = { ...patch };
-  if ('floorMinor' in next) next.floorMinor = Math.max(next.floorMinor, major);
-  if ('floorMajor' in next) next.floorMajor = Math.min(next.floorMajor, minor);
+  if (movesMinor) next.floorMinor = Math.max(next.floorMinor, major);
+  if (movesMajor) next.floorMajor = Math.min(next.floorMajor, minor);
   return next;
 }
 
