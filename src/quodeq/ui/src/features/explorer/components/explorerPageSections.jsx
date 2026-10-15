@@ -85,7 +85,7 @@ export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinc
         {where === WHERE.AREAS && areasOfToday && <p className="explorer-where__note">{t('explorer.areasOfToday')}</p>}
         {where === WHERE.AREAS && (
           <RiskAreasPanel project={project} source={selectedSource} dimensions={dimensions}
-            onAreaClick={findingsNav.onAreaClick} onOpenRisk={findingsNav.onOpenRisk} />
+            onAreaFindings={findingsNav.onAreaFindings} onAreaInMap={findingsNav.onAreaInMap} onOpenRisk={findingsNav.onOpenRisk} />
         )}
         {where === WHERE.FOLDERS && <FindingsByFolderPanel dimensions={fixFirstDims} onFolderClick={findingsNav.onFolderClick} />}
         {where === WHERE.FILES && <OffendingFilesSection topFiles={d.topFiles} onFileClick={findingsNav.onFileClick} />}

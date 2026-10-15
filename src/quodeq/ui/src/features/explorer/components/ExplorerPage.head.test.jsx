@@ -20,9 +20,12 @@ vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePerio
 vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: data.diffs }) }));
 // The Map's areas read through react-query as well.
 vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({
-  default: ({ dimensions, onAreaClick, onOpenRisk }) => (
+  default: ({ dimensions, onAreaFindings, onAreaInMap, onOpenRisk }) => (
     <>
-      <button type="button" onClick={() => onAreaClick({ name: 'api' })}>area row {dimensions.join(',')}</button>
+      <button type="button" onClick={() => onAreaFindings({ kind: 'area', name: 'api', paths: ['src/api/'], small: false, dimensions })}>
+        area row {dimensions.join(',')}
+      </button>
+      <button type="button" onClick={() => onAreaInMap({ name: 'api' })}>area in map</button>
       <button type="button" onClick={onOpenRisk}>risk in map</button>
     </>
   ),
@@ -169,10 +172,14 @@ describe('ExplorerPage header', () => {
     expect(screen.getByRole('button', { name: 'file row' })).toBeInTheDocument();
   });
 
-  it('an area opens the Map\'s Risk tab filtered to this dimension with that area selected; the foot, the filtered sky', () => {
+  it('an area opens its findings over this dimension; its map icon the Risk tab filtered to it with the area selected; the foot, the filtered sky', () => {
     const onNavigate = vi.fn();
     page({ onNavigate });
     fireEvent.click(screen.getByRole('button', { name: 'area row security' }));
+    expect(onNavigate).toHaveBeenLastCalledWith('violations', {
+      scope: { kind: 'area', name: 'api', paths: ['src/api/'], small: false, dimensions: ['security'] }, asOf: null,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'area in map' }));
     expect(onNavigate).toHaveBeenLastCalledWith('map', { vizStyle: 'risk', dimensions: ['security'], area: 'api' });
     fireEvent.click(screen.getByRole('button', { name: 'risk in map' }));
     expect(onNavigate).toHaveBeenLastCalledWith('map', { vizStyle: 'risk', dimensions: ['security'] });
