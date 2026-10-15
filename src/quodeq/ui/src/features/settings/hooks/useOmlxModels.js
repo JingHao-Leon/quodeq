@@ -8,8 +8,8 @@ import { useProviderModels } from './useProviderModels.js';
 const MODELS_KEY_PREFIX = ['settings', 'omlxModels'];
 
 /**
- * OmlxTab.jsx's models query plus its offline->online invalidation effect.
- * Extracted verbatim.
+ * The oMLX tab's model list and server status, refetched when the server
+ * comes back online, plus `reloadModels` for after a key is saved.
  */
 export function useOmlxModels({ apiBase, apiKey }) {
   const { getOmlxModels } = useApi();
