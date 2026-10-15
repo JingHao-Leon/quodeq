@@ -54,7 +54,8 @@ export default function ApiKeyRow({ providerId, update, description, onSaved }) 
       .then(() => {
         queryClient.invalidateQueries({ queryKey: keyStatusQuery(providerId) });
         onSaved?.();
-      });
+      })
+      .catch((err) => console.warn('[ApiKeyRow] key status refresh failed:', err));
   };
 
   return (
