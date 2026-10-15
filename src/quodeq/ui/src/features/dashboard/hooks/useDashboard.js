@@ -230,6 +230,8 @@ export function useRunDashboard({ project, runId, source = PROJECT_SOURCE.LOCAL 
   const config = buildDashboardQueryConfig({
     projectKey: project, selectedRun: runId, selectedSource: source, fetchDashboard, selectedProject: project, frozenRun: true, keepPlaceholder: false,
   });
+  // Without a run the key names the latest run's entry, which the app's own
+  // dashboard query fills: read nothing rather than that run.
   const { data } = useQuery({ ...config, enabled: Boolean(project && runId) });
-  return data && !isPendingPayload(data) ? data : null;
+  return runId && data && !isPendingPayload(data) ? data : null;
 }
