@@ -89,11 +89,22 @@ def _commit_from_data(data: dict | None) -> str | None:
     return val if isinstance(val, str) and val else None
 
 
+# Where a project folder names its git origin: a project added in the app records the URL it was
+# registered with; a CLI or CI evaluation (a PR review's throwaway project) records only the
+# normalised remote it ran in.
+_ORIGIN_KEYS = ("originUrl", "remote_url")
+
+
 def read_origin_url(run_dir: Path) -> str | None:
     """The git origin of the project folder that holds *run_dir*, or None."""
     info = read_repository_info(run_dir.parent)
-    url = info.get("originUrl") if isinstance(info, dict) else None
-    return url if isinstance(url, str) and url else None
+    if not isinstance(info, dict):
+        return None
+    for key in _ORIGIN_KEYS:
+        url = info.get(key)
+        if isinstance(url, str) and url:
+            return url
+    return None
 
 
 def read_dimensions_from_status(run_dir: Path) -> list[str] | None:

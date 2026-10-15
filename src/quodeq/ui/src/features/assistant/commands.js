@@ -76,13 +76,14 @@ export function buildMetaResponse(kind, catalog, { readOnly = false } = {}) {
   return `${intro}\n\n**Commands**\n${commandLines(catalog, readOnly)}`;
 }
 
-export function pillsForView(catalog, view, { readOnly = false } = {}) {
+export function pillsForView(catalog, view, { readOnly = false, page = undefined } = {}) {
   if (!view) return [];
   const skills = offeredSkills(catalog, readOnly);
-  // Only skills declared for this view: a padded pill whose skill cannot run
-  // in the current scope invites a guaranteed-to-fail first tool call.
+  // Only skills declared for this tab, or for the drill-down page under it: a
+  // padded pill whose skill cannot run in the current scope invites a
+  // guaranteed-to-fail first tool call.
   return skills
-    .filter((s) => (s.views ?? []).includes(view))
+    .filter((s) => (s.views ?? []).includes(view) || (page && (s.views ?? []).includes(page)))
     .slice(0, MAX_PILLS_PER_VIEW)
     .map((s) => ({
       label: s.name.replace(/-/g, ' ').replace(/^./, (ch) => ch.toUpperCase()),

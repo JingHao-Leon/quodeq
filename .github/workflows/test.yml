@@ -28,17 +28,21 @@ jobs:
     strategy:
       fail-fast: false
       # shard: QUODEQ_TEST_SHARD (tests/_sharding.py). Windows is already
-      # using every core of one runner, so the only way to cut its ~8-12 min
-      # further is two runners, each collecting half the test files. The
-      # other legs run the whole suite on one job (1/1 leaves collection
-      # untouched). Setup is paid twice on Windows, but in parallel.
+      # using every core of one runner, so the only way to cut its time is
+      # more runners, each collecting a share of the test files. Two shards
+      # still left Windows at 6-13 min against 3-5 min on ubuntu and macOS
+      # (the file hash gave one shard ~5.9k tests, the other ~5.1k); three
+      # split ~3.6k / 3.9k / 3.5k. The other legs run the whole suite on one
+      # job (1/1 leaves collection untouched). Setup is paid per shard on
+      # Windows, but in parallel.
       matrix:
         os: [ubuntu-latest, macos-latest]
         python-version: ["3.13"]
         shard: ["1/1"]
         include:
-          - { os: windows-latest, python-version: "3.13", shard: "1/2" }
-          - { os: windows-latest, python-version: "3.13", shard: "2/2" }
+          - { os: windows-latest, python-version: "3.13", shard: "1/3" }
+          - { os: windows-latest, python-version: "3.13", shard: "2/3" }
+          - { os: windows-latest, python-version: "3.13", shard: "3/3" }
 
     steps:
       - uses: actions/checkout@v7.0.1

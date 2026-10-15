@@ -109,8 +109,8 @@ function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, on
       <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={opens.requirement} />
       <WherePanel view={where} onView={setWhere}>
         {where === WHERE.AREAS && (
-          <RiskAreasPanel project={data.selectedProject} source={data.selectedSource}
-            onAreaClick={openMap ? (area) => openMap(riskMapParams({ area: area.name })) : undefined}
+          <RiskAreasPanel project={data.selectedProject} source={data.selectedSource} onAreaFindings={opens.area}
+            onAreaInMap={openMap ? (area) => openMap(riskMapParams({ area: area.name })) : undefined}
             onOpenRisk={openMap ? () => openMap(riskMapParams()) : undefined} />
         )}
         {where === WHERE.FOLDERS && (
@@ -149,9 +149,18 @@ function makeFileNavigate({ onNavigate, asOf }) {
   return (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf);
 }
 
-/** What the panels below the cards open: a requirement, a folder, a file. */
+/**
+ * The areas: an area opens on its findings. The Map measures today's
+ * findings, so its areas open today's view even on a past run.
+ */
+function makeAreaNavigate({ onNavigate }) {
+  if (!onNavigate) return undefined;
+  return (scope) => openScope(onNavigate, scope);
+}
+
+/** What the panels below the cards open: a requirement, an area, a folder, a file. */
 function makeFindingsNavigate(args) {
-  return { requirement: makeRequirementNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
+  return { requirement: makeRequirementNavigate(args), area: makeAreaNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
 }
 
 /** The dimension a mover's name (lowercase) opens, if one is on show. */

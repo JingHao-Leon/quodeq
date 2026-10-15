@@ -33,8 +33,11 @@ function scopedNav({ dimension, scoped, onNavigate, activeRunId, trend }) {
     toRequirement: onNavigate && ((row) => openScope(onNavigate, { kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }, asOf)),
     // A folder opens the findings list on that folder and this dimension.
     toFolder: onNavigate && ((row) => onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: [`${row.dir}${FOLDER_SUFFIX}`], dimension, selectedId: null }, asOf })),
+    // An area opens on its findings over this dimension (the panel builds the scope); the Map measures
+    // today's findings, so it opens today's view even on a past run.
+    toAreaFindings: onNavigate && ((scope) => openScope(onNavigate, scope)),
     // The Map's Risk tab filtered to this dimension: with an area selected, or the whole sky.
-    toArea: onNavigate && ((area) => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension], area: area.name }))),
+    toAreaInMap: onNavigate && ((area) => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension], area: area.name }))),
     toRisk: onNavigate && (() => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension] }))),
   };
 }
@@ -48,7 +51,8 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
     // The Violations tab and the Map read the selected project only: another project's requirements, folders and areas open nothing.
     toRequirement: undefined,
     toFolder: undefined,
-    toArea: undefined,
+    toAreaFindings: undefined,
+    toAreaInMap: undefined,
     toRisk: undefined,
   };
 }
@@ -59,9 +63,9 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
  * the header's tiles and severity badges the dimension on their filter, a
  * row of the files table the file, a principle (card or radial) the
  * principle, a Fix first row its requirement, a folder the findings list on
- * that folder and the dimension, an area the Map's Risk tab filtered to the
- * dimension with that area selected (the panel's foot the whole filtered
- * sky). A cross-project explorer (Compare) keeps the File page with the
+ * that folder and the dimension, an area its findings over the dimension
+ * (its map icon the Map's Risk tab filtered to the dimension with that area
+ * selected, the panel's foot the whole filtered sky). A cross-project explorer (Compare) keeps the File page with the
  * snapshot it is handed, and the principle page, and its requirements,
  * folders and areas open nothing, as the Violations tab and the Map only
  * read the selected project.
@@ -69,13 +73,14 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
  *   project: string, activeRunId: (string|null), activeDateLabel: (string|null), sourceTab?: string, trend?: object[],
  *   buildEvalPrincipal?: (name: string) => object}} args
  * @returns {{handleCardNavigate: Function, onSeverityBadge: Function, onFileClick: Function, onPrincipleClick: Function,
- *   onRequirementClick: (Function|undefined), onFolderClick: (Function|undefined), onAreaClick: (Function|undefined),
- *   onOpenRisk: (Function|undefined)}}
+ *   onRequirementClick: (Function|undefined), onFolderClick: (Function|undefined), onAreaFindings: (Function|undefined),
+ *   onAreaInMap: (Function|undefined), onOpenRisk: (Function|undefined)}}
  */
 export function buildExplorerFindingsNav(args) {
-  const { toCard, toFile, toPrinciple, toRequirement, toFolder, toArea, toRisk } = args.scoped ? scopedNav(args) : filePageNav(args);
+  const { toCard, toFile, toPrinciple, toRequirement, toFolder, toAreaFindings, toAreaInMap, toRisk } = args.scoped ? scopedNav(args) : filePageNav(args);
   return {
     handleCardNavigate: toCard, onSeverityBadge: (level) => () => toCard(level), onFileClick: toFile, onPrincipleClick: toPrinciple,
-    onRequirementClick: toRequirement, onFolderClick: toFolder, onAreaClick: toArea, onOpenRisk: toRisk,
+    onRequirementClick: toRequirement, onFolderClick: toFolder, onAreaFindings: toAreaFindings, onAreaInMap: toAreaInMap,
+    onOpenRisk: toRisk,
   };
 }

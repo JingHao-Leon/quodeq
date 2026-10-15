@@ -1,6 +1,8 @@
+import { useRef } from 'react';
 import TrendBadge from './TrendBadge.jsx';
 import { GRANULARITY } from '../utils/granularity.js';
 import { t } from '../strings/index.js';
+import { useRowStarts } from '../hooks/useRowStarts.js';
 
 /** New and fixed findings, or, when neither moved, one quiet line saying so. */
 function FindingCounts({ summary }) {
@@ -39,9 +41,16 @@ function Movers({ movers, onMover }) {
  */
 export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, movers = [], onMover }) {
   if (!summary) return null;
+  return <SinceStripBody summary={summary} granularity={granularity} movers={movers} onMover={onMover} />;
+}
+
+// Mounted only with a summary, so the row marks start with the strip itself.
+function SinceStripBody({ summary, granularity, movers, onMover }) {
+  const stripRef = useRef(null);
+  useRowStarts(stripRef);
   const label = t(`overview.sincePeriod_${granularity}`);
   return (
-    <section className="overview-since" aria-label={label}>
+    <section ref={stripRef} className="overview-since" aria-label={label}>
       <span className="overview-since__label">{label}</span>
       <FindingCounts summary={summary} />
       {summary.typesOpened > 0 && <span className="overview-since__num">{t('overview.sinceTypesOpened', { count: summary.typesOpened })}</span>}

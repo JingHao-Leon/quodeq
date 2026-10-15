@@ -8,7 +8,7 @@ On by default. Toggle it with `` Ctrl+` `` (`` Cmd+` `` works too on macOS). It 
 
 ### What it can see
 
-The assistant follows you around the app: it knows which project, run, tab, and dimension you are looking at, so *why is this score low?* needs no extra context. Its tools read scores, reports, and violations, search findings, and read files from the analyzed repository. All of them are read-only.
+The assistant follows you around the app: it knows which project, run, tab, dimension, folder, file, principle or finding you are looking at, so *why is this score low?* or *why does this folder have so many findings?* needs no extra context. Its tools read scores, reports and violations (for the whole project or one folder or file), search findings, read the score history, diff two runs, compare projects, list dismissed and verified findings, and read files from the analyzed repository. All of them are read-only.
 
 ### Actions need your approval
 
@@ -21,10 +21,10 @@ Creating a standard is an interview. The assistant asks what it should enforce a
 | Key | Value |
 | --- | --- |
 | /help | What the assistant can do. |
-| /skills | List the built-in skills: explain-score, explain-finding, verify-finding, create-standard. |
+| /skills | List the built-in skills: explain-score, explain-finding, explain-folder, explain-file, explain-trend, compare-runs, compare-projects, verify-finding, create-standard. |
 | /clear | Start a fresh conversation. |
 
-Skills are guided workflows. The welcome screen suggests the ones relevant to the tab you are on.
+Skills are guided workflows. The welcome screen suggests the ones relevant to the tab or page you are on.
 
 ### Provider and privacy
 

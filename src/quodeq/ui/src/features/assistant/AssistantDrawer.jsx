@@ -85,7 +85,7 @@ export function AssistantPane({ uiState, active = true }) {
   return (
     <>
       {messages.length === 0
-        ? <AssistantWelcome catalog={catalog} view={uiState?.view} onPick={setDraft} readOnly={readOnly} />
+        ? <AssistantWelcome catalog={catalog} view={uiState?.view} page={uiState?.page} onPick={setDraft} readOnly={readOnly} />
         : <MessageList messages={messages} streaming={streaming} />}
       {error && <div className="assistant-drawer-error" role="alert">{error}</div>}
       <AssistantInputRow

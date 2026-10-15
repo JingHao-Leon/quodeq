@@ -60,12 +60,16 @@ export function normalizeOriginUrl(url) {
 /**
  * The project whose git origin is the same repository as `url`: how a run
  * filed under a throwaway project (a PR review) finds the project it reviews.
- * @param {Array<{originUrl?: string|null}>|null|undefined} projects
+ * When several projects share the origin (a repository and a subfolder of it
+ * added on its own), the one named like the repository wins.
+ * @param {Array<{name?: string, originUrl?: string|null}>|null|undefined} projects
  * @param {string|null|undefined} url
  * @returns {object|null}
  */
 export function findProjectByOrigin(projects, url) {
   const key = normalizeOriginUrl(url);
   if (!key) return null;
-  return projects?.find((p) => normalizeOriginUrl(p.originUrl) === key) || null;
+  const matches = (projects || []).filter((p) => normalizeOriginUrl(p.originUrl) === key);
+  const repoName = key.slice(key.lastIndexOf('/') + 1);
+  return matches.find((p) => (p.name || '').toLowerCase() === repoName) || matches[0] || null;
 }

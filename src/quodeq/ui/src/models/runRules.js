@@ -42,6 +42,17 @@ export function isFrozenRun(selectedRun, availableRuns) {
   return status !== RUN_STATE.RUNNING;
 }
 
+/**
+ * The newest run the score history plots: the newest finished one. Mirrors the server's trend rule
+ * (scoring_view.select_trend_runs): a cancelled or failed run is listed but never a history point, so it is
+ * never "the latest" the Overview goes back to; a running one is not settled yet.
+ * @param {{runId: string, status?: string}[]} availableRuns newest first
+ * @returns {?string}
+ */
+export function latestHistoryRunId(availableRuns) {
+  return (availableRuns || []).find((r) => r.status === RUN_STATE.DONE)?.runId ?? null;
+}
+
 /** True when a finding's confidence is below the low-signal threshold. */
 export function isLowConfidence(finding) {
   return typeof finding?.confidence === 'number'

@@ -79,6 +79,18 @@ describe('RunDetail', () => {
     expect(document.querySelector('.rl-hero .chip').textContent).toBe('GOOD');
   });
 
+  it('a cancelled run says how it stopped and what it finished, under the identity line', () => {
+    renderDetail({ run: { ...run, partial: true, plannedDims: ['performance', 'security'], exitReason: 'signal_SIGTERM' }, baseline: null, diff: null });
+    const note = screen.getByText(/^Cancelled after 3h 30m \(stopped by a signal\)\./);
+    expect(note).toHaveTextContent('1 of 2 dimensions finished; performance did not.');
+    expect(note.previousElementSibling).toHaveTextContent('6d62f65 · took 3h 30m');
+  });
+
+  it('a finished run has no cancelled line', () => {
+    renderDetail();
+    expect(screen.queryByText(/Cancelled/)).not.toBeInTheDocument();
+  });
+
   it('a dimension card opens that dimension', () => {
     const p = renderDetail();
     fireEvent.click(screen.getByText('security').closest('.dim-gauge-card'));

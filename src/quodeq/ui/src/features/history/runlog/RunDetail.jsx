@@ -10,6 +10,7 @@ import RunFindings from './RunFindings.jsx';
 import RunDimensions from './RunDimensions.jsx';
 import { dayLabel, timeLabel, scoreText, numberText } from './runFormat.js';
 import { originLabel, originUrl } from './runLogModel.js';
+import { cancelledNote } from './cancelledRun.js';
 
 const TAB_DIMS = 'dimensions';
 const TAB_NEW = 'new';
@@ -57,6 +58,12 @@ function Identity({ run, throughput }) {
   ].filter(Boolean);
   if (!parts.length) return null;
   return <div className="rl-idline">{parts.join(' · ')}</div>;
+}
+
+// A cancelled run says so under the hero: how it stopped, what it finished, what becomes of its work.
+function CancelledNote({ run }) {
+  if (!run.partial) return null;
+  return <div className="rl-idline rl-cancelnote">{cancelledNote(run)}</div>;
 }
 
 function Tab({ id, active, count, empty = false, cls, label, sev, onTab }) {
@@ -117,6 +124,7 @@ export default function RunDetail({ run, baseline, diff, throughput, tab, onTab,
       <div className="rl-detail__body">
         <Hero run={run} baseline={baseline} onOpenRun={onOpenRun} onDelete={onDelete} />
         <Identity run={run} throughput={throughput} />
+        <CancelledNote run={run} />
         <Tabs run={run} diff={diff} view={view} onTab={onTab} />
         <div className="rl-body">
           {view.list

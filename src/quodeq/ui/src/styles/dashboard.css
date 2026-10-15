@@ -3632,6 +3632,34 @@
 .risk-zone-chip--fixFirst { color: var(--color-sev-critical-text); border-color: var(--color-sev-critical-border); background: var(--color-sev-critical-bg); }
 .risk-zone-chip--watch { color: var(--color-sev-major-text); border-color: var(--color-sev-major-border); background: var(--color-sev-major-bg); }
 .risk-areas-panel__none { padding: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+/* A row opens its area: the name is a button stretched over the row (as .term-stat__hitbox); the map icon sits above it. */
+.risk-areas-panel .term-grid__row { position: relative; transition: background-color 0.12s; }
+.risk-areas-panel__open {
+  appearance: none; display: block; width: 100%; min-width: 0; margin: 0; padding: 0;
+  border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.risk-areas-panel__open::after { content: ''; position: absolute; inset: 0; }
+.risk-areas-panel__open:focus-visible { outline: none; }
+.risk-areas-panel__open:is(:hover, :focus-visible) .offending-file-name { color: var(--color-accent); }
+.risk-areas-panel .term-grid__row:has(.risk-areas-panel__open:hover) { background: var(--color-surface-alt); }
+.risk-areas-panel .term-grid__row:has(.risk-areas-panel__open:focus-visible) {
+  background: var(--color-surface-alt); box-shadow: inset 2px 0 0 var(--color-accent);
+}
+/* A row's end: the area in the Risk map, a muted glyph that takes the accent on hover and focus. */
+.risk-areas-panel__map {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  border: none; border-radius: 4px; background: transparent;
+  color: var(--color-text-muted); cursor: pointer;
+}
+.risk-areas-panel__map:hover, .risk-areas-panel__map:focus-visible { color: var(--color-accent); }
+.risk-areas-panel__map:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+/* On a phone the name takes the row's first line, its figures (and the map icon) the second, so neither is cut. */
+@media (max-width: 600px) {
+  .risk-areas-panel .term-grid__row { grid-template-columns: auto auto minmax(0, 1fr) auto auto; row-gap: 4px; }
+  .risk-areas-panel .term-grid__row > .term-grid__cell:first-child { grid-column: 1 / -1; }
+}
 
 /* The Findings header (scoped views, the dimension page) and the scoped views' list and cards. */
 .findings-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); padding: 12px 18px; margin-bottom: var(--space-3); }
@@ -3640,10 +3668,10 @@
 .findings-head__ring .dim-gauge-card__gauge { padding: 0; }
 .findings-head__ring svg { width: 76px; height: 76px; }
 .findings-head__ring .dim-gauge-card__insuf-line { display: none; }
-.findings-head__who { flex: 1 1 300px; min-width: 0; }
+.findings-head__who { flex: 1 1 400px; min-width: 0; }
 .findings-head__desc { margin: 8px 0 0; max-width: 64ch; color: var(--color-text-secondary); font-size: var(--text-sm); line-height: 1.45; }
 .findings-head__hint { margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-xs); }
-.findings-head__stats { display: flex; flex: 0 0 auto; flex-wrap: wrap; }
+.findings-head__stats { display: flex; flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
 .findings-head__stat { display: flex; flex-direction: column; gap: 5px; min-width: 104px; padding: 2px 16px; border-left: 1px solid var(--color-border); }
 /* A tile that opens something: its label and value are a button stretched over the tile (as .term-stat__hitbox);
    the line under it lets clicks fall through to it, its severity badges are buttons of their own above it. */
@@ -3753,15 +3781,14 @@
   .req-rail { height: auto; max-height: 280px; }
 }
 
-/* the header as a grid: ring | name and description (gives way first) | tiles; tiles go below only on narrow screens */
-.findings-head { display: grid; grid-template-columns: auto minmax(240px, 1fr) auto; align-items: center; }
-.findings-head:not(:has(.findings-head__ring)) { grid-template-columns: minmax(240px, 1fr) auto; }
-.findings-head .findings-head__stats { flex-wrap: nowrap; }
-@media (max-width: 1250px) {
-  .findings-head { grid-template-columns: auto minmax(0, 1fr); }
-  .findings-head:not(:has(.findings-head__ring)) { grid-template-columns: minmax(0, 1fr); }
-  .findings-head .findings-head__stats { grid-column: 1 / -1; flex-wrap: wrap; }
+/* ring | name and description | tiles share a row only while the name keeps room to read (its basis);
+   otherwise the tiles go below as one block, and wrap there on narrow screens */
+@media (max-width: 600px) {
+  .findings-head__who { flex-basis: 200px; }
 }
+/* a divider reads only between two things on one row: none on a tile that starts a row (hooks/useRowStarts) */
+.findings-head__stats[data-row-start] > .findings-head__stat:first-child,
+.findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; padding-left: 0; }
 /* the Violations tile's severity pills wrap inside the tile */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
 
@@ -3776,10 +3803,9 @@
 /* a past run on show: a quiet band, when it ran in plain words, and the way back as a button */
 .findings-head__past { margin: 8px 0 0; display: inline-flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px;
   border-left: 2px solid var(--color-accent); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--color-accent) 7%, transparent);
-  font-size: var(--text-xs); }
-.findings-head__past-label { color: var(--color-text-muted); }
-.findings-head__past-when { color: var(--color-text); font-family: var(--font-mono); }
-.findings-head__back { margin-left: 4px; padding: 2px 10px; border: 1px solid color-mix(in srgb, var(--color-accent) 60%, transparent); border-radius: 999px;
-  background: none; color: var(--color-accent); font: inherit; cursor: pointer; }
-.findings-head__back:hover { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
+  font-size: var(--text-xs); flex-wrap: wrap; row-gap: 4px; }
+.findings-head__past-label { color: var(--color-text-muted); white-space: nowrap; }
+.findings-head__past-when { color: var(--color-text); font-family: var(--font-mono); white-space: nowrap; }
+/* the way back is the app's small button (as History's "open run") */
+.findings-head__back { margin-left: 4px; height: 24px; }
 .findings-head__back:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
