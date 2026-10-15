@@ -5,11 +5,12 @@ import OverviewHead from './OverviewHead.jsx';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
-import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import WherePanel, { WHERE, WHERE_VIEWS, WHERE_PAGE } from '../../../components/WherePanel.jsx';
+import { useWhereView } from '../../../components/useWhereView.js';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import RadialPanel from '../../../components/radial/RadialPanel.jsx';
 import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
-import { riskMapParams } from '../../map/model/riskLinks.js';
+import { riskMapParams, packMapParams } from '../../map/model/riskLinks.js';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
 import { withDimensionsStr } from '../../../utils/dimensionUtils.js';
 import { SectionLabel } from '../../../components/terminal/index.js';
@@ -101,7 +102,7 @@ function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
 
 /** What to fix beside where it is: Fix first on the left, the areas, folders or files on the right (areas first). */
 function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, onNavigate }) {
-  const [where, setWhere] = useState(WHERE.AREAS);
+  const [where, setWhere] = useWhereView(WHERE_PAGE.OVERVIEW, WHERE.AREAS, WHERE_VIEWS);
   const openMap = onNavigate ? (params) => onNavigate(NAV_TAB.MAP, params) : null;
   return (
     <div className="explorer-bottom">
@@ -113,7 +114,8 @@ function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, on
             onOpenRisk={openMap ? () => openMap(riskMapParams()) : undefined} />
         )}
         {where === WHERE.FOLDERS && (
-          <FindingsByFolderPanel dimensions={filteredDimensions} onFolderClick={opens.folder} onOpenMap={openMap ? () => openMap() : undefined} />
+          <FindingsByFolderPanel dimensions={filteredDimensions} onFolderClick={opens.folder} onOpenMap={openMap ? () => openMap() : undefined}
+            onFolderInMap={openMap ? (row) => openMap(packMapParams(row.dir)) : undefined} />
         )}
         {where === WHERE.FILES && <OffendingFilesSection topFiles={topFiles} pending={pending} onFileClick={opens.file} />}
       </WherePanel>

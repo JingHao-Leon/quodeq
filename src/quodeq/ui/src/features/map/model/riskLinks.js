@@ -18,3 +18,13 @@ export function riskMapParams({ dimensions = null, principle = null, area = null
     ...(area ? { area } : {}),
   };
 }
+
+/**
+ * The Map nav params of the circle pack opened on a folder (the project root
+ * when *path* is empty).
+ * @param {string} path - the folder, relative to the project root
+ * @returns {{vizStyle: string, path?: string}}
+ */
+export function packMapParams(path) {
+  return { vizStyle: VIZ_STYLE.ZOOMPACK, ...(path ? { path } : {}) };
+}

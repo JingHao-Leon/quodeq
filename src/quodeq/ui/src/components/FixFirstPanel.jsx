@@ -28,7 +28,7 @@ export default function FixFirstPanel({ dimensions, onRequirementClick, oneDimen
   if (rows.length === 0) return null;
   const list = open ? rows : rows.slice(0, FIX_FIRST_SHOWN);
   return (
-    <section className="qd-cards-panel fix-first-panel" aria-label={t('overview.fixFirstAria')}>
+    <section className={`qd-cards-panel fix-first-panel${open ? ' fix-first-panel--open' : ''}`} aria-label={t('overview.fixFirstAria')}>
       <div className="qd-cards-panel__head">
         <SectionLabel>{t('overview.fixFirstLabel')} · {rows.length.toLocaleString(LOCALE)}</SectionLabel>
         <span className="run-history-panel__stats">{t('overview.fixFirstNote')}</span>

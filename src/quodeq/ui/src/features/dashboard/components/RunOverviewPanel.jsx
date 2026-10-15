@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import RunHead from './RunHead.jsx';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
 import OverviewSkeleton, { SkeletonBottom } from './OverviewSkeleton.jsx';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
-import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import WherePanel, { WHERE, WHERE_PAGE } from '../../../components/WherePanel.jsx';
+import { useWhereView } from '../../../components/useWhereView.js';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import RunChangeFooter from '../../../components/RunChangeFooter.jsx';
@@ -39,7 +40,7 @@ function RunDimensionsSection({ sorted, dimTrends, footerFor, onDimensionClick }
 
 /** Fix first beside where the findings are, the run's folders or files; the skeleton while its findings load. */
 function RunBottom({ dimensions, topFiles, loading, opens }) {
-  const [where, setWhere] = useState(WHERE.FOLDERS);
+  const [where, setWhere] = useWhereView(WHERE_PAGE.RUN, WHERE.FOLDERS, RUN_WHERE_VIEWS);
   if (loading) return <SkeletonBottom run />;
   return (
     <div className="explorer-bottom">

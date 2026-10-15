@@ -2,7 +2,7 @@ import { NAV_TAB } from '../../../vocab/navTab.js';
 import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
 import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { runAsOf } from '../../violations/asOf.js';
-import { riskMapParams } from '../../map/model/riskLinks.js';
+import { riskMapParams, packMapParams } from '../../map/model/riskLinks.js';
 
 // A path chip ending in '/' is a folder: everything under it.
 const FOLDER_SUFFIX = '/';
@@ -39,6 +39,7 @@ function scopedNav({ dimension, scoped, onNavigate, activeRunId, trend }) {
     // The Map's Risk tab filtered to this dimension: with an area selected, or the whole sky.
     toAreaInMap: onNavigate && ((area) => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension], area: area.name }))),
     toRisk: onNavigate && (() => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension] }))),
+    toFolderInMap: onNavigate && ((row) => onNavigate(NAV_TAB.MAP, packMapParams(row.dir))),
   };
 }
 
@@ -54,6 +55,7 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
     toAreaFindings: undefined,
     toAreaInMap: undefined,
     toRisk: undefined,
+    toFolderInMap: undefined,
   };
 }
 
@@ -74,13 +76,13 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
  *   buildEvalPrincipal?: (name: string) => object}} args
  * @returns {{handleCardNavigate: Function, onSeverityBadge: Function, onFileClick: Function, onPrincipleClick: Function,
  *   onRequirementClick: (Function|undefined), onFolderClick: (Function|undefined), onAreaFindings: (Function|undefined),
- *   onAreaInMap: (Function|undefined), onOpenRisk: (Function|undefined)}}
+ *   onAreaInMap: (Function|undefined), onOpenRisk: (Function|undefined), onFolderInMap: (Function|undefined)}}
  */
 export function buildExplorerFindingsNav(args) {
-  const { toCard, toFile, toPrinciple, toRequirement, toFolder, toAreaFindings, toAreaInMap, toRisk } = args.scoped ? scopedNav(args) : filePageNav(args);
+  const { toCard, toFile, toPrinciple, toRequirement, toFolder, toAreaFindings, toAreaInMap, toRisk, toFolderInMap } = args.scoped ? scopedNav(args) : filePageNav(args);
   return {
     handleCardNavigate: toCard, onSeverityBadge: (level) => () => toCard(level), onFileClick: toFile, onPrincipleClick: toPrinciple,
     onRequirementClick: toRequirement, onFolderClick: toFolder, onAreaFindings: toAreaFindings, onAreaInMap: toAreaInMap,
-    onOpenRisk: toRisk,
+    onOpenRisk: toRisk, onFolderInMap: toFolderInMap,
   };
 }
