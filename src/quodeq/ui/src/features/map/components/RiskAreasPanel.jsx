@@ -50,15 +50,36 @@ function areaSub(area) {
   return kind ? t('overview.riskAreaSubKind', { kind, files: area.files }) : t('overview.riskAreaSub', { files: area.files });
 }
 
-/** The row's end: the area in the Risk map, a button of its own the row's click and keys never reach. */
+/** The row's end: the area in the Risk map, raised above the row's open button. */
 function AreaMapButton({ area, onClick }) {
-  const label = t('overview.riskAreaInMapAria', { name: area.name });
-  const stop = (e) => e.stopPropagation();
   return (
     <GridCell align="right">
-      <button type="button" className="risk-areas-panel__map" aria-label={label} title={t('overview.riskAreaInMap')}
-        onClick={(e) => { stop(e); onClick(area); }} onKeyDown={stop}>
+      <button type="button" className="risk-areas-panel__map" aria-label={t('overview.riskAreaInMapAria', { name: area.name })}
+        title={t('overview.riskAreaInMap')} onClick={() => onClick(area)}>
         {MAP_ICON}
+      </button>
+    </GridCell>
+  );
+}
+
+/**
+ * The area's name and its sub line; with `onOpen` they are a button
+ * stretched over the whole row (as .term-stat__hitbox), so a click anywhere
+ * on the row opens the area and the map icon stays a sibling, never nested.
+ */
+function AreaNameCell({ area, onOpen }) {
+  const name = (
+    <div className="offending-file-cell">
+      <span className="offending-file-name">{area.name}</span>
+      <span className="offending-file-path">{areaSub(area)}</span>
+    </div>
+  );
+  if (!onOpen) return <GridCell>{name}</GridCell>;
+  return (
+    <GridCell>
+      <button type="button" className="risk-areas-panel__open" aria-label={t('overview.riskAreaOpenAria', { name: area.name })}
+        onClick={() => onOpen(area)}>
+        {name}
       </button>
     </GridCell>
   );
@@ -66,13 +87,8 @@ function AreaMapButton({ area, onClick }) {
 
 function AreaRow({ area, onOpen, onShowInMap }) {
   return (
-    <GridRow onClick={onOpen ? () => onOpen(area) : undefined}>
-      <GridCell>
-        <div className="offending-file-cell">
-          <span className="offending-file-name">{area.name}</span>
-          <span className="offending-file-path">{areaSub(area)}</span>
-        </div>
-      </GridCell>
+    <GridRow>
+      <AreaNameCell area={area} onOpen={onOpen} />
       <GridCell><span className={`risk-zone-chip risk-zone-chip--${area.zone}`}>{t(ZONE_KEY[area.zone])}</span></GridCell>
       <GridCell numeric>{t('overview.riskDensity', { density: area.density.toFixed(DENSITY_DECIMALS) })}</GridCell>
       <SeverityAndFilesCells sev={area.severities} fileCount={area.files} />

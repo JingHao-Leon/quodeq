@@ -38,21 +38,22 @@ describe('RiskAreasPanel', () => {
     const onAreaFindings = vi.fn();
     const onOpenRisk = vi.fn();
     render(<RiskAreasPanel project="p" source="local" onAreaFindings={onAreaFindings} onOpenRisk={onOpenRisk} />);
-    fireEvent.click(screen.getAllByRole('row')[0]);
+    fireEvent.click(screen.getByRole('button', { name: t('overview.riskAreaOpenAria', { name: 'hot' }) }));
     expect(onAreaFindings).toHaveBeenCalledWith({ kind: 'area', name: 'hot', paths: ['src/hot/'], small: false });
     fireEvent.click(screen.getByRole('button', { name: t('overview.riskAreasOpen') }));
     expect(onOpenRisk).toHaveBeenCalled();
   });
 
-  it('a row\'s map icon opens the area in the Risk map, never its findings, from the mouse or the keys', () => {
+  it('a row\'s map icon opens the area in the Risk map, never its findings: two sibling buttons, neither inside the other', () => {
     areaSet = { areas: [area('hot', 1.4)], files: FILES };
     const onAreaFindings = vi.fn();
     const onAreaInMap = vi.fn();
     render(<RiskAreasPanel project="p" source="local" onAreaFindings={onAreaFindings} onAreaInMap={onAreaInMap} />);
     const icon = screen.getByRole('button', { name: t('overview.riskAreaInMapAria', { name: 'hot' }) });
     expect(icon).toHaveAttribute('title', t('overview.riskAreaInMap'));
+    expect(screen.getAllByRole('row')[0]).not.toHaveAttribute('tabindex');
+    expect(icon.closest('.risk-areas-panel__open')).toBeNull();
     fireEvent.click(icon);
-    fireEvent.keyDown(icon, { key: 'Enter' });
     expect(onAreaInMap).toHaveBeenCalledTimes(1);
     expect(onAreaInMap.mock.calls[0][0].name).toBe('hot');
     expect(onAreaFindings).not.toHaveBeenCalled();
@@ -93,7 +94,7 @@ describe('RiskAreasPanel over a dimension', () => {
     areaSet = { areas: [area('hot', 0.9, { lift: 2 })], files: FILES };
     const onAreaFindings = vi.fn();
     render(<RiskAreasPanel project="p" source="local" dimensions={['security']} onAreaFindings={onAreaFindings} />);
-    fireEvent.click(screen.getAllByRole('row')[0]);
+    fireEvent.click(screen.getByRole('button', { name: t('overview.riskAreaOpenAria', { name: 'hot' }) }));
     expect(onAreaFindings).toHaveBeenCalledWith({ kind: 'area', name: 'hot', paths: ['src/hot/'], small: false, dimensions: ['security'] });
   });
 

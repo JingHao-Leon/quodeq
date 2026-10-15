@@ -3632,8 +3632,22 @@
 .risk-zone-chip--fixFirst { color: var(--color-sev-critical-text); border-color: var(--color-sev-critical-border); background: var(--color-sev-critical-bg); }
 .risk-zone-chip--watch { color: var(--color-sev-major-text); border-color: var(--color-sev-major-border); background: var(--color-sev-major-bg); }
 .risk-areas-panel__none { padding: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+/* A row opens its area: the name is a button stretched over the row (as .term-stat__hitbox); the map icon sits above it. */
+.risk-areas-panel .term-grid__row { position: relative; transition: background-color 0.12s; }
+.risk-areas-panel__open {
+  appearance: none; display: block; width: 100%; min-width: 0; margin: 0; padding: 0;
+  border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.risk-areas-panel__open::after { content: ''; position: absolute; inset: 0; }
+.risk-areas-panel__open:focus-visible { outline: none; }
+.risk-areas-panel__open:is(:hover, :focus-visible) .offending-file-name { color: var(--color-accent); }
+.risk-areas-panel .term-grid__row:has(.risk-areas-panel__open:hover) { background: var(--color-surface-alt); }
+.risk-areas-panel .term-grid__row:has(.risk-areas-panel__open:focus-visible) {
+  background: var(--color-surface-alt); box-shadow: inset 2px 0 0 var(--color-accent);
+}
 /* A row's end: the area in the Risk map, a muted glyph that takes the accent on hover and focus. */
 .risk-areas-panel__map {
+  position: relative; z-index: 1;
   display: inline-flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; padding: 0;
   border: none; border-radius: 4px; background: transparent;

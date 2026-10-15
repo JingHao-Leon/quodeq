@@ -1125,6 +1125,7 @@
   "overview.riskAreasOpen": "Risk in Map ›",
   "overview.riskAreaInMap": "Show in the Risk map",
   "overview.riskAreaInMapAria": "Show {name} in the Risk map",
+  "overview.riskAreaOpenAria": "Open the findings of {name}",
   "overview.riskAreaSub": "{files} files",
   "overview.riskAreaSubKind": "{kind} · {files} files",
   "overview.riskZoneFixFirst": "FIX FIRST",
