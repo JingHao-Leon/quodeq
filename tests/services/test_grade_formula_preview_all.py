@@ -175,3 +175,18 @@ def test_sources_none_without_runs(tmp_path, monkeypatch):
     monkeypatch.setattr(gfp.ProjectRows, "load", classmethod(lambda cls, root, p: _FakeRows([], {})))
 
     assert gfp.project_sources(tmp_path, "proj") is None
+
+
+def test_preview_all_skips_a_project_that_fails_and_keeps_the_others(tmp_path, formula_path):
+    run = _make_run(tmp_path / "good" / "r1")
+    (tmp_path / "bad").mkdir()
+    good = gfp.ProjectSources("good", (gfp.SourceDimension("security", run, None),), None)
+
+    def sources_for(root, project):
+        if project == "bad":
+            raise RuntimeError("evaluation.db is locked")
+        return good
+
+    out = gfp.preview_all(tmp_path, _STRICT, sources_for=sources_for)
+
+    assert [p["id"] for p in out["projects"]] == ["good"]

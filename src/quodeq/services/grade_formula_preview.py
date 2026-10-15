@@ -14,6 +14,7 @@ a draft it would read stored grade tables and persist rows keyed by the draft.
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,6 +34,9 @@ from quodeq.services.rescore import filter_excluded_violations, rescore_dimensio
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import compute_run_grades, load_suppression_rules, load_visible_standard_ids
+from quodeq.shared.fault_isolation import run_isolated
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,12 +145,25 @@ def preview_all(
     saved_params = saved if saved is not None else load_params()
     projects = []
     for project in _local_projects(reports_root):
-        sources = sources_for(reports_root, project)
-        if sources is None:
-            continue
-        projects.append({
-            "id": project,
-            "before": score_project(sources, saved_params),
-            "after": score_project(sources, params),
-        })
+        # One unreadable project (a locked or corrupt evaluation.db, a broken
+        # report) costs only its own entry, as on the project list.
+        entry = run_isolated(
+            lambda p=project: _project_entry(reports_root, p, saved_params, params, sources_for),
+            label=f"grade-formula preview for {project!r}",
+            log=_logger,
+            on_error=lambda _exc: None,
+        )
+        if entry is not None:
+            projects.append(entry)
     return {"projects": projects, "runsToRescore": count_rescorable_runs(reports_root)}
+
+
+def _project_entry(
+    reports_root: Path, project: str, saved: ScoringParams, params: ScoringParams,
+    sources_for: Callable[[Path, str], ProjectSources | None],
+) -> dict[str, Any] | None:
+    """One project's before/after, or None when it has nothing the card would score."""
+    sources = sources_for(reports_root, project)
+    if sources is None:
+        return None
+    return {"id": project, "before": score_project(sources, saved), "after": score_project(sources, params)}
