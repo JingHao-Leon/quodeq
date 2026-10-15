@@ -1,7 +1,7 @@
 """Service for managing standards (built-in and custom evaluators)."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,7 +12,7 @@ from quodeq.services._standards_crud import (
 )
 from quodeq.services._standards_io import default_read_json, default_write_json
 from quodeq.services._standards_queries import (
-    check_builtin_id, get_standard, list_builtin, list_custom, load_cwe_list,
+    annotate_sync, check_builtin_id, get_standard, list_builtin, list_custom_with_payloads, load_cwe_list,
 )
 from quodeq.services.wiring import (
     compiled_exists as _compiled_exists,
@@ -23,7 +23,18 @@ from quodeq.services.wiring import (
     standard_path as _standard_path,
 )
 
-__all__ = ["StandardsService", "IMPORT_STATUS_CONFLICT"]
+from quodeq.services.shared_settings import read_settings
+from quodeq.services.wiring_sync import read_shared_standards, shared_standards_dir
+
+__all__ = ["StandardsService", "IMPORT_STATUS_CONFLICT", "shared_standards_provider"]
+
+
+def shared_standards_provider(env: Mapping[str, str] | None = None) -> Callable[[], Mapping[str, dict] | None]:
+    """A reader of the connected shared repository's standards; None while none is connected."""
+    def read() -> Mapping[str, dict] | None:
+        url = read_settings(env).url
+        return read_shared_standards(shared_standards_dir(url, env)) if url else None
+    return read
 
 
 @dataclass
@@ -47,20 +58,24 @@ class StandardsService:
 
     def __init__(self, evaluators_dir: Path, compiled_dir: Path, dimensions_file: Path,
                  read_json: Callable[[Path], dict] | None = None,
-                 write_json: Callable[[Path, dict], None] | None = None,
-                 today: Callable[[], str] | None = None) -> None:
+                 today: Callable[[], str] | None = None,
+                 shared_standards: Callable[[], Mapping[str, dict] | None] | None = None) -> None:
         self._evaluators_dir = evaluators_dir
         self._compiled_dir = compiled_dir
         self._dimensions_file = dimensions_file
         self._read_json = read_json or default_read_json
-        self._write_json = write_json or default_write_json
-        self._store = _FsStandardsStore(read=self._read_json, write=self._write_json)
+        self._store = _FsStandardsStore(read=self._read_json, write=default_write_json)
         self._today = today or today_iso
+        self._shared_standards = shared_standards
 
     def list_standards(self) -> list[StandardMeta]:
         """Return metadata for all available standards (built-in + custom)."""
-        return (list_builtin(self._dimensions_file, self._compiled_dir, self._read_json)
-                + list_custom(self._evaluators_dir, self._read_json, self._store.modified_date))
+        builtin = list_builtin(self._dimensions_file, self._compiled_dir, self._read_json)
+        customs = list_custom_with_payloads(self._evaluators_dir, self._read_json, self._store.modified_date)
+        remote = self._shared_standards() if self._shared_standards else None
+        if remote is None:
+            return builtin + [meta for meta, _ in customs]
+        return builtin + annotate_sync(customs, remote)
 
     def get_standard(self, standard_id: str) -> StandardDetail:
         """Retrieve the full detail of a single standard by ID."""

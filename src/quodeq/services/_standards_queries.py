@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from typing import NamedTuple
 from pathlib import Path
@@ -13,6 +13,7 @@ from quodeq.services._standards_io import (
     count_principles_and_requirements, dotted_version, get_builtin_weight, is_builtin_id,
     iso_date, load_cwe_entries,
 )
+from quodeq.services.standards_sharing import sync_state
 from quodeq.shared.validation import validate_path_segment
 
 logger = logging.getLogger(__name__)
@@ -76,18 +77,34 @@ def _with_dates(data: dict, path: Path, modified_date: Callable[[Path], str | No
             "version": data.get("version") or dotted_version(updated)}
 
 
-def list_custom(evaluators_dir: Path, read_json: Callable,
-                modified_date: Callable[[Path], str | None]) -> list[StandardMeta]:
-    """Return metadata for all custom evaluators."""
+def list_custom_with_payloads(evaluators_dir: Path, read_json: Callable,
+                              modified_date: Callable[[Path], str | None]) -> list[tuple[StandardMeta, dict]]:
+    """Each custom evaluator's metadata paired with the payload it was built from."""
     if not evaluators_dir.is_dir():
         return []
-    out: list[StandardMeta] = []
+    out: list[tuple[StandardMeta, dict]] = []
     for path in sorted(evaluators_dir.glob("*.json")):
         try:
             data = _with_dates(read_json(path), path, modified_date)
-            out.append(build_custom_meta(data, *count_principles_and_requirements(data)))
+            out.append((build_custom_meta(data, *count_principles_and_requirements(data)), data))
         except (OSError, ValueError, KeyError) as exc:
             logger.warning("Skipping invalid evaluator %s: %s", path.name, exc)
+    return out
+
+
+def annotate_sync(customs: list[tuple[StandardMeta, dict]], remote: Mapping[str, dict]) -> list[StandardMeta]:
+    """Customs with their sync state, then one row per standard that exists only remotely."""
+    out: list[StandardMeta] = []
+    for meta, payload in customs:
+        shared = remote.get(meta.id)
+        state = sync_state(payload, shared)
+        out.append(replace(meta, sync_state=state.value if state else None,
+                           published_at=shared.get("publishedAt") if shared else None))
+    local_ids = {meta.id for meta, _ in customs}
+    for sid, payload in remote.items():
+        if sid not in local_ids:
+            out.append(replace(build_custom_meta(payload, *count_principles_and_requirements(payload)),
+                               remote=True, sync_state="remote_only", published_at=payload.get("publishedAt")))
     return out
 
 

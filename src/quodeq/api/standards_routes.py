@@ -17,7 +17,7 @@ from quodeq.api.standards_overrides_routes import register_overrides_routes
 from quodeq.api.standards_read_routes import register_read_routes
 from quodeq.api.standards_visibility_routes import register_visibility_routes
 from quodeq.api.routes_common import standards_compiled_dir
-from quodeq.services.standards import StandardsService
+from quodeq.services.standards import StandardsService, shared_standards_provider
 
 
 def _get_service(app: Flask) -> StandardsService:
@@ -33,6 +33,7 @@ def _get_service(app: Flask) -> StandardsService:
             evaluators_dir=Path(app.config["STANDARDS_EVALUATORS_DIR"]),
             compiled_dir=standards_compiled_dir(app),
             dimensions_file=Path(app.config["STANDARDS_DIMENSIONS_FILE"]),
+            shared_standards=shared_standards_provider(),
         )
     return app._standards_service
 
