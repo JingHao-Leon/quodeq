@@ -1079,6 +1079,8 @@
   "map.violations": "Violations",
   "map.vizCirclePack": "Circle Pack",
   "map.vizActivity": "Activity",
+  "map.vizStyleAria": "Map view",
+  "map.galaxyModeAria": "Galaxy grouping",
   "map.vizFileSystem": "File System",
   "map.vizGalaxy": "Galaxy",
   "map.vizStandards": "Standards",

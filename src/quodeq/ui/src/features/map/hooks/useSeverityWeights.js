@@ -12,6 +12,7 @@ function validWeights(w) {
 /**
  * The grade formula's severity weights (this app's, which grades shared
  * projects too); the defaults while loading and on error.
+ * @param {string} project the selected project; none asks nothing
  * @returns {{critical: number, major: number, minor: number}}
  */
 export default function useSeverityWeights(project) {

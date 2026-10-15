@@ -51,7 +51,7 @@ const GALAXY_MODES = [
 function VizStyleSeg({ vizStyle, setVizStyle, activityUnavailable }) {
   const noteId = useId();
   return (
-    <div className="term-seg">
+    <div className="term-seg" role="group" aria-label={t('map.vizStyleAria')}>
       {VIZ_STYLES.map((s) => {
         const blocked = s.id === VIZ_STYLE.ACTIVITY && activityUnavailable;
         return (
@@ -80,7 +80,7 @@ function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activ
       <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={riskFilter.onToggleDimension} onShowOnly={riskFilter.onShowOnlyDimension} />
       {vizStyle === VIZ_STYLE.RISK && <RiskPrincipleChip principle={riskFilter.principle} onClear={riskFilter.clearPrinciple} />}
       {vizStyle === VIZ_STYLE.GALAXY && (
-        <div className="term-seg">
+        <div className="term-seg" role="group" aria-label={t('map.galaxyModeAria')}>
           {GALAXY_MODES.map((m) => (
             <button key={m.id} type="button" className={`term-btn${galaxyMode === m.id ? ' term-btn--on' : ''}`} onClick={() => setGalaxyMode(m.id)} aria-pressed={galaxyMode === m.id}>
               {m.label}

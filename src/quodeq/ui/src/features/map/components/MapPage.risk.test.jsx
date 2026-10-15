@@ -61,7 +61,7 @@ describe('MapPage: the Risk tab', () => {
 
   it('the tabs are Circle Pack, Activity, Risk and Galaxy', () => {
     render(<MapPage data={local()} callbacks={{}} />, { wrapper: withStableQueryApi(riskApi()) });
-    const group = screen.getByRole('button', { name: t('map.vizCirclePack') }).parentElement;
+    const group = screen.getByRole('group', { name: t('map.vizStyleAria') });
     expect([...group.querySelectorAll('button')].map((b) => b.textContent))
       .toEqual([t('map.vizCirclePack'), t('map.vizActivity'), t('map.vizRisk'), t('map.vizGalaxy')]);
   });
