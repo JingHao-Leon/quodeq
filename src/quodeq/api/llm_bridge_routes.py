@@ -118,13 +118,13 @@ def omlx_status() -> Response:
 OMLX_PROVIDER = "omlx"
 
 
-def _omlx_key(given: str | None) -> str | None:
-    """The key the request carries, else the one saved in the keychain.
-
-    Settings stores the key in the keychain and never sends it back, so a
-    request without one means "use the saved key", not "no key".
+def _omlx_key(given: str | None, base_url: str | None) -> str | None:
+    """The request's key, else the keychain one, which only ever goes to the
+    default server: any page can issue these GETs with its own ``base_url``.
     """
-    return given or get_api_key_secure(OMLX_PROVIDER)
+    if given or base_url is not None:
+        return given
+    return get_api_key_secure(OMLX_PROVIDER)
 
 
 def omlx_models() -> Response:
@@ -137,7 +137,7 @@ def omlx_models() -> Response:
         return err
     # The key rides in a header, never the query string: query params leak
     # through access logs, browser history, and referrers.
-    api_key = _omlx_key((request.headers.get("X-Api-Key") or "").strip() or None)
+    api_key = _omlx_key((request.headers.get("X-Api-Key") or "").strip() or None, base_url)
     return jsonify({"models": list_omlx_models(base_url=base_url, api_key=api_key)})
 
 
@@ -155,7 +155,7 @@ def omlx_test_concurrency() -> Response:
     if not isinstance(base_url, str) or not isinstance(api_key, str):
         return json_error("base_url and api_key must be strings", HTTPStatus.BAD_REQUEST, CODE_INVALID_PARAM)
     base_url = base_url.strip() or None
-    api_key = _omlx_key(api_key.strip() or None)
+    api_key = _omlx_key(api_key.strip() or None, base_url)
     err = invalid_base_url(base_url)
     if err is not None:
         return err

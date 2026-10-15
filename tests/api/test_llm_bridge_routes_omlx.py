@@ -22,6 +22,14 @@ def client(tmp_path):
 #          browser history, and referrers).
 # ---------------------------------------------------------------------------
 
+def test_api_tests_never_read_the_real_keychain(client):
+    # A key saved on the developer's machine must not leak into route tests.
+    with patch("keyring.get_password", return_value="real-machine-key"), \
+         patch("quodeq.api.llm_bridge_routes.list_omlx_models", return_value=[]) as listed:
+        client.get("/api/omlx/models")
+    assert listed.call_args.kwargs["api_key"] is None
+
+
 class TestOmlxModels:
     def test_api_key_read_from_header(self, client):
         with patch("quodeq.api.llm_bridge_routes.list_omlx_models") as mock:
@@ -41,34 +49,11 @@ class TestOmlxModels:
         assert resp.status_code == 200
         mock.assert_called_once_with(base_url=None, api_key=None)
 
-
-class TestOmlxStoredKeyFallback:
-    """Once the key lives in the keychain the UI sends none; the routes use it."""
-
-    def test_models_route_uses_stored_key_when_header_missing(self, client):
-        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=_TEST_API_KEY), \
-             patch("quodeq.api.llm_bridge_routes.list_omlx_models", return_value=[]) as listed:
-            resp = client.get("/api/omlx/models")
-        assert resp.status_code == 200
-        assert listed.call_args.kwargs["api_key"] == _TEST_API_KEY
-
-    def test_models_route_prefers_the_header_key(self, client):
-        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=_TEST_API_KEY), \
-             patch("quodeq.api.llm_bridge_routes.list_omlx_models", return_value=[]) as listed:
-            client.get("/api/omlx/models", headers={"X-Api-Key": "sk-typed"})
-        assert listed.call_args.kwargs["api_key"] == "sk-typed"
-
-    def test_concurrency_route_uses_stored_key_when_body_has_none(self, client):
-        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=_TEST_API_KEY), \
-             patch("quodeq.api.llm_bridge_routes.run_omlx_concurrency_test", return_value={"ok": True}) as ran:
-            client.post("/api/omlx/test-concurrency", json={"model": "m"}, headers={"Origin": "http://localhost"})
-        assert ran.call_args.kwargs["api_key"] == _TEST_API_KEY
-
-
 # ---------------------------------------------------------------------------
 # REL-084/085/086/087/088 — POST routes must 400 on a JSON body that parses
 # but is not an object (e.g. [1] or "x"), instead of crashing at data.get.
 # ---------------------------------------------------------------------------
+
 
 class TestJsonObjectBodyRequired:
     @pytest.mark.parametrize("route", [
