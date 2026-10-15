@@ -30,7 +30,8 @@
 .compare-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 1200px) { .compare-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .compare-kpi { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--term-radius); }
-.compare-kpi__label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+/* One line, so every card's value sits on the same line as its neighbours'. */
+.compare-kpi__label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .compare-kpi__value { display: flex; align-items: baseline; gap: 8px; font-size: 22px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
 .compare-kpi__value--alarm { color: var(--color-danger); }
 /* The change beside the score reads as a note, not a second score (as on the Overview). */
