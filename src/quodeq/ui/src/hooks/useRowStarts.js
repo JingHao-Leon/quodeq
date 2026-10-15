@@ -10,11 +10,10 @@ export const ROW_START_ATTR = 'data-row-start';
  * @param {{children: ArrayLike<{offsetLeft: number, toggleAttribute: (name: string, force: boolean) => void}>}} container
  */
 export function markRowStarts(container) {
-  let previousLeft = null;
-  for (const child of Array.from(container.children)) {
-    child.toggleAttribute(ROW_START_ATTR, previousLeft === null || child.offsetLeft <= previousLeft);
-    previousLeft = child.offsetLeft;
-  }
+  const children = Array.from(container.children);
+  // Every position is read before any mark is written, so marking forces no reflow per child.
+  const lefts = children.map((child) => child.offsetLeft);
+  children.forEach((child, i) => child.toggleAttribute(ROW_START_ATTR, i === 0 || lefts[i] <= lefts[i - 1]));
 }
 
 /**
