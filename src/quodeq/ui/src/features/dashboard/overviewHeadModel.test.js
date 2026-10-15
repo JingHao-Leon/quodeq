@@ -65,3 +65,10 @@ test('modelOfRun: the run\'s own model, else the newest finished run\'s', () => 
   assert.equal(modelOfRun(log, 'gone'), 'qwen');
   assert.equal(modelOfRun(null, 'r1'), null);
 });
+
+test('overviewPastRun: back to latest skips a newer cancelled run, to the newest done run the chart shows', () => {
+  const runs = [{ runId: 'c3', status: 'cancelled' }, { runId: 'r2', status: 'done' }, { runId: 'r1', status: 'done' }];
+  const picked = [];
+  overviewPastRun({ runId: 'r1', day: '2026-10-01' }, runs, (id) => picked.push(id)).onBack();
+  assert.deepEqual(picked, ['r2']);
+});
