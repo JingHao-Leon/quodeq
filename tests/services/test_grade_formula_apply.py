@@ -163,6 +163,17 @@ def test_apply_to_all_runs_clears_cache_when_root_missing(formula_path, monkeypa
     assert cleared["called"] is True
 
 
+def test_count_rescorable_runs_counts_event_log_runs(tmp_path):
+    for name in ("r1", "r2"):
+        run = tmp_path / "proj" / name
+        run.mkdir(parents=True)
+        (run / "events.jsonl").write_text("")
+    (tmp_path / "proj" / "legacy").mkdir()
+
+    assert grade_formula.count_rescorable_runs(tmp_path) == 2
+    assert grade_formula.count_rescorable_runs(tmp_path / "missing") == 0
+
+
 def test_preview_scores_reads_only_and_reports_before_after(tmp_path, formula_path):
     project_dir = tmp_path / "proj-uuid"
     project_dir.mkdir()

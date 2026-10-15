@@ -119,6 +119,11 @@ def _iter_event_log_runs(reports_root: Path) -> Iterator[Path]:
         yield from runs
 
 
+def count_rescorable_runs(reports_root: Path) -> int:
+    """How many runs an apply rescores: every run dir with an events.jsonl."""
+    return sum(1 for _ in _iter_event_log_runs(reports_root))
+
+
 def _recompute_with_retries(run_dir: Path, params: ScoringParams) -> bool:
     """Recompute *run_dir*'s grades, retrying transient failures.
 
