@@ -20,7 +20,7 @@ import logging
 import os
 import tempfile
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from quodeq.core.standards.overrides import OVERRIDES_RELPATH
@@ -30,6 +30,7 @@ from quodeq.core.standards.visibility import (
     normalize_ids,
 )
 from quodeq.data.fs.compiled_standards import iter_compiled_standards
+from quodeq.data.fs.project_files import read_repository_info
 from quodeq.shared.advisory_json import read_advisory_json
 from quodeq.shared.env_paths import get_quodeq_dir
 
@@ -119,27 +120,112 @@ def load_overrides_file(path: Path | None) -> dict[str, dict]:
     return dict(read_project_standards(path).overrides)
 
 
-def load_visible_standard_ids(project_root: str | Path | None) -> tuple[str, ...]:
-    """Visible standard ids for a project; defaults when absent or malformed."""
-    if not project_root:
-        return DEFAULT_VISIBLE_STANDARDS
-    path = Path(project_root) / VISIBILITY_RELPATH
+def settings_owner_id(reports_root: Path | None, project_id: str) -> str:
+    """The id whose settings *project_id* uses: a scoped child's parent, else itself."""
+    if reports_root is None:
+        return project_id
+    info = read_repository_info(Path(reports_root) / project_id)
+    parent = info.get("parent") if isinstance(info, dict) else None
+    return parent if isinstance(parent, str) and parent else project_id
+
+
+def _recorded_repo_root(reports_root: Path | None, project_id: str) -> Path | None:
+    """The project's local working copy, when it has one that still exists."""
+    if reports_root is None:
+        return None
+    info = read_repository_info(Path(reports_root) / project_id)
+    path = info.get("path") if isinstance(info, dict) else None
+    if not isinstance(path, str) or "://" in path or path.startswith("git@"):
+        return None
+    root = Path(path)
+    return root if root.is_dir() else None
+
+
+def _migrate_from_repo(target: Path, repo_root: Path | None) -> None:
+    """Copy the legacy repo files into *target* once. Never touches the repo."""
+    if repo_root is None:
+        return
+    visible = _legacy_repo_visibility(repo_root)
+    overrides = _legacy_repo_overrides(repo_root)
+    if visible is None and not overrides:
+        return
+    write_project_standards(target, ProjectStandards(
+        enabled=visible, overrides=overrides, migrated_from=str(repo_root)))
+    _logger.info("standards settings migrated from %s to %s", repo_root, target)
+
+
+def project_settings_file(
+    reports_root: Path | None, project_id: str, *,
+    repo_root: Path | None = None, env: Mapping[str, str] | None = None,
+) -> Path:
+    """The settings file for *project_id*, migrating legacy repo files on first use."""
+    owner = settings_owner_id(reports_root, project_id)
+    target = settings_file_for_owner(owner, env=env)
+    if not target.is_file():
+        _migrate_from_repo(target, repo_root or _recorded_repo_root(reports_root, owner))
+    return target
+
+
+def load_project_standards(
+    reports_root: Path | None, project_id: str | None, *,
+    repo_root: Path | None = None, env: Mapping[str, str] | None = None,
+) -> ProjectStandards:
+    """*project_id*'s settings; defaults when there is no project or no file."""
+    if not project_id:
+        return ProjectStandards()
+    return read_project_standards(
+        project_settings_file(reports_root, project_id, repo_root=repo_root, env=env))
+
+
+def save_enabled_ids(
+    reports_root: Path | None, project_id: str, ids: list[str], *,
+    env: Mapping[str, str] | None = None,
+) -> ProjectStandards:
+    """Replace the enabled list, keeping overrides. Returns what was written."""
+    path = project_settings_file(reports_root, project_id, env=env)
+    updated = replace(read_project_standards(path), enabled=normalize_ids(ids))
+    write_project_standards(path, updated)
+    return updated
+
+
+def save_overrides(
+    reports_root: Path | None, project_id: str, overrides: Mapping[str, dict], *,
+    env: Mapping[str, str] | None = None,
+) -> ProjectStandards:
+    """Replace the overrides (``{}`` clears them), keeping the enabled list."""
+    path = project_settings_file(reports_root, project_id, env=env)
+    updated = replace(read_project_standards(path), overrides=dict(overrides))
+    write_project_standards(path, updated)
+    return updated
+
+
+def _legacy_repo_visibility(repo_root: str | Path | None) -> tuple[str, ...] | None:
+    """The visibility list in a repo's legacy file; None when absent or malformed."""
+    if not repo_root:
+        return None
+    path = Path(repo_root) / VISIBILITY_RELPATH
     if not path.is_file():
-        return DEFAULT_VISIBLE_STANDARDS
+        return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError, RecursionError) as exc:
         _logger.warning(
             "Ignoring unreadable or malformed standards visibility %s: %s", path, exc)
-        return DEFAULT_VISIBLE_STANDARDS
+        return None
     ids = data.get("visibleStandardIds") if isinstance(data, dict) else None
     if not isinstance(ids, list):
         _logger.warning(
             "Ignoring standards visibility %s: no 'visibleStandardIds' array", path)
-        return DEFAULT_VISIBLE_STANDARDS
+        return None
     # An explicitly empty list is a real selection ("hide everything") and is
     # returned as-is; only a missing/!list value falls back to the defaults.
     return normalize_ids(ids)
+
+
+def load_visible_standard_ids(project_root: str | Path | None) -> tuple[str, ...]:
+    """Visible standard ids for a project; defaults when absent or malformed."""
+    ids = _legacy_repo_visibility(project_root)
+    return DEFAULT_VISIBLE_STANDARDS if ids is None else ids
 
 
 def visibility_is_default(project_root: str | Path | None) -> bool:
@@ -164,11 +250,11 @@ def save_visible_standard_ids(project_root: str | Path, ids: list[str]) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def load_project_overrides(project_root: str | Path | None) -> dict[str, dict]:
-    """Load ``{req_id: {param: value}}``; ``{}`` when absent or malformed."""
-    if not project_root:
+def _legacy_repo_overrides(repo_root: str | Path | None) -> dict[str, dict]:
+    """Overrides in a repo's legacy file; ``{}`` when absent or malformed."""
+    if not repo_root:
         return {}
-    path = Path(project_root) / OVERRIDES_RELPATH
+    path = Path(repo_root) / OVERRIDES_RELPATH
     data, err = read_advisory_json(path)
     if err is not None:
         _logger.warning(
@@ -181,6 +267,11 @@ def load_project_overrides(project_root: str | Path | None) -> dict[str, dict]:
         _logger.warning("Ignoring standards overrides %s: no 'overrides' object", path)
         return {}
     return {req_id: vals for req_id, vals in overrides.items() if isinstance(vals, dict)}
+
+
+def load_project_overrides(project_root: str | Path | None) -> dict[str, dict]:
+    """Load ``{req_id: {param: value}}``; ``{}`` when absent or malformed."""
+    return _legacy_repo_overrides(project_root)
 
 
 def save_project_overrides(project_root: str | Path, overrides: dict[str, dict]) -> None:
