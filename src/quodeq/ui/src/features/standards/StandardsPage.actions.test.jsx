@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useStandardsPageActions } from './StandardsPage.jsx';
 import { ASSISTANT_ACTION_APPLIED_EVENT } from '../../constants.js';
+import { ACTION_TYPE } from '../../vocab/actionType.js';
 
 // handleDeleteWithCleanup used to remove a standard's visibility optimistically
 // and await the delete with no way to react to a failure -- a failed delete
@@ -55,7 +56,7 @@ describe('useStandardsPageActions assistant-created standard', () => {
   it('makes the new standard visible and opens it from the list', () => {
     const addVisible = vi.fn();
     const { result } = renderHook(() => useStandardsPageActions(vi.fn(), vi.fn(), addVisible, vi.fn()));
-    applied({ actionType: 'create_standard', standardId: 'android-bp' });
+    applied({ actionType: ACTION_TYPE.CREATE_STANDARD, standardId: 'android-bp' });
     expect(addVisible).toHaveBeenCalledWith('android-bp');
     expect(result.current.view).toEqual({ mode: 'edit', standardId: 'android-bp' });
   });
@@ -64,8 +65,8 @@ describe('useStandardsPageActions assistant-created standard', () => {
     const addVisible = vi.fn();
     const { result } = renderHook(() => useStandardsPageActions(vi.fn(), vi.fn(), addVisible, vi.fn()));
     act(() => { result.current.handleEdit('mine'); });
-    applied({ actionType: 'dismiss_finding' });
-    applied({ actionType: 'create_standard', standardId: 'android-bp' });
+    applied({ actionType: ACTION_TYPE.DISMISS_FINDING });
+    applied({ actionType: ACTION_TYPE.CREATE_STANDARD, standardId: 'android-bp' });
     expect(addVisible).toHaveBeenCalledTimes(1);
     expect(result.current.view).toEqual({ mode: 'edit', standardId: 'mine' });
   });

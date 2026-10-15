@@ -4,7 +4,7 @@ import pytest
 
 from quodeq.assistant.tools import ToolContext, build_registry
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
-from tests.assistant.test_tools_actions import _VALID_STANDARD
+from tests.assistant._standard_fixtures import _VALID_STANDARD
 
 
 @pytest.fixture()
