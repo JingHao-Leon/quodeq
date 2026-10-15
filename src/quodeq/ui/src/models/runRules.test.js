@@ -6,6 +6,7 @@ import {
   SCORE_THRESHOLDS,
   isFrozenRun,
   isLowConfidence,
+  latestHistoryRunId,
   scoreTier,
 } from './runRules.js';
 
@@ -57,4 +58,11 @@ test('scoreTier: a missing or non-numeric score has no tier', () => {
   assert.equal(scoreTier(null), null);
   assert.equal(scoreTier(undefined), null);
   assert.equal(scoreTier('7'), null);
+});
+
+test('latestHistoryRunId: the newest done run, past running, cancelled and failed ones', () => {
+  const runs = [{ runId: 'r5', status: 'running' }, { runId: 'r4', status: 'cancelled' }, { runId: 'r3', status: 'failed' }, { runId: 'r2', status: 'done' }];
+  assert.equal(latestHistoryRunId(runs), 'r2');
+  assert.equal(latestHistoryRunId([{ runId: 'r1', status: 'cancelled' }]), null);
+  assert.equal(latestHistoryRunId(null), null);
 });
