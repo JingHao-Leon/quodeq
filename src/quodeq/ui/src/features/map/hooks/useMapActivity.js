@@ -12,11 +12,14 @@ import { mapHistoryQuery, mapHistoryEnabled } from './mapHistoryQuery.js';
  * @param {string} project
  * @param {string} source a PROJECT_SOURCE value
  * @param {boolean} [active=true] the Circle Pack is the view on screen
- * @returns {{activity: {source: string, editsByPath: Map<string, number>}, loading: boolean, failed: boolean}}
+ * @returns {{activity: {source: string, editsByPath: Map<string, number>}, loading: boolean, failed: boolean, settled: boolean}}
+ *   `settled`: the history answered (here or on another tab), so `activity` is what it holds
  */
 export default function useMapActivity(project, source, active = true) {
   const api = useApi();
   const query = useQuery({ ...mapHistoryQuery({ api, project, source, active }), select: decodeActivity });
   const enabled = mapHistoryEnabled(project, active);
-  return { activity: query.data || NO_ACTIVITY, loading: enabled && query.isPending, failed: query.isError };
+  return {
+    activity: query.data || NO_ACTIVITY, loading: enabled && query.isPending, failed: query.isError, settled: query.isSuccess || query.isError,
+  };
 }

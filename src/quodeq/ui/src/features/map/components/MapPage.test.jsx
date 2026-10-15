@@ -197,8 +197,9 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
     fireEvent.click(screen.getByRole('button', { name: t('map.vizCirclePack') }));
     expect(log).toEqual([['replace', 'vizStyle', 'risk'], ['replace', 'vizStyle', 'zoompack']]);
 
-    // A non-default pack colour, so the unwind below can show it kept.
-    fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
+    // The other pack tab, so the unwind below can show it kept.
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizActivity') }));
+    expect(log[2]).toEqual(['replace', 'vizStyle', 'activity']);
 
     // Drill into the `src` folder (its keyboard stand-in): a push.
     fireEvent.keyDown(screen.getByRole('button', { name: /^src\b/ }), { key: 'Enter' });
@@ -210,20 +211,12 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
     // (the browser-back equivalent), never a fresh push.
     fireEvent.click(screen.getByRole('button', { name: 'proj' }));
     expect(log[4]).toEqual(['goTo', 0]);
-    // The unwound entry still carries the colour set by the replace.
-    expect(screen.getByRole('button', { name: t('map.colorActivity') })).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  it('view-mode toggle on the circle pack replaces in place', () => {
-    const log = [];
-    render(<NavHarness data={data()} log={log} />, { wrapper: withStableQueryApi(fakeApi()) });
-    fireEvent.click(screen.getByRole('button', { name: 'Activity' }));
-    expect(log).toEqual([['replace', 'viewMode', 'activity']]);
-    expect(screen.getByRole('button', { name: 'Activity' })).toHaveAttribute('aria-pressed', 'true');
+    // The unwound entry still carries the tab set by the replace.
+    expect(screen.getByRole('button', { name: t('map.vizActivity') })).toHaveAttribute('aria-pressed', 'true');
   });
 });
 
-describe('MapPage: Concentration and Activity', () => {
+describe('MapPage: the Activity tab', () => {
   const DIMS = [{
     dimension: 'security',
     violations: [{ file: 'src/a.py', severity: 'minor', principle: 'P1' }, { file: 'main.py', severity: 'minor', principle: 'P2' }],
@@ -231,17 +224,9 @@ describe('MapPage: Concentration and Activity', () => {
   }];
   const local = () => baseData({ selectedSource: 'local', selectedProject: 'p1', projectName: 'p1', accumulated: { dimensions: DIMS } });
 
-  it('the pack offers Concentration and Activity, not Health or Violations', () => {
-    renderPage(local());
-    expect(screen.getByRole('button', { name: t('map.colorConcentration') })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t('map.colorActivity') })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Health' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Violations' })).toBeNull();
-  });
-
   it('a project without history cannot pick Activity, and the button says why', async () => {
     renderPage(local());
-    const button = screen.getByRole('button', { name: t('map.colorActivity') });
+    const button = screen.getByRole('button', { name: t('map.vizActivity') });
     await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
     expect(button).toHaveAttribute('title', t('map.activityUnavailable'));
     expect(document.getElementById(button.getAttribute('aria-describedby'))).toHaveTextContent(t('map.activityUnavailable'));
@@ -252,16 +237,17 @@ describe('MapPage: Concentration and Activity', () => {
   it('a shared project with history can pick Activity', async () => {
     const sharedGetMapHistory = vi.fn().mockResolvedValue({ activitySource: 'estimated', fileNames: [], frames: [] });
     renderPage(baseData({ accumulated: { dimensions: DIMS } }), {}, fakeApi({ sharedGetMapHistory }));
-    const button = screen.getByRole('button', { name: t('map.colorActivity') });
+    const button = screen.getByRole('button', { name: t('map.vizActivity') });
     await waitFor(() => expect(sharedGetMapHistory).toHaveBeenCalled());
     await waitFor(() => expect(button).not.toHaveAttribute('aria-disabled'));
   });
 
-  it('the history is not fetched on the Galaxy', () => {
+  it('the history is not fetched on the Galaxy, and Activity stays open until it says so', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => fakeCanvasContext());
     const api = fakeApi();
     render(<MapPage data={local()} callbacks={{}} nav={{ vizStyle: 'galaxy' }} />, { wrapper: withStableQueryApi(api) });
     expect(api.getMapHistory).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: t('map.vizActivity') })).not.toHaveAttribute('aria-disabled');
   });
 
   it('Concentration draws without waiting for the history', () => {
@@ -274,7 +260,7 @@ describe('MapPage: Concentration and Activity', () => {
     const rejects = [];
     const api = fakeApi({ getMapHistory: vi.fn(() => new Promise((_, rej) => { rejects.push(rej); })) });
     render(<NavHarness data={local()} log={[]} />, { wrapper: withStableQueryApi(api) });
-    fireEvent.click(screen.getByRole('button', { name: t('map.colorActivity') }));
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizActivity') }));
     await waitFor(() => expect(api.getMapHistory).toHaveBeenCalled());
     rejects.forEach((reject) => reject(new Error('boom')));
     expect(await screen.findByText(t('map.activityUnavailable'), { selector: '.pack-legend-note' })).toBeInTheDocument();

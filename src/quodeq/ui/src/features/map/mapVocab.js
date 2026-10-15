@@ -1,28 +1,34 @@
 import { RISK_ZONE } from '../../vocab/riskZone.js';
 
-// The map's colour/size mode: the `viewMode` nav param, MapPage's toggle and
-// the switches in viz/core/mapColors.js. The Circle Pack's own buttons are
-// PACK_COLOR_MODES (concentration, activity); these health, violations and
-// compliance values are what the other views and older nav entries carry.
+// The map's colour/size mode: the `viewMode` nav param and the switches in
+// viz/core/mapColors.js. The Circle Pack and Activity tabs colour the pack by
+// their PACK_COLOR_MODE; these health, violations and compliance values are
+// what the other views and older nav entries carry.
 // Not the finding type, though it shares a word with it.
 export const MAP_VIEW_MODE = Object.freeze({ HEALTH: 'health', VIOLATIONS: 'violations', COMPLIANCE: 'compliance' });
 
-// The map's three layout engines (the `vizStyle` nav param): MapPage's
-// toggle and useMapPageState's nav-param default.
-export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', GALAXY: 'galaxy', RISK: 'risk' });
+// The map's tabs (the `vizStyle` nav param): MapPage's toggle and
+// useMapPageState's nav-param default. Circle Pack and Activity are the same
+// pack, coloured by concentration or by activity.
+export const VIZ_STYLE = Object.freeze({ ZOOMPACK: 'zoompack', ACTIVITY: 'activity', RISK: 'risk', GALAXY: 'galaxy' });
 // The Risk Matrix's old nav value: entries saved before the Risk tab open it.
 const LEGACY_RISK_MATRIX = 'riskmatrix';
+// The pack's old Activity colour (`viewMode`): entries saved before the Activity tab open it.
+const LEGACY_PACK_ACTIVITY = 'activity';
 const VIZ_STYLE_VALUES = new Set(Object.values(VIZ_STYLE));
 
 /**
- * The view for a nav value: the old Risk Matrix opens Risk, anything unknown
- * (or missing) the Circle Pack.
+ * The view for a nav value: the old Risk Matrix opens Risk, the Circle Pack
+ * coloured by activity (entries saved before Activity was a tab) opens
+ * Activity, anything unknown (or missing) the Circle Pack.
  * @param {string|undefined} value the `vizStyle` nav param
+ * @param {string|undefined} [viewMode] the `viewMode` nav param
  * @returns {string} a VIZ_STYLE value
  */
-export function normalizeVizStyle(value) {
+export function normalizeVizStyle(value, viewMode) {
   if (value === LEGACY_RISK_MATRIX) return VIZ_STYLE.RISK;
-  return VIZ_STYLE_VALUES.has(value) ? value : VIZ_STYLE.ZOOMPACK;
+  const style = VIZ_STYLE_VALUES.has(value) ? value : VIZ_STYLE.ZOOMPACK;
+  return style === VIZ_STYLE.ZOOMPACK && viewMode === LEGACY_PACK_ACTIVITY ? VIZ_STYLE.ACTIVITY : style;
 }
 
 // Sub-mode of VIZ_STYLE.GALAXY (the `galaxyMode` nav param): grouped by
@@ -41,20 +47,22 @@ export const MAP_FRAMES = Object.freeze({ LATEST: 'latest', ALL: 'all' });
 /** Circle Pack colour modes (spec 2.1, 2.2). */
 export const PACK_COLOR_MODE = Object.freeze({ CONCENTRATION: 'concentration', ACTIVITY: 'activity' });
 
-/** Circle Pack colour buttons, in order. */
-export const PACK_COLOR_MODES = Object.freeze([
-  { value: PACK_COLOR_MODE.CONCENTRATION, labelKey: 'map.colorConcentration' },
-  { value: PACK_COLOR_MODE.ACTIVITY, labelKey: 'map.colorActivity' },
-]);
+/**
+ * Whether a tab draws the circle pack (Circle Pack or Activity).
+ * @param {string} vizStyle a VIZ_STYLE value
+ * @returns {boolean}
+ */
+export function isPackStyle(vizStyle) {
+  return vizStyle === VIZ_STYLE.ZOOMPACK || vizStyle === VIZ_STYLE.ACTIVITY;
+}
 
 /**
- * The pack's colour mode for a nav value; older entries (health, violations,
- * compliance) open as Concentration.
- * @param {string} mode
+ * The pack's colour mode on a tab: Activity colours by edits, every other tab by concentration.
+ * @param {string} vizStyle a VIZ_STYLE value
  * @returns {string} a PACK_COLOR_MODE value
  */
-export function normalizePackMode(mode) {
-  return mode === PACK_COLOR_MODE.ACTIVITY ? PACK_COLOR_MODE.ACTIVITY : PACK_COLOR_MODE.CONCENTRATION;
+export function packColorModeOf(vizStyle) {
+  return vizStyle === VIZ_STYLE.ACTIVITY ? PACK_COLOR_MODE.ACTIVITY : PACK_COLOR_MODE.CONCENTRATION;
 }
 
 /** Area kinds from the map history (backend `AreaKind`). */

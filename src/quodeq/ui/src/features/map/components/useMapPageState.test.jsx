@@ -33,9 +33,15 @@ describe('useMapPageState: pack colour mode', () => {
     expect(result.current.viewState.viewMode).toBe('concentration');
   });
 
-  it('activity is kept', () => {
-    const { result } = setup({ nav: { viewMode: 'activity' } });
+  it('an old pack entry coloured by activity opens the Activity tab', () => {
+    const { result } = setup({ nav: { vizStyle: 'zoompack', viewMode: 'activity' } });
+    expect(result.current.viewState.vizStyle).toBe(VIZ_STYLE.ACTIVITY);
     expect(result.current.viewState.viewMode).toBe('activity');
+  });
+
+  it('the Activity tab colours the pack by activity, the Circle Pack by concentration', () => {
+    expect(setup({ nav: { vizStyle: 'activity' } }).result.current.viewState.viewMode).toBe('activity');
+    expect(setup({ nav: { vizStyle: 'zoompack' } }).result.current.viewState.viewMode).toBe('concentration');
   });
 });
 

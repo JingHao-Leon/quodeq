@@ -29,4 +29,10 @@ describe('mapRoute', () => {
     mapRoute({ vizStyle: 'risk' }, p).props.nav.onFilterEdited();
     expect(p.navigation.handleNavigateReplace).not.toHaveBeenCalled();
   });
+
+  it('a tab change drops an old entry\'s pack colour, so the new tab keeps its own', () => {
+    const p = props({});
+    mapRoute({ vizStyle: 'zoompack', viewMode: 'activity', _tabKey: 2 }, p).props.nav.onVizStyleChange('zoompack');
+    expect(p.navigation.handleNavigateReplace).toHaveBeenCalledWith('map', { vizStyle: 'zoompack', viewMode: undefined, _tabKey: 2 });
+  });
 });
