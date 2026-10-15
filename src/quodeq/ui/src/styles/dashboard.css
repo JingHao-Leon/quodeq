@@ -3641,6 +3641,11 @@
 }
 .risk-areas-panel__map:hover, .risk-areas-panel__map:focus-visible { color: var(--color-accent); }
 .risk-areas-panel__map:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+/* On a phone the name takes the row's first line, its figures (and the map icon) the second, so neither is cut. */
+@media (max-width: 600px) {
+  .risk-areas-panel .term-grid__row { grid-template-columns: auto auto minmax(0, 1fr) auto auto; row-gap: 4px; }
+  .risk-areas-panel .term-grid__row > .term-grid__cell:first-child { grid-column: 1 / -1; }
+}
 
 /* The Findings header (scoped views, the dimension page) and the scoped views' list and cards. */
 .findings-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); padding: 12px 18px; margin-bottom: var(--space-3); }
