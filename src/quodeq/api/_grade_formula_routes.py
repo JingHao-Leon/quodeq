@@ -4,6 +4,7 @@ GET    /api/grade-formula          -- current + defaults + isCustom + rescore pr
 PUT    /api/grade-formula          -- validate, save, start a background rescore (202)
 DELETE /api/grade-formula          -- reset to Q2 defaults, start a background rescore (202)
 POST   /api/grade-formula/preview  -- read-only before/after of every local project's accumulated score
+GET    /api/grade-formula/inputs   -- every project's per-principle scoring inputs (read-only)
 """
 from __future__ import annotations
 
@@ -22,7 +23,7 @@ from quodeq.core.scoring.params import (
     params_to_dict,
     validate_params,
 )
-from quodeq.services import grade_formula, grade_formula_preview
+from quodeq.services import grade_formula, grade_formula_inputs, grade_formula_preview
 from quodeq.shared.log_sink import SHARED_LOG
 from quodeq.services.grade_formula_job import GradeFormulaRescorer, RescoreSnapshot
 
@@ -116,6 +117,10 @@ def register_grade_formula_routes(
     @app.post("/api/grade-formula/preview")
     def preview_grade_formula() -> Response | tuple[Response, int]:
         return _preview_response()
+
+    @app.get("/api/grade-formula/inputs")
+    def grade_formula_inputs_route() -> Response:
+        return jsonify(grade_formula_inputs.inputs_all(Path(reports_dir()), log=SHARED_LOG))
 
     @app.post("/api/grade-formula/rescore")
     def rescore_grade_formula() -> tuple[Response, int]:
