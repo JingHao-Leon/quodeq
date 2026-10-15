@@ -1,5 +1,10 @@
 import DimensionGaugeCard from '../../dashboard/components/DimensionGaugeCard.jsx';
 import { t } from '../../../strings/index.js';
+import RunSevText from './RunSevText.jsx';
+import { SEVERITY } from '../../../vocab/severity.js';
+
+// The new and fixed lines name the severities that weigh: criticals and majors.
+const CRIT_MAJ = [SEVERITY.CRITICAL, SEVERITY.MAJOR];
 
 /** Weakest first, as the Overview and the dimension page order their cards; ungraded last. */
 const scoreOf = (d) => { const n = parseFloat(d.score); return Number.isNaN(n) ? Infinity : n; };
@@ -21,9 +26,15 @@ function cardItem(d) {
 function RunMoves({ change }) {
   if (!change) return <span className="dim-gauge-card__pass">{t('history.cardNotCompared')}</span>;
   return (
-    <span className="dim-gauge-card__pass rl-card-moves">
-      <span className={change.new ? 'rl-new' : 'rl-zero'}>{t('history.cardNew', { count: change.new })}</span>
-      <span className={change.resolved ? 'rl-fixed' : 'rl-zero'}>{t('history.cardFixed', { count: change.resolved })}</span>
+    <span className="rl-card-moves">
+      <span className="rl-card-move">
+        <span className={change.new ? 'rl-new' : 'rl-zero'}>{t('history.cardNew', { count: change.new })}</span>
+        <RunSevText counts={change.newSev} levels={CRIT_MAJ} />
+      </span>
+      <span className="rl-card-move">
+        <span className={change.resolved ? 'rl-fixed' : 'rl-zero'}>{t('history.cardFixed', { count: change.resolved })}</span>
+        <RunSevText counts={change.resolvedSev} levels={CRIT_MAJ} />
+      </span>
     </span>
   );
 }

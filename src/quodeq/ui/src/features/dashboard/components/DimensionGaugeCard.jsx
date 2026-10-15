@@ -51,7 +51,6 @@ function CoverageLine({ dateText, coveragePct, isPartial, tooltip, quarantinedCo
   );
 }
 
-const COMPACT_RING_PX = 56;
 const PASS_PCT = 100;
 
 /** Compliant checks over all checks, in percent; null with no checks. */
@@ -81,7 +80,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsuffi
         {scoreChangeShows(delta) && <TrendBadge delta={delta} />}
       </div>
       <div className="dim-gauge-card__row">
-        <div className="dim-gauge-card__mini" style={{ width: COMPACT_RING_PX, height: COMPACT_RING_PX }}>
+        <div className="dim-gauge-card__mini">
           {isInsufficient ? <InsufficientGauge /> : <ScoreGauge {...ring} gradeWord={null} />}
         </div>
         <div className="dim-gauge-card__rowbody">

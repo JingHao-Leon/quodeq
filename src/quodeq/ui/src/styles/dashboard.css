@@ -3759,5 +3759,6 @@
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
 
 /* History: a run's dimensions as cards */
-.rl-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin: 16px 22px 0; }
-.rl-card-moves { display: inline-flex; gap: 10px; font-family: var(--font-mono); }
+.qd-cards-row.rl-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin: 16px 22px 0; }
+.rl-card-moves { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 11px; }
+.rl-card-move { display: inline-flex; gap: 10px; align-items: baseline; white-space: nowrap; }

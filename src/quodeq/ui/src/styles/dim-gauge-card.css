@@ -184,3 +184,6 @@
 .dim-gauge-card--not-evaluated .dim-gauge-card__mini svg { width: 56px; height: 56px; }
 .dim-gauge-card__gradeword--muted { color: var(--color-text-muted); }
 .dim-gauge-card__mini { display: block; }
+
+/* the compact card's ring size */
+.dim-gauge-card__mini { width: 56px; height: 56px; }
