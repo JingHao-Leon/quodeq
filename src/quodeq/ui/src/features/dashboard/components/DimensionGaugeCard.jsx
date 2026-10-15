@@ -73,7 +73,7 @@ function SevPills({ sev }) {
  * only, and beside it the grade word at text size in the ring's colour, the
  * severities as the app's pills, and the pass rate.
  */
-function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient }) {
+function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient, footer = null }) {
   return (
     <>
       <div className="dim-gauge-card__top">
@@ -89,7 +89,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsuffi
             {isInsufficient ? t('overview.insufficientGrade') : ring.gradeWord}
           </span>
           <SevPills sev={sev} />
-          {passPct != null && <span className="dim-gauge-card__pass">{t('overview.cardPass', { pct: passPct })}</span>}
+          {footer || (passPct != null && <span className="dim-gauge-card__pass">{t('overview.cardPass', { pct: passPct })}</span>)}
         </div>
       </div>
       {!isInsufficient && <span id={summaryId} className="sr-only">{t('overview.gaugeSummaryAria', { score: ring.scoreDisplay, grade: ring.gradeWord })}</span>}
@@ -195,6 +195,7 @@ export default function DimensionGaugeCard({
   compact = false,
   highlighted = false,
   onHover,
+  footer = null,
 }) {
   const derived = computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunId });
   const { scoreDisplay, gradeWord, ringColor, dashOffset, sev, staleClass, dateText, coverage, partialTooltip } = derived;
@@ -219,7 +220,7 @@ export default function DimensionGaugeCard({
     >
       {compact ? (
         <CompactCardBody name={item.dimension} delta={delta} sev={sev} passPct={passPctOf(item)} summaryId={summaryId} isInsufficient={isInsufficient}
-          ring={{ scoreDisplay, gradeWord, ringColor, dashOffset }} />
+          ring={{ scoreDisplay, gradeWord, ringColor, dashOffset }} footer={footer} />
       ) : (
         <FullCardBody item={item} delta={delta} derived={derived} summaryId={summaryId} isInsufficient={isInsufficient} thinEvidence={thinEvidence} />
       )}

@@ -3757,3 +3757,7 @@
 }
 /* the Violations tile's severity pills wrap inside the tile */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
+
+/* History: a run's dimensions as cards */
+.rl-cards { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin: 16px 22px 0; }
+.rl-card-moves { display: inline-flex; gap: 10px; font-family: var(--font-mono); }
