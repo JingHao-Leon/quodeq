@@ -16,13 +16,19 @@ describe('GradeChip', () => {
 });
 
 describe('heroCardHandlers', () => {
-  it('opens violations, compliance and a severity only when there is something to open', () => {
+  it('opens violations and a severity when there are violations', () => {
     const open = vi.fn();
     const some = heroCardHandlers(open, { violations: 3, compliance: 0 });
     some.handleViolations();
     some.handleSeverity('major');
     expect(open.mock.calls).toEqual([['violations'], ['major']]);
-    expect(some.handleCompliance).toBeUndefined();
+  });
+
+  it('opens no compliance without compliant checks', () => {
+    expect(heroCardHandlers(vi.fn(), { violations: 3, compliance: 0 }).handleCompliance).toBeUndefined();
+  });
+
+  it('opens nothing without a navigator', () => {
     expect(heroCardHandlers(undefined, { violations: 3, compliance: 3 }).handleSeverity).toBeUndefined();
   });
 });

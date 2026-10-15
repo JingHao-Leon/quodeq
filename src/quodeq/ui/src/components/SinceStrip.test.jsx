@@ -39,13 +39,14 @@ describe('SinceStrip', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('takes the caller\'s label, and says why there is nothing to count without a summary', () => {
-    const { rerender } = render(<SinceStrip summary={summary()} label="since the previous run" />);
+  it('takes the caller\'s label', () => {
+    render(<SinceStrip summary={summary()} label="since the previous run" />);
     expect(screen.getByRole('region', { name: 'since the previous run' })).toHaveTextContent('4 new');
-    rerender(<SinceStrip summary={null} label="since the previous run" emptyNote="nothing to compare with" />);
+  });
+
+  it('says why there is nothing to count without a summary', () => {
+    render(<SinceStrip summary={null} label="since the previous run" emptyNote="nothing to compare with" />);
     expect(screen.getByRole('region', { name: 'since the previous run' })).toHaveTextContent('nothing to compare with');
     expect(screen.queryByText('4 new')).not.toBeInTheDocument();
-    rerender(<SinceStrip summary={null} label="since the previous run" />);
-    expect(screen.queryByRole('region')).not.toBeInTheDocument();
   });
 });

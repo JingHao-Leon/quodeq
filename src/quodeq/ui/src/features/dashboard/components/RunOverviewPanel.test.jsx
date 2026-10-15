@@ -111,11 +111,22 @@ describe('RunOverviewPanel since line and cards', () => {
 });
 
 describe('RunOverviewPanel on a run with no previous run', () => {
-  it('has no changes, says so on the since line, and every card says not compared', async () => {
-    const { container, api } = renderRun({ runId: 'r1', dimensions: BASE_DIMS });
+  const renderFirst = () => renderRun({ runId: 'r1', dimensions: BASE_DIMS });
+
+  it('says on the since line there is nothing to compare with', async () => {
+    renderFirst();
     const strip = await screen.findByRole('region', { name: 'since the previous run' });
     expect(strip).toHaveTextContent('first run with these dimensions: nothing to compare with');
+  });
+
+  it('says not compared on every card', async () => {
+    renderFirst();
     await waitFor(() => expect(screen.getAllByText('not compared')).toHaveLength(2));
+  });
+
+  it('shows no changes or movers and asks for no diff', async () => {
+    const { container, api } = renderFirst();
+    await screen.findByRole('region', { name: 'since the previous run' });
     expect(head(container).querySelector('.findings-head__change, .term-sev-badge__delta')).toBeNull();
     expect(container.querySelector('.overview-since__mover')).toBeNull();
     expect(api.getRunDiff).not.toHaveBeenCalled();

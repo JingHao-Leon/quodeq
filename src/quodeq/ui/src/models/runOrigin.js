@@ -29,7 +29,11 @@ export function originLabel(origin) {
   return null;
 }
 
-/** The run's page on GitHub (its pull request, else its workflow run); null when none. */
+// Only a web page is a link: a stored javascript: or data: URL never reaches an href.
+const WEB_URL = /^https?:\/\//i;
+
+/** The run's page on GitHub (its pull request, else its workflow run); null when none or not a web URL. */
 export function originUrl(origin) {
-  return origin?.prUrl || origin?.runUrl || null;
+  const url = origin?.prUrl || origin?.runUrl || null;
+  return url && WEB_URL.test(url) ? url : null;
 }

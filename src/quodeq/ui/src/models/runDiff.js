@@ -14,7 +14,11 @@ const bySeverity = (a, b) => (SEV_ORDER[a.severity] ?? SEV_UNKNOWN) - (SEV_ORDER
   || a.dimension.localeCompare(b.dimension) || (a.file || '').localeCompare(b.file || '');
 
 /** Findings per severity. */
-const severityTally = (list) => list.reduce((m, f) => ({ ...m, [f.severity]: (m[f.severity] || 0) + 1 }), {});
+const severityTally = (list) => {
+  const tally = {};
+  for (const f of list) tally[f.severity] = (tally[f.severity] || 0) + 1;
+  return tally;
+};
 
 /** One dimension's counts: new, fixed, not re-evaluated, and the new and fixed per severity. */
 function dimensionChange(entry) {
