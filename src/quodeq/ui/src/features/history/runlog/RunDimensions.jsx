@@ -1,16 +1,15 @@
 import DimensionGaugeCard from '../../dashboard/components/DimensionGaugeCard.jsx';
 import { t } from '../../../strings/index.js';
 import RunSevText from './RunSevText.jsx';
-import { SEVERITY } from '../../../vocab/severity.js';
-
-// The new and fixed lines name the severities that weigh: criticals and majors.
-const CRIT_MAJ = [SEVERITY.CRITICAL, SEVERITY.MAJOR];
-
-/** Weakest first, as the Overview and the dimension page order their cards; ungraded last. */
-const scoreOf = (d) => { const n = parseFloat(d.score); return Number.isNaN(n) ? Infinity : n; };
-const weakestFirst = (a, b) => (scoreOf(a) - scoreOf(b)) || a.dimension.localeCompare(b.dimension);
+import { CRIT_MAJ } from './RunSevRow.jsx';
 
 const ONE_DECIMAL = 1;
+
+/** A dimension's score as a number; ungraded sorts last. */
+const scoreOf = (d) => { const n = parseFloat(d.score); return Number.isNaN(n) ? Infinity : n; };
+
+/** Weakest first, as the Overview and the dimension page order their cards; ties by name. */
+const weakestFirst = (a, b) => (scoreOf(a) - scoreOf(b)) || a.dimension.localeCompare(b.dimension);
 
 /** A run's dimension as the cards read one: its score (one decimal, as everywhere: 8.0, not 8) and its crit/maj counts. */
 function cardItem(d) {
@@ -22,19 +21,23 @@ function cardItem(d) {
   };
 }
 
+/** One line of a card's footer: a count in its colour (muted at zero), then its criticals and majors. */
+function MoveLine({ count, cls, label, sev }) {
+  return (
+    <span className="rl-card-move">
+      <span className={count ? cls : 'rl-zero'}>{label}</span>
+      <RunSevText counts={sev} levels={CRIT_MAJ} />
+    </span>
+  );
+}
+
 /** What this run changed in the dimension: new and fixed findings (none when it was not compared). */
 function RunMoves({ change }) {
   if (!change) return <span className="dim-gauge-card__pass">{t('history.cardNotCompared')}</span>;
   return (
     <span className="rl-card-moves">
-      <span className="rl-card-move">
-        <span className={change.new ? 'rl-new' : 'rl-zero'}>{t('history.cardNew', { count: change.new })}</span>
-        <RunSevText counts={change.newSev} levels={CRIT_MAJ} />
-      </span>
-      <span className="rl-card-move">
-        <span className={change.resolved ? 'rl-fixed' : 'rl-zero'}>{t('history.cardFixed', { count: change.resolved })}</span>
-        <RunSevText counts={change.resolvedSev} levels={CRIT_MAJ} />
-      </span>
+      <MoveLine count={change.new} cls="rl-new" label={t('history.cardNew', { count: change.new })} sev={change.newSev} />
+      <MoveLine count={change.resolved} cls="rl-fixed" label={t('history.cardFixed', { count: change.resolved })} sev={change.resolvedSev} />
     </span>
   );
 }

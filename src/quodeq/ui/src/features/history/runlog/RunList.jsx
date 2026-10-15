@@ -35,6 +35,15 @@ function ColumnHeads() {
   );
 }
 
+/**
+ * Focus follows the selection while focus is in the list: the arrow keys move the selection, and the row
+ * clicked last must not keep the focus ring once the keyboard takes over. Focus elsewhere is never taken.
+ */
+function focusFollowsSelection(list, row) {
+  const active = document.activeElement;
+  if (list.contains(active) && active !== row) row.focus({ preventScroll: true });
+}
+
 // Scroll the list only, never the page.
 function useKeepSelectedInView(selectedId) {
   const ref = useRef(null);
@@ -42,9 +51,7 @@ function useKeepSelectedInView(selectedId) {
     const list = ref.current;
     const row = list?.querySelector('.rl-row.is-sel');
     if (!row) return;
-    // Focus follows the selection while it is in the list: the arrow keys move the selection, and the
-    // row clicked last must not keep the focus ring once the keyboard takes over.
-    if (list.contains(document.activeElement) && document.activeElement !== row) row.focus({ preventScroll: true });
+    focusFollowsSelection(list, row);
     const top = row.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
     const bottom = top + row.offsetHeight;
     if (top < list.scrollTop + SCROLL_PAD) list.scrollTop = top - SCROLL_TOP_ROOM;

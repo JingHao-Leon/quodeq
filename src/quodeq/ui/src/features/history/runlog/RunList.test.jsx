@@ -39,4 +39,22 @@ describe('RunList', () => {
     expect(screen.getByText(/sec · rel|rel · sec/)).toBeInTheDocument();
     expect(screen.queryByText(/dims/)).not.toBeInTheDocument();
   });
+
+  it('focus follows the selection while it is in the list', () => {
+    const props = { rows, onSelect: vi.fn(), hoverId: null, onHover: vi.fn() };
+    const { rerender, container } = render(<RunList {...props} selectedId="a" />);
+    container.querySelector('.rl-row.is-sel').focus();
+    rerender(<RunList {...props} selectedId="c" />);
+    expect(document.activeElement).toBe(container.querySelector('.rl-row.is-sel'));
+    expect(document.activeElement).toHaveTextContent('+4');
+  });
+
+  it('never takes focus from outside the list', () => {
+    const props = { rows, onSelect: vi.fn(), hoverId: null, onHover: vi.fn() };
+    const { rerender } = render(<><input aria-label="outside" /><RunList {...props} selectedId="a" /></>);
+    const outside = screen.getByLabelText('outside');
+    outside.focus();
+    rerender(<><input aria-label="outside" /><RunList {...props} selectedId="c" /></>);
+    expect(document.activeElement).toBe(outside);
+  });
 });

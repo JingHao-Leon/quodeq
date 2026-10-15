@@ -66,13 +66,19 @@ function SevPills({ sev }) {
   return <SeverityBadges sev={sev} className="dim-gauge-card__pills" />;
 }
 
+/** The compact card's pass rate line; nothing without checks. */
+function PassLine({ passPct }) {
+  if (passPct == null) return null;
+  return <span className="dim-gauge-card__pass">{t('overview.cardPass', { pct: passPct })}</span>;
+}
+
 /**
  * A compact card (the principle row of a dimension page): the name and its
  * trend (none under 0.05) across the top; below, the ring with the score
  * only, and beside it the grade word at text size in the ring's colour, the
- * severities as the app's pills, and the pass rate.
+ * severities as the app's pills, and the pass rate (or the caller's footer in its place).
  */
-function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient, footer = null }) {
+function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient, footer }) {
   return (
     <>
       <div className="dim-gauge-card__top">
@@ -88,7 +94,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsuffi
             {isInsufficient ? t('overview.insufficientGrade') : ring.gradeWord}
           </span>
           <SevPills sev={sev} />
-          {footer || (passPct != null && <span className="dim-gauge-card__pass">{t('overview.cardPass', { pct: passPct })}</span>)}
+          {footer ?? <PassLine passPct={passPct} />}
         </div>
       </div>
       {!isInsufficient && <span id={summaryId} className="sr-only">{t('overview.gaugeSummaryAria', { score: ring.scoreDisplay, grade: ring.gradeWord })}</span>}
@@ -152,6 +158,7 @@ function DimensionScoreBody({ scoreDisplay, gradeWord, ringColor, dashOffset, vi
  * @param {boolean}  [props.evaluatedToday=true] - accumulated overview only: mutes the frame when false
  * @param {string}   [props.dateLabel]         - forwarded to children for run overview
  * @param {string}   [props.selectedRunId]     - forwarded to click handler for run overview
+ * @param {import('react').ReactNode} [props.footer] - compact only: shown in place of the pass rate
  */
 function computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunId }) {
   const violationCount = item.totals?.violationCount ?? 0;
@@ -194,7 +201,7 @@ export default function DimensionGaugeCard({
   compact = false,
   highlighted = false,
   onHover,
-  footer = null,
+  footer,
 }) {
   const derived = computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunId });
   const { scoreDisplay, gradeWord, ringColor, dashOffset, sev, staleClass, dateText, coverage, partialTooltip } = derived;

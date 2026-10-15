@@ -71,10 +71,17 @@ describe('RunDetail', () => {
     expect(screen.getByText(/821 files · 3\.9\/min/)).toBeInTheDocument();
   });
 
-  it('dimension rows carry the letter chip, the hero keeps the word', () => {
+  it('the dimensions show as cards, the hero keeps the grade word', () => {
     renderDetail();
-    const row = screen.getByText('security').closest('.term-grid__row');
-    expect(row.querySelector('.chip').textContent).toBe('B');
+    const card = screen.getByText('security').closest('.dim-gauge-card');
+    expect(card).toHaveClass('dim-gauge-card--compact');
+    expect(card.querySelector('.dim-gauge-card__score')).toHaveTextContent('8.4');
     expect(document.querySelector('.rl-hero .chip').textContent).toBe('GOOD');
+  });
+
+  it('a dimension card opens that dimension', () => {
+    const p = renderDetail();
+    fireEvent.click(screen.getByText('security').closest('.dim-gauge-card'));
+    expect(p.onOpenDimension).toHaveBeenCalledWith(run.dimensionDetails[0]);
   });
 });

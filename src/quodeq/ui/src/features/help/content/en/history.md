@@ -10,6 +10,12 @@ The **History** tab is your project's quality timeline. Every completed run live
 - **Run metadata** model, sub-agent count, scope, branch, duration.
 - **Tombstones** deleted runs leave a marker so the trend stays continuous.
 
+### The selected run
+
+Selecting a run shows it beside the list: its grade and score, its criticals and majors against the run it was compared with, and tabs for its dimensions and for the findings it found new or fixed. The up and down arrow keys move the selection through the runs.
+
+The **Dimensions** tab shows each dimension the run scored as a card, the same card as on the Overview, weakest first. Each card has the dimension's score, grade and severities in that run, and under them what the run changed in it: the findings it found new and the findings it fixed, each with how many of them were criticals and majors. A dimension the run was not compared on says *not compared*. Click a card to open that dimension as of the run.
+
 ### The trend chart
 
 A small chart above the list plots each run's own score over time. Hover a bar to read the run's score, criticals, majors and open types; click to highlight that run.
