@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { VISIBLE_STANDARDS_STORAGE_KEY } from '../constants.js';
 
 vi.mock('../api/standards.js', () => ({
@@ -18,6 +18,7 @@ function fakeStorage(ids) {
 const cached = (storage) => JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY]);
 
 beforeEach(() => { vi.clearAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); });
 
 it('appends the standard to the cache and the local project file', async () => {
   const storage = fakeStorage(['security']);
@@ -26,11 +27,17 @@ it('appends the standard to the cache and the local project file', async () => {
   expect(putStandardsVisibility).toHaveBeenCalledWith('p1', ['security', 'android-bp']);
 });
 
-it('only moves the cache for a shared project, and skips an id already visible', async () => {
+it('only moves the cache for a shared project', async () => {
+  const storage = fakeStorage([]);
+  await addVisibleStandardId('other', { projectId: null, storage });
+  expect(cached(storage)).toEqual(['other']);
+  expect(putStandardsVisibility).not.toHaveBeenCalled();
+});
+
+it('skips an id already visible in another case', async () => {
   const storage = fakeStorage(['Android-BP']);
   await addVisibleStandardId('android-bp', { projectId: 'p1', storage });
-  await addVisibleStandardId('other', { projectId: null, storage });
-  expect(cached(storage)).toEqual(['Android-BP', 'other']);
+  expect(cached(storage)).toEqual(['Android-BP']);
   expect(putStandardsVisibility).not.toHaveBeenCalled();
 });
 

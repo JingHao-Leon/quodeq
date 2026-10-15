@@ -4,6 +4,7 @@ import {
 } from '../constants.js';
 import { getStandardsVisibility, putStandardsVisibility } from '../api/standards.js';
 import { readJSON, STORAGE_FLAG_ON, writeString } from '../adapters/storage.js';
+import { PROJECT_SOURCE } from '../vocab/projectSource.js';
 import { decideHydration, HYDRATION_KIND } from './visibleStandardsModel.js';
 
 // Marks that the (per-browser, not per-project) cache has been reconciled
@@ -67,6 +68,15 @@ export function writeVisibleStandardIds(ids, storage = localStorage) {
   // Same-tab consumers (the Evaluate picker) read this cache synchronously
   // and only on mount; tell them it moved.
   notifyStandardsChanged(STANDARDS_CHANGED_REASON.VISIBILITY);
+}
+
+/**
+ * The project whose visibility file a change is written to: none for a
+ * shared (read-only) project, which has no local standards file; the
+ * per-project PUT would 404. Its toggles live in the browser-local cache.
+ */
+export function visibilityProjectIdFor(selectedProject, selectedSource) {
+  return selectedSource === PROJECT_SOURCE.SHARED ? null : selectedProject;
 }
 
 /**

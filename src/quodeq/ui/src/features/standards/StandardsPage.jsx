@@ -8,7 +8,7 @@ import ImportModal from './components/ImportModal.jsx';
 import PageToolbar from '../../components/PageToolbar.jsx';
 import { useAppState } from '../../hooks/useAppState.js';
 import { t } from '../../strings/index.js';
-import { PROJECT_SOURCE } from '../../vocab/projectSource.js';
+import { visibilityProjectIdFor } from '../../utils/visibleStandards.js';
 import { ACTION_TYPE } from '../../vocab/actionType.js';
 import { ASSISTANT_ACTION_APPLIED_EVENT } from '../../constants.js';
 
@@ -79,11 +79,9 @@ function StandardsListView({ grouped, loading, error, actions, customizedCounts 
 
 export default function StandardsPage({ onRescan }) {
   const { selectedProject, selectedSource } = useAppState();
-  // A shared (read-only) project has no local standards file to write; the
-  // per-project PUT would 404 and vanish in persist()'s fire-and-forget
-  // catch. The toggle still lands in the browser-local visible set, which
-  // is what every screen filters by.
-  const visibilityProjectId = selectedSource === PROJECT_SOURCE.SHARED ? null : selectedProject;
+  // A shared project's toggles stay in the browser-local visible set, which
+  // is what every screen filters by (see visibilityProjectIdFor).
+  const visibilityProjectId = visibilityProjectIdFor(selectedProject, selectedSource);
   const { isVisible, toggle, add: addVisible, remove: removeVisible } = useVisibleStandards({ projectId: visibilityProjectId });
   // A new standard only reaches the Evaluate picker once it is visible for
   // this project. Create does that in handleSaved; duplicate and import
