@@ -15,7 +15,7 @@ test('chart text is legible once the 960-unit viewBox is scaled down', () => {
 });
 
 test('hovering the cost or lift group enlarges the dots that move', () => {
-  const selector = ['cost', 'lift'].flatMap((g) => [`.gf-chart--hl-${g} .gf-dot--up`, `.gf-chart--hl-${g} .gf-dot--down`]).join(', ');
+  const selector = ['cost', 'lift'].flatMap((g) => [`.gf-chart--hl-${g} .gf-dot--up:not(.gf-dot--flip)`, `.gf-chart--hl-${g} .gf-dot--down:not(.gf-dot--flip)`]).join(', ');
   assert.match(rule(selector) ?? '', /r: 5\.5px/);
 });
 

@@ -72,4 +72,14 @@ describe('PrincipleChart', () => {
     mount({ inputs: { projects: [INPUTS.projects[1]] }, draft: { ...SAVED, severityWeight: { critical: 6, major: 5, minor: 0.25 } } });
     expect(screen.getByText(/^1 principle · 1 move · \d change grade$/)).toBeInTheDocument();
   });
+
+  it('anchors the axis text so ticks and titles sit on their positions', () => {
+    const { container } = mount();
+    const anchor = (sel) => container.querySelector(sel).getAttribute('text-anchor');
+    expect(anchor('.gf-tick--y')).toBe('end');
+    expect(container.querySelector('.gf-tick--y').getAttribute('dominant-baseline')).toBe('middle');
+    expect(anchor('.gf-tick--x')).toBe('middle');
+    const titles = container.querySelectorAll('.gf-axis-title');
+    expect([...titles].map((n) => n.getAttribute('text-anchor'))).toEqual(['middle', 'middle']);
+  });
 });

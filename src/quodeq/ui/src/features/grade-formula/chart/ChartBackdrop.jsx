@@ -39,14 +39,14 @@ export function Backdrop({ scale, draft }) {
       {GRID_LINES.map((v) => (
         <g key={v}>
           <line className="gf-grid" x1={plot.left} x2={plot.right} y1={scale.y(v)} y2={scale.y(v)} />
-          <text className="gf-tick gf-tick--y" x={plot.left - LABEL_GAP} y={scale.y(v)}>{v}</text>
+          <text className="gf-tick gf-tick--y" textAnchor="end" dominantBaseline="middle" x={plot.left - LABEL_GAP} y={scale.y(v)}>{v}</text>
         </g>
       ))}
       {scale.xTicks.map((v) => (
-        <text key={v} className="gf-tick gf-tick--x" x={scale.x(v)} y={plot.bottom + TICK_DROP}>{v}</text>
+        <text key={v} className="gf-tick gf-tick--x" textAnchor="middle" x={scale.x(v)} y={plot.bottom + TICK_DROP}>{v}</text>
       ))}
-      <text className="gf-axis-title" x={(plot.left + plot.right) / 2} y={scale.height - TITLE_DROP}>{t('gradeFormula.chartAxisX')}</text>
-      <text className="gf-axis-title" transform={`rotate(-90 ${Y_TITLE_X} ${middle})`} x={Y_TITLE_X} y={middle}>{t('gradeFormula.chartAxisY')}</text>
+      <text className="gf-axis-title" textAnchor="middle" x={(plot.left + plot.right) / 2} y={scale.height - TITLE_DROP}>{t('gradeFormula.chartAxisX')}</text>
+      <text className="gf-axis-title" textAnchor="middle" transform={`rotate(-90 ${Y_TITLE_X} ${middle})`} x={Y_TITLE_X} y={middle}>{t('gradeFormula.chartAxisY')}</text>
     </g>
   );
 }
