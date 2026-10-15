@@ -87,16 +87,12 @@ def _identity(path: Path) -> tuple[str, int, int, str] | None:
     return (str(path), st.st_dev, st.st_ino, CACHE_WRITER_EPOCH)
 
 
-def _connect_initialized(path: Path) -> sqlite3.Connection:
-    """Fast path for a file already initialized here: connect, set the busy
-    timeout, and prove the schema is still there with one single-row read
-    (an inode can be reused by a brand-new file)."""
-    conn = sqlite3.connect(path)
+def _with_this_epoch(conn: sqlite3.Connection) -> sqlite3.Connection:
+    """*conn* once one single-row read proves the schema is there and was
+    written by this epoch (an inode can be reused by a brand-new file);
+    closed, with the DatabaseError, otherwise."""
     try:
-        conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
-        row = conn.execute(
-            "SELECT value FROM cache_meta WHERE key='writer_epoch'"
-        ).fetchone()
+        row = conn.execute("SELECT value FROM cache_meta WHERE key='writer_epoch'").fetchone()
     except sqlite3.DatabaseError:
         conn.close()
         raise
@@ -106,20 +102,23 @@ def _connect_initialized(path: Path) -> sqlite3.Connection:
     return conn
 
 
+def _connect_initialized(path: Path) -> sqlite3.Connection:
+    """Fast path for a file already initialized here: connect, set the busy
+    timeout, and prove the schema is still there."""
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+    except sqlite3.DatabaseError:
+        conn.close()
+        raise
+    return _with_this_epoch(conn)
+
+
 def _connect_read_only(path: Path) -> sqlite3.Connection:
     """A read-only connection to a cache this process may not write to (the
     assistant's MCP server inside the Codex sandbox): hits are served, and
     ``read_through`` skips the write. Not memoized: nothing was initialized."""
-    conn = connect_read_only(path)
-    try:
-        row = conn.execute("SELECT value FROM cache_meta WHERE key='writer_epoch'").fetchone()
-    except sqlite3.DatabaseError:
-        conn.close()
-        raise
-    if row is None or row[0] != CACHE_WRITER_EPOCH:
-        conn.close()
-        raise sqlite3.OperationalError("score cache not initialized for this epoch and not writable")
-    return conn
+    return _with_this_epoch(connect_read_only(path))
 
 
 def _open_locked(path: Path) -> sqlite3.Connection:
