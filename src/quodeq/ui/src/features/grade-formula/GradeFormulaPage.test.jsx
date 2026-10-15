@@ -38,7 +38,6 @@ function mockHook(over = {}) {
     defaults: baseDraft(),
     isCustom: false,
     isDirty: false,
-    preview: null,
     busy: false,
     error: null,
     update: vi.fn(),
@@ -168,20 +167,6 @@ describe('GradeFormulaPage', () => {
     expect(screen.getByRole('button', { name: /RESET/ })).toBeDisabled();
     // The busy guard cascades to inputs inside the disabled fieldset.
     expect(screen.getByLabelText('critical')).toBeDisabled();
-  });
-
-  it('shows the no-project empty hint when no project is selected', () => {
-    mockHook();
-    mount(<GradeFormulaPage navigation={{ selectedProject: null }} />);
-    expect(screen.getByText('Select a project to see a live preview.')).toBeInTheDocument();
-  });
-
-  it('shows the per-project empty hint when a project is selected but preview is empty', () => {
-    mockHook({ preview: null });
-    mount(<GradeFormulaPage navigation={{ selectedProject: 'proj-1' }} />);
-    expect(
-      screen.getByText('No finished evaluation for this project yet. Run one to see a live preview.'),
-    ).toBeInTheDocument();
   });
 
   describe('boundary-divider drag guard when busy', () => {

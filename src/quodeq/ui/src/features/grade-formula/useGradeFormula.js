@@ -1,10 +1,12 @@
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { saveGradeFormula, resetGradeFormula } from '../../api/index.js';
 import { defaultGradeThresholdsStore } from '../../utils/gradeThresholds.js';
 import { setDimensionWeights } from '../../utils/dimensionWeights.js';
 import { RESCORE_STATE } from '../../vocab/rescoreState.js';
 import { useGradeFormulaState } from './hooks/useGradeFormulaState.js';
-import { useGradePreview } from './hooks/useGradePreview.js';
+import { clampFloors, clampSeverity } from './gradeFormulaRules.js';
+import { gradeFormulaKeys } from '../../api/queryKeys.js';
 import { useRescoreProgress } from './hooks/useRescoreProgress.js';
 import { t } from '../../strings/index.js';
 import { pluralKey } from '../../utils/plural.js';
@@ -19,44 +21,46 @@ function noticeFor(rescore) {
 }
 
 // Once the server's pass for the latest apply has landed (or given up) while
-// the editor is open: warn about runs that kept the old grades and refresh
-// the preview, whose "before" side reads the rewritten grades. The app-level
+// the editor is open: warn about runs that kept the old grades. The app-level
 // tracker drops the stale score caches whether or not the editor is open.
-function settleRescore(payload, { failWith, notePartialRescore, requestPreview }) {
+function settleRescore(payload, { failWith, notePartialRescore }) {
   const { rescore } = payload;
   if (rescore.state === RESCORE_STATE.ERROR) failWith(t('gradeFormula.rescoreFailed'));
   else notePartialRescore(noticeFor(rescore));
-  requestPreview(payload.current);
+}
+
+// The editor's one write path into the draft: every patch is clamped first.
+function useDraftPatch(updateDraft) {
+  return useCallback((patch) => {
+    updateDraft((prev) => ({ ...prev, ...clampSeverity(prev, clampFloors(prev, patch)) }));
+  }, [updateDraft]);
 }
 
 /**
- * Grade-formula editor state: server params, dirty draft, debounced preview,
- * background-rescore progress.
- * projectId: project used for the live preview (may be null).
+ * Grade-formula editor state: server params, dirty draft, background-rescore
+ * progress.
  * thresholdsStore: grade-thresholds store apply/reset push the applied
  * boundaries into; defaults to the app-wide store, injectable so tests
  * don't leak grading state into the rest of the process.
  *
- * Composes hooks/useGradeFormulaState.js (server/draft/preview/busy/error
- * state + the initial load), hooks/useGradePreview.js (the debounced preview
- * request + update()) and hooks/useRescoreProgress.js (the page's view of
+ * Composes hooks/useGradeFormulaState.js (server/draft/busy/error
+ * state + the initial load) and hooks/useRescoreProgress.js (the page's view of
  * the app-level rescore tracker in rescore/, which polls after an
  * apply/reset: the server answers with 202 and finishes in the background), and owns apply/resetToDefaults.
  */
-export default function useGradeFormula(projectId, thresholdsStore = defaultGradeThresholdsStore) {
+export default function useGradeFormula(thresholdsStore = defaultGradeThresholdsStore) {
   const {
-    saved, draft, isCustom, defaults, preview, busy, error, partialNotice,
-    debounceRef, loaded, resumeFrom,
-    adoptServerFormula, beginRequest, endRequest, failWith, notePartialRescore,
-    updateDraft, showPreview,
+    saved, draft, isCustom, defaults, busy, error, partialNotice, resumeFrom,
+    adoptServerFormula, beginRequest, endRequest, failWith, notePartialRescore, updateDraft,
   } = useGradeFormulaState();
+  const queryClient = useQueryClient();
 
   const isDirty = saved && draft && JSON.stringify(saved) !== JSON.stringify(draft);
 
-  const { requestPreview, update } = useGradePreview({ projectId, draft, updateDraft, showPreview, debounceRef, loaded });
+  const update = useDraftPatch(updateDraft);
 
   const { rescoreProgress, track } = useRescoreProgress(
-    (payload) => settleRescore(payload, { failWith, notePartialRescore, requestPreview }),
+    (payload) => settleRescore(payload, { failWith, notePartialRescore }),
     resumeFrom,
   );
 
@@ -71,6 +75,7 @@ export default function useGradeFormula(projectId, thresholdsStore = defaultGrad
       thresholdsStore.set(d.current.gradeThresholds);
       setDimensionWeights(d.current);
       track(d);
+      queryClient.invalidateQueries({ queryKey: gradeFormulaKeys.inputs() });
       return d;
     } catch (err) {
       console.warn(logLabel, err);
@@ -79,7 +84,7 @@ export default function useGradeFormula(projectId, thresholdsStore = defaultGrad
     } finally {
       endRequest();
     }
-  }, [track, thresholdsStore, beginRequest, endRequest, failWith, adoptServerFormula]);
+  }, [track, queryClient, thresholdsStore, beginRequest, endRequest, failWith, adoptServerFormula]);
 
   const apply = useCallback(async () => {
     const d = await submitFormula(
@@ -99,7 +104,7 @@ export default function useGradeFormula(projectId, thresholdsStore = defaultGrad
   }, [submitFormula]);
 
   return {
-    draft, defaults, isCustom, isDirty, preview, busy, error, partialNotice, rescoreProgress,
+    saved, draft, defaults, isCustom, isDirty, busy, error, partialNotice, rescoreProgress,
     update, apply, resetToDefaults,
   };
 }

@@ -5,7 +5,6 @@ import { useStageExplain } from './hooks/useStageExplain.js';
 import { useTypesRows } from './hooks/useTypesRows.js';
 import { useFullRunDimensions } from './hooks/useFullRunDimensions.js';
 import { liveStages, pickPrincipleId } from './stages/liveStages.js';
-import PreviewStrip from './PreviewStrip.jsx';
 import FormulaTab from './FormulaTab.jsx';
 import TypesTab from './TypesTab.jsx';
 import GradeFormulaHeader from './GradeFormulaHeader.jsx';
@@ -142,18 +141,16 @@ function LoadingPage({ error }) {
 /**
  * Settings › Grade formula: the four scoring stages with the reader's own
  * numbers, the types table, the dimension weights, and APPLY / RESET.
- * @param {object} props.navigation - the app's navigation state (selectedProject)
  * @param {{project: string|null, runId: string|null, dimensions: string[], dimension: string|null, runDimensions: Array, selectedSource: string|null}} props.scope
  *   `dimensions` are names; `runDimensions` the dashboard's run dimensions with their findings.
  * @param {string|null} props.runLabel - the run's date for the header, when there is a run
  */
-export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE, runLabel = null }) {
-  const projectId = navigation?.selectedProject || null;
+export default function GradeFormulaPage({ scope = EMPTY_SCOPE, runLabel = null }) {
   const [tab, setTab] = useState(DEFAULT_TAB_ID);
   const {
-    draft, isCustom, isDirty, preview, busy, error, partialNotice, rescoreProgress,
+    draft, isCustom, isDirty, busy, error, partialNotice, rescoreProgress,
     update, apply, resetToDefaults,
-  } = useGradeFormula(projectId);
+  } = useGradeFormula();
   const example = useWorkedExample(scope, draft);
   const types = useTypesTab(scope, draft);
 
@@ -172,12 +169,6 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE, runL
       />
       <TabButtons tab={tab} setTab={setTab} />
       <TabBody busy={busy} ActiveBody={ActiveBody} activeTabId={tab} bodyProps={{ draft, update, stages: example.stages, ...types }} />
-      <PreviewStrip
-        preview={preview}
-        emptyHint={projectId
-          ? t('gradeFormula.noEventLog')
-          : t('gradeFormula.selectForPreview')}
-      />
       <FormulaActions
         isDirty={isDirty} busy={busy} isCustom={isCustom} error={error} partialNotice={partialNotice}
         rescoreProgress={rescoreProgress} onApply={makeOnApply(apply)} onReset={makeOnReset(resetToDefaults)}

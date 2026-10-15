@@ -49,7 +49,7 @@ export {
 
 export {
   getGradeFormula, saveGradeFormula, resetGradeFormula,
-  rescoreGradeFormula, previewGradeFormula,
+  rescoreGradeFormula, previewGradeFormula, getGradeFormulaInputs,
 } from './gradeFormula.js';
 
 export { getGradeExplain, previewGradeExplain } from './gradeExplain.js';

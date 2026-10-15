@@ -33,3 +33,28 @@ export function clampFloors(draft, patch) {
   }
   return next;
 }
+
+const SEVERITY_STEP = 0.05;
+const CENTS = 100; // severity weights are shown and stored to two decimals
+const roundStep = (v) => Math.round(v * CENTS) / CENTS;
+
+/**
+ * Keep minor < major < critical (the server rejects anything else) when a
+ * patch moves a severity weight: the moved weight stops one step short of
+ * its neighbour. NO-OP on patches without `severityWeight`.
+ *
+ * @param {Object} draft - the pre-patch grade-formula draft state.
+ * @param {Object} patch - the incoming patch to merge into the draft.
+ * @returns {Object} the patch, clamped when it moves a severity weight.
+ */
+export function clampSeverity(draft, patch) {
+  if (!draft || !patch || !patch.severityWeight) return patch;
+  const prev = draft.severityWeight;
+  const next = { ...patch.severityWeight };
+  if (next.minor !== prev.minor) next.minor = roundStep(Math.min(next.minor, next.major - SEVERITY_STEP));
+  if (next.major !== prev.major) {
+    next.major = roundStep(Math.min(Math.max(next.major, next.minor + SEVERITY_STEP), next.critical - SEVERITY_STEP));
+  }
+  if (next.critical !== prev.critical) next.critical = roundStep(Math.max(next.critical, next.major + SEVERITY_STEP));
+  return { ...patch, severityWeight: next };
+}

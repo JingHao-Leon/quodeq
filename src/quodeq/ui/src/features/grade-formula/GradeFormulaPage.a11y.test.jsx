@@ -37,7 +37,6 @@ function mockHook(over = {}) {
     defaults: baseDraft(),
     isCustom: false,
     isDirty: false,
-    preview: null,
     busy: false,
     error: null,
     update: vi.fn(),

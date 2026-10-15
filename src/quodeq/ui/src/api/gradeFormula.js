@@ -32,3 +32,8 @@ export function previewGradeFormula(params) {
     body: JSON.stringify({ params }),
   });
 }
+
+/** Every local project's per-principle scoring inputs (read-only). */
+export function getGradeFormulaInputs() {
+  return request('/grade-formula/inputs');
+}
