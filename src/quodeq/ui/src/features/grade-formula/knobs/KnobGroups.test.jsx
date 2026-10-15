@@ -48,4 +48,10 @@ describe('KnobGroups', () => {
     fireEvent.mouseEnter(screen.getByText('What a finding costs').closest('section'));
     expect(props.onHoverGroup).toHaveBeenCalledWith('cost');
   });
+
+  it('marks a group as reaching only when it moves a principle', () => {
+    mount({ draft: { ...SAVED, severityWeight: { critical: 4, major: 3, minor: 0.25 } } });
+    expect(screen.getByRole('region', { name: 'What a finding costs' })).toHaveClass('gf-group--reaching');
+    expect(screen.getByRole('region', { name: 'Where each grade starts' })).not.toHaveClass('gf-group--reaching');
+  });
 });

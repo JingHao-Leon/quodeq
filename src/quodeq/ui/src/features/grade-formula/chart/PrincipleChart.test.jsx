@@ -8,6 +8,9 @@ const SAVED = {
   floorMinor: 5, floorMajor: 3, gradeThresholds: [[9, 'Exemplary'], [7, 'Good'], [5, 'Adequate'], [3, 'Poor']],
   dimensionWeightsEnabled: false, dimensionWeights: {},
 };
+// chartScale's left margin and the floor label's inset from it.
+const PLOT_LEFT = 44;
+const FLOOR_LABEL_INSET = 6;
 const P = (id, major) => ({ id, massMinor: 1, massMajor: major, massCritical: 0, complianceMass: 3, observation: 1, worst: 'major' });
 const INPUTS = { projects: [
   { id: 'a', dimensions: [{ dimension: 'security', frozenScore: null, principles: [P('p1', 0.5)] }] },
@@ -43,5 +46,30 @@ describe('PrincipleChart', () => {
   it('marks the part a hovered knob group moves', () => {
     const { container } = mount({ highlight: 'steep' });
     expect(container.querySelector('svg')).toHaveClass('gf-chart--hl-steep');
+  });
+
+  it('puts the floor labels at the left of the plot, clear of the band labels', () => {
+    const { container } = mount();
+    const labels = [...container.querySelectorAll('.gf-floor__label')];
+    expect(labels).toHaveLength(4);
+    for (const label of labels) {
+      expect(label).toHaveAttribute('x', String(PLOT_LEFT + FLOOR_LABEL_INSET));
+      expect(label).toHaveAttribute('text-anchor', 'start');
+    }
+  });
+
+  it('sets each dot\'s cy attribute beside the animated CSS property', () => {
+    const { container } = mount();
+    expect(container.querySelector('.gf-dot').getAttribute('cy')).toMatch(/^\d+(\.\d+)?$/);
+  });
+
+  it('counts a single principle in the singular', () => {
+    mount({ inputs: { projects: [INPUTS.projects[0]] } });
+    expect(screen.getByText('1 principle · none move yet')).toBeInTheDocument();
+  });
+
+  it('counts a single moving principle in the singular', () => {
+    mount({ inputs: { projects: [INPUTS.projects[1]] }, draft: { ...SAVED, severityWeight: { critical: 6, major: 5, minor: 0.25 } } });
+    expect(screen.getByText(/^1 principle · 1 move · \d change grade$/)).toBeInTheDocument();
   });
 });

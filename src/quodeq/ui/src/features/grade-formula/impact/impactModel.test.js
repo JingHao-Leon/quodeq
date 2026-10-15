@@ -47,3 +47,8 @@ test('a group reaches only the principles its own knobs move', () => {
   assert.ok(groupReach(cost, INPUTS, SAVED, STRICT) > 0);
   assert.equal(groupReach(lift, INPUTS, SAVED, STRICT), 0);
 });
+
+test('allPrinciples walks one inputs object once and hands back the same list', () => {
+  assert.equal(allPrinciples(INPUTS), allPrinciples(INPUTS));
+  assert.notEqual(allPrinciples(INPUTS), allPrinciples({ projects: [...INPUTS.projects] }));
+});

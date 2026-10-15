@@ -155,6 +155,13 @@ describe('GradeFormulaPage', () => {
     expect(screen.getByText('no baseline')).toBeInTheDocument();
   });
 
+  it('names a single project in the singular in the header', () => {
+    mockHook();
+    useFormulaInputs.mockReturnValue({ inputs: { projects: [INPUTS.projects[0]] }, loading: false, failed: false });
+    mount(<GradeFormulaPage navigation={NAVIGATION} />);
+    expect(screen.getByText(/^1 project · /)).toBeInTheDocument();
+  });
+
   it('shows a loading header until the draft arrives', () => {
     mockHook({ draft: null });
     mount(<GradeFormulaPage navigation={NAVIGATION} />);

@@ -14,6 +14,7 @@ import FormulaStatus from './FormulaStatus.jsx';
 import TypesTab from './TypesTab.jsx';
 import { DimensionsTab } from './tabs.jsx';
 import { t } from '../../strings/index.js';
+import { pluralKey } from '../../utils/plural.js';
 
 function FormulaBody({ editor, inputs, view }) {
   return (
@@ -146,7 +147,7 @@ function LoadingPage({ error }) {
 
 function headerFacts(editor, projectCount) {
   const state = t(editor.isCustom ? 'gradeFormula.customActive' : 'gradeFormula.defaultsActive');
-  return t('gradeFormula.headerFacts', { count: projectCount, state });
+  return t(pluralKey(projectCount, 'gradeFormula.headerFactsOne', 'gradeFormula.headerFacts'), { count: projectCount, state });
 }
 
 /**

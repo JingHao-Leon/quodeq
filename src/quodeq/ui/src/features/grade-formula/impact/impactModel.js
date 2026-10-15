@@ -6,6 +6,8 @@ import { principleScore, dimensionScore, overallScore, gradeOf } from '../scorin
 import { applyKnob } from '../knobs/knobGroups.js';
 import { GRADE } from '../../../vocab/grade.js';
 
+// 'Critical' is a literal: vocab/grade.js has no member for the label below
+// Poor, and livePreview.gradeOf returns this same string.
 export const GRADE_ORDER = [GRADE.EXEMPLARY, GRADE.GOOD, GRADE.ADEQUATE, GRADE.POOR, 'Critical'];
 const GRADE_CLASS_NAMES = ['top', 'high', 'mid', 'low', 'bottom'];
 /** The css class suffix of each grade (top ... bottom). */
@@ -26,14 +28,21 @@ export function projectImpact(inputs, names, saved, draft) {
   });
 }
 
-/** Every scored principle with where it lives. */
+// One walk per inputs object: the chart, the reach counts, the shifts and the
+// distribution all list the principles on every draft change.
+const principlesOf = new WeakMap();
+
+/** Every scored principle with where it lives (the same array for the same inputs object). */
 export function allPrinciples(inputs) {
+  const cached = principlesOf.get(inputs);
+  if (cached) return cached;
   const out = [];
   for (const project of inputs.projects) {
     for (const dim of project.dimensions) {
       for (const p of dim.principles) out.push({ key: `${project.id}/${dim.dimension}/${p.id}`, project: project.id, dimension: dim.dimension, p });
     }
   }
+  principlesOf.set(inputs, out);
   return out;
 }
 

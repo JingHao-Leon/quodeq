@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { t } from '../../../strings/index.js';
+import { pluralKey } from '../../../utils/plural.js';
 import { chartScale, maxSavedWeight, principleDots, DIR } from './chartScale.js';
 import { Backdrop, Curves } from './ChartBackdrop.jsx';
 
@@ -18,7 +19,8 @@ function Dots({ dots, litProject, onHoverProject }) {
         const cls = `gf-dot gf-dot--${d.dir}${d.flip ? ' gf-dot--flip' : ''}${dim ? ' gf-dot--dim' : ''}`;
         return (
           <g key={d.key}>
-            <circle className={cls} cx={d.x} style={{ cy: d.yAfter }} r={d.flip ? FLIP_DOT_RADIUS : DOT_RADIUS} />
+            {/* cy as a CSS property animates the move; the attribute is the fallback where it is not supported. */}
+            <circle className={cls} cx={d.x} cy={d.yAfter} style={{ cy: d.yAfter }} r={d.flip ? FLIP_DOT_RADIUS : DOT_RADIUS} />
             <circle className="gf-dot-hit" cx={d.x} cy={d.yAfter} r={HIT_RADIUS}
               onMouseEnter={() => onHoverProject(d.project)} onMouseLeave={() => onHoverProject(null)}>
               <title>{t('gradeFormula.dotTitle', { principle: d.id, project: d.project, dimension: d.dimension, before: d.before.toFixed(1), after: d.after.toFixed(1) })}</title>
@@ -45,7 +47,9 @@ export default function PrincipleChart({ inputs, saved, draft, highlight, litPro
         <Dots dots={dots} litProject={litProject} onHoverProject={onHoverProject} />
       </svg>
       <figcaption className="gf-chart__count">
-        {moved === 0 ? t('gradeFormula.chartCountRest', { shown: dots.length }) : t('gradeFormula.chartCount', { shown: dots.length, moved, flips })}
+        {moved === 0
+          ? t(pluralKey(dots.length, 'gradeFormula.chartCountRestOne', 'gradeFormula.chartCountRest'), { shown: dots.length })
+          : t(pluralKey(dots.length, 'gradeFormula.chartCountOne', 'gradeFormula.chartCount'), { shown: dots.length, moved, flips })}
       </figcaption>
     </figure>
   );

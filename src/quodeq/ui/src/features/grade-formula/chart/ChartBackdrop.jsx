@@ -12,6 +12,8 @@ const GRID_LINES = Array.from({ length: SCORE_SCALE_MAX / GRID_STEP + 1 }, (_, i
 const SAMPLES = 160;
 const Y_TITLE_X = 12;
 const LABEL_RISE = 5;
+// Floor labels sit at the plot's left, clear of the band labels at its right.
+const FLOOR_LABEL_INSET = 6;
 
 function bandEdges(thresholds) {
   return [SCORE_SCALE_MAX, ...thresholds.map(([min]) => min), 0];
@@ -62,12 +64,12 @@ const ceilScore = (params) => (wv) => SCORE_SCALE_MAX - Math.log2(1 + wv) * para
 
 function Floor({ scale, value, labelKey }) {
   const y = scale.y(value);
-  const x = scale.plot.right - LABEL_GAP;
+  const x = scale.plot.left + FLOOR_LABEL_INSET;
   return (
     <g>
       <line className="gf-floor" x1={scale.plot.left} x2={scale.plot.right} y1={y} y2={y} />
-      <text className="gf-floor__label gf-floor__label--halo" x={x} y={y - LABEL_RISE}>{t(labelKey, { value })}</text>
-      <text className="gf-floor__label" x={x} y={y - LABEL_RISE}>{t(labelKey, { value })}</text>
+      <text className="gf-floor__label gf-floor__label--halo" x={x} y={y - LABEL_RISE} textAnchor="start">{t(labelKey, { value })}</text>
+      <text className="gf-floor__label" x={x} y={y - LABEL_RISE} textAnchor="start">{t(labelKey, { value })}</text>
     </g>
   );
 }

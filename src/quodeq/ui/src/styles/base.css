@@ -2306,7 +2306,7 @@ fieldset.gf-tab-body:disabled .gf-boundary-divider { pointer-events: none; curso
 
 /* Grade formula: knobs and chart left, the impact panel right. */
 .gf-split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-4); align-items: start; margin-top: var(--space-3); }
-@media (max-width: 960px) { .gf-split { grid-template-columns: minmax(0, 1fr); } .gf-impact { position: static; } }
+@media (max-width: 960px) { .gf-split { grid-template-columns: minmax(0, 1fr); } .gf-impact { position: static; order: -1; } }
 .gf-groups { display: flex; flex-direction: column; gap: var(--space-3); }
 .gf-group { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
 .gf-group--reaching { border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border)); }
@@ -2358,7 +2358,8 @@ fieldset.gf-tab-body:disabled .gf-boundary-divider { pointer-events: none; curso
 .gf-impact__changed { font-size: var(--text-xs); color: var(--color-text-muted); }
 .gf-chart-wrap { margin: 0 0 var(--space-3); }
 .gf-chart { width: 100%; height: auto; display: block; }
-.gf-chart text { font-family: var(--font-mono, monospace); font-size: 10.5px; fill: var(--color-text-muted); }
+/* 13 viewBox units: the 960-wide chart renders at about half size beside the impact panel. */
+.gf-chart text { font-family: var(--font-mono, monospace); font-size: 13px; fill: var(--color-text-muted); }
 .gf-band { opacity: 0.08; transition: opacity 0.15s; }
 .gf-band--top { fill: var(--color-grade-top-text); } .gf-band--high { fill: var(--color-grade-high-text); } .gf-band--mid { fill: var(--color-grade-mid-text); }
 .gf-band--low { fill: var(--color-grade-low-text); } .gf-band--bottom { fill: var(--color-grade-bottom-text); }
@@ -2382,6 +2383,7 @@ fieldset.gf-tab-body:disabled .gf-boundary-divider { pointer-events: none; curso
 .gf-chart--hl-steep .gf-curve--base, .gf-chart--hl-ceil .gf-curve--ceil { stroke-width: 3.5; opacity: 1; }
 .gf-chart--hl-floor .gf-floor { stroke: var(--color-accent); stroke-width: 2.5; opacity: 1; }
 .gf-chart--hl-bands .gf-band { opacity: 0.22; }
+.gf-chart--hl-cost .gf-dot--up, .gf-chart--hl-cost .gf-dot--down, .gf-chart--hl-lift .gf-dot--up, .gf-chart--hl-lift .gf-dot--down { r: 5.5px; }
 .gf-chart__count { font-family: var(--font-mono, monospace); font-size: var(--text-xs); color: var(--color-text-muted); text-align: right; }
 @media (prefers-reduced-motion: reduce) { .gf-dot, .gf-band { transition: none; } }
 .gf-review__backdrop { position: fixed; inset: 0; background: color-mix(in srgb, var(--color-bg) 70%, transparent); display: flex; align-items: flex-start; justify-content: center; padding: 6vh var(--space-4); z-index: 50; overflow-y: auto; }

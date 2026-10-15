@@ -5,12 +5,13 @@ import { GROUPS, KNOB_GROUP } from './knobGroups.js';
 import { groupReach, allPrinciples } from '../impact/impactModel.js';
 import { t } from '../../../strings/index.js';
 
-function reachText(group, inputs, saved, draft) {
-  if (!inputs) return null;
+// How many principles the group moves on its own, and that said in words.
+function reachOf(group, inputs, saved, draft) {
+  if (!inputs) return { count: 0, text: null };
   const total = allPrinciples(inputs).length;
   const count = groupReach(group, inputs, saved, draft);
-  if (count === 0) return t('gradeFormula.reachNone');
-  return t(group.labelsOnly ? 'gradeFormula.reachLabels' : 'gradeFormula.reachMoves', { count, total });
+  if (count === 0) return { count, text: t('gradeFormula.reachNone') };
+  return { count, text: t(group.labelsOnly ? 'gradeFormula.reachLabels' : 'gradeFormula.reachMoves', { count, total }) };
 }
 
 function GroupKnobs({ group, draft, saved, defaults, update }) {
@@ -24,16 +25,16 @@ function GroupKnobs({ group, draft, saved, defaults, update }) {
 }
 
 function KnobGroup({ group, draft, saved, defaults, inputs, update, onHoverGroup }) {
-  const reach = useMemo(() => reachText(group, inputs, saved, draft), [group, inputs, saved, draft]);
+  const reach = useMemo(() => reachOf(group, inputs, saved, draft), [group, inputs, saved, draft]);
   const leave = () => onHoverGroup(null);
   return (
-    <section className={`gf-group${reach && reach !== t('gradeFormula.reachNone') ? ' gf-group--reaching' : ''}`}
+    <section className={`gf-group${reach.count > 0 ? ' gf-group--reaching' : ''}`}
       aria-label={t(group.titleKey)}
       onMouseEnter={() => onHoverGroup(group.id)} onMouseLeave={leave}
       onFocus={() => onHoverGroup(group.id)} onBlur={leave}>
       <div className="gf-group__head">
         <h3 className="gf-group__title">{t(group.titleKey)}</h3>
-        {reach && <span className="gf-group__reach">{reach}</span>}
+        {reach.text && <span className="gf-group__reach">{reach.text}</span>}
       </div>
       <p className="gf-group__question">{t(group.questionKey)}</p>
       <GroupKnobs group={group} draft={draft} saved={saved} defaults={defaults} update={update} />
