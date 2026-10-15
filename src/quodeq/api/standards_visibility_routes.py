@@ -44,7 +44,6 @@ def _payload(app: Flask, settings: ProjectStandards, *, known_ids: set[str] | No
         # be reconciled against the server's own default set instead
         # of duplicating it as a second source of truth.
         "defaultStandardIds": list(DEFAULT_VISIBLE_STANDARDS),
-        "migratedFrom": settings.migrated_from,
     }
 
 
