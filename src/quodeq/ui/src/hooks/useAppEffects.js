@@ -54,7 +54,7 @@ export function useAssistantActionAppliedEffect({
     const handler = buildAssistantActionAppliedHandler({
       applyDelta: (...args) => patchRef.current.applyDelta(...args),
       recordDismissed: (...args) => patchRef.current.recordDismissed?.(...args),
-      onStandardCreated: () => patchRef.current.onStandardCreated?.(),
+      onStandardCreated: (standardId) => patchRef.current.onStandardCreated?.(standardId),
       scheduleDashboardReconcile: scheduleReconcileForApply,
       selectedProject,
     });
