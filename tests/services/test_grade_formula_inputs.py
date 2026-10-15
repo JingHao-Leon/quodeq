@@ -8,6 +8,7 @@ from quodeq.core.events.models import Judgment
 from quodeq.core.scoring.internals import principle_stages
 from quodeq.core.scoring.mass import PrincipleMass
 from quodeq.core.scoring.params import DEFAULT_PARAMS
+from quodeq.core.types.finding import Finding
 from quodeq.core.types.scoring import PrincipleScore
 from quodeq.data.projection.grade_projector import compute_run_grades, recompute_grades
 from quodeq.data.sqlite.state_store import SQLiteStateStore
@@ -92,18 +93,37 @@ def test_touched_dimension_takes_its_inputs_from_evidence(tmp_path, formula_path
     assert seen[0][0] == run and seen[0][1] == "security"
 
 
-def test_touched_dimension_without_evidence_is_frozen_at_its_saved_score(tmp_path, formula_path, monkeypatch):
+def _finding(principle: str, verdict: str, severity: str, n: int) -> Finding:
+    return Finding(practice_id=principle, verdict=verdict, severity=severity, file=f"{principle}{n}.py", line=1,
+                   req=f"{principle}-{verdict}-{n}", dimension="security")
+
+
+def _mirror_dimension(dim: dict, params) -> float:
+    """The browser's dimension score (livePreview.dimensionScore) from the inputs."""
+    principles = dim["principles"]
+    weights = [p["observation"] for p in principles] if any(p["observation"] > 0 for p in principles) \
+        else [1.0] * len(principles)
+    return round(sum(_rescore(p, params) * w for p, w in zip(principles, weights)) / sum(weights), 1)
+
+
+def test_touched_dimension_without_evidence_matches_the_preview(tmp_path, formula_path):
     run = tmp_path / "proj" / "r1"
     run.mkdir(parents=True)
-    full = gfp.DimensionResult(dimension="security", overall_score="5.5/10")
-    monkeypatch.setattr(gfi, "is_touched", lambda src, keys: True)
-    monkeypatch.setattr(gfi, "rescore_dimension_from_evidence", lambda *a: type("R", (), {"result": None})())
-    keys = gfp.SuppressionKeys(frozenset({("k",)}), frozenset(), ())
-    src = gfp.ProjectSources("proj", (gfp.SourceDimension("security", run, full),), keys)
+    violations = [_finding("p1", "violation", sev, i) for i, sev in enumerate(["major", "major", "minor", "critical"])]
+    violations += [_finding("p2", "violation", sev, i) for i, sev in enumerate(["major", "minor"])]
+    compliance = [_finding(p, "compliance", "minor", i) for p in ("p1", "p2") for i in range(10, 14)]
+    full = gfp.DimensionResult(dimension="security", overall_score="5.5/10", source_file_count=40,
+                               violations=violations, compliance=compliance)
+    # p1's critical is deleted, one p2 major is dismissed: both leave the penalty.
+    keys = gfp.SuppressionKeys({("p2-violation-0", "p20.py", 1)}, frozenset({("security", "p1", "p13.py")}), ())
+    sources = gfp.ProjectSources("proj", (gfp.SourceDimension("security", run, full),), keys)
+    strict = dataclasses.replace(DEFAULT_PARAMS, severity_weight={"minor": 0.5, "major": 3.0, "critical": 6.0})
 
-    dim = gfi.inputs_all(tmp_path, sources_for=lambda root, p: src)["projects"][0]["dimensions"][0]
+    dim = gfi.inputs_all(tmp_path, sources_for=lambda root, p: sources)["projects"][0]["dimensions"][0]
 
-    assert dim == {"dimension": "security", "frozenScore": 5.5, "principles": []}
+    assert dim["frozenScore"] is None
+    for params in (DEFAULT_PARAMS, strict):
+        assert _mirror_dimension(dim, params) == gfp.score_project(sources, params)["dimensions"][0]["score"]
 
 
 def test_inputs_all_skips_a_project_that_fails(tmp_path, formula_path):
