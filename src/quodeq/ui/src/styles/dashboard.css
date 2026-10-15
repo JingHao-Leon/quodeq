@@ -3713,6 +3713,9 @@
 .req-rail__item--pass .req-rail__text { color: var(--color-text-muted); }
 .findings-scope__work .findings-scope__bar { margin-top: 0; }
 .findings-scope__work > .req-rail { margin: 0; }
+/* list view: the rail takes the findings column's height (size-contained, so its own content never sets the row's) */
+.findings-scope__work--list { align-items: stretch; }
+.findings-scope__work--list > .req-rail { height: auto; contain: size; }
 
 /* description cut to two lines */
 .findings-head__desc--clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -3736,7 +3739,7 @@
 /* narrow screens: the requirements stack above the findings, scrolling on their own */
 @media (max-width: 900px) {
   .findings-scope__work { grid-template-columns: minmax(0, 1fr); }
-  .req-rail { height: auto; max-height: 280px; }
+  .req-rail, .findings-scope__work--list > .req-rail { height: auto; max-height: 280px; contain: none; }
 }
 
 /* ring | name and description | tiles share a row only while the name keeps room to read (its basis);
