@@ -108,6 +108,16 @@ function filesBase(file, dims, within) {
 }
 
 /**
+ * The rail beside the findings: in the list view it ends where the list
+ * does (the list runs to the window's bottom); the cards scroll with the
+ * page, so there it keeps its own height.
+ */
+function workClass(rail, view) {
+  if (!rail) return undefined;
+  return view === SCOPE_VIEW.LIST ? 'findings-scope__work findings-scope__work--list' : 'findings-scope__work';
+}
+
+/**
  * The Findings page scoped to a file, folder, dimension, principle,
  * requirement, the project or an area: its header and numbers, then every
  * finding of the scope, as a list beside the selected finding (the
@@ -201,7 +211,7 @@ function ScopedFile({ file, within, dims, head, initialFilter, onDismissFinding,
         changes={head.previous ? tileChanges(metrics, scopeMetrics({ ...head.previous, files: metrics.files })) : undefined}
         deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={head.pastRun}
         since={head.since && <SinceStrip summary={head.since} granularity={head.granularity} />} />
-      <div className={rail ? 'findings-scope__work' : undefined}>
+      <div className={workClass(rail, view)}>
         {rail && <ReqRail rail={rail} total={filtering.liveTotal} selected={req} onSelect={setReq} />}
         <div className="findings-scope__main">
           <ScopeBar sevCounts={kindCounts.sev} compliance={kindCounts.compliance} filter={activeFilter} onFilter={setActiveFilter}
