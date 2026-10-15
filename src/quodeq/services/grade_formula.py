@@ -58,6 +58,7 @@ def has_event_log(run_dir: Path) -> bool:
     """True when *run_dir* has the events.jsonl an apply rescores from."""
     return (run_dir / "events.jsonl").is_file()
 
+
 def _event_log_runs(project_dir: Path) -> list[Path]:
     """Run dirs under *project_dir* that have an events.jsonl, newest-first.
 

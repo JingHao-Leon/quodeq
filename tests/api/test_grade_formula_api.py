@@ -163,7 +163,7 @@ def test_preview_returns_every_project(client, formula_path, monkeypatch):
         "after": {"overall": {"score": 6.5, "grade": "Adequate"}, "dimensions": []},
     }], "runsToRescore": 12}
     seen = []
-    monkeypatch.setattr(grade_formula_preview, "preview_all", lambda root, params: seen.append(params) or fake)
+    monkeypatch.setattr(grade_formula_preview, "preview_all", lambda root, params, **kw: seen.append(params) or fake)
     resp = client.post(
         "/api/grade-formula/preview", json={"params": params_to_dict(DEFAULT_PARAMS)}, headers=_ORIGIN,
     )
@@ -176,7 +176,7 @@ def test_preview_with_no_projects_is_an_empty_list(client, formula_path, monkeyp
     from quodeq.services import grade_formula_preview
 
     monkeypatch.setattr(grade_formula_preview, "preview_all",
-                        lambda root, params: {"projects": [], "runsToRescore": 0})
+                        lambda root, params, **kw: {"projects": [], "runsToRescore": 0})
     resp = client.post(
         "/api/grade-formula/preview", json={"params": params_to_dict(DEFAULT_PARAMS)}, headers=_ORIGIN,
     )

@@ -266,19 +266,19 @@ def _card_run(reports: Path, run_id: str, majors_by_dim: dict[str, int], started
 
 
 def test_before_equals_the_project_card_when_a_later_run_rescans_one_dimension(tmp_path, formula_path, monkeypatch):
-    from quodeq.services._fs_metadata import _project_rows, _summary_version, summarize_card
+    from quodeq.services.fs_project_helpers import read_accumulated_summary
     from quodeq.services.wiring import list_runs
 
     monkeypatch.setenv("QUODEQ_DISABLE_SCORE_CACHE", "1")
     reports = tmp_path / "evaluations"
     _card_run(reports, "r_old", {"security": 1, "reliability": 5}, "2026-01-01T00:00:00Z")
     _card_run(reports, "r_new", {"security": 7}, "2026-01-02T00:00:00Z")
-    runs = list_runs(reports, "proj")
-    card = summarize_card(_project_rows(reports, "proj", runs, DEFAULT_PARAMS),
-                          _summary_version(reports, "proj", runs, DEFAULT_PARAMS).visible_set)
+    # What /api/projects reports as latestScore for this project.
+    _, card_score, _, _ = read_accumulated_summary(
+        reports, "proj", list_runs(reports, "proj"), DEFAULT_PARAMS, cache_enabled=False)
 
     before = gfp.preview_all(reports, DEFAULT_PARAMS)["projects"][0]["before"]
 
-    assert card["score"] is not None
-    assert before["overall"]["score"] == card["score"]
+    assert card_score is not None
+    assert before["overall"]["score"] == card_score
     assert {d["dimension"] for d in before["dimensions"]} == {"security", "reliability"}

@@ -23,6 +23,7 @@ from quodeq.core.scoring.params import (
     validate_params,
 )
 from quodeq.services import grade_formula, grade_formula_preview
+from quodeq.shared.log_sink import SHARED_LOG
 from quodeq.services.grade_formula_job import GradeFormulaRescorer, RescoreSnapshot
 
 
@@ -67,7 +68,7 @@ def _preview_response() -> Response | tuple[Response, int]:
     params, err = parse_params(payload.get("params") or {})
     if err:
         return err
-    return jsonify(grade_formula_preview.preview_all(Path(reports_dir()), params))
+    return jsonify(grade_formula_preview.preview_all(Path(reports_dir()), params, log=SHARED_LOG))
 
 
 def register_grade_formula_routes(

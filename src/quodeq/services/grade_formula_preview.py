@@ -20,18 +20,17 @@ a draft it would read stored grade tables and persist rows keyed by the draft.
 """
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.scoring.internals import score_to_grade_label
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.core.scoring.projector_scoring import compute_run_score
 from quodeq.core.scoring.report_grades import parse_numeric_score
 from quodeq.core.types import DimensionResult
-from quodeq.data.sqlite.connection import EVALUATION_DB_FILENAME
 from quodeq.services._accumulated_data import read_run_data
 from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services.deleted import deleted_keys
@@ -40,10 +39,10 @@ from quodeq.services.grade_formula import count_rescorable_runs, has_event_log, 
 from quodeq.services.rescore import filter_excluded_violations, rescore_dimension
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
-from quodeq.services.wiring import compute_run_grades, load_suppression_rules, load_visible_standard_ids
+from quodeq.services.wiring import (
+    compute_run_grades, has_evaluation_db, load_suppression_rules, load_visible_standard_ids,
+)
 from quodeq.shared.fault_isolation import run_isolated
-
-_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,7 +106,7 @@ def project_sources(reports_root: Path, project: str) -> ProjectSources | None:
 
 def _rescorable(run_dir: Path) -> bool:
     """An apply rewrites this run's grades: it has an event log and a grade database."""
-    return has_event_log(run_dir) and (run_dir / EVALUATION_DB_FILENAME).is_file()
+    return has_event_log(run_dir) and has_evaluation_db(run_dir)
 
 
 def _touched(src: SourceDimension, keys: SuppressionKeys | None) -> bool:
@@ -160,6 +159,7 @@ def preview_all(
     reports_root: Path, params: ScoringParams, *,
     saved: ScoringParams | None = None,
     sources_for: Callable[[Path, str], ProjectSources | None] = project_sources,
+    log: LogSink = NULL_LOG,
 ) -> dict[str, Any]:
     """Every local project before (saved formula) and after (*params*), plus the apply's run count."""
     saved_params = saved if saved is not None else load_params()
@@ -170,7 +170,7 @@ def preview_all(
         entry = run_isolated(
             lambda p=project: _project_entry(reports_root, p, saved_params, params, sources_for),
             label=f"grade-formula preview for {project!r}",
-            log=_logger,
+            log=log,
             on_error=lambda _exc: None,
         )
         if entry is not None:
