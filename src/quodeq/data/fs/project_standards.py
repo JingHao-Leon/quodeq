@@ -148,11 +148,16 @@ def _migrate_from_repo(target: Path, repo_root: Path | None) -> None:
 def project_settings_file(
     reports_root: Path | None, project_id: str, *,
     repo_root: Path | None = None, env: Mapping[str, str] | None = None,
+    migrate: bool = True,
 ) -> Path:
-    """The settings file for *project_id*, migrating legacy repo files on first use."""
+    """The settings file for *project_id*, migrating legacy repo files on first use.
+
+    ``migrate=False`` is for read-only resolvers (estimates, the findings
+    server subprocess): they resolve the owner's path and never write.
+    """
     owner = settings_owner_id(reports_root, project_id)
     target = settings_file_for_owner(owner, env=env)
-    if not target.is_file():
+    if migrate and not target.is_file():
         _migrate_from_repo(target, repo_root or _recorded_repo_root(reports_root, owner))
     return target
 

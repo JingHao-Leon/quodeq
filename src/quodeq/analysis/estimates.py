@@ -18,6 +18,7 @@ from quodeq.analysis.manifest import build_manifest, detect_language
 from quodeq.analysis.manifest_scope import filter_manifest_by_scope
 from quodeq.analysis.runner import load_universal_dimensions
 from quodeq.config.paths import default_paths
+from quodeq.data.fs.standards_prefs import project_settings_file
 from quodeq.shared.utils import read_json
 
 EMPTY_ESTIMATES_PAYLOAD = {
@@ -47,6 +48,7 @@ def _build_estimate_config(
     scope_path: str | None,
     requested: list[str] | None,
     clean_scan: bool,
+    standards_settings: Path | None = None,
 ) -> RunConfig | None:
     """Build the RunConfig used to compute estimates, mirroring run start.
 
@@ -80,6 +82,9 @@ def _build_estimate_config(
         dimensions_data=dims_data,
         evaluators_dir=paths.evaluators_dir,
         prompts_dir=paths.prompts_dir,
+        # Overrides fold into params_hash: without the project's settings
+        # file every overridden dimension's cached entries would read as misses.
+        standards_settings=standards_settings,
         options=AnalysisOptions(dimensions=requested, incremental=not clean_scan),
         dispatch=default_dispatch_policy(),
     )
@@ -123,7 +128,9 @@ def project_estimates_payload(
         return dict(EMPTY_ESTIMATES_PAYLOAD)
     src, scope_path = resolved
 
-    config = _build_estimate_config(src, scope_path, requested, clean_scan)
+    # Read-only: resolve the run's settings file without migrating anything.
+    settings = project_settings_file(project_dir.parent, project_dir.name, migrate=False)
+    config = _build_estimate_config(src, scope_path, requested, clean_scan, settings)
     if config is None:
         return dict(EMPTY_ESTIMATES_PAYLOAD)
 

@@ -149,10 +149,13 @@ def test_missing_compiled_standard_still_none(tmp_path: Path, settings_file):
 def test_toggle_in_same_file_keeps_hash(standards_dir, settings_file):
     # A visibility toggle rewrites the settings file (new mtime, new bytes)
     # but leaves the overrides alone: the fingerprint must not move.
+    # One cache across the toggle: the memo is keyed by the file's stat, so
+    # the rewrite misses and recomputes, and the recomputed value must match.
+    cache = HashCache()
     write_project_standards(settings_file, ProjectStandards(enabled=("security",), overrides={"R": {"n": 1}}))
-    before = hash_standards(standards_dir, DIM, settings_file, cache=HashCache())
+    before = hash_standards(standards_dir, DIM, settings_file, cache=cache)
     write_project_standards(settings_file, ProjectStandards(enabled=("usability",), overrides={"R": {"n": 1}}))
-    after = hash_standards(standards_dir, DIM, settings_file, cache=HashCache())
+    after = hash_standards(standards_dir, DIM, settings_file, cache=cache)
     assert before is not None and before != hash_standards(standards_dir, DIM)
     assert after == before
 

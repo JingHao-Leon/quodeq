@@ -278,7 +278,7 @@ def run_pipeline_with_cleanup(
     args: argparse.Namespace, inputs: ResolvedInputs, paths: tuple[Path, Path, Path], hooks: LifecycleHooks,
 ) -> int:
     """Set up directories, build config, run the pipeline, and clean up cloned repos."""
-    _reports_root, evidence_dir, evaluation_dir = paths
+    reports_root, evidence_dir, evaluation_dir = paths
     run_dir = evaluation_dir.parent
     _announce_run(inputs, evidence_dir, evaluation_dir, hooks)
 
@@ -289,7 +289,8 @@ def run_pipeline_with_cleanup(
         run_id=run_dir.name,
         pid_file=_write_pid_file(run_dir),
     )
-    config = hooks.build_run_config(args, inputs=inputs, evidence_dir=evidence_dir, run_dir=run_dir)
+    config = hooks.build_run_config(
+        args, inputs=inputs, evidence_dir=evidence_dir, run_dir=run_dir, reports_root=reports_root)
 
     with _run_log_handler(run_dir):
         return _run_lifecycle_body(args, inputs, config, lifecycle_paths, hooks)

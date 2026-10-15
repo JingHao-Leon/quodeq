@@ -113,6 +113,7 @@ def _resolve_run_config_locals(
 def build_run_config(
     args: argparse.Namespace, *, inputs: ResolvedInputs, evidence_dir: Path,
     run_dir: Path | None = None, env: dict[str, str] | None = None,
+    reports_root: Path | None = None,
 ) -> RunConfig:
     """Assemble a RunConfig from CLI args and resolved inputs."""
     standards_dir = default_paths().standards_dir
@@ -130,8 +131,7 @@ def build_run_config(
         dimensions_data=inputs.dims_data,
         evaluators_dir=default_paths().evaluators_dir,
         prompts_dir=default_paths().prompts_dir,
-        # evidence_dir is <reports>/<project>/<run>/evidence (setup_run_dirs).
-        standards_settings=standards_settings_for_run(evidence_dir.parent.parent.parent, evidence_dir, inputs.src),
+        standards_settings=standards_settings_for_run(reports_root, evidence_dir, inputs.src),
         options=build_analysis_options(dimensions_filter, resolved, limits),
         dispatch=limits.dispatch_policy,
     )

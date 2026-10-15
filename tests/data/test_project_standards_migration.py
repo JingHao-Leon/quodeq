@@ -118,3 +118,12 @@ def test_save_overrides_keeps_enabled(tmp_path, env):
 
 def test_no_project_id_reads_defaults(env):
     assert load_project_standards(None, None, env=env).is_default
+
+
+def test_read_only_resolution_never_migrates(tmp_path, env):
+    repo = _repo(tmp_path, visible=["security"], overrides={"R": {"n": 1}})
+    reports = tmp_path / "ev"
+    _project(reports, "p", path=str(repo))
+    path = project_settings_file(reports, "p", repo_root=repo, env=env, migrate=False)
+    assert path == tmp_path / "home" / "projects" / "p" / "standards.json"
+    assert not path.exists()

@@ -98,7 +98,7 @@ def test_cli_path_and_api_path_agree_with_standards_dir_and_override(tmp_path, m
     src_root = tmp_path / "src"
     src_root.mkdir()
     (src_root / "auth.py").write_text("class Auth: pass")
-    # A project threshold override -- the exact scenario the bug poisons -- in the settings file of the project the server derives from its findings path.
+    # The override the bug poisons, in the project's settings file (by findings path).
     monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
     settings = tmp_path / "home" / "projects" / "project" / "standards.json"
     _write(settings, '{"version": 2, "overrides": {"M-ANA-2": {"max_lines": 60}}}')
@@ -246,6 +246,24 @@ def test_server_and_run_resolve_the_same_settings_file(tmp_path, monkeypatch):
 
     assert server_side == run_side
     assert run_side == tmp_path / "home" / "projects" / "parent" / "standards.json"
+
+
+def test_server_resolution_never_migrates(tmp_path, monkeypatch):
+    """The findings server is a read-only resolver: even with legacy repo
+    files on the project's recorded path, it never writes the settings file."""
+    from quodeq.analysis.mcp.findings_server import findings_standards_settings
+
+    monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
+    repo = tmp_path / "repo"
+    _write(repo / ".quodeq" / "standards-overrides.json",
+           '{"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}')
+    project = tmp_path / "evaluations" / "proj"
+    _write(project / "repository_info.json", json.dumps({"name": "p", "path": str(repo)}))
+
+    path = findings_standards_settings(str(project / "run-1" / "evidence" / "x_evidence.jsonl"))
+
+    assert path == tmp_path / "home" / "projects" / "proj" / "standards.json"
+    assert not path.exists()
 
 
 def _write(path, text: str) -> None:

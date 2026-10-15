@@ -79,12 +79,13 @@ def findings_standards_settings(findings_path: str) -> Path | None:
     The findings path is ``<reports>/<project>/<run>/evidence/<dim>_evidence.jsonl``,
     so the project dir is its great-grandparent. This server is its own process:
     it resolves the same file the parent run's ``RunConfig.standards_settings``
-    holds (the parent already migrated any legacy repo files).
+    holds. It never migrates (the parent run already did), so this
+    subprocess never writes the settings file.
     """
     project_dir = Path(findings_path).parent.parent.parent
     if not project_dir.name:
         return None
-    return project_settings_file(project_dir.parent, project_dir.name)
+    return project_settings_file(project_dir.parent, project_dir.name, migrate=False)
 
 
 def _build_compiled_context(sa: ServerArgs) -> CompiledContext:
