@@ -158,4 +158,5 @@
 /* the run's dimensions as the app's compact cards, each with what the run changed in it */
 .qd-cards-row.rl-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin: 16px 22px 0; }
 .rl-card-moves { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 11px; }
-.rl-card-move { display: inline-flex; gap: 10px; align-items: baseline; white-space: nowrap; }
+/* the card's text column is fixed (rings line up across cards): a line too wide for it puts its severities under the count */
+.rl-card-move { display: inline-flex; flex-wrap: wrap; gap: 0 10px; align-items: baseline; white-space: nowrap; }
