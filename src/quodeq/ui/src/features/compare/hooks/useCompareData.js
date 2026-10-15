@@ -28,6 +28,7 @@ import { projectKeys, sharedKeys } from '../../../api/queryKeys.js';
 import { applyVisibleStandards } from '../compareModel.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { projectId } from '../../../utils/projectIdentity.js';
+import { refetchWhileError } from '../../../hooks/queryDefaults.js';
 
 // A cold fleet's first response can take as long as its slowest project's
 // Overview takes to compute. Match the projects-list ceiling rather than
@@ -50,10 +51,15 @@ function fleetLoaders(api) {
   return entry;
 }
 
+// A refetch that fails keeps the last summary on screen with only an error
+// beside it, so a refresh that timed out (a fleet rebuilt inline while the
+// warm-up runs) would leave old scores showing for good. Polling while the
+// query holds an error asks again until a reply lands.
 const QUERY_DEFAULTS = {
   staleTime: COMPARE_SUMMARY_STALE_MS,
   retry: 1,
   refetchOnWindowFocus: false,
+  refetchInterval: refetchWhileError,
 };
 
 /**

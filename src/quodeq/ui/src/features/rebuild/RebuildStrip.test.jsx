@@ -83,4 +83,21 @@ describe('RebuildStrip', () => {
     expect(screen.getByRole('button', { name: 'retry' }).disabled).toBe(false);
     warn.mockRestore();
   });
+
+  it('when the warm-up drains every project query is refetched once', async () => {
+    const warming = { active: true, projectsDone: 11, projectsTotal: 12, currentProjectName: 'quodeq' };
+    const { client } = mount({ warmup: warming });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    act(() => { recordWarmupSnapshot(client, { ...warming, active: false }); });
+    await waitFor(() => expect(screen.getByText('12 projects rebuilt')).toBeTruthy());
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['project'] });
+  });
+
+  it('a pass that lands with no warm-up after it is not invalidated a second time', () => {
+    const { client, rerenderWith } = mount({ rescore: { state: 'running', generation: 2, done: 10, total: 40 }, target: 2 });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    rerenderWith({ rescore: { state: 'idle', generation: 2, appliedGeneration: 2, done: 40, total: 40 }, target: null });
+    expect(invalidate).not.toHaveBeenCalled();
+  });
 });
