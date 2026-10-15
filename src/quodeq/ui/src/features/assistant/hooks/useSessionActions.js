@@ -12,6 +12,13 @@ const TURN_SLOT_RETRY_MS = 250; // eight tries cover two seconds
 
 const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 
+/**
+ * Run *post*, retrying while the server answers TURN_IN_PROGRESS (the
+ * previous turn has sent `done` but not yet freed its slot). Any other error,
+ * or a slot still held after the last retry, rejects as is.
+ * @param {() => Promise<any>} post
+ * @returns {Promise<any>}
+ */
 export async function postWhenTurnSlotFree(post) {
   for (let attempt = 0; ; attempt += 1) {
     try {
