@@ -8,6 +8,7 @@ cross-layer import.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 
 from quodeq.shared.constants import PLATFORM_WIN32
@@ -50,3 +51,30 @@ def is_pid_alive(pid: int) -> bool:
     except (OSError, ProcessLookupError):
         return False
     return True
+
+
+_PS_TIMEOUT_S = 5
+
+
+def process_has_arg(pid: int, token: str) -> bool:
+    """True when *pid* is alive and *token* is one of its whole argv tokens.
+
+    Guards a PID read from a file before trusting or signalling it: the OS
+    reuses PIDs, so a stale file can name any program. A whole token, not a
+    substring: "quodeq" alone also sits in the interpreter's path
+    (``.../quodeq/.venv/bin/python``) of every process run from that venv.
+    Windows has no ``ps``; there liveness alone has to do.
+    """
+    if not is_pid_alive(pid):
+        return False
+    if sys.platform == PLATFORM_WIN32:
+        return True
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "command=", "-p", str(pid)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=_PS_TIMEOUT_S, check=False,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return token in out.split()

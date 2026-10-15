@@ -157,7 +157,7 @@ unrecognized publisher on first launch: choose **More info** then **Run anyway**
 
 Click any dimension, file, or principle to explore the details. Dismiss false positives directly from the UI.
 
-Running `quodeq` is equivalent to `quodeq dashboard`. Both open the same UI.
+Running `quodeq` is equivalent to `quodeq dashboard`. Both open the same UI and hand the terminal back once the window is up. `quodeq status` shows what is running (window, API, evaluations) and `quodeq stop` closes the window and its API. Running evaluations keep going.
 
 ### CLI
 

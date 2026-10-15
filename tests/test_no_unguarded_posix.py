@@ -33,6 +33,8 @@ _ALLOWLIST: set[str] = {
     # pgrep / ps are wrapped in `except (OSError, ...)` -> returns _UNKNOWN, so
     # on Windows (FileNotFoundError) resource sampling degrades gracefully.
     "shared/resource_sampler.py:61",
+    # process_has_arg returns before `ps` on win32 (liveness only there).
+    "shared/process.py:74",
     "shared/resource_sampler.py:78",
     # child_cwd's macOS branch: only reached when `platform == "darwin"` and
     # wrapped in `except (..., subprocess.SubprocessError)`, so Windows never

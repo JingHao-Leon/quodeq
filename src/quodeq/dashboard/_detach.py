@@ -22,6 +22,7 @@ _WINDOW_UP_POLL_S = 0.2
 
 FOREGROUND_HINT = "Keep this terminal open. Close it or press Ctrl+C to stop Quodeq."
 DETACHED_HINT = "Quodeq runs in its window now. You can close this terminal."
+CONTROL_HINT = "Run `quodeq status` to see what is running, `quodeq stop` to stop it."
 
 
 def detach_allowed(config: DashboardConfig) -> bool:
@@ -64,6 +65,7 @@ def choose_detach(config: DashboardConfig) -> bool:
     detach = detach_allowed(config)
     if not detach:
         log_info(FOREGROUND_HINT)
+        log_info(CONTROL_HINT)
     return detach
 
 
@@ -71,6 +73,8 @@ def handed_to_window(window_proc: subprocess.Popen, sock_path: Path) -> bool:
     """True once the window is up and owns the dashboard; else fall back to foreground."""
     if window_came_up(window_proc, sock_path):
         log_info(DETACHED_HINT)
+        log_info(CONTROL_HINT)
         return True
     log_info(FOREGROUND_HINT)
+    log_info(CONTROL_HINT)
     return False

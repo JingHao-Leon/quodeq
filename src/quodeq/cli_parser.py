@@ -254,6 +254,15 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard_parser = subparsers.add_parser("dashboard", help="Run the dashboard")
     dashboard_parser.set_defaults(handler_command="dashboard")
 
+    stop_parser = subparsers.add_parser(
+        "stop", help="Stop the dashboard window and its API (running evaluations keep going)",
+    )
+    stop_parser.set_defaults(handler_command="stop")
+    status_parser = subparsers.add_parser(
+        "status", help="Show the dashboard window, its API and the running evaluations",
+    )
+    status_parser.set_defaults(handler_command="status")
+
     evaluate_parser = subparsers.add_parser(
         "evaluate", help="Run evaluation (auto-detects language)",
         epilog=_EVALUATE_EPILOG,
