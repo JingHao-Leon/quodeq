@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 import { sharedKeys } from '../../../api/queryKeys.js';
@@ -77,6 +78,18 @@ describe('SharedRepoSection', () => {
     await waitFor(() => {
       expect(fakeApi.disconnectShared).toHaveBeenCalled();
     });
+  });
+
+  it('change is disabled while a disconnect runs', async () => {
+    const fakeApi = makeFakeApi({
+      getSharedStatus: vi.fn(async () => ({ configured: true, url: 'https://github.com/team/results.git' })),
+      disconnectShared: vi.fn(() => new Promise(() => {})),
+    });
+    const user = userEvent.setup();
+    renderWithApi(fakeApi);
+    await user.click(await screen.findByRole('button', { name: /disconnect/i }));
+    await user.click(screen.getByRole('button', { name: /^yes$/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^change$/i })).toBeDisabled());
   });
 
   it('cancels disconnect confirm when no is clicked', async () => {
