@@ -36,8 +36,18 @@ test('summariseDiff folds dimensions, majors first', () => {
   } });
   assert.deepEqual(s.new.map((f) => f.severity), ['major', 'minor']);
   assert.equal(s.unchecked, 3);
-  assert.deepEqual(s.perDim.security, { new: 2, resolved: 1, unchecked: 3 });
+  assert.deepEqual(s.perDim.security, { new: 2, resolved: 1, unchecked: 3, newSev: {}, resolvedSev: {} });
   assert.deepEqual(s.newSev, { major: 1, minor: 1 });
+});
+
+test('summariseDiff keeps each dimension\'s new and fixed severities', () => {
+  const s = summariseDiff({ dimensions: {
+    security: { counts: { new: 3, resolved: 1, newSev: { critical: 1, major: 2 }, resolvedSev: { major: 1 } } },
+    usability: { counts: { new: 0, resolved: 0 } },
+  } });
+  assert.deepEqual(s.perDim.security.newSev, { critical: 1, major: 2 });
+  assert.deepEqual(s.perDim.security.resolvedSev, { major: 1 });
+  assert.deepEqual(s.perDim.usability.newSev, {});
 });
 
 test('throughput: files per active minute, per dimension and in total', () => {

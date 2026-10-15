@@ -1,38 +1,60 @@
-import { GridTable, GridRow, GridCell } from '../../../components/terminal/index.js';
-import { scoreColorClass } from '../../../utils/formatters.js';
-import { scoreTierLabel } from '../../../utils/gradeFormatting.js';
-import RunSevRow, { CRIT_MAJ } from './RunSevRow.jsx';
-import { scoreText, DASH, PLUS, MINUS } from './runFormat.js';
+import DimensionGaugeCard from '../../dashboard/components/DimensionGaugeCard.jsx';
+import { t } from '../../../strings/index.js';
+import RunSevText from './RunSevText.jsx';
+import { CRIT_MAJ } from './RunSevRow.jsx';
 
-const COLUMNS = 'minmax(140px, 1fr) 28px 44px 1fr 96px';
+const ONE_DECIMAL = 1;
 
-function DimMoves({ change }) {
-  if (!change) return <span className="rl-moves rl-moves--none">{DASH}</span>;
+/** A dimension's score as a number; ungraded sorts last. */
+const scoreOf = (d) => { const n = parseFloat(d.score); return Number.isNaN(n) ? Infinity : n; };
+
+/** Weakest first, as the Overview and the dimension page order their cards; ties by name. */
+const weakestFirst = (a, b) => (scoreOf(a) - scoreOf(b)) || a.dimension.localeCompare(b.dimension);
+
+/** A run's dimension as the cards read one: its score (one decimal, as everywhere: 8.0, not 8) and its crit/maj counts. */
+function cardItem(d) {
+  const score = parseFloat(d.score);
+  return {
+    dimension: d.dimension,
+    overallScore: Number.isNaN(score) ? d.score : score.toFixed(ONE_DECIMAL),
+    totals: { severity: { critical: d.critical || 0, major: d.majors || 0 } },
+  };
+}
+
+/** One line of a card's footer: a count in its colour (muted at zero), then its criticals and majors. */
+function MoveLine({ count, cls, label, sev }) {
   return (
-    <span className="rl-moves">
-      <span className={change.new ? 'rl-new' : 'rl-zero'}>{PLUS}{change.new}</span>
-      <span className={change.resolved ? 'rl-fixed' : 'rl-zero'}>{MINUS}{change.resolved}</span>
+    <span className="rl-card-move">
+      <span className={count ? cls : 'rl-zero'}>{label}</span>
+      <RunSevText counts={sev} levels={CRIT_MAJ} />
     </span>
   );
 }
 
-/** One row per dimension of the run: grade, score, crit/maj, what changed. */
-export default function RunDimensions({ run, diff, onOpen }) {
-  const dims = [...(run.dimensionDetails || [])].sort((a, b) => a.dimension.localeCompare(b.dimension));
+/** What this run changed in the dimension: new and fixed findings (none when it was not compared). */
+function RunMoves({ change }) {
+  if (!change) return <span className="dim-gauge-card__pass">{t('history.cardNotCompared')}</span>;
   return (
-    <GridTable columns={COLUMNS} dense>
-      {dims.map((d) => {
-        const score = parseFloat(d.score);
-        return (
-          <GridRow key={d.dimension} onClick={() => onOpen(d)}>
-            <GridCell><span className="rl-mono">{d.dimension}</span></GridCell>
-            <GridCell><span className={`chip small ${scoreColorClass(score)}`}>{scoreTierLabel(score) || DASH}</span></GridCell>
-            <GridCell><span className={`rl-num ${scoreColorClass(score)}`}>{scoreText(score)}</span></GridCell>
-            <GridCell><RunSevRow counts={{ critical: d.critical, major: d.majors }} levels={CRIT_MAJ} /></GridCell>
-            <GridCell><DimMoves change={diff?.perDim?.[d.dimension]} /></GridCell>
-          </GridRow>
-        );
-      })}
-    </GridTable>
+    <span className="rl-card-moves">
+      <MoveLine count={change.new} cls="rl-new" label={t('history.cardNew', { count: change.new })} sev={change.newSev} />
+      <MoveLine count={change.resolved} cls="rl-fixed" label={t('history.cardFixed', { count: change.resolved })} sev={change.resolvedSev} />
+    </span>
+  );
+}
+
+/**
+ * The run's dimensions as the app's compact cards (ring and score, grade
+ * word, severity pills), each with what the run changed in it (new and
+ * fixed findings), weakest first; a card opens that dimension as of the run.
+ */
+export default function RunDimensions({ run, diff, onOpen }) {
+  const dims = [...(run.dimensionDetails || [])].sort(weakestFirst);
+  return (
+    <div className="qd-cards-row rl-cards">
+      {dims.map((d) => (
+        <DimensionGaugeCard key={d.dimension} item={cardItem(d)} compact showDate={false}
+          onDimensionClick={() => onOpen(d)} footer={<RunMoves change={diff?.perDim?.[d.dimension]} />} />
+      ))}
+    </div>
   );
 }

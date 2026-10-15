@@ -27,6 +27,17 @@ describe('DimensionGaugeCard, compact', () => {
     expect(container.querySelector('.dim-gauge-card__pass')).toHaveTextContent(t('overview.cardPass', { pct: 75 }));
   });
 
+  it('a footer takes the pass rate\'s place', () => {
+    const { container } = card({ footer: <span className="probe-footer">run changes</span> });
+    expect(container.querySelector('.dim-gauge-card__rowbody .probe-footer')).toHaveTextContent('run changes');
+    expect(container.querySelector('.dim-gauge-card__pass')).toBeNull();
+  });
+
+  it('a footer is read out with the score summary, as the card is a button', () => {
+    const { container } = card({ footer: <span>+4 new</span> });
+    expect(container.querySelector('article')).toHaveAccessibleDescription(/Score 6\.4.*\+4 new/);
+  });
+
   it('has no date line ("Latest") when asked not to', () => {
     const { container } = card();
     expect(container.querySelector('.dim-gauge-card__coverage-line')).toBeNull();

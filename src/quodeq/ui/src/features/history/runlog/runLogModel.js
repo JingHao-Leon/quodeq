@@ -61,7 +61,7 @@ export function summariseDiff(payload) {
   const out = { new: [], resolved: [], unchecked: 0, perDim: {} };
   Object.entries(payload.dimensions).forEach(([dim, e]) => {
     const c = e.counts || {};
-    out.perDim[dim] = { new: c.new || 0, resolved: c.resolved || 0, unchecked: c.notReevaluated || 0 };
+    out.perDim[dim] = { new: c.new || 0, resolved: c.resolved || 0, unchecked: c.notReevaluated || 0, newSev: c.newSev || {}, resolvedSev: c.resolvedSev || {} };
     out.unchecked += c.notReevaluated || 0;
     (e.new || []).forEach((f) => out.new.push({ ...f, dimension: dim }));
     (e.resolved || []).forEach((f) => out.resolved.push({ ...f, dimension: dim }));

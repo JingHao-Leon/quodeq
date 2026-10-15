@@ -99,8 +99,6 @@
 }
 
 /* selected run panel */
-.rl-mono { font-family: var(--rl-mono); }
-.rl-num { font-family: var(--rl-mono); font-variant-numeric: tabular-nums; }
 .rl-sev { display: inline-flex; gap: 5px; flex-wrap: wrap; }
 .rl-help { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 .rl .qd-cards-panel > .rl-detail__body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 20px 22px 0; }
@@ -156,3 +154,9 @@
   .history-skeleton__split { grid-template-columns: 1fr; height: auto; }
   .history-skeleton__panel { height: 360px; }
 }
+
+/* the run's dimensions as the app's compact cards, each with what the run changed in it */
+.qd-cards-row.rl-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin: 16px 22px 0; }
+.rl-card-moves { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 11px; }
+/* the card's text column is fixed (rings line up across cards): a line too wide for it puts its severities under the count */
+.rl-card-move { display: inline-flex; flex-wrap: wrap; gap: 0 10px; align-items: baseline; white-space: nowrap; }
