@@ -3,7 +3,7 @@ import TrendBadge from '../../../components/TrendBadge.jsx';
 import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
 import { scopeMetrics, tileChanges } from '../../../models/findingMetrics.js';
 import { scoreChangeShows } from '../../../utils/trendUtils.js';
-import { heroCardHandlers } from './heroSectionParts.jsx';
+import { headActions } from './heroSectionParts.jsx';
 import { partialDimensionCount } from '../overviewHeadModel.js';
 import { extDisplayName } from '../../../utils/formatters.js';
 import { pluralKey } from '../../../utils/plural.js';
@@ -85,7 +85,6 @@ export default function OverviewHead({ data, accumulated, stats, headline, previ
   const shared = data.selectedSource === PROJECT_SOURCE.SHARED;
   const model = useRunModel({ project: data.selectedProject, source: data.selectedSource, runId: stats.lastRun?.runId });
   const metrics = projectMetrics(summary, headline);
-  const handlers = heroCardHandlers(onCardNavigate, { violations: metrics.violations, compliance: metrics.compliance });
   return (
     <FindingsHead
       title={data.projectInfo?.displayName || data.projectInfo?.name || t('overview.termName')}
@@ -94,7 +93,7 @@ export default function OverviewHead({ data, accumulated, stats, headline, previ
       badge={<HeadBadge delta={stats.scoreDelta} shared={shared} publishedBy={data.projectInfo?.publishedBy} />}
       metrics={metrics} filesHint={t('overview.per100Hint', { count: dimensions.length })}
       deltas={deltas || undefined} changes={tileChanges(metrics, previous)} pastRun={pastRun}
-      actions={{ onViolations: handlers.handleViolations, onCompliance: handlers.handleCompliance, onSeverity: handlers.handleSeverity }}
+      actions={headActions(onCardNavigate, metrics)}
     />
   );
 }

@@ -2134,6 +2134,7 @@
   "overview.customFormulaNote": "custom formula",
   "overview.formulaUpdatedNote": "↻ rescored · current formula",
   "overview.formulaUpdatedTitle": "This run was scanned under an older grade formula. Its scores were recomputed with the current one, so they can differ from what the run showed at the time.",
+  "overview.formulaUpdatedHelpAria": "Why this run was rescored",
   "gradeFormula.tabFormula": "FORMULA",
   "gradeFormula.tabTypes": "TYPES",
   "gradeFormula.stage1Title": "Rules, weighted",

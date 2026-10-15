@@ -7,29 +7,25 @@
 import { SCOPE_KIND, openScope, cardFilter } from '../violations/scope/scopeModel.js';
 import { nameKey } from '../../utils/nameKey.js';
 
-/** The header tiles: the project's findings, opened on the tile's severity or on the compliant checks. */
-export function makeCardNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf);
+/**
+ * What opens a scoped Findings view from a row: the view of the scope
+ * `scopeOf` builds for the row, as of `asOf`; undefined without an `onNavigate`.
+ */
+function scopeOpener(scopeOf) {
+  return ({ onNavigate, asOf }) => (onNavigate ? (row) => openScope(onNavigate, scopeOf(row), asOf) : undefined);
 }
+
+/** The header tiles: the project's findings, opened on the tile's severity or on the compliant checks. */
+export const makeCardNavigate = scopeOpener((kind) => ({ kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }));
 
 /** Fix first: a requirement opens on its findings. */
-function makeRequirementNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (row) => openScope(onNavigate, { kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }, asOf);
-}
+const makeRequirementNavigate = scopeOpener((row) => ({ kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }));
 
 /** Where the findings live: a folder opens on its findings. */
-function makeFolderNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (row) => openScope(onNavigate, { kind: SCOPE_KIND.FOLDER, path: row.dir }, asOf);
-}
+const makeFolderNavigate = scopeOpener((row) => ({ kind: SCOPE_KIND.FOLDER, path: row.dir }));
 
 /** Violations by file: a file opens on its findings. */
-function makeFileNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf);
-}
+const makeFileNavigate = scopeOpener((f) => ({ kind: SCOPE_KIND.FILE, path: f.file }));
 
 /** What the panels below the cards open: a requirement, a folder, a file. */
 export function makeFindingsNavigate(args) {

@@ -1,6 +1,7 @@
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import { HeadBadge } from './OverviewHead.jsx';
-import { heroCardHandlers } from './heroSectionParts.jsx';
+import { headActions } from './heroSectionParts.jsx';
+import HelpHint from '../../../components/HelpHint.jsx';
 import buildRunSummary from '../buildRunSummary.js';
 import { dimensionsMetrics } from '../overviewHeadModel.js';
 import { runTitle, runSub, runMetrics, severityChanges, scoreChange } from '../runPageModel.js';
@@ -10,13 +11,18 @@ import { t } from '../../../strings/index.js';
 
 /**
  * Under the title: that a grade formula change rescored the run without a
- * new scan, and how many of its findings were suppressed (dismissed or
- * deleted); nothing when neither.
+ * new scan (why, behind its help button, for the keyboard and touch too),
+ * and how many of its findings were suppressed (dismissed or deleted).
  */
 function RunNotes({ formulaUpdated, suppressed }) {
   return (
     <>
-      {formulaUpdated && <span title={t('overview.formulaUpdatedTitle')}>{t('overview.formulaUpdatedNote')}</span>}
+      {formulaUpdated && (
+        <span>
+          {t('overview.formulaUpdatedNote')}
+          <HelpHint label={t('overview.formulaUpdatedHelpAria')}>{t('overview.formulaUpdatedTitle')}</HelpHint>
+        </span>
+      )}
       {formulaUpdated && suppressed > 0 && t('violations.wbDot')}
       {suppressed > 0 && <span>{t('overview.runSuppressed', { count: suppressed })}</span>}
     </>
@@ -43,7 +49,6 @@ export default function RunHead({ dashboard, comparison, projectInfo, source, fo
   const summary = buildRunSummary(dims);
   const metrics = dimensionsMetrics(dims);
   const previous = runMetrics(comparison.previousDims);
-  const handlers = heroCardHandlers(onCardNavigate, { violations: metrics.violations, compliance: metrics.compliance });
   const suppressed = summary.suppressed || 0;
   return (
     <FindingsHead
@@ -53,7 +58,7 @@ export default function RunHead({ dashboard, comparison, projectInfo, source, fo
       badge={<HeadBadge delta={scoreChange(dims, comparison.previousDims)} shared={source === PROJECT_SOURCE.SHARED} publishedBy={projectInfo?.publishedBy} />}
       metrics={metrics} filesHint={t('overview.per100Hint', { count: dims.length })}
       deltas={severityChanges(metrics, previous) || undefined} changes={tileChanges(metrics, previous)}
-      actions={{ onViolations: handlers.handleViolations, onCompliance: handlers.handleCompliance, onSeverity: handlers.handleSeverity }}
+      actions={headActions(onCardNavigate, metrics)}
     />
   );
 }

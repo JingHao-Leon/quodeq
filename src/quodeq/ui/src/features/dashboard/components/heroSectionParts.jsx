@@ -1,6 +1,7 @@
 /**
  * What the Overview's and the run page's headers share with History's run
- * panel: the tiles' navigation handlers, and the grade as a chip.
+ * panel: the tiles' navigation handlers (and the header actions built from
+ * them), and the grade as a chip.
  */
 import { scoreColorClass } from '../../../utils/formatters.js';
 import { scoreToGradeLabel } from '../../../utils/gradeThresholds.js';
@@ -21,6 +22,19 @@ export function heroCardHandlers(onCardNavigate, { violations, compliance }) {
     handleCompliance: onCardNavigate && compliance > 0 ? () => onCardNavigate(HERO_CARD_KIND.COMPLIANCE) : undefined,
     handleSeverity: onCardNavigate ? (level) => onCardNavigate(level) : undefined,
   };
+}
+
+/**
+ * A FindingsHead's actions for a project's or a run's numbers: the
+ * violations, the compliant checks and a severity open their findings
+ * through `onCardNavigate`, each only when there is something to open.
+ * @param {((target: string) => void)|undefined} onCardNavigate
+ * @param {{violations: number, compliance: number}} metrics scopeMetrics output
+ * @returns {{onViolations?: Function, onCompliance?: Function, onSeverity?: Function}}
+ */
+export function headActions(onCardNavigate, metrics) {
+  const handlers = heroCardHandlers(onCardNavigate, { violations: metrics.violations, compliance: metrics.compliance });
+  return { onViolations: handlers.handleViolations, onCompliance: handlers.handleCompliance, onSeverity: handlers.handleSeverity };
 }
 
 /**

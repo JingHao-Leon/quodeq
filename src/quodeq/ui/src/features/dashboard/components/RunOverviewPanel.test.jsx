@@ -73,9 +73,11 @@ describe('RunOverviewPanel header', () => {
     expect(head(container)).toHaveTextContent('12 suppressed');
   });
 
-  it('says a rescored run was scanned with an older formula', () => {
+  it('says a rescored run was scanned with an older formula, and why behind its help button', () => {
     const { container } = renderRun({ formulaUpdated: true });
-    expect(within(head(container)).getByText(/rescored · current formula/).getAttribute('title')).toMatch(/older grade formula/);
+    expect(within(head(container)).getByText(/rescored · current formula/)).toBeInTheDocument();
+    fireEvent.click(within(head(container)).getByRole('button', { name: 'Why this run was rescored' }));
+    expect(within(head(container)).getByRole('tooltip')).toHaveTextContent(/older grade formula/);
   });
 });
 
