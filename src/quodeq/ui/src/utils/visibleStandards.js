@@ -3,20 +3,6 @@ import {
   STANDARDS_CHANGED_REASON, notifyStandardsChanged,
 } from '../constants.js';
 import { getStandardsVisibility, putStandardsVisibility } from '../api/standards.js';
-import { readJSON, STORAGE_FLAG_ON, writeString } from '../adapters/storage.js';
-import { PROJECT_SOURCE } from '../vocab/projectSource.js';
-import { decideHydration, HYDRATION_KIND } from './visibleStandardsModel.js';
-
-// Marks that the (per-browser, not per-project) cache has been reconciled
-// with SOME project's own real file -- either because that project already
-// had one (isDefault: false) or because the one-time legacy migration below
-// just created one. Once set, the migration below never fires again: a
-// later project with no file of its own must read as "give me the ISO
-// defaults", not "adopt whatever the previous project's cache happens to
-// hold". Stored in `storage` (not module state) so it rides along with
-// whichever cache it governs, including in tests that inject their own
-// fake storage per test.
-const VISIBLE_STANDARDS_MIGRATED_KEY = 'quodeq-visible-standards-migrated';
 
 /**
  * Read the visible standard IDs from localStorage.
@@ -71,18 +57,9 @@ export function writeVisibleStandardIds(ids, storage = localStorage) {
 }
 
 /**
- * The project whose visibility file a change is written to: none for a
- * shared (read-only) project, which has no local standards file; the
- * per-project PUT would 404. Its toggles live in the browser-local cache.
- */
-export function visibilityProjectIdFor(selectedProject, selectedSource) {
-  return selectedSource === PROJECT_SOURCE.SHARED ? null : selectedProject;
-}
-
-/**
  * Make one standard visible from outside the Standards page (an assistant
  * create applied on another screen): append it to the local cache and, for
- * a local project, to that project's visibility file. Membership is
+ * that project's visibility file. Membership is
  * case-insensitive like useVisibleStandards. A failed PUT only warns: the
  * cache is already right for this session and the next hydrate re-syncs.
  */
@@ -102,80 +79,47 @@ export async function addVisibleStandardId(id, { projectId = null, storage = loc
 }
 
 /**
- * Sync the local cache with the server for a project.
+ * Sync the local cache with the server for a project, and report where the
+ * server migrated the project's legacy repo settings from (null if nowhere).
  *
- * localStorage is a cache so the 8 synchronous read sites keep working; the
- * file in the repo is authoritative. On the first run after upgrading, the
- * server has no file yet (isDefault) while the browser may hold a real
- * selection — that one gets pushed up rather than silently lost. This
- * migration is one-shot and per-BROWSER, not per-project: it only fires
- * while the cache (a) actually differs from the ISO defaults (nothing to
- * migrate otherwise) and (b) has never been reconciled with any project's
- * own real file yet (`VISIBLE_STANDARDS_MIGRATED_KEY`). Once either has
- * happened once, a later project with no file of its own gets the plain ISO
- * defaults, never another project's ids -- without guard (b), switching
- * from a project with a real selection to one with none would otherwise
- * "migrate" the first project's ids into the second project's brand-new
- * file every time.
+ * The settings file under ~/.quodeq is authoritative; localStorage is only
+ * the synchronous read cache for the sites that cannot await. The server
+ * migrates any legacy repo file itself, so the browser never pushes its
+ * cache up.
  *
  * Never throws: an offline/failed fetch leaves the cached value in place.
  *
- * Two independent guards run right before every write this function makes
- * (both the normal path and the migration path's post-PUT write):
+ * Two independent guards run right before the write:
  *
  * - `isStale` guards against the PROJECT changing: if the caller fires this
  *   for project A and the user switches to project B before the request
  *   resolves, A's response must not land in the (per-browser, not
- *   per-project) cache over B's. Pass a function that returns true once the
- *   selection this call was for is no longer the current one.
+ *   per-project) cache over B's.
  * - The generation counter guards against a newer WRITE for the SAME
  *   project already having landed: e.g. this GET was in flight when the
  *   user toggled a standard, and persist() synchronously wrote and PUT the
- *   toggle before this GET resolved with pre-toggle server state. `isStale`
- *   alone can't catch this because the project never changed.
+ *   toggle before this GET resolved with pre-toggle server state.
  */
-export async function hydrateVisibleStandardIds(projectId, { storage = localStorage, isStale } = {}) {
-  if (!projectId) return readVisibleStandardIds(storage);
+export async function getVisibilityState(projectId, { storage = localStorage, isStale } = {}) {
+  if (!projectId) return { ids: readVisibleStandardIds(storage), migratedFrom: null };
   const generationAtStart = generationFor(storage);
   const supersededByNewerWrite = () => isStale?.() || generationFor(storage) !== generationAtStart;
   try {
-    const { visibleStandardIds, isDefault, defaultStandardIds } = await getStandardsVisibility(projectId);
-    if (supersededByNewerWrite()) return readVisibleStandardIds(storage);
-    // Migration/adoption policy lives in decideHydration (visibleStandardsModel.js);
-    // this orchestrator only fetches, guards the two races below, and executes
-    // the storage writes the decision calls for.
-    const decision = decideHydration({
-      serverIds: visibleStandardIds,
-      isDefault,
-      serverDefaults: defaultStandardIds,
-      cachedIds: readJSON(VISIBLE_STANDARDS_STORAGE_KEY, null, storage),
-      alreadyMigrated: !!storage.getItem(VISIBLE_STANDARDS_MIGRATED_KEY),
-      fallbackDefaults: DEFAULT_VISIBLE_STANDARDS,
-    });
-    if (decision.kind === HYDRATION_KIND.MIGRATE) {
-      const saved = await putStandardsVisibility(projectId, decision.ids);
-      if (supersededByNewerWrite()) return readVisibleStandardIds(storage);
-      const ids = saved?.visibleStandardIds ?? decision.ids;
-      writeString(VISIBLE_STANDARDS_MIGRATED_KEY, STORAGE_FLAG_ON, storage);
-      writeVisibleStandardIds(ids, storage);
-      return ids;
-    }
-    if (decision.markMigrated) {
-      // This project already has its own real file: the cache is now known
-      // to belong to a specific project's synced selection, so it must
-      // never again be read as an unclaimed legacy value up for grabs by
-      // the next project that happens to have no file yet.
-      writeString(VISIBLE_STANDARDS_MIGRATED_KEY, STORAGE_FLAG_ON, storage);
-    }
-    writeVisibleStandardIds(decision.ids, storage);
-    return decision.ids;
+    const { visibleStandardIds, migratedFrom = null } = await getStandardsVisibility(projectId);
+    if (supersededByNewerWrite()) return { ids: readVisibleStandardIds(storage), migratedFrom: null };
+    writeVisibleStandardIds(visibleStandardIds, storage);
+    return { ids: visibleStandardIds, migratedFrom };
   } catch (err) {
     // Covers both an offline/failed fetch (expected, cache stays put) and a
     // genuine bug such as a response-shape change throwing a TypeError. The
-    // two aren't cheaply distinguishable here (fetch failures and shape-change
-    // errors can both surface as TypeError), so we warn for both rather than
-    // let a real regression degrade invisibly to "serve stale cache forever".
-    console.warn('hydrateVisibleStandardIds: falling back to cached value', err);
-    return readVisibleStandardIds(storage);
+    // two aren't cheaply distinguishable here, so we warn for both rather
+    // than let a real regression degrade invisibly to "serve stale cache".
+    console.warn('getVisibilityState: falling back to cached value', err);
+    return { ids: readVisibleStandardIds(storage), migratedFrom: null };
   }
+}
+
+/** The visible standard ids for a project (see getVisibilityState). */
+export async function hydrateVisibleStandardIds(projectId, options) {
+  return (await getVisibilityState(projectId, options)).ids;
 }

@@ -11,7 +11,7 @@ import {
 } from './useAppShellHooks.js';
 import { useAssistantActionAppliedEffect } from './useAppEffects.js';
 import { findProject } from '../utils/projectIdentity.js';
-import { addVisibleStandardId, visibilityProjectIdFor } from '../utils/visibleStandards.js';
+import { addVisibleStandardId } from '../utils/visibleStandards.js';
 import { selectLandedProject } from './selectLandedProject.js';
 import { shouldShowEvaluate } from '../appGating.js';
 import { useCloneStatus } from './useCloneStatus.js';
@@ -40,7 +40,7 @@ export function useAppDismissBridge(state) {
     notifyStandardsChanged(STANDARDS_CHANGED_REASON.LIST);
     queryClient.invalidateQueries({ queryKey: standardsKeys.list() });
     if (!standardId) return;
-    const projectId = visibilityProjectIdFor(state.selectedProject, state.selectedSource);
+    const projectId = state.selectedProject;
     addVisibleStandardId(standardId, { projectId })
       .then(() => projectId && queryClient.invalidateQueries({ queryKey: projectKeys.standardsVisibility(projectId) }))
       // A storage write that throws leaves the standard hidden, as before
