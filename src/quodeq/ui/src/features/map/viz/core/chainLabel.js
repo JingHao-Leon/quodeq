@@ -15,10 +15,12 @@ const lastSegment = (text) => text.slice(text.lastIndexOf(SEP) + 1);
 export function chainLabel(name) {
   const text = name || '';
   const segs = text.split(SEP).filter(Boolean);
-  for (let i = 0; i < segs.length; i++) {
+  let i = 0;
+  while (i < segs.length) {
     const seg = segs[i].toLowerCase();
-    if (JVM_SOURCE_DIRS.has(seg)) { i += JVM_PACKAGE_DEPTH; continue; }
     if (!GENERIC_SEGMENTS.has(seg)) return segs[i];
+    // A JVM source folder is passed over with the package root under it.
+    i += JVM_SOURCE_DIRS.has(seg) ? 1 + JVM_PACKAGE_DEPTH : 1;
   }
   return lastSegment(text);
 }
