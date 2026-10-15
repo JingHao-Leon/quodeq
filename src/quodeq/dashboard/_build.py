@@ -80,9 +80,9 @@ def maybe_build_ui(no_build: bool, reinstall: bool, dev: bool = False) -> Path:
             log_info("Web UI is up to date, skipping build.")
             return static_dir
 
-        log_info("Building web UI (source changed)...")
+        log_info("Rebuilding the dashboard (source changed)...")
         static_dir.mkdir(parents=True, exist_ok=True)
-        run_npm_build(source_dir, static_dir)
+        run_npm_build(source_dir, static_dir, force_install=reinstall)
         (static_dir / HASH_FILE).write_text(compute_source_hash(source_dir), encoding="utf-8")
         return static_dir
 

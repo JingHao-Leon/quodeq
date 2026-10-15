@@ -1,5 +1,7 @@
 """Run a noisy child process quietly, with a spinner while it works.
 
+``Spinner`` is also usable on its own for any wait a person watches.
+
 npm and Vite print a line per package and per output chunk (100+ lines),
 which is noise when the build works and the whole story when it doesn't.
 The output goes to a temp file and is replayed to stderr only on failure.
@@ -9,6 +11,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import math
 import tempfile
 import time
 from collections.abc import Mapping, Sequence
@@ -39,27 +42,60 @@ def run_quiet(
             raise subprocess.CalledProcessError(proc.returncode, list(cmd))
 
 
+class Spinner:
+    """A one-line ``⠋ label 12s`` spinner, drawn only when *stream* is a terminal.
+
+    Use as a context manager; the line is cleared on exit. ``animating`` is
+    False off a terminal, so callers can fall back to plain log lines.
+    """
+
+    def __init__(self, label: str, stream: IO[str] | None = None) -> None:
+        self.label = label
+        self._stream = stream or sys.stderr
+        self.animating = self._stream.isatty()
+        self._started = time.monotonic()
+        self._frame = 0
+
+    @property
+    def elapsed(self) -> float:
+        """Seconds since the spinner was created."""
+        return time.monotonic() - self._started
+
+    def tick(self) -> None:
+        """Draw the next frame (a no-op off a terminal)."""
+        if not self.animating:
+            return
+        frame = _FRAMES[self._frame % len(_FRAMES)]
+        self._stream.write(f"\r{frame} {self.label} {self.elapsed:.0f}s")
+        self._stream.flush()
+        self._frame += 1
+
+    def sleep(self, seconds: float) -> None:
+        """Sleep *seconds*, redrawing every tick so the spinner never freezes."""
+        steps = max(1, math.ceil(seconds / _TICK_S))
+        for _ in range(steps):
+            time.sleep(seconds / steps)
+            self.tick()
+
+    def __enter__(self) -> Spinner:
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        if self.animating:
+            self._stream.write("\r\x1b[K")
+            self._stream.flush()
+
+
 def _wait_with_spinner(proc: subprocess.Popen, label: str, timeout: float, stream: IO[str]) -> None:
-    animate = stream.isatty()
-    started = time.monotonic()
-    frame = 0
-    try:
+    with Spinner(label, stream) as spinner:
         while True:
             try:
                 proc.wait(timeout=_TICK_S)
                 return
             except subprocess.TimeoutExpired:
-                elapsed = time.monotonic() - started
-                if elapsed > timeout:
+                if spinner.elapsed > timeout:
                     raise subprocess.TimeoutExpired(proc.args, timeout) from None
-                if animate:
-                    stream.write(f"\r{_FRAMES[frame % len(_FRAMES)]} {label} {elapsed:.0f}s")
-                    stream.flush()
-                    frame += 1
-    finally:
-        if animate:
-            stream.write("\r\x1b[K")
-            stream.flush()
+                spinner.tick()
 
 
 def _replay(out: IO[bytes], stream: IO[str]) -> None:

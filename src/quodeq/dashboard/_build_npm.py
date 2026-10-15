@@ -1,6 +1,7 @@
 """npm install and build execution, source syncing, and directory helpers."""
 from __future__ import annotations
 
+import hashlib
 import shutil
 import time
 from collections.abc import Mapping
@@ -14,6 +15,11 @@ from quodeq.dashboard._build_hash import SYNC_ITEMS
 from quodeq.shared.quiet_run import run_quiet
 
 _UI_DIRNAME = "ui"  # bundled UI source directory name, both inside the package and in the repo
+
+# Written into node_modules after a successful `npm ci`: the sha256 of the
+# package-lock.json it installed, so an unchanged lockfile skips the install.
+_INSTALL_STAMP = ".quodeq-lock-sha256"
+_LOCKFILE = "package-lock.json"
 
 _NPM_INSTALL_TIMEOUT_DEFAULT_S = 300  # QUODEQ_NPM_INSTALL_TIMEOUT_S fallback
 _NPM_BUILD_TIMEOUT_DEFAULT_S = 600  # QUODEQ_NPM_BUILD_TIMEOUT_S fallback
@@ -74,10 +80,25 @@ def sync_source_to_workdir(source_dir: Path, workdir: Path) -> None:
             shutil.copy2(src_item, dst_item)
 
 
+def _lock_digest(workdir: Path) -> str | None:
+    lockfile = workdir / _LOCKFILE
+    if not lockfile.is_file():
+        return None
+    return hashlib.sha256(lockfile.read_bytes()).hexdigest()
+
+
+def dependencies_installed(workdir: Path) -> bool:
+    """True when node_modules was installed from the current package-lock.json."""
+    digest = _lock_digest(workdir)
+    stamp = workdir / "node_modules" / _INSTALL_STAMP
+    return digest is not None and stamp.is_file() and stamp.read_text(encoding="utf-8").strip() == digest
+
+
 def run_npm_build(
     workdir: Path, static_dir: Path, env: Mapping[str, str] | None = None,
+    *, force_install: bool = False,
 ) -> None:
-    """Run npm install (if needed) and npm run build.
+    """Run ``npm ci`` when the lockfile changed (or *force_install*), then ``npm run build``.
 
     *env* is the mapping the build's timeouts are read from and the base of
     the child process's environment; it defaults to ``os.environ``.
@@ -88,21 +109,23 @@ def run_npm_build(
             "npm not found on PATH. Install Node.js from https://nodejs.org/ or via your package manager."
         )
 
-    log_info("Installing npm dependencies...")
-    # Use `npm ci` to enforce lockfile-pinned installs (refuses to mutate
-    # package-lock.json, errors if it's out of sync). `SYNC_ITEMS` in
-    # `_build_hash.py` copies package-lock.json into the workdir before this
-    # runs, so a lockfile is always present. `--no-audit` skips the live,
-    # uncached POST to the npm advisories endpoint, which is purely
-    # informational here (it never fails the install) but can single-handedly
-    # blow past the timeout on slow networks.
     started = time.monotonic()
-    run_quiet(
-        [npm, "ci", "--no-audit"], label="Gathering the building blocks", cwd=str(workdir),
-        timeout=_npm_install_timeout_s(env),
-    )
+    if force_install or not dependencies_installed(workdir):
+        log_info("Dependencies changed, reinstalling them...")
+        # `npm ci` enforces lockfile-pinned installs (refuses to mutate
+        # package-lock.json, errors if it's out of sync). `SYNC_ITEMS` in
+        # `_build_hash.py` copies package-lock.json into the workdir before
+        # this runs. `--no-audit` skips the live, uncached POST to the npm
+        # advisories endpoint, which is purely informational here (it never
+        # fails the install) but can blow past the timeout on slow networks.
+        run_quiet(
+            [npm, "ci", "--no-audit"], label="Gathering the building blocks", cwd=str(workdir),
+            timeout=_npm_install_timeout_s(env),
+        )
+        digest = _lock_digest(workdir)
+        if digest is not None:
+            (workdir / "node_modules" / _INSTALL_STAMP).write_text(digest, encoding="utf-8")
 
-    log_info("Building web UI...")
     # QUODEQ_BUILD_QUIET skips Vite's gzip size report: nobody sees the
     # captured table, so computing it is wasted time.
     build_env = {
@@ -112,7 +135,7 @@ def run_npm_build(
         [npm, "run", "build"], label="Building your dashboard to Quodeq standards", cwd=str(workdir),
         timeout=_npm_build_timeout_s(env), env=build_env,
     )
-    log_info(f"Dashboard ready in {time.monotonic() - started:.0f}s. It passed its own review.")
+    log_info(f"Dashboard ready in {time.monotonic() - started:.1f}s. It passed its own review.")
 
 
 def resolve_dev_source() -> Path:
