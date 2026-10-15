@@ -6,6 +6,7 @@ import dataclasses
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import find_dimension, raw_run_dims, validate_dimension
 from quodeq.assistant.tools._read_tools_compare import register_compare_tools
+from quodeq.assistant.tools.help_tools import register_help_tools
 from quodeq.assistant.tools._read_tools_dismissed import register_dismissed_tools
 from quodeq.assistant.tools._read_tools_history import register_history_tools
 from quodeq.assistant.tools._read_tools_scope import (
@@ -255,4 +256,5 @@ def register_read_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
     register_history_tools(registry, ctx)
     register_compare_tools(registry, ctx)
     register_dismissed_tools(registry, ctx)
+    register_help_tools(registry)
     _register_standards_tools(registry, ctx)
