@@ -1,7 +1,7 @@
 import {
   describe, it, expect, vi, beforeEach, afterEach,
 } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 // The page composes the editor hook, the inputs query and the panels. Both
@@ -57,7 +57,7 @@ function mockHook(over = {}) {
     rescoreProgress: null,
     update: vi.fn(),
     apply: vi.fn().mockResolvedValue(1),
-    resetToDefaults: vi.fn().mockResolvedValue(undefined),
+    resetToDefaults: vi.fn().mockResolvedValue({ isCustom: false }),
     ...over,
   };
   useGradeFormula.mockReturnValue(hookState);
@@ -101,6 +101,27 @@ describe('GradeFormulaPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Apply/ }));
     expect(state.apply).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('a failed apply keeps the sheet open and shows the error inside it', async () => {
+    const state = mockHook({
+      isDirty: true, draft: baseDraft({ severityWeight: { critical: 4, major: 3, minor: 0.25 } }),
+      apply: vi.fn().mockResolvedValue(null), error: 'Apply failed',
+    });
+    mount(<GradeFormulaPage navigation={NAVIGATION} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Review and apply' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Apply/ }));
+    expect(state.apply).toHaveBeenCalledTimes(1);
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Apply failed');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('counts a dimension weight edit as a changed setting', () => {
+    mockHook({ isDirty: true, draft: baseDraft({ dimensionWeights: { security: 2, maintainability: 1 } }) });
+    mount(<GradeFormulaPage navigation={NAVIGATION} />);
+    expect(screen.getByText('1 setting changed')).toBeInTheDocument();
   });
 
   it('RESET Q² opens the reset sheet; confirming resets to the defaults', async () => {

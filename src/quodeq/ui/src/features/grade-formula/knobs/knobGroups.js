@@ -6,7 +6,7 @@ import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { GRADE } from '../../../vocab/grade.js';
 
 export const KNOB_GROUP = Object.freeze({
-  COST: 'cost', BANDS: 'bands', STEEP: 'steep', LIFT: 'lift', CEIL: 'ceil', FLOOR: 'floor',
+  COST: 'cost', BANDS: 'bands', STEEP: 'steep', LIFT: 'lift', CEIL: 'ceil', FLOOR: 'floor', DIMENSIONS: 'dimensions',
 });
 
 const SEVERITY = { min: 0.05, max: 10, step: 0.05 };
@@ -57,7 +57,30 @@ export function applyKnob(params, knob, value) {
   return { ...params, ...knob.patch(params, value) };
 }
 
-/** Every knob whose value differs between *draft* and *saved*, in page order. */
+// The DIMENSIONS tab's settings, listed in the review after the knobs. Not
+// in GROUPS: they have no knob group on the formula tab, and the reach
+// counts are per principle while these weigh whole dimensions.
+const DIMENSIONS_GROUP = Object.freeze({ id: KNOB_GROUP.DIMENSIONS, titleKey: 'gradeFormula.groupDimensions' });
+const WEIGHTS_TOGGLE = Object.freeze({ id: 'weightsEnabled', labelKey: 'gradeFormula.dimensionWeightsToggle', toggle: true });
+const UNSET_DIMENSION_WEIGHT = 1; // a dimension missing from the weights counts once, as in the scorer
+
+function dimensionChanges(draft, saved) {
+  const out = [];
+  if (Boolean(draft.dimensionWeightsEnabled) !== Boolean(saved.dimensionWeightsEnabled)) {
+    out.push({ group: DIMENSIONS_GROUP, knob: WEIGHTS_TOGGLE,
+      from: Boolean(saved.dimensionWeightsEnabled), to: Boolean(draft.dimensionWeightsEnabled) });
+  }
+  const before = saved.dimensionWeights || {};
+  const after = draft.dimensionWeights || {};
+  for (const dim of [...new Set([...Object.keys(before), ...Object.keys(after)])].sort()) {
+    const from = before[dim] ?? UNSET_DIMENSION_WEIGHT;
+    const to = after[dim] ?? UNSET_DIMENSION_WEIGHT;
+    if (from !== to) out.push({ group: DIMENSIONS_GROUP, knob: { id: dim, label: dim }, from, to });
+  }
+  return out;
+}
+
+/** Every setting whose value differs between *draft* and *saved*: the knobs in page order, then the dimension weights. */
 export function knobChanges(draft, saved) {
   const out = [];
   for (const group of GROUPS) {
@@ -67,5 +90,5 @@ export function knobChanges(draft, saved) {
       if (from !== to) out.push({ group, knob, from, to });
     }
   }
-  return out;
+  return [...out, ...dimensionChanges(draft, saved)];
 }

@@ -6,7 +6,7 @@ import { effectKey, serverFlips, REVIEW_MODE } from './reviewModel.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { t } from '../../../strings/index.js';
 import { PERCENT } from '../../../constants.js';
-import { trapTab } from '../../../utils/a11y.js';
+import { trapTab, restoreFocus } from '../../../utils/a11y.js';
 
 function useServerPreview(target) {
   const [state, setState] = useState({ payload: null, failed: false });
@@ -20,7 +20,33 @@ function useServerPreview(target) {
   return state;
 }
 
+// On close, focus goes back to whatever opened the sheet; when that control
+// is gone or disabled by then (an apply leaves nothing to review), to
+// *fallbackFocus* instead.
+function useReturnFocus(fallbackFocus) {
+  const fallbackRef = useRef(fallbackFocus);
+  fallbackRef.current = fallbackFocus;
+  useEffect(() => {
+    const opener = document.activeElement;
+    return () => {
+      const usable = opener && opener !== document.body && opener.isConnected && !opener.matches(':disabled');
+      restoreFocus(usable ? opener : fallbackRef.current?.current);
+    };
+  }, []);
+}
+
 const pct = (from, to) => (from ? Math.round(((to - from) / from) * PERCENT) : 0);
+const SWITCH_KEY = Object.freeze({ on: 'settings.on', off: 'settings.off' });
+
+// A knob reads its label from the catalog; a dimension weight is named by its dimension.
+const knobLabel = (knob) => (knob.labelKey ? t(knob.labelKey) : knob.label);
+const shown = (change, value) => (change.knob.toggle ? t(SWITCH_KEY[value ? 'on' : 'off']) : value);
+
+function changeText(c) {
+  if (c.knob.toggle) return '';
+  const p = pct(c.from, c.to);
+  return `${p > 0 ? '+' : ''}${p}%`;
+}
 
 function ChangesTable({ changes }) {
   return (
@@ -32,9 +58,9 @@ function ChangesTable({ changes }) {
       <tbody>
         {changes.map((c) => (
           <tr key={`${c.group.id}-${c.knob.id}`}>
-            <td>{t(c.group.titleKey)}<span className="gf-review__knob">{t(c.knob.labelKey)}</span></td>
-            <td className="num">{c.from}</td><td className="num gf-review__new">{c.to}</td>
-            <td className="num">{pct(c.from, c.to) > 0 ? '+' : ''}{pct(c.from, c.to)}%</td>
+            <td>{t(c.group.titleKey)}<span className="gf-review__knob">{knobLabel(c.knob)}</span></td>
+            <td className="num">{shown(c, c.from)}</td><td className="num gf-review__new">{shown(c, c.to)}</td>
+            <td className="num">{changeText(c)}</td>
             <td>{t(effectKey(c))}</td>
           </tr>
         ))}
@@ -66,7 +92,8 @@ function Cards({ server, shifts, names }) {
 }
 
 /** What an apply or a reset will do, before it does it. */
-export default function ReviewSheet({ mode, target, saved, inputs, names, busy, onConfirm, onCancel }) {
+export default function ReviewSheet({ mode, target, saved, inputs, names, busy, error, fallbackFocus, onConfirm, onCancel }) {
+  useReturnFocus(fallbackFocus);
   const headingRef = useRef(null);
   const server = useServerPreview(target);
   const changes = useMemo(() => knobChanges(target, saved), [target, saved]);
@@ -100,6 +127,7 @@ export default function ReviewSheet({ mode, target, saved, inputs, names, busy, 
         <ChangesTable changes={changes} />
         <Cards server={server} shifts={shifts} names={names} />
         {server.failed && <p className="gf-review__failed">{t('gradeFormula.reviewFailed')}</p>}
+        {error && <p className="gf-review__failed" role="alert">{error}</p>}
         <div className="gf-review__actions">
           <button type="button" className="settings-pill settings-pill--active" disabled={busy} onClick={onConfirm}>{confirmLabel}</button>
           <button type="button" className="settings-pill" onClick={onCancel}>{t('gradeFormula.keepEditing')}</button>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock('../../../api/index.js', () => ({ previewGradeFormula: vi.fn() }));
@@ -79,5 +79,60 @@ describe('ReviewSheet', () => {
     unmount();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onCancel).not.toHaveBeenCalled();
+  });
+});
+
+describe('ReviewSheet dimension weights', () => {
+  beforeEach(() => { previewGradeFormula.mockReturnValue(new Promise(() => {})); });
+
+  it('lists a changed dimension weight and the weights switch', () => {
+    mount({ target: { ...SAVED, dimensionWeightsEnabled: true, dimensionWeights: { security: 2 } } });
+    const rows = screen.getAllByRole('row').slice(1).map((r) => r.textContent);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatch(/^How much each dimension countsdimension weightsOffOn/);
+    expect(rows[1]).toMatch(/^How much each dimension countssecurity12\+100%this dimension counts more/);
+  });
+});
+
+describe('ReviewSheet write failure and focus', () => {
+  beforeEach(() => { previewGradeFormula.mockReturnValue(new Promise(() => {})); });
+
+  it('shows a failed write inside the sheet', () => {
+    mount({ error: 'Could not apply the formula' });
+    expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent('Could not apply the formula');
+  });
+
+  it('wraps Tab from the last control to the first and Shift+Tab back', () => {
+    mount();
+    const apply = screen.getByRole('button', { name: /^Apply/ });
+    const keep = screen.getByRole('button', { name: 'Keep editing' });
+    keep.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(apply).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(keep).toHaveFocus();
+  });
+
+  it('returns focus to the control that opened it', () => {
+    const opener = document.body.appendChild(document.createElement('button'));
+    opener.focus();
+    const { unmount } = render(<ReviewSheet mode="apply" target={TARGET} saved={SAVED} inputs={{ projects: [] }} names={{}} busy={false} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    expect(opener).not.toHaveFocus();
+    unmount();
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+
+  it('falls back to the given place when the opener is disabled by then', () => {
+    const opener = document.body.appendChild(document.createElement('button'));
+    const actions = document.body.appendChild(document.createElement('div'));
+    actions.tabIndex = -1;
+    opener.focus();
+    const { unmount } = render(<ReviewSheet mode="apply" target={TARGET} saved={SAVED} inputs={{ projects: [] }} names={{}} busy={false} onConfirm={vi.fn()} onCancel={vi.fn()} fallbackFocus={{ current: actions }} />);
+    opener.disabled = true;
+    unmount();
+    expect(actions).toHaveFocus();
+    opener.remove();
+    actions.remove();
   });
 });

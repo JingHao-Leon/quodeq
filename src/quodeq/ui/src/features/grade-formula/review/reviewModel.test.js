@@ -14,3 +14,11 @@ test('server flips are the projects whose grade changes, named', () => {
   ], runsToRescore: 12 };
   assert.deepEqual(serverFlips(payload, { a: 'Alpha' }), [{ id: 'a', name: 'Alpha', from: 'Good', to: 'Adequate', before: 7.3, after: 6.5 }]);
 });
+
+test('a dimension weight and the weights switch say what they do', () => {
+  const group = { id: 'dimensions' };
+  assert.equal(effectKey({ group, knob: { label: 'security' }, from: 1, to: 1.5 }), 'gradeFormula.effectDimensionsUp');
+  assert.equal(effectKey({ group, knob: { label: 'security' }, from: 1, to: 0.5 }), 'gradeFormula.effectDimensionsDown');
+  assert.equal(effectKey({ group, knob: { toggle: true }, from: false, to: true }), 'gradeFormula.effectWeightsOn');
+  assert.equal(effectKey({ group, knob: { toggle: true }, from: true, to: false }), 'gradeFormula.effectWeightsOff');
+});

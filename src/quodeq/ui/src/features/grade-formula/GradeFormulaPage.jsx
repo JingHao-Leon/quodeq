@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import PageToolbar from '../../components/PageToolbar.jsx';
 import useGradeFormula from './useGradeFormula.js';
 import { useFormulaInputs } from './hooks/useFormulaInputs.js';
@@ -118,17 +118,21 @@ function useTypesTab(scope, draft) {
 
 // The page's own view state: the open tab, the project lit across the chart
 // and the impact panel, the knob group under the pointer, and the review
-// sheet (null, or the REVIEW_MODE it opened in).
+// sheet (null, or the REVIEW_MODE it opened in). A failed write keeps the
+// sheet open with the error inside it.
 function usePageView(editor) {
   const [tab, setTab] = useState(DEFAULT_TAB_ID);
   const [litProject, setLitProject] = useState(null);
   const [hoverGroup, setHoverGroup] = useState(null);
-  const [review, setReview] = useState(null);
+  const [review, setReviewMode] = useState(null);
+  const [writeFailed, setWriteFailed] = useState(false);
+  const setReview = (mode) => { setWriteFailed(false); setReviewMode(mode); };
   const confirm = async () => {
-    await (review === REVIEW_MODE.RESET ? editor.resetToDefaults() : editor.apply());
-    setReview(null);
+    const done = await (review === REVIEW_MODE.RESET ? editor.resetToDefaults() : editor.apply());
+    if (done) setReview(null);
+    else setWriteFailed(true);
   };
-  return { tab, setTab, litProject, setLitProject, hoverGroup, setHoverGroup, review, setReview, confirm };
+  return { tab, setTab, litProject, setLitProject, hoverGroup, setHoverGroup, review, setReview, confirm, writeFailed };
 }
 
 function LoadingPage({ error }) {
@@ -156,7 +160,8 @@ function headerFacts(editor, projectCount) {
 export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
   const editor = useGradeFormula();
   const view = usePageView(editor);
-  const { inputs, loading, failed } = useFormulaInputs();
+  const { inputs, loading, failed, retry } = useFormulaInputs();
+  const actionsRef = useRef(null);
   const types = useTypesTab(scope, editor.draft);
   const projects = navigation?.projects;
   const names = useMemo(() => Object.fromEntries((projects || []).map((p) => [p.id, p.name])), [projects]);
@@ -173,7 +178,7 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
       <div className="gf-split">
         <TabBody busy={editor.busy} ActiveBody={ActiveBody} activeTabId={view.tab} bodyProps={bodyProps} />
         <ImpactPanel inputs={inputs} loading={loading} failed={failed} names={names} saved={editor.saved} draft={editor.draft}
-          isDirty={editor.isDirty} changedCount={knobChanges(editor.draft, editor.saved).length}
+          isDirty={editor.isDirty} isCustom={editor.isCustom} onRetry={retry} actionsRef={actionsRef} changedCount={knobChanges(editor.draft, editor.saved).length}
           litProject={view.litProject} onLitProject={view.setLitProject} busy={editor.busy}
           onReview={() => view.setReview(REVIEW_MODE.APPLY)} onUndo={() => editor.update(editor.saved)}
           onReset={() => view.setReview(REVIEW_MODE.RESET)} />
@@ -182,6 +187,7 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
       {view.review && (
         <ReviewSheet mode={view.review} target={view.review === REVIEW_MODE.RESET ? editor.defaults : editor.draft}
           saved={editor.saved} inputs={inputs} names={names} busy={editor.busy}
+          error={view.writeFailed ? editor.error : null} fallbackFocus={actionsRef}
           onConfirm={view.confirm} onCancel={() => view.setReview(null)} />
       )}
     </div>

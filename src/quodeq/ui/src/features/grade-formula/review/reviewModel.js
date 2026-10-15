@@ -9,10 +9,13 @@ const EFFECT_KEY = Object.freeze({
   [KNOB_GROUP.LIFT]: { up: 'gradeFormula.effectLiftUp', down: 'gradeFormula.effectLiftDown' },
   [KNOB_GROUP.CEIL]: { up: 'gradeFormula.effectCeilUp', down: 'gradeFormula.effectCeilDown' },
   [KNOB_GROUP.FLOOR]: { up: 'gradeFormula.effectFloorUp', down: 'gradeFormula.effectFloorDown' },
+  [KNOB_GROUP.DIMENSIONS]: { up: 'gradeFormula.effectDimensionsUp', down: 'gradeFormula.effectDimensionsDown' },
 });
+const TOGGLE_EFFECT_KEY = Object.freeze({ on: 'gradeFormula.effectWeightsOn', off: 'gradeFormula.effectWeightsOff' });
 
 /** The catalog key of one sentence saying what a change does. */
 export function effectKey(change) {
+  if (change.knob?.toggle) return TOGGLE_EFFECT_KEY[change.to ? 'on' : 'off'];
   return EFFECT_KEY[change.group.id][change.to > change.from ? 'up' : 'down'];
 }
 

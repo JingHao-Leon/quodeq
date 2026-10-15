@@ -31,3 +31,16 @@ test('a moved grade boundary is a change of the bands group', () => {
   const draft = { ...SAVED, gradeThresholds: [[9.5, 'Exemplary'], [7, 'Good'], [5, 'Adequate'], [3, 'Poor']] };
   assert.deepEqual(knobChanges(draft, SAVED).map((c) => [c.group.id, c.knob.id, c.from, c.to]), [['bands', 'Exemplary', 9, 9.5]]);
 });
+
+test('a changed dimension weight is a change of the dimensions group, labelled by the dimension', () => {
+  const draft = { ...SAVED, dimensionWeights: { security: 1.5, maintainability: 1 } };
+  const changes = knobChanges(draft, { ...SAVED, dimensionWeights: { maintainability: 1 } });
+  assert.deepEqual(changes.map((c) => [c.group.id, c.knob.label, c.from, c.to]), [['dimensions', 'security', 1, 1.5]]);
+  assert.equal(changes[0].group.titleKey, 'gradeFormula.groupDimensions');
+});
+
+test('switching dimension weights off or on is one change', () => {
+  const changes = knobChanges({ ...SAVED, dimensionWeightsEnabled: false }, SAVED);
+  assert.deepEqual(changes.map((c) => [c.group.id, c.knob.labelKey, c.from, c.to]),
+    [['dimensions', 'gradeFormula.dimensionWeightsToggle', true, false]]);
+});
