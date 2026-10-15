@@ -79,8 +79,7 @@ export async function addVisibleStandardId(id, { projectId = null, storage = loc
 }
 
 /**
- * Sync the local cache with the server for a project, and report where the
- * server migrated the project's legacy repo settings from (null if nowhere).
+ * Sync the local cache with the server for a project.
  *
  * The settings file under ~/.quodeq is authoritative; localStorage is only
  * the synchronous read cache for the sites that cannot await. The server
@@ -100,26 +99,21 @@ export async function addVisibleStandardId(id, { projectId = null, storage = loc
  *   user toggled a standard, and persist() synchronously wrote and PUT the
  *   toggle before this GET resolved with pre-toggle server state.
  */
-export async function getVisibilityState(projectId, { storage = localStorage, isStale } = {}) {
-  if (!projectId) return { ids: readVisibleStandardIds(storage), migratedFrom: null };
+export async function hydrateVisibleStandardIds(projectId, { storage = localStorage, isStale } = {}) {
+  if (!projectId) return readVisibleStandardIds(storage);
   const generationAtStart = generationFor(storage);
   const supersededByNewerWrite = () => isStale?.() || generationFor(storage) !== generationAtStart;
   try {
-    const { visibleStandardIds, migratedFrom = null } = await getStandardsVisibility(projectId);
-    if (supersededByNewerWrite()) return { ids: readVisibleStandardIds(storage), migratedFrom: null };
+    const { visibleStandardIds } = await getStandardsVisibility(projectId);
+    if (supersededByNewerWrite()) return readVisibleStandardIds(storage);
     writeVisibleStandardIds(visibleStandardIds, storage);
-    return { ids: visibleStandardIds, migratedFrom };
+    return visibleStandardIds;
   } catch (err) {
     // Covers both an offline/failed fetch (expected, cache stays put) and a
     // genuine bug such as a response-shape change throwing a TypeError. The
     // two aren't cheaply distinguishable here, so we warn for both rather
     // than let a real regression degrade invisibly to "serve stale cache".
-    console.warn('getVisibilityState: falling back to cached value', err);
-    return { ids: readVisibleStandardIds(storage), migratedFrom: null };
+    console.warn('hydrateVisibleStandardIds: falling back to cached value', err);
+    return readVisibleStandardIds(storage);
   }
-}
-
-/** The visible standard ids for a project (see getVisibilityState). */
-export async function hydrateVisibleStandardIds(projectId, options) {
-  return (await getVisibilityState(projectId, options)).ids;
 }

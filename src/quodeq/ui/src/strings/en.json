@@ -1753,8 +1753,6 @@
   "standards.loadingLibrary": "Loading library...",
   "standards.loadingStandard": "Loading standard…",
   "standards.loadingStandards": "Loading standards...",
-  "standards.settingsMoved": "Standard settings now live on this machine. You can delete .quodeq/standards-visibility.json and .quodeq/standards-overrides.json in {path}.",
-  "standards.settingsMovedDismiss": "Dismiss",
   "standards.managedNotice": "Managed standard. Fields are read-only to preserve upstream compatibility.",
   "standards.namePlaceholder": "e.g. Clean Architecture",
   "standards.nameRequired": "Name is required",
