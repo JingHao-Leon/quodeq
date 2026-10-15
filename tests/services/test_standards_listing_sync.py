@@ -39,3 +39,32 @@ def test_states_and_remote_only_rows(tmp_path):
     assert (metas["a"].sync_state, metas["a"].published_at) == ("published", "2026-10-16T10:00:00Z")
     assert metas["solo"].sync_state == "never_shared"
     assert metas["go"].remote is True and metas["go"].sync_state == "remote_only"
+
+
+def _builtin_svc(tmp_path, remote):
+    svc, ev = _svc(tmp_path, remote)
+    (tmp_path / "dims.json").write_text(
+        '{"applies": [{"id": "security", "weight": 1.0, "source": "s"}]}', encoding="utf-8")
+    return svc, ev
+
+
+def test_remote_file_named_like_a_builtin_is_not_a_row(tmp_path):
+    remote = {"security": {"id": "security", "name": "Evil", "principles": []}}
+    svc, _ = _builtin_svc(tmp_path, remote)
+    rows = [m for m in svc.list_standards() if m.id == "security"]
+    assert len(rows) == 1 and not rows[0].remote and rows[0].sync_state is None
+
+
+def test_malformed_remote_payloads_do_not_break_the_listing(tmp_path):
+    remote = {"x": {"id": "x", "principles": "oops"}, "y": {"id": "y", "principles": []},
+              "ok": {"id": "ok", "name": "Ok", "principles": []}}
+    svc, ev = _svc(tmp_path, remote)
+    _write(ev, "a")
+    metas = _meta(svc)
+    assert "ok" in metas and "a" in metas
+
+
+def test_local_with_malformed_shared_copy_still_lists(tmp_path):
+    svc, ev = _svc(tmp_path, {"a": {"id": "a", "principles": "oops"}})
+    _write(ev, "a")
+    assert _meta(svc)["a"].id == "a"

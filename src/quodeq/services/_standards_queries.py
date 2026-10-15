@@ -17,6 +17,7 @@ from quodeq.services.standards_sharing import sync_state
 from quodeq.shared.validation import validate_path_segment
 
 logger = logging.getLogger(__name__)
+_MALFORMED = (KeyError, ValueError, TypeError, AttributeError)
 
 
 def list_builtin(dimensions_file: Path, compiled_dir: Path,
@@ -92,19 +93,37 @@ def list_custom_with_payloads(evaluators_dir: Path, read_json: Callable,
     return out
 
 
-def annotate_sync(customs: list[tuple[StandardMeta, dict]], remote: Mapping[str, dict]) -> list[StandardMeta]:
-    """Customs with their sync state, then one row per standard that exists only remotely."""
-    out: list[StandardMeta] = []
-    for meta, payload in customs:
-        shared = remote.get(meta.id)
+def _annotate_local(meta: StandardMeta, payload: dict, shared: dict | None) -> StandardMeta:
+    """*meta* with its sync state; left unannotated when the shared copy cannot be compared."""
+    try:
         state = sync_state(payload, shared)
-        out.append(replace(meta, sync_state=state.value if state else None,
-                           published_at=shared.get("publishedAt") if shared else None))
-    local_ids = {meta.id for meta, _ in customs}
+        published = shared.get("publishedAt") if shared else None
+    except _MALFORMED as exc:
+        logger.warning("Cannot compare %s with its shared copy: %s", meta.id, exc)
+        return meta
+    return replace(meta, sync_state=state.value if state else None, published_at=published)
+
+
+def _remote_row(payload: dict) -> StandardMeta:
+    meta = build_custom_meta(payload, *count_principles_and_requirements(payload))
+    return replace(meta, remote=True, sync_state="remote_only", published_at=payload.get("publishedAt"))
+
+
+def annotate_sync(customs: list[tuple[StandardMeta, dict]], remote: Mapping[str, dict],
+                  builtin_ids: frozenset[str] = frozenset()) -> list[StandardMeta]:
+    """Customs with their sync state, then one row per standard that exists only remotely.
+
+    A shared file named like a built-in never becomes a row; a malformed one is skipped.
+    """
+    out = [_annotate_local(meta, payload, remote.get(meta.id)) for meta, payload in customs]
+    taken = {meta.id for meta, _ in customs} | builtin_ids
     for sid, payload in remote.items():
-        if sid not in local_ids:
-            out.append(replace(build_custom_meta(payload, *count_principles_and_requirements(payload)),
-                               remote=True, sync_state="remote_only", published_at=payload.get("publishedAt")))
+        if sid in taken:
+            continue
+        try:
+            out.append(_remote_row(payload))
+        except _MALFORMED as exc:
+            logger.warning("Skipping malformed shared standard %s: %s", sid, exc)
     return out
 
 

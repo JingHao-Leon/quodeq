@@ -14,6 +14,7 @@ from quodeq.services._standards_io import default_read_json, default_write_json
 from quodeq.services._standards_queries import (
     annotate_sync, check_builtin_id, get_standard, list_builtin, list_custom_with_payloads, load_cwe_list,
 )
+from quodeq.services.shared_settings import read_settings
 from quodeq.services.wiring import (
     compiled_exists as _compiled_exists,
     ensure_evaluators_dir as _ensure_evaluators_dir,
@@ -22,8 +23,6 @@ from quodeq.services.wiring import (
     standard_modified_date as _standard_modified_date,
     standard_path as _standard_path,
 )
-
-from quodeq.services.shared_settings import read_settings
 from quodeq.services.wiring_sync import read_shared_standards, shared_standards_dir
 
 __all__ = ["StandardsService", "IMPORT_STATUS_CONFLICT", "shared_standards_provider"]
@@ -75,7 +74,7 @@ class StandardsService:
         remote = self._shared_standards() if self._shared_standards else None
         if remote is None:
             return builtin + [meta for meta, _ in customs]
-        return builtin + annotate_sync(customs, remote)
+        return builtin + annotate_sync(customs, remote, frozenset(m.id for m in builtin))
 
     def get_standard(self, standard_id: str) -> StandardDetail:
         """Retrieve the full detail of a single standard by ID."""
