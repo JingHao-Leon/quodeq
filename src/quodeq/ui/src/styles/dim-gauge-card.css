@@ -186,3 +186,12 @@
 .dim-gauge-card__mini { display: block; }
 /* the not-evaluated dash already sits at the ring's centre: no nudge (the score's nudge makes room for a grade word) */
 .dim-gauge-card--not-evaluated .dim-gauge-card__mini .dim-gauge-card__score { transform: none; }
+/* Two fixed columns, so every card's ring and text start at the same place whatever the text's width:
+   the ring at the right edge of the first, the grade, pills and pass rate from the start of the second. */
+.dim-gauge-card__row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); justify-content: stretch; }
+.dim-gauge-card__row > .dim-gauge-card__mini { justify-self: end; }
+/* …and the same height above it: the name row keeps one height with or without a trend, and the ring
+   sits at the top of its row (a card with more pills grows downwards, its ring stays in line). */
+.dim-gauge-card--compact .dim-gauge-card__top { min-height: 24px; align-items: flex-start; }
+.dim-gauge-card--compact .dim-gauge-card__top .trend-badge { line-height: 1.3; }
+.dim-gauge-card__row { align-items: start; }
