@@ -5,10 +5,9 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { t } from '../../../strings/index.js';
 import { SettingsRowLabel } from './settingsRowParts.jsx';
 import SignInCard from '../../github-access/components/SignInCard.jsx';
-import { ACCOUNT_METHOD } from '../../github-access/accessVocab.js';
+import { ACCOUNT_METHOD, GITHUB_ACCOUNT_QUERY_KEY } from '../../github-access/accessVocab.js';
 import { SignOutRow } from './githubAccessRows.jsx';
 
-const QUERY_KEY = ['github', 'account'];
 const MS_PER_S = 1000;
 
 function statusText(account) {
@@ -23,7 +22,7 @@ function statusText(account) {
 
 export default function GitHubAccessSection() {
   const { getGithubAccount, signOutGithub } = useApi();
-  const { data: account, refetch } = useQuery({ queryKey: QUERY_KEY, queryFn: getGithubAccount });
+  const { data: account, refetch } = useQuery({ queryKey: GITHUB_ACCOUNT_QUERY_KEY, queryFn: getGithubAccount });
   const [showSignIn, setShowSignIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const notSignedIn = account != null && !account.signedIn;

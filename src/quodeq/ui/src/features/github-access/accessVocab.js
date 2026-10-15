@@ -11,3 +11,6 @@ export const DEVICE_FLOW_STATE = Object.freeze({
 export const ACCOUNT_METHOD = Object.freeze({ QUODEQ: 'quodeq', GH: 'gh', NONE: 'none' });
 // The hook's own phases: the backend states plus the client-side 'starting'.
 export const FLOW_PHASE = Object.freeze({ ...DEVICE_FLOW_STATE, STARTING: 'starting' });
+
+// The react-query key for the signed-in GitHub account; every reader shares it.
+export const GITHUB_ACCOUNT_QUERY_KEY = Object.freeze(['github', 'account']);
