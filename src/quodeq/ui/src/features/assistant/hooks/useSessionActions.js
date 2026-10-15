@@ -3,6 +3,26 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { t } from '../../../strings/index.js';
 import { MESSAGE_ROLE } from '../messageRole.js';
 
+// The server emits a turn's `done` frame a moment before its worker frees the
+// session's turn slot, so a message sent the instant a turn ends (a queued
+// one) can meet a 409 with this code. It is retried briefly, never surfaced.
+const TURN_IN_PROGRESS_CODE = 'TURN_IN_PROGRESS';
+const TURN_SLOT_RETRIES = 8;
+const TURN_SLOT_RETRY_MS = 250; // eight tries cover two seconds
+
+const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
+export async function postWhenTurnSlotFree(post) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await post();
+    } catch (err) {
+      if (err?.code !== TURN_IN_PROGRESS_CODE || attempt >= TURN_SLOT_RETRIES) throw err;
+      await sleep(TURN_SLOT_RETRY_MS);
+    }
+  }
+}
+
 /**
  * Assistant session actions: send a message, stop the in-flight turn, and
  * record a client-answered local exchange. Extracted verbatim from
@@ -17,7 +37,7 @@ export function useSessionActions({ sessionId, turnActive, stream, webEnabled, w
     setUserTurns((prev) => [...prev, { role: MESSAGE_ROLE.USER, text, atIndex: stream.messages.length }]);
     setTurnActive(true);  // turn is now in flight until the stream's done/error
     try {
-      await postAssistantMessage(sessionId, { text, uiState, webEnabled, writeEnabled });
+      await postWhenTurnSlotFree(() => postAssistantMessage(sessionId, { text, uiState, webEnabled, writeEnabled }));
     } catch (err) {
       // The optimistic user turn stays in the transcript; surface the failure
       // so the user knows the message didn't reach the assistant.
