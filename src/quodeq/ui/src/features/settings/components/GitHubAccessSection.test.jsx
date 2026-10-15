@@ -10,7 +10,7 @@ function renderSection(api) {
   render(<QueryClientProvider client={qc}><ApiProvider value={api}><GitHubAccessSection /></ApiProvider></QueryClientProvider>);
 }
 
-const base = { signOutGithub: vi.fn(), probeGit: vi.fn(), startDeviceFlow: vi.fn(), getDeviceFlow: vi.fn() };
+const base = { signOutGithub: vi.fn(), startDeviceFlow: vi.fn(), getDeviceFlow: vi.fn() };
 
 describe('GitHubAccessSection', () => {
   it('shows not signed in and a sign-in button', async () => {
@@ -47,13 +47,10 @@ describe('GitHubAccessSection', () => {
     await waitFor(() => expect(screen.getByText(/token expired/i)).toBeInTheDocument());
   });
 
-  it('test access prints the probe verdict', async () => {
-    const probeGit = vi.fn(async () => ({ reachable: false, method: 'none', kind: 'not_found', detail: 'remote: Repository not found.', host: 'github.com', isGitHub: true }));
-    renderSection({ ...base, probeGit, getGithubAccount: vi.fn(async () => ({ signedIn: false, login: null, method: 'none', expiresAt: null, ghAvailable: false, ghLoggedIn: false, signInAvailable: true })) });
-    await waitFor(() => screen.getByText(/test access/i));
-    fireEvent.change(screen.getByPlaceholderText(/github.com\/org\/repo/), { target: { value: 'https://github.com/o/r.git' } });
-    fireEvent.click(screen.getByRole('button', { name: /^test$/i }));
-    await waitFor(() => expect(screen.getByText(/not reachable: not_found/i)).toBeInTheDocument());
-    expect(screen.getByText(/Repository not found/)).toBeInTheDocument();
+  it('has no Test access row (the add flow already probes access)', async () => {
+    renderSection({ ...base, getGithubAccount: vi.fn(async () => ({ signedIn: false, login: null, method: 'gh', expiresAt: null, ghAvailable: true, ghLoggedIn: true, signInAvailable: true })) });
+    await waitFor(() => expect(screen.getByText(/using your gh login/i)).toBeInTheDocument());
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByText(/test access/i)).not.toBeInTheDocument();
   });
 });

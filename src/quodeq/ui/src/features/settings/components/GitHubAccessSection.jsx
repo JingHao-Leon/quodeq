@@ -6,7 +6,7 @@ import { t } from '../../../strings/index.js';
 import { SettingsRowLabel } from './settingsRowParts.jsx';
 import SignInCard from '../../github-access/components/SignInCard.jsx';
 import { ACCOUNT_METHOD } from '../../github-access/accessVocab.js';
-import { SignOutRow, TestAccessRow } from './githubAccessRows.jsx';
+import { SignOutRow } from './githubAccessRows.jsx';
 
 const QUERY_KEY = ['github', 'account'];
 const MS_PER_S = 1000;
@@ -22,7 +22,7 @@ function statusText(account) {
 }
 
 export default function GitHubAccessSection() {
-  const { getGithubAccount, signOutGithub, probeGit } = useApi();
+  const { getGithubAccount, signOutGithub } = useApi();
   const { data: account, refetch } = useQuery({ queryKey: QUERY_KEY, queryFn: getGithubAccount });
   const [showSignIn, setShowSignIn] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -51,7 +51,6 @@ export default function GitHubAccessSection() {
         <div className="settings-row"><SignInCard onSignedIn={() => { setShowSignIn(false); refetch(); }} /></div>
       )}
       {account?.signedIn && <SignOutRow onSignOut={signOut} busy={busy} />}
-      <TestAccessRow probeGit={probeGit} />
     </section>
   );
 }
