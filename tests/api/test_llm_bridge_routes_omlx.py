@@ -34,11 +34,35 @@ class TestOmlxModels:
         mock.assert_called_once_with(base_url="http://localhost:10240", api_key="sk-header")
 
     def test_api_key_query_param_no_longer_honored(self, client):
-        with patch("quodeq.api.llm_bridge_routes.list_omlx_models") as mock:
+        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=None), \
+             patch("quodeq.api.llm_bridge_routes.list_omlx_models") as mock:
             mock.return_value = []
             resp = client.get("/api/omlx/models?api_key=sk-leaky")
         assert resp.status_code == 200
         mock.assert_called_once_with(base_url=None, api_key=None)
+
+
+class TestOmlxStoredKeyFallback:
+    """Once the key lives in the keychain the UI sends none; the routes use it."""
+
+    def test_models_route_uses_stored_key_when_header_missing(self, client):
+        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=_TEST_API_KEY), \
+             patch("quodeq.api.llm_bridge_routes.list_omlx_models", return_value=[]) as listed:
+            resp = client.get("/api/omlx/models")
+        assert resp.status_code == 200
+        assert listed.call_args.kwargs["api_key"] == _TEST_API_KEY
+
+    def test_models_route_prefers_the_header_key(self, client):
+        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=_TEST_API_KEY), \
+             patch("quodeq.api.llm_bridge_routes.list_omlx_models", return_value=[]) as listed:
+            client.get("/api/omlx/models", headers={"X-Api-Key": "sk-typed"})
+        assert listed.call_args.kwargs["api_key"] == "sk-typed"
+
+    def test_concurrency_route_uses_stored_key_when_body_has_none(self, client):
+        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=_TEST_API_KEY), \
+             patch("quodeq.api.llm_bridge_routes.run_omlx_concurrency_test", return_value={"ok": True}) as ran:
+            client.post("/api/omlx/test-concurrency", json={"model": "m"}, headers={"Origin": "http://localhost"})
+        assert ran.call_args.kwargs["api_key"] == _TEST_API_KEY
 
 
 # ---------------------------------------------------------------------------
