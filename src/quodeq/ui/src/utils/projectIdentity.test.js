@@ -40,3 +40,10 @@ test('a run is filed under the project with the same origin', async () => {
   assert.equal(findProjectByOrigin(projects, 'https://github.com/x/y'), null);
   assert.equal(findProjectByOrigin(null, 'https://github.com/quodeq/quodeq'), null);
 });
+
+test('findProjectByOrigin: a subfolder project sharing the origin loses to the one named like the repository', async () => {
+  const { findProjectByOrigin } = await import('./projectIdentity.js');
+  const projects = [{ id: 'sub', name: 'ui', originUrl: 'https://github.com/quodeq/quodeq.git' }, { id: 'root', name: 'quodeq', originUrl: 'https://github.com/quodeq/quodeq.git' }];
+  assert.equal(findProjectByOrigin(projects, 'github.com/quodeq/quodeq')?.id, 'root');
+  assert.equal(findProjectByOrigin(projects.slice(0, 1), 'github.com/quodeq/quodeq')?.id, 'sub');
+});
