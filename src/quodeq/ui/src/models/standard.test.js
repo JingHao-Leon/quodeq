@@ -90,8 +90,11 @@ test('standardSourceLine names a built-in by its sources, a custom one by its so
   assert.equal(standardSourceLine({ type: 'custom' }), '');
 });
 
-test('standardVersionTitle shows created and updated for custom standards only', () => {
+test('dottedDate writes an ISO date the way versions read', () => {
   assert.equal(dottedDate('2026-10-14'), '2026.10.14');
+});
+
+test('standardVersionTitle shows created and updated for custom standards only', () => {
   assert.equal(standardVersionTitle({ createdAt: '2026-10-14', updatedAt: '2026-10-15' }), 'created 2026.10.14 · updated 2026.10.15');
   assert.equal(standardVersionTitle({ version: '2023.11' }), null);
 });

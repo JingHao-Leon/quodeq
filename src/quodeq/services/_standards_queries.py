@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import replace
+from typing import NamedTuple
 from pathlib import Path
 
 from quodeq.core.types.standard import StandardDetail, StandardMeta
@@ -28,27 +29,35 @@ def list_builtin(dimensions_file: Path, compiled_dir: Path,
     out: list[StandardMeta] = []
     for dim in data.get("applies", []):
         try:
-            p_count, r_count, description, version, sources = _read_compiled_meta(dim["id"], compiled_dir, read_json)
-            out.append(replace(build_builtin_meta(dim, p_count, r_count, description, version), sources=sources))
+            meta = _read_compiled_meta(dim["id"], compiled_dir, read_json)
+            built = build_builtin_meta(dim, meta.principle_count, meta.requirement_count, meta.description, meta.version)
+            out.append(replace(built, sources=meta.sources))
         except (OSError, ValueError, KeyError) as exc:
             logger.warning("Skipping invalid dimension entry %r: %s", dim, exc)
     return out
 
 
-def _read_compiled_meta(dimension_id: str, compiled_dir: Path,
-                        read_json: Callable) -> tuple[int, int, str, str | None, tuple[str, ...]]:
-    """Return (principle_count, requirement_count, description, version, sources) for *dimension_id*."""
+class _CompiledMeta(NamedTuple):
+    principle_count: int = 0
+    requirement_count: int = 0
+    description: str = ""
+    version: str | None = None
+    sources: tuple[str, ...] = ()
+
+
+def _read_compiled_meta(dimension_id: str, compiled_dir: Path, read_json: Callable) -> _CompiledMeta:
+    """The listing fields a built-in reads from its compiled file; empty when it is absent or unreadable."""
     path = compiled_dir / f"{dimension_id}.json"
     if not path.is_file():
-        return 0, 0, "", None, ()
+        return _CompiledMeta()
     try:
         compiled = read_json(path)
     except (OSError, ValueError):
-        return 0, 0, "", None, ()
+        return _CompiledMeta()
     p_count, r_count = count_principles_and_requirements(compiled)
     raw_sources = compiled.get("sources")
     sources = tuple(s for s in raw_sources if isinstance(s, str)) if isinstance(raw_sources, list) else ()
-    return p_count, r_count, compiled.get("description", ""), compiled.get("version"), sources
+    return _CompiledMeta(p_count, r_count, compiled.get("description", ""), compiled.get("version"), sources)
 
 
 def _with_dates(data: dict, path: Path, modified_date: Callable[[Path], str | None]) -> dict:

@@ -46,7 +46,7 @@ def test_legacy_custom_dates_fall_back_to_the_files_modified_date(tmp_path):
 
 def test_malformed_dates_are_treated_as_missing(tmp_path):
     svc, ev = _service(tmp_path)
-    _custom(ev, "odd", createdAt=5, updatedAt=["x"])
+    _custom(ev, "odd", createdAt="garbage-xx-yy", updatedAt=["x"])
     meta = _by_id(svc)["odd"]
     assert meta.created_at == "2026-10-14" and meta.updated_at == "2026-10-14"
 

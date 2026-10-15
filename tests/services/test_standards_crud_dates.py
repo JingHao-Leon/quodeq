@@ -61,15 +61,19 @@ def test_first_edit_of_a_legacy_standard_keeps_its_file_date_as_created(svc):
     assert _dates(_file(ev, "old"))[:2] == ("2026-09-01", "2026-10-15")
 
 
-def test_duplicate_and_import_start_fresh(svc):
+def test_duplicate_starts_fresh(svc):
     service, ev, clock = svc
     service.create_standard({"id": "a", "name": "A", "principles": _PRINCIPLES})
     clock["today"] = "2026-10-21"
     service.duplicate_standard("a", "a-copy")
+    assert _dates(_file(ev, "a-copy")) == ("2026-10-21", "2026-10-21", "2026.10.21")
+
+
+def test_import_starts_fresh_whatever_dates_the_file_claims(svc):
+    service, ev, _ = svc
     service.import_from_file({"id": "imp", "name": "Imp", "principles": _PRINCIPLES,
                               "createdAt": "2020-01-01", "version": "1999"})
-    assert _dates(_file(ev, "a-copy")) == ("2026-10-21", "2026-10-21", "2026.10.21")
-    assert _dates(_file(ev, "imp")) == ("2026-10-21", "2026-10-21", "2026.10.21")
+    assert _dates(_file(ev, "imp")) == ("2026-10-15", "2026-10-15", "2026.10.15")
 
 
 def _roundtrip(service, sid):

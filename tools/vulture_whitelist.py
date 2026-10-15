@@ -166,7 +166,6 @@ _.requirement_count  # core/types/standard.py: StandardMeta field; read by name 
 _.subtype  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict), shown as the edition in Standards.
 _.version  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
 _.created_at  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
-_.updated_at  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
 _.sources  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
 _.runId  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (704 refs).
 _.runNumericAverage  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (9 refs).
@@ -178,7 +177,7 @@ _.supports_tools  # assistant/adapters/cli_config.py: CliChatConfig field; read 
 _.taxonomy_used  # core/types/scoring.py: PrincipleScore field; read by name through serialization or a dict key (8 refs).
 _.total_deduction  # core/types/scoring.py: Deductions field; read by name through serialization or a dict key (1 refs).
 _.untracked_files  # core/types/scan.py: ScanData field; read by name through serialization or a dict key (9 refs).
-_.updated_at  # data/sqlite/run_index.py: RunRow field; read by name through serialization or a dict key (33 refs).
+_.updated_at  # data/sqlite/run_index.py RunRow and core/types/standard.py StandardHeader field; read by name through serialization or a dict key.
 _.violations_per100_files  # core/types/finding.py: Totals field; read by name through serialization or a dict key (19 refs).
 
 # Seams whose only caller lives in tests/, which this scan does not cover (src/quodeq is the scanned tree).

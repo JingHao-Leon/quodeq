@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date
 from pathlib import Path
 
 from quodeq.core.types.standard import StandardDetail, StandardMeta
@@ -43,8 +44,13 @@ _ISO_DATE_LEN = len("2026-10-15")
 
 
 def iso_date(value: object) -> str | None:
-    """*value* when it looks like an ISO date string, else None."""
-    return value if isinstance(value, str) and len(value) >= _ISO_DATE_LEN else None
+    """*value*'s ISO date (``YYYY-MM-DD``) when it starts with a real one, else None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value[:_ISO_DATE_LEN]).isoformat()
+    except ValueError:
+        return None
 
 
 def count_principles_and_requirements(data: dict) -> tuple[int, int]:
