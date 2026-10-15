@@ -80,6 +80,13 @@
 .explorer-bottom { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: var(--space-3, 12px); align-items: start; margin-top: var(--space-3, 12px); }
 .explorer-bottom > .qd-cards-panel, .explorer-where > .qd-cards-panel { margin-top: 0; }
 .explorer-where { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+/* The right column matches Fix first's height while Fix first shows its top
+   rows: the panel fills it and its foot sits at the bottom. Once Fix first
+   opens its whole list, the right column keeps its own height instead of
+   stretching into an empty box. */
+.explorer-bottom { align-items: stretch; }
+.explorer-bottom:has(.fix-first-panel--open) { align-items: start; }
+.explorer-where > .qd-cards-panel { flex: 1 1 auto; display: flex; flex-direction: column; }
 .explorer-where__switch { align-self: flex-start; }
 @media (max-width: 1100px) {
   .explorer-bottom { grid-template-columns: minmax(0, 1fr); }

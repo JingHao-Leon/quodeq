@@ -35,12 +35,12 @@ describe('FindingsByFolderPanel', () => {
 });
 
 describe('FindingsByFolderPanel, beyond the top folders', () => {
-  const many = [{ dimension: 'a', violations: Array.from({ length: 7 }, (_, i) => v(`src/m${i}/f.py`)) }];
+  const many = [{ dimension: 'a', violations: Array.from({ length: 10 }, (_, i) => v(`src/m${i}/f.py`)) }];
 
-  it('shows the top five and hands the rest to the Map', () => {
+  it('shows the top eight, as many rows as Fix first, and hands the rest to the Map', () => {
     const onOpenMap = vi.fn();
     render(<FindingsByFolderPanel dimensions={many} onOpenMap={onOpenMap} />);
-    expect(bodyRows()).toHaveLength(5);
+    expect(bodyRows()).toHaveLength(8);
     fireEvent.click(screen.getByRole('button', { name: /all folders in Map/ }));
     expect(onOpenMap).toHaveBeenCalled();
   });
@@ -49,5 +49,25 @@ describe('FindingsByFolderPanel, beyond the top folders', () => {
     const few = [{ dimension: 'a', violations: [v('src/x/a.py'), v('src/y/b.py')] }];
     render(<FindingsByFolderPanel dimensions={few} onOpenMap={vi.fn()} />);
     expect(screen.queryByRole('button', { name: /all folders in Map/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('FindingsByFolderPanel, a folder in the Map', () => {
+  const dims = [{ dimension: 'a', violations: [v('src/api/a.py'), v('src/web/b.py')] }];
+
+  it('a row\'s map icon opens that folder in the Map, not the folder\'s findings', () => {
+    const onFolderClick = vi.fn();
+    const onFolderInMap = vi.fn();
+    render(<FindingsByFolderPanel dimensions={dims} onFolderClick={onFolderClick} onFolderInMap={onFolderInMap} />);
+    const icon = screen.getByRole('button', { name: 'Show src/api in the Map' });
+    fireEvent.click(icon);
+    fireEvent.keyDown(icon, { key: 'Enter' });
+    expect(onFolderInMap).toHaveBeenCalledWith(expect.objectContaining({ dir: 'src/api' }));
+    expect(onFolderClick).not.toHaveBeenCalled();
+  });
+
+  it('has no map icons when the page cannot open the Map', () => {
+    render(<FindingsByFolderPanel dimensions={dims} />);
+    expect(screen.queryByRole('button', { name: /in the Map$/ })).not.toBeInTheDocument();
   });
 });

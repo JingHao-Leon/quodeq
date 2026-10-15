@@ -3654,6 +3654,18 @@
 .findings-head__value--alarm { color: var(--color-sev-critical-text); }
 .findings-head__sub { display: flex; gap: 4px; flex-wrap: nowrap; white-space: nowrap; font-size: 11px; color: var(--color-text-muted); }
 .risk-zone-chip--healthy { color: var(--color-grade-top-text); border-color: color-mix(in srgb, var(--color-grade-top-text) 48%, transparent); background: var(--color-grade-top-bg); }
+
+/* Areas panel: every area judged, split into the three zones, above the foot. */
+.risk-zone-strip { margin-top: auto; padding: 10px var(--space-4) 8px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--color-border); }
+.risk-zone-strip + .panel-foot { margin-top: 0; }
+.risk-zone-strip__bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--color-surface-alt); }
+.risk-zone-strip__seg { min-width: 4px; }
+.risk-zone-strip__seg--fixFirst { background: var(--color-sev-critical-text); }
+.risk-zone-strip__seg--watch { background: color-mix(in srgb, var(--color-sev-major-text) 50%, var(--color-surface-alt)); }
+.risk-zone-strip__seg--healthy { background: var(--color-grade-top-text); }
+.risk-zone-strip__legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--term-font-mono); font-size: 11px; color: var(--color-text-muted); }
+.risk-zone-strip__item { display: inline-flex; align-items: center; gap: 6px; }
+.risk-zone-strip__item .risk-zone-chip { font-size: 9.5px; padding: 0 5px; }
 .findings-scope__seg .term-btn { font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
 .findings-scope__count { opacity: .6; font-variant-numeric: tabular-nums; }
 .findings-card { border: 1px solid var(--color-border); border-left: 3px solid var(--color-border); border-radius: 6px; padding: 12px 14px; margin: 0 0 12px; background: var(--color-surface); }

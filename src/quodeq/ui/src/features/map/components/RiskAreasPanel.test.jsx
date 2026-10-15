@@ -27,7 +27,19 @@ describe('RiskAreasPanel', () => {
     expect(rows[0]).toHaveTextContent(t('overview.riskZoneFixFirst'));
     expect(rows[0]).toHaveTextContent('1.40');
     expect(rows[0]).toHaveTextContent(t('map.riskKindHotspot'));
-    expect(screen.getByText(t('overview.riskAreasFoot', { areas: '3', fixFirst: 1, watch: 1 }))).toBeInTheDocument();
+    expect(screen.getByText(t('overview.riskAreasFootTotal', { areas: '3' }))).toBeInTheDocument();
+  });
+
+  it('splits every area into fix first, watch and healthy on one strip', () => {
+    areaSet = { areas: [area('hot', 1.4), area('warm', 0.6), area('calm', 0.1), area('cool', 0.05)] };
+    render(<RiskAreasPanel project="p" source="local" />);
+    const strip = screen.getByRole('img', { name: t('overview.riskStripAria', { fixFirst: 1, watch: 1, healthy: 2 }) });
+    expect(strip).toHaveTextContent(t('overview.riskZoneFixFirst'));
+    expect(strip).toHaveTextContent(t('overview.riskZoneHealthy'));
+  });
+
+  it('shows eight rows, as many as Fix first beside it', () => {
+    expect(AREAS_SHOWN).toBe(8);
   });
 
   it('shows at most the top few', () => {
@@ -79,7 +91,8 @@ describe('RiskAreasPanel', () => {
     areaSet = { areas: [area('hot', 1.4), area('tiny', 3, { kind: 'small' }), area('few', 2, { files: 2 })] };
     render(<RiskAreasPanel project="p" source="local" />);
     expect(bodyRows().map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['hot']);
-    expect(screen.getByText(t('overview.riskAreasFoot', { areas: '2', fixFirst: 1, watch: 0 }))).toBeInTheDocument();
+    expect(screen.getByText(t('overview.riskAreasFootTotal', { areas: '2' }))).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: t('overview.riskStripAria', { fixFirst: 1, watch: 0, healthy: 1 }) })).toBeInTheDocument();
   });
 });
 
@@ -114,6 +127,7 @@ describe('RiskAreasPanel over a dimension', () => {
     const rows = bodyRows();
     expect(rows.map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['warm', 'calm', 'quiet']);
     expect(rows[1]).toHaveTextContent(t('overview.riskZoneHealthy'));
-    expect(screen.getByText(t('overview.riskAreasFoot', { areas: '4', fixFirst: 0, watch: 1 }))).toBeInTheDocument();
+    expect(screen.getByText(t('overview.riskAreasFootTotal', { areas: '4' }))).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: t('overview.riskStripAria', { fixFirst: 0, watch: 1, healthy: 3 }) })).toBeInTheDocument();
   });
 });

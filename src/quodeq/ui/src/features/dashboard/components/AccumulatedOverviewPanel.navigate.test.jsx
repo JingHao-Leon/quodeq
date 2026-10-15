@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
@@ -35,7 +35,12 @@ vi.mock('../../../components/FixFirstPanel.jsx', () => ({
   ),
 }));
 vi.mock('../../../components/FindingsByFolderPanel.jsx', () => ({
-  default: ({ onFolderClick }) => <button type="button" onClick={() => onFolderClick({ dir: 'src/api' })}>folder row</button>,
+  default: ({ onFolderClick, onFolderInMap }) => (
+    <>
+      <button type="button" onClick={() => onFolderClick({ dir: 'src/api' })}>folder row</button>
+      {onFolderInMap && <button type="button" onClick={() => onFolderInMap({ dir: 'src/api' })}>folder in map</button>}
+    </>
+  ),
 }));
 
 const DIMS = [{ dimension: 'security', overallScore: '7.0/10', fromRunId: 'r2', violations: [{ file: 'src/a.py', severity: 'major' }] }];
@@ -93,6 +98,22 @@ describe('AccumulatedOverviewPanel opens scoped Findings views', () => {
       ['violations', { scope: AREA, asOf: null }],
       ['map', { vizStyle: 'risk', area: 'api' }],
     ]);
+  });
+
+  it('a folder\'s map icon opens the circle pack on that folder', () => {
+    const onNavigate = renderPanel(null);
+    click('folders');
+    click('folder in map');
+    expect(onNavigate.mock.calls).toEqual([['map', { vizStyle: 'zoompack', path: 'src/api' }]]);
+  });
+
+  it('remembers the chosen view when the Overview comes back', () => {
+    sessionStorage.clear();
+    renderPanel(null);
+    click('folders');
+    cleanup();
+    renderPanel(null);
+    expect(screen.getByRole('button', { name: 'folders' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('an area opens today\'s view on a past run too: the Map measures today\'s findings', () => {
