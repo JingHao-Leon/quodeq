@@ -23,13 +23,12 @@ from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.scoring.internals import finding_to_scoring_dict, principle_stages
 from quodeq.core.scoring.mass import principle_mass, requirement_rows, unit_masses
 from quodeq.core.scoring.params import ScoringParams
-from quodeq.core.types.finding import Finding
 from quodeq.services.evidence_rescore import EvidenceScoreRequest, rescore_dimension_from_evidence, standard_dirs
 from quodeq.services.grade_formula import load_params
 from quodeq.services.grade_formula_preview import (
     ProjectSources, SourceDimension, is_touched, local_projects, project_sources,
 )
-from quodeq.services.rescore import dismissed_violations, filter_excluded_violations
+from quodeq.services.rescore import dismissed_violations, filter_excluded_violations, group_by_principle
 from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import load_grade_inputs
 from quodeq.shared.fault_isolation import run_isolated
@@ -70,19 +69,12 @@ def _from_tables(src: SourceDimension, saved: ScoringParams, cache: dict[Path, A
     return {"dimension": src.name, "frozenScore": None, "principles": principles}
 
 
-def _by_principle(findings: list[Finding]) -> dict[str, list[Finding]]:
-    groups: dict[str, list[Finding]] = {}
-    for f in findings:
-        groups.setdefault(f.practice_id or "unknown", []).append(f)
-    return groups
-
-
 def _from_findings(src: SourceDimension, keys: SuppressionKeys, saved: ScoringParams) -> dict[str, Any]:
     """The run's findings minus the suppressed ones, scored as rescore's legacy fallback scores them."""
     full = src.full
-    violations = _by_principle(filter_excluded_violations(full, keys))
-    compliance = _by_principle(full.compliance)
-    dismissed = _by_principle(dismissed_violations(full, keys))
+    violations = group_by_principle(filter_excluded_violations(full, keys))
+    compliance = group_by_principle(full.compliance)
+    dismissed = group_by_principle(dismissed_violations(full, keys))
     principles = [
         _scored(pid, violations.get(pid, []), compliance.get(pid, []), dismissed.get(pid, []),
                 full.source_file_count or 0, saved)
