@@ -130,6 +130,8 @@
 .rl-frow__t.rl-frow__t--minor { border-left-color: var(--color-sev-minor-border); }
 .rl-sevtext { font-family: var(--rl-mono); font-size: 11px; color: var(--color-text-muted); }
 .rl-idline { font-family: var(--rl-mono); font-size: 11px; color: var(--color-text-muted); margin-top: -8px; }
+/* a cancelled run's note sits right under the identity line, as its second line */
+.rl-idline + .rl-cancelnote { margin-top: -14px; }
 .rl-body .term-grid__row { padding-left: 22px; padding-right: 22px; }
 .rl-body .term-grid__row--clickable:hover { background: var(--rl-hover-bg); box-shadow: var(--rl-hover-bar); }
 .rl-frow__t { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }

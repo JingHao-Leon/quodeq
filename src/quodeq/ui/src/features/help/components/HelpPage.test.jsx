@@ -215,6 +215,14 @@ describe('HelpPage history counts', () => {
     expect(container.textContent).not.toMatch(/legend|dashed|dotted|per-dimension lines/i);
   });
 
+  it('explains cancelled runs: own grade, not on the score history, finished work reused, no partial tag', () => {
+    const { container } = render(<HelpPage initialSection="history" />);
+    expect(container.textContent).toMatch(/cancelled · 4 of 6/);
+    expect(container.textContent).toMatch(/not part of the score history/i);
+    expect(container.textContent).toMatch(/next run reuses the work it finished/);
+    expect(container.textContent).not.toMatch(/partial tag|count for trend purposes/);
+  });
+
   it('describes the report order on the Overview page', () => {
     render(<HelpPage initialSection="overview" />);
     expect(screen.getByText(/report opens with the header's numbers/)).toBeInTheDocument();

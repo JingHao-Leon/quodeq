@@ -1,10 +1,11 @@
 """History's run log: every scored run with its metadata, comparison run and change counts.
 
 One payload per project. Scores come from the project trend (plus cancelled
-runs that scored a dimension), metadata (job id, model, commit, origin) from
-the provider's run listing, and each run's change data (new/resolved counts
-against its baseline, files analysed, active time) from the score cache's
-``run_change`` table. The cache key holds the project's score-cache version,
+runs that scored a dimension), metadata (job id, model, commit, origin, the
+planned dimensions and why the run stopped) from the provider's run listing,
+and each run's change data (new/resolved counts against its baseline, files
+analysed, active time) from the score cache's ``run_change`` table. Only the
+change data is cached. The cache key holds the project's score-cache version,
 so a dismissal, deletion or formula change misses, and the baseline id, so a
 deleted baseline is replaced instead of compared against. Missing entries are
 filled by :class:`RunChangeFiller`; the ones it could not finish in the
@@ -155,13 +156,21 @@ def _changes(
     return cached
 
 
+def _planned_dims(snap: JobSnapshot) -> list[str] | None:
+    """The dimensions the run set out to evaluate, sorted; None when the run did not record them."""
+    return sorted(snap.dimensions) if snap.dimensions else None
+
+
 def _meta_fields(snap: JobSnapshot | None) -> dict[str, Any]:
+    """The run's metadata from the provider's listing, read fresh on every request (never cached)."""
     if snap is None:
-        return {"jobId": None, "endedAt": None, "model": None, "provider": None, "commit": None, "origin": None}
+        return {"jobId": None, "endedAt": None, "model": None, "provider": None, "commit": None, "origin": None,
+                "plannedDims": None, "exitReason": None}
     return {
         "jobId": snap.job_id, "endedAt": snap.ended_at, "model": snap.ai_model, "provider": snap.ai_provider,
         "commit": snap.commit_sha[:_SHORT_SHA] if snap.commit_sha else None,
         "origin": _origin(snap.origin),
+        "plannedDims": _planned_dims(snap), "exitReason": snap.exit_reason or None,
     }
 
 

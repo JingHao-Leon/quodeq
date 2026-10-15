@@ -37,7 +37,7 @@ Clicking a run opens its **Run Detail** page: the same shell as Overview but loc
 
 ### Partial and cancelled runs
 
-Cancelled runs that kept their partial findings appear with a *partial* tag. They count for trend purposes but the Run Detail page makes the partial state obvious so you do not over-interpret it.
+A cancelled run that finished some of its dimensions is listed with its own grade for those dimensions, reads *cancelled · 4 of 6* in the list, and says under its score how it stopped and which dimensions did not finish. It is not part of the score history, so the Overview chart leaves it out, and the next run reuses the work it finished instead of analysing those files again.
 
 > **Comparing across time**
 >
