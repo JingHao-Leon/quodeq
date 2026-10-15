@@ -4,8 +4,8 @@ const TIER_NAMES = ['fast', 'balanced', 'thorough'];
 const DEFAULT_ANALYSIS_POWER = 2;
 
 /**
- * useEvaluationLifecycle.js's storage-read/write and subagent-model-
- * resolution helpers. Extracted verbatim.
+ * useEvaluationLifecycle.js's storage-read and subagent-model-resolution
+ * helpers.
  */
 
 // Every storage read below degrades the same way when the store throws. A

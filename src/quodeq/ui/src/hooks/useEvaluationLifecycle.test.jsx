@@ -33,13 +33,8 @@ function renderLifecycle({ selectedProject = null, selectProjectAndRun = vi.fn()
   const utils = renderHook(
     () =>
       useEvaluationLifecycle({
-        settings: {},
         navigation: { navTab: vi.fn(), navReset: vi.fn() },
-        projects: {
-          loadProjects: vi.fn().mockResolvedValue([]),
-          setProjects: vi.fn(),
-          selectProjectAndRun,
-        },
+        projects: { selectProjectAndRun },
         selectedProject,
         storage,
       }),
