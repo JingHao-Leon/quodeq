@@ -70,6 +70,28 @@ export function writeVisibleStandardIds(ids, storage = localStorage) {
 }
 
 /**
+ * Make one standard visible from outside the Standards page (an assistant
+ * create applied on another screen): append it to the local cache and, for
+ * a local project, to that project's visibility file. Membership is
+ * case-insensitive like useVisibleStandards. A failed PUT only warns: the
+ * cache is already right for this session and the next hydrate re-syncs.
+ */
+export async function addVisibleStandardId(id, { projectId = null, storage = localStorage } = {}) {
+  const ids = readVisibleStandardIds(storage);
+  if (ids.some((x) => x.toLowerCase() === id.toLowerCase())) return ids;
+  const next = [...ids, id];
+  writeVisibleStandardIds(next, storage);
+  if (projectId) {
+    try {
+      await putStandardsVisibility(projectId, next);
+    } catch (err) {
+      console.warn('[visibleStandards] server sync failed:', err);
+    }
+  }
+  return next;
+}
+
+/**
  * Sync the local cache with the server for a project.
  *
  * localStorage is a cache so the 8 synchronous read sites keep working; the

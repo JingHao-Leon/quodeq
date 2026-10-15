@@ -86,7 +86,7 @@ describe('buildAssistantActionAppliedHandler', () => {
   it('refreshes the standards list after a create-standard apply, and nothing else', () => {
     const d = deps({ onStandardCreated: vi.fn() });
     buildAssistantActionAppliedHandler(d)({ detail: { actionType: 'create_standard', standardId: 'x' } });
-    expect(d.onStandardCreated).toHaveBeenCalledTimes(1);
+    expect(d.onStandardCreated).toHaveBeenCalledWith('x');
     expect(d.scheduleDashboardReconcile).not.toHaveBeenCalled();
   });
 
