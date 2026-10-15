@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
 import { LoadProjectFailedEmptyState } from '../../../components/ProjectEmptyStates.jsx';
 import { t } from '../../../strings/index.js';
@@ -78,10 +78,7 @@ function NoRunsYet({ loading, error, onRetry }) {
 function RunLogFrame({ runs, shared, refreshing, filters, pageRef, children }) {
   return (
     <div ref={pageRef} className={`history-page history-page--terminal rl${refreshing ? ' section-pending' : ''}`}>
-      <div className="term-page-top rl-top">
-        <TermHeader name={t('history.termName')} sub={headerSub(runs)} badge={shared ? <SharedReadOnlyBadge /> : null} />
-        {filters}
-      </div>
+      <PageToolbar className="rl-top" facts={headerSub(runs)} badge={shared ? <SharedReadOnlyBadge /> : null}>{filters}</PageToolbar>
       {children}
     </div>
   );

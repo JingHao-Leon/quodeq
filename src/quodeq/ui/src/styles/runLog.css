@@ -15,9 +15,8 @@
 .rl-fixed { color: var(--rl-resolved-text); }
 .rl-zero { color: var(--color-text-muted); }
 
-/* page top: header left, filters right */
-.rl-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.rl-filters { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin-left: auto; padding-bottom: 4px; font-family: var(--rl-mono); font-size: 11px; }
+/* page top: the shared .page-toolbar (.rl-top), counts left, filters right */
+.rl-filters { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; font-family: var(--rl-mono); font-size: 11px; }
 .rl-filters .compare-dueltrigger { display: inline-flex; }
 .rl-filter__count { color: var(--color-text-muted); }
 .rl-menu__count { font-family: var(--rl-mono); font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }

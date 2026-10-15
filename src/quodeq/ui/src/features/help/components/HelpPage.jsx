@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import HelpMarkdown from './HelpMarkdown.jsx';
 import { PageContents, SectionPager, useSectionHeadings } from './HelpReadingAids.jsx';
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import BrandCarousel from '../../../components/BrandCarousel.jsx';
 import { t } from '../../../strings/index.js';
 import { HELP_SECTION } from '../../../vocab/helpSection.js';
@@ -89,13 +89,9 @@ export default function HelpPage({ initialSection }) {
 
   return (
     <div className="help-page help-page--terminal" ref={pageRef}>
-      <div className="help-header">
-        <TermHeader
-          name={t('help.termName')}
-          sub={t('help.termSub')}
-        />
+      <PageToolbar className="help-header" facts={t('help.termSub')}>
         <BrandCarousel />
-      </div>
+      </PageToolbar>
       <div className="help-layout">
         <SectionNav active={activeSection} onSelect={select} />
         <div className="help-content" ref={contentRef}>

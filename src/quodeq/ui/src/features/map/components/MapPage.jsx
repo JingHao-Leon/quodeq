@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { GalaxyView, GalaxyFolderView, VizBreadcrumb } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
 import useMapPageState from './useMapPageState.js';
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import { useDeferredReady } from '../../../components/DeferredMount.jsx';
 import { MapLoadingState, MapNoDimensionsState, MapNoProjectsState, MapNoProjectSelectedState } from './MapPageStates.jsx';
 import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
@@ -75,7 +75,7 @@ function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activ
   const { galaxyMode, setGalaxyMode } = galaxyState;
   const { allDimensions, selectedDimensions } = dimensionState;
   return (
-    <div className="term-page-top__controls map-controls">
+    <>
       <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={riskFilter.onToggleDimension} />
       {vizStyle === VIZ_STYLE.RISK && <RiskPrincipleChip principle={riskFilter.principle} onClear={riskFilter.clearPrinciple} />}
       {vizStyle === VIZ_STYLE.ZOOMPACK && <PackColorSeg viewMode={viewMode} setViewMode={setViewMode} activityUnavailable={activityUnavailable} />}
@@ -95,7 +95,7 @@ function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activ
           </button>
         ))}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -247,14 +247,9 @@ export default function MapPage(props) {
 
   return (
     <div className={`map-page map-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
-      <div className="term-page-top map-page__top">
-        <TermHeader
-          name="map"
-          sub={sub}
-          badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null}
-        />
+      <PageToolbar facts={sub} badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null}>
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} riskFilter={riskFilter} activityUnavailable={activityUnavailable} />
-      </div>
+      </PageToolbar>
       <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, selection: measuredOver, initialArea: initialAreaOf(props.nav) }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
     </div>
   );

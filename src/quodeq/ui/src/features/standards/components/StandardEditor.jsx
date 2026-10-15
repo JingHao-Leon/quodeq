@@ -5,7 +5,7 @@ import StandardTree from './StandardTree.jsx';
 import StandardDetail from './StandardDetail.jsx';
 import ThresholdImpactDialog from './ThresholdImpactDialog.jsx';
 import { standardBaseLabel } from '../hooks/useStandards.js';
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import { t } from '../../../strings/index.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { pluralKey } from '../../../utils/plural.js';
@@ -90,23 +90,20 @@ function EditorToolbar({ meta, dirty, editable, overridesDirty, customizedCount,
   const showSave = editable || overridesDirty;
   const saveDirty = dirty || overridesDirty;
   return (
-    <div className="standard-editor-toolbar">
-      <TermHeader name={title} sub={sub} />
-      <div className="standard-editor-actions">
-        {customizedCount > 0 && (
-          <span className="standards-customized-badge">{t('standards.thresholdsCustomized', { count: customizedCount })}</span>
-        )}
-        <button type="button" className="settings-pill" onClick={onBack}>← {t('standards.back')}</button>
-        {showSave && (
-          <button
-            type="button"
-            className={`settings-pill${saveDirty ? ' settings-pill--active' : ''}`}
-            onClick={onSave}
-            disabled={!saveDirty}
-          >{t('standards.saveBtn')}</button>
-        )}
-      </div>
-    </div>
+    <PageToolbar className="standard-editor-toolbar" subject={title} facts={sub}>
+      {customizedCount > 0 && (
+        <span className="standards-customized-badge">{t('standards.thresholdsCustomized', { count: customizedCount })}</span>
+      )}
+      <button type="button" className="settings-pill" onClick={onBack}>← {t('standards.back')}</button>
+      {showSave && (
+        <button
+          type="button"
+          className={`settings-pill${saveDirty ? ' settings-pill--active' : ''}`}
+          onClick={onSave}
+          disabled={!saveDirty}
+        >{t('standards.saveBtn')}</button>
+      )}
+    </PageToolbar>
   );
 }
 

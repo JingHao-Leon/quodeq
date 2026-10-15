@@ -1,4 +1,4 @@
-import { TermHeader } from '../../components/terminal/index.js';
+import PageToolbar from '../../components/PageToolbar.jsx';
 import { t } from '../../strings/index.js';
 
 function Picker({ label, value, options, onChange }) {
@@ -16,7 +16,7 @@ function headerSub(scope, runLabel) {
 }
 
 /**
- * The editor's header: name, which run the numbers come from, and the
+ * The editor's toolbar: which run the numbers come from, and the
  * dimension and principle pickers for the worked example.
  * @param {{project: string|null, runId: string|null, dimensions: string[]}} props.scope
  * @param {string|null} props.runLabel - the run's date, when there is a run
@@ -24,11 +24,14 @@ function headerSub(scope, runLabel) {
 export default function GradeFormulaHeader({
   scope, dimension, setDimension, principleId, setPrincipleId, principles, runLabel,
 }) {
-  const pickers = scope.runId ? (
-    <span className="gf-pickers">
-      <Picker label={t('gradeFormula.pickDimension')} value={dimension} options={scope.dimensions} onChange={setDimension} />
-      <Picker label={t('gradeFormula.pickPrinciple')} value={principleId} options={principles.map((p) => p.principleId)} onChange={setPrincipleId} />
-    </span>
-  ) : null;
-  return <TermHeader name={t('gradeFormula.headerName')} sub={headerSub(scope, runLabel)} badge={pickers} />;
+  return (
+    <PageToolbar facts={headerSub(scope, runLabel)}>
+      {scope.runId && (
+        <span className="gf-pickers">
+          <Picker label={t('gradeFormula.pickDimension')} value={dimension} options={scope.dimensions} onChange={setDimension} />
+          <Picker label={t('gradeFormula.pickPrinciple')} value={principleId} options={principles.map((p) => p.principleId)} onChange={setPrincipleId} />
+        </span>
+      )}
+    </PageToolbar>
+  );
 }

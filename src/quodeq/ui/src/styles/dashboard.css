@@ -2883,15 +2883,6 @@
    header in two columns when there's room, drop the CTA below the
    title at narrow widths, and stretch it to full width on mobile. */
 
-.projects-page__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
-
 /* Header actions are compact, the same height as the strip's buttons below
    them (26 px, small mono), so the title row stays the loudest thing. */
 .projects-page__add-btn {
@@ -3664,6 +3655,8 @@
 /* The Findings header (scoped views, the dimension page) and the scoped views' list and cards. */
 .findings-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); padding: 12px 18px; margin-bottom: var(--space-3); }
 .findings-head .term-header { margin-bottom: 0; }
+/* The header panel opens the page on the line every page's first row shares (the tool pages' toolbar too). */
+.findings-head.qd-cards-panel { margin-top: var(--page-top-gap); }
 .findings-head__ring { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .findings-head__ring .dim-gauge-card__gauge { padding: 0; }
 .findings-head__ring svg { width: 76px; height: 76px; }

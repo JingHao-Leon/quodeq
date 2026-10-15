@@ -12,7 +12,6 @@ import ServerSection from './ServerSection.jsx';
 import GitHubAccessSection from './GitHubAccessSection.jsx';
 import SharedRepoSection from './SharedRepoSection.jsx';
 import OnboardingSection from './OnboardingSection.jsx';
-import { TermHeader } from '../../../components/terminal/index.js';
 import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { t } from '../../../strings/index.js';
 import { SettingsRowLabel } from './settingsRowParts.jsx';
@@ -39,10 +38,6 @@ export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDiscon
 
   return (
     <div className="settings-page settings-page--terminal">
-      <TermHeader
-        name={t('settings.termName')}
-        sub={t('settings.termSub')}
-      />
       <div className="settings-grid">
         <ProviderTabs providerConfigs={providerConfigs} />
         <AssistantProviderTabs providerConfigs={providerConfigs} />

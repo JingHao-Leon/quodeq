@@ -1,4 +1,4 @@
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import { renderViolationsEmptyState } from './ViolationsEmptyStates.jsx';
 import { useViolationsPageState } from '../hooks/useViolationsPageState.js';
 import { useWorkbenchActions } from '../hooks/useWorkbenchActions.js';
@@ -34,10 +34,8 @@ function summaryLine(summary, dismissedCount) {
 
 function ViolationsHeader({ summary, selectedSource, dismissedCount }) {
   return (
-    <div className="term-page-top violations-page__top">
-      <TermHeader name={t('violations.termName')} sub={summaryLine(summary, dismissedCount)}
-        badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null} />
-    </div>
+    <PageToolbar facts={summaryLine(summary, dismissedCount)}
+      badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null} />
   );
 }
 

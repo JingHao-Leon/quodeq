@@ -47,11 +47,9 @@
 
 /* ── header ─────────────────────────────────────────────────────────── */
 
-/* Page top row: the shared .term-page-top (terminal.css). The page's
+/* Page top row: the shared .page-toolbar (terminal.css). The page's
    column gap owns the spacing below it, so its own margin is dropped. */
 .compare-page__top { margin-bottom: 0; }
-
-.compare-page__titles { min-width: 0; }
 
 .compare-dim-badges {
   display: inline-flex;

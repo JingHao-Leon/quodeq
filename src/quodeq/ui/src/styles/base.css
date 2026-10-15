@@ -1184,6 +1184,9 @@ textarea:focus {
   columns: 360px 3;
   column-gap: var(--space-5);
   width: 100%;
+  /* No page title (the topbar names the page): the lanes open the page,
+     on the line every page's first row shares. */
+  margin-top: var(--page-top-gap);
 }
 
 .settings-grid > .panel {
@@ -2353,7 +2356,7 @@ textarea:focus {
 .gf-stage__was { color: var(--color-text-muted); }
 .gf-stage__note { color: var(--color-text-muted); }
 .gf-labels { padding: 8px 10px; border: 1px solid var(--color-border); border-radius: 6px; }
-.gf-pickers { display: inline-flex; gap: 6px; margin-left: 10px; }
+.gf-pickers { display: inline-flex; gap: 6px; }
 .gf-picker { font-family: var(--font-mono, monospace); font-size: 11px; background: var(--color-surface-alt);
   color: var(--color-text); border: 1px solid var(--color-border); border-radius: 4px; padding: 1px 4px; }
 @media (max-width: 720px) {

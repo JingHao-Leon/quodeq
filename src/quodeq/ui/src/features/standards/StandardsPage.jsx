@@ -5,7 +5,7 @@ import { useStandardsOverrides } from './hooks/useStandardsOverrides.js';
 import StandardsTable from './components/StandardsTable.jsx';
 import StandardEditor from './components/StandardEditor.jsx';
 import ImportModal from './components/ImportModal.jsx';
-import { TermHeader } from '../../components/terminal/index.js';
+import PageToolbar from '../../components/PageToolbar.jsx';
 import { useAppState } from '../../hooks/useAppState.js';
 import { t } from '../../strings/index.js';
 import { PROJECT_SOURCE } from '../../vocab/projectSource.js';
@@ -89,16 +89,12 @@ export default function StandardsPage({ onRescan }) {
 
   return (
     <div className="standards-page standards-page--terminal">
-      <div className="standards-page-header standards-page-header--terminal">
-        <TermHeader
-          name={t('standards.termName')}
-          sub={t('standards.termSub', { count: activeCount })}
-        />
-        <div className="standards-page-header-actions">
+      <PageToolbar facts={t('standards.activeCount', { count: activeCount })}>
+        <span className="standards-page-header-actions">
           <button type="button" className="btn-secondary" onClick={() => setShowImport(true)}>{t('standards.importBtn')}</button>
           <button type="button" className="btn-primary" onClick={handleNewStandard}>{t('standards.newStandardBtn')}</button>
-        </div>
-      </div>
+        </span>
+      </PageToolbar>
       <StandardsListView grouped={grouped} loading={loading} error={error} actions={{ onEdit: handleEdit, onDelete: handleDeleteWithCleanup, onDuplicate: handleDuplicate, isVisible, onToggleVisibility: toggle }} customizedCounts={customizedCounts} />
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={handleImported} />}
     </div>

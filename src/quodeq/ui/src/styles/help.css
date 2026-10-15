@@ -4,7 +4,8 @@
    section scrolls. */
 
 .help-page {
-  padding: var(--space-6);
+  /* Sides and top come from the page frame, as on every tool page. */
+  padding: 0 0 var(--space-6);
 }
 
 .help-page .page-subtitle {
@@ -70,12 +71,10 @@
 
 /* ── Page header (title + tips) ──────────────────────── */
 
-.help-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: var(--space-6);
-}
+/* In the toolbar the tips run wider and two lines high, and the mark
+   shrinks, so the row stays slim. */
+.help-header .sa-phrase-wrap { height: 3.2em; max-width: 56ch; }
+.help-header .sa-logo-shell { width: 48px; }
 
 .help-section {
   animation: help-fade-in 200ms ease;
@@ -395,10 +394,6 @@
 }
 
 @media (max-width: 900px) {
-  .help-header {
-    grid-template-columns: 1fr;
-  }
-
   .help-header .brand-carousel {
     display: none;
   }

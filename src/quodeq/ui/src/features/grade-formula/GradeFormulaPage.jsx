@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TermHeader } from '../../components/terminal/index.js';
+import PageToolbar from '../../components/PageToolbar.jsx';
 import useGradeFormula from './useGradeFormula.js';
 import { useStageExplain } from './hooks/useStageExplain.js';
 import { useTypesRows } from './hooks/useTypesRows.js';
@@ -133,7 +133,7 @@ function useTypesTab(scope, draft) {
 function LoadingPage({ error }) {
   return (
     <div className="settings-page settings-page--terminal">
-      <TermHeader name={t('gradeFormula.headerName')} sub={t('gradeFormula.headerLoading')} />
+      <PageToolbar facts={t('gradeFormula.headerLoading')} />
       {error ? <p className="settings-description">{error}</p> : null}
     </div>
   );
