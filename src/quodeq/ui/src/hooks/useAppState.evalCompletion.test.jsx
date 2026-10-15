@@ -244,6 +244,15 @@ describe('useAppState with a pending Overview', () => {
     await waitFor(() => expect(result.current.pending).toBe(true));
     expect(result.current.loading).toBe(true);
   });
+
+  it('exposes the pending body\'s last known grade, for the Overview skeleton to show while it rebuilds', async () => {
+    const fakeApi = makeAppStateFakeApi();
+    const lastKnown = { grade: 'Good', score: 8.5, files: 12 };
+    fakeApi.getDashboard = vi.fn(async () => ({ pending: true, lastKnown }));
+    const { result } = renderAppState(fakeApi, makeTestClient());
+
+    await waitFor(() => expect(result.current.lastKnown).toEqual(lastKnown));
+  });
 });
 
 // Same by-name pick: the scoring flags the dashboard hook derives only reach
