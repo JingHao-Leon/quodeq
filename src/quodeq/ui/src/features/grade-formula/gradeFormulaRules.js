@@ -12,9 +12,9 @@
  *
  * NO-OP on any patch that doesn't set `floorMinor` or `floorMajor` (e.g. a
  * `gradeThresholds` patch from the boundaries divider) -- returns the patch
- * unchanged. `draft` is the PRE-patch state; the other floor's current
- * value is what an incoming edit clamps against, matching the sliders'
- * previous inline behaviour.
+ * unchanged. `draft` is the PRE-patch state: an incoming floor clamps against
+ * the other floor's value in the patch when the patch carries both, else
+ * against its current value in the draft.
  *
  * @param {Object} draft - the pre-patch grade-formula draft state.
  * @param {Object} patch - the incoming patch to merge into the draft.
@@ -24,13 +24,13 @@ export function clampFloors(draft, patch) {
   if (!draft || !patch) return patch;
   if (!('floorMinor' in patch) && !('floorMajor' in patch)) return patch;
 
+  // The other floor is the patch's own when it carries both (Undo all
+  // restores a whole saved formula), else the draft's.
+  const minor = 'floorMinor' in patch ? patch.floorMinor : draft.floorMinor;
+  const major = 'floorMajor' in patch ? patch.floorMajor : draft.floorMajor;
   const next = { ...patch };
-  if ('floorMinor' in next) {
-    next.floorMinor = Math.max(next.floorMinor, draft.floorMajor);
-  }
-  if ('floorMajor' in next) {
-    next.floorMajor = Math.min(next.floorMajor, draft.floorMinor);
-  }
+  if ('floorMinor' in next) next.floorMinor = Math.max(next.floorMinor, major);
+  if ('floorMajor' in next) next.floorMajor = Math.min(next.floorMajor, minor);
   return next;
 }
 

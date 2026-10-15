@@ -15,7 +15,7 @@ function mount(over = {}) {
   const props = {
     inputs: INPUTS, loading: false, failed: false, names: { a: 'Alpha' }, saved: SAVED, draft: SAVED,
     isDirty: false, changedCount: 0, litProject: null, onLitProject: vi.fn(), onReview: vi.fn(),
-    onUndo: vi.fn(), onReset: vi.fn(), busy: false, ...over,
+    onUndo: vi.fn(), onReset: vi.fn(), onRetry: vi.fn(), busy: false, isCustom: true, ...over,
   };
   render(<ImpactPanel {...props} />);
   return props;
@@ -51,5 +51,28 @@ describe('ImpactPanel', () => {
     mount({ inputs: null, loading: true });
     expect(screen.getByText('Reading your projects…')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'RESET Q²' })).toBeInTheDocument();
+  });
+
+  it('offers a retry when the inputs could not be read', () => {
+    const props = mount({ inputs: null, failed: true });
+    expect(screen.getByText(/Could not read your projects/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(props.onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('says there is nothing to score yet without a retry', () => {
+    mount({ inputs: { projects: [] } });
+    expect(screen.getByText(/No finished evaluation yet/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+
+  it('disables RESET Q² while the defaults are already in force and nothing is edited', () => {
+    mount({ isCustom: false, isDirty: false });
+    expect(screen.getByRole('button', { name: 'RESET Q²' })).toBeDisabled();
+  });
+
+  it('allows RESET Q² from an edited draft', () => {
+    mount({ isCustom: false, isDirty: true, draft: DRAFT });
+    expect(screen.getByRole('button', { name: 'RESET Q²' })).toBeEnabled();
   });
 });

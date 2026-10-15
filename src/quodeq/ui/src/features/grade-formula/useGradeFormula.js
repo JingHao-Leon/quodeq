@@ -1,12 +1,10 @@
 import { useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { saveGradeFormula, resetGradeFormula } from '../../api/index.js';
 import { defaultGradeThresholdsStore } from '../../utils/gradeThresholds.js';
 import { setDimensionWeights } from '../../utils/dimensionWeights.js';
 import { RESCORE_STATE } from '../../vocab/rescoreState.js';
 import { useGradeFormulaState } from './hooks/useGradeFormulaState.js';
 import { clampFloors, clampSeverity } from './gradeFormulaRules.js';
-import { gradeFormulaKeys } from '../../api/queryKeys.js';
 import { useRescoreProgress } from './hooks/useRescoreProgress.js';
 import { t } from '../../strings/index.js';
 import { pluralKey } from '../../utils/plural.js';
@@ -53,7 +51,6 @@ export default function useGradeFormula(thresholdsStore = defaultGradeThresholds
     saved, draft, isCustom, defaults, busy, error, partialNotice, resumeFrom,
     adoptServerFormula, beginRequest, endRequest, failWith, notePartialRescore, updateDraft,
   } = useGradeFormulaState();
-  const queryClient = useQueryClient();
 
   const isDirty = saved && draft && JSON.stringify(saved) !== JSON.stringify(draft);
 
@@ -75,7 +72,6 @@ export default function useGradeFormula(thresholdsStore = defaultGradeThresholds
       thresholdsStore.set(d.current.gradeThresholds);
       setDimensionWeights(d.current);
       track(d);
-      queryClient.invalidateQueries({ queryKey: gradeFormulaKeys.inputs() });
       return d;
     } catch (err) {
       console.warn(logLabel, err);
@@ -84,7 +80,7 @@ export default function useGradeFormula(thresholdsStore = defaultGradeThresholds
     } finally {
       endRequest();
     }
-  }, [track, queryClient, thresholdsStore, beginRequest, endRequest, failWith, adoptServerFormula]);
+  }, [track, thresholdsStore, beginRequest, endRequest, failWith, adoptServerFormula]);
 
   const apply = useCallback(async () => {
     const d = await submitFormula(
@@ -95,13 +91,12 @@ export default function useGradeFormula(thresholdsStore = defaultGradeThresholds
     return d ? d.rescore : null;
   }, [draft, submitFormula]);
 
-  const resetToDefaults = useCallback(async () => {
-    await submitFormula(
-      resetGradeFormula,
-      'gradeFormula.resetFailed',
-      '[useGradeFormula] reset failed:',
-    );
-  }, [submitFormula]);
+  // The server's payload, or null when the reset failed (the error is set).
+  const resetToDefaults = useCallback(async () => submitFormula(
+    resetGradeFormula,
+    'gradeFormula.resetFailed',
+    '[useGradeFormula] reset failed:',
+  ), [submitFormula]);
 
   return {
     saved, draft, defaults, isCustom, isDirty, busy, error, partialNotice, rescoreProgress,

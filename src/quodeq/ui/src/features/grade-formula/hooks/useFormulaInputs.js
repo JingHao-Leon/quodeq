@@ -3,17 +3,25 @@ import { getGradeFormulaInputs } from '../../../api/index.js';
 import { gradeFormulaKeys } from '../../../api/queryKeys.js';
 
 /**
- * Every local project's scoring inputs, read once per editor visit (and again
- * after an apply or reset, which invalidates the key). Scoring every project
- * can take seconds on a cold score cache; the knobs work meanwhile.
- * @returns {{inputs: {projects: Array}|null, loading: boolean, failed: boolean}}
+ * Every local project's scoring inputs, read again on each editor visit. The
+ * last inputs stay on screen while the new read runs (scoring every project
+ * can take tens of seconds on a cold score cache; the knobs work meanwhile).
+ * The inputs do not depend on the formula, so an apply leaves them alone.
+ * `failed` only when there is nothing to show; `retry` reads again.
+ * @returns {{inputs: {projects: Array}|null, loading: boolean, failed: boolean, retry: () => void}}
  */
 export function useFormulaInputs() {
   const query = useQuery({
     queryKey: gradeFormulaKeys.inputs(),
     queryFn: getGradeFormulaInputs,
-    staleTime: Infinity,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
     retry: false,
   });
-  return { inputs: query.data || null, loading: query.isPending, failed: query.isError };
+  const inputs = query.data || null;
+  // A retry after a failure reads as loading again, not as the old failure.
+  const reading = !inputs && query.isFetching;
+  return {
+    inputs, loading: query.isPending || reading, failed: query.isError && !inputs && !reading, retry: query.refetch,
+  };
 }

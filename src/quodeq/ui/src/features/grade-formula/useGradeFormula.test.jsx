@@ -63,6 +63,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe('useGradeFormula', () => {
@@ -103,6 +104,19 @@ describe('useGradeFormula', () => {
     expect(result.current.draft.floorMajor).toBe(8);
   });
 
+  it('Undo all (update(saved)) restores both floors and clears the dirty draft', async () => {
+    const saved = { ...CURRENT, floorMinor: 5, floorMajor: 3 };
+    getGradeFormula.mockResolvedValue({ current: saved, defaults: DEFAULTS, isCustom: true, rescore: IDLE_RESCORE });
+    const { result } = renderGradeFormula();
+    await waitFor(() => expect(result.current.draft).toEqual(saved));
+    act(() => { result.current.update({ floorMinor: 8 }); });
+    act(() => { result.current.update({ floorMajor: 7 }); });
+    expect([result.current.draft.floorMinor, result.current.draft.floorMajor]).toEqual([8, 7]);
+    act(() => { result.current.update(saved); });
+    expect([result.current.draft.floorMinor, result.current.draft.floorMajor]).toEqual([5, 3]);
+    expect(result.current.isDirty).toBeFalsy();
+  });
+
   it('update() does not touch floors on an unrelated patch (clampFloors no-op)', async () => {
     const { result } = renderGradeFormula();
     await waitFor(() => expect(result.current.draft).toEqual(CURRENT));
@@ -119,12 +133,13 @@ describe('useGradeFormula', () => {
     expect(result.current.draft.severityWeight.minor).toBeLessThan(result.current.draft.severityWeight.major);
   });
 
-  it('refreshes the scoring inputs after an apply', async () => {
+  it('does not refetch the inputs on apply (they do not depend on the formula)', async () => {
     saveGradeFormula.mockResolvedValue({ current: CURRENT, defaults: DEFAULTS, isCustom: true, rescore: LANDED_RESCORE });
     const { result } = renderGradeFormula();
     await waitFor(() => expect(result.current.draft).toEqual(CURRENT));
     await act(async () => { await result.current.apply(); });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: gradeFormulaKeys.inputs() });
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() }));
+    expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: gradeFormulaKeys.inputs() });
   });
 
   it('apply() saves the draft and pushes thresholds into the gradeThresholds store', async () => {
@@ -166,6 +181,31 @@ describe('useGradeFormula', () => {
     expect(result.current.isCustom).toBe(false);
     // Reset also re-baked grades server-side: invalidate the score caches.
     await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() }));
+  });
+
+  it('resetToDefaults() reports success with the payload and failure with null', async () => {
+    const payload = { current: DEFAULTS, defaults: DEFAULTS, isCustom: false, rescore: LANDED_RESCORE };
+    resetGradeFormula.mockResolvedValueOnce(payload).mockRejectedValueOnce(new Error('down'));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = renderGradeFormula();
+    await waitFor(() => expect(result.current.draft).toEqual(CURRENT));
+    let first;
+    let second;
+    await act(async () => { first = await result.current.resetToDefaults(); });
+    await act(async () => { second = await result.current.resetToDefaults(); });
+    expect(first).toEqual(payload);
+    expect(second).toBeNull();
+  });
+
+  it('apply() reports a failed write with null', async () => {
+    saveGradeFormula.mockRejectedValue(new Error('down'));
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = renderGradeFormula();
+    await waitFor(() => expect(result.current.draft).toEqual(CURRENT));
+    let applied;
+    await act(async () => { applied = await result.current.apply(); });
+    expect(applied).toBeNull();
+    expect(result.current.error).toBe('Apply failed');
   });
 
   it('adopting a formula writes its severity weights into the shared formula cache (the Map reads it)', async () => {

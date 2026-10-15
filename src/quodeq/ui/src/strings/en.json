@@ -2243,6 +2243,7 @@
   "gradeFormula.impactPrinciples": "Principles that change score: {moved} ({up} up a grade, {down} down).",
   "gradeFormula.impactLoading": "Reading your projects…",
   "gradeFormula.impactEmpty": "No finished evaluation yet. Run one to see what a change does to your grades.",
+  "gradeFormula.retry": "Retry",
   "gradeFormula.impactFailed": "Could not read your projects. The knobs still work, and Review shows the server's numbers.",
   "gradeFormula.impactDistLabel": "Principle grades",
   "gradeFormula.distToday": "today",

@@ -56,3 +56,7 @@ test('clampSeverity: leaves patches without severityWeight alone', () => {
   const patch = { baseK: 0.1 };
   assert.equal(clampSeverity(SEV_DRAFT, patch), patch);
 });
+
+test('clampFloors: a patch carrying both floors clamps against its own values', () => {
+  assert.deepEqual(clampFloors({ floorMinor: 8, floorMajor: 7 }, { floorMinor: 5, floorMajor: 3 }), { floorMinor: 5, floorMajor: 3 });
+});

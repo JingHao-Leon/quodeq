@@ -63,11 +63,13 @@ function DistBar({ counts }) {
 }
 
 function Distribution({ inputs, saved, draft }) {
+  const today = useMemo(() => gradeDistribution(inputs, saved), [inputs, saved]);
+  const next = useMemo(() => gradeDistribution(inputs, draft), [inputs, draft]);
   return (
     <div className="gf-dist">
       <h3 className="gf-dist__title">{t('gradeFormula.impactDistLabel')}</h3>
-      <div className="gf-dist__row"><span>{t('gradeFormula.distToday')}</span><DistBar counts={gradeDistribution(inputs, saved)} /></div>
-      <div className="gf-dist__row"><span>{t('gradeFormula.distDraft')}</span><DistBar counts={gradeDistribution(inputs, draft)} /></div>
+      <div className="gf-dist__row"><span>{t('gradeFormula.distToday')}</span><DistBar counts={today} /></div>
+      <div className="gf-dist__row"><span>{t('gradeFormula.distDraft')}</span><DistBar counts={next} /></div>
     </div>
   );
 }
@@ -83,11 +85,20 @@ function Headline({ rows, shifts, isDirty }) {
   );
 }
 
-function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProject, onLitProject }) {
+function Failed({ onRetry }) {
+  return (
+    <div className="gf-impact__note">
+      <p>{t('gradeFormula.impactFailed')}</p>
+      <button type="button" className="settings-pill" onClick={onRetry}>{t('gradeFormula.retry')}</button>
+    </div>
+  );
+}
+
+function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProject, onLitProject, onRetry }) {
   const rows = useMemo(() => (inputs ? projectImpact(inputs, names, saved, draft) : []), [inputs, names, saved, draft]);
   const shifts = useMemo(() => (inputs ? principleShifts(inputs, saved, draft) : null), [inputs, saved, draft]);
   if (loading) return <p className="gf-impact__note">{t('gradeFormula.impactLoading')}</p>;
-  if (failed) return <p className="gf-impact__note">{t('gradeFormula.impactFailed')}</p>;
+  if (failed) return <Failed onRetry={onRetry} />;
   if (rows.length === 0) return <p className="gf-impact__note">{t('gradeFormula.impactEmpty')}</p>;
   return (
     <>
@@ -102,17 +113,17 @@ function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProjec
 
 /** What the draft does to every project, beside the knobs, with the actions. */
 export default function ImpactPanel(props) {
-  const { isDirty, busy, changedCount, onReview, onUndo, onReset } = props;
+  const { isDirty, isCustom, busy, changedCount, actionsRef, onReview, onUndo, onReset } = props;
   return (
     <aside className="panel gf-impact" aria-label={t('gradeFormula.impactLabel')}>
       <div className="panel-header"><span className="gf-impact__label">{t('gradeFormula.impactLabel')}</span></div>
       <div className="gf-impact__body"><Body {...props} /></div>
-      <div className="gf-impact__actions">
+      <div className="gf-impact__actions" ref={actionsRef} tabIndex={-1}>
         <button type="button" className="settings-pill settings-pill--active" disabled={!isDirty || busy} onClick={onReview}>
           {t('gradeFormula.reviewApply')}
         </button>
         <button type="button" className="settings-pill" disabled={!isDirty || busy} onClick={onUndo}>{t('gradeFormula.undoAll')}</button>
-        <button type="button" className="settings-pill" disabled={busy} onClick={onReset}>{t('gradeFormula.resetQ')}</button>
+        <button type="button" className="settings-pill" disabled={busy || (!isCustom && !isDirty)} onClick={onReset}>{t('gradeFormula.resetQ')}</button>
         {changedCount > 0 && (
           <span className="gf-impact__changed">{t(pluralKey(changedCount, 'gradeFormula.changedOne', 'gradeFormula.changedMany'), { count: changedCount })}</span>
         )}
