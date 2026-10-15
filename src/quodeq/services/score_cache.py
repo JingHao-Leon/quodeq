@@ -32,7 +32,7 @@ from quodeq.services._run_version_memo import (  # facade re-export
 )
 from quodeq.core.scoring import projector_scoring
 from quodeq.services._score_cache_params import params_fingerprint
-from quodeq.services.standards_version import standards_fingerprint
+from quodeq.services.standards_version import StandardsSnapshot, standards_fingerprint
 from quodeq.services.wiring import load_suppression_rules
 
 # ---------------------------------------------------------------------------
@@ -103,12 +103,10 @@ def run_scoped_version(
 ) -> str:
     """Version hash for a single run: params, standards, and only the suppressions that touch it.
 
-    A run's rescored score depends on dismissals that can hide one of its
-    findings (``DismissedKeys.touching`` against *run_dismiss_keys*, the run's
-    ``finding_dismiss_keys`` union), deletions whose (dim,principle,file) is
-    in *run_class_keys*, and the standards its findings resolve against
-    (*standards*, see :func:`standards_fingerprint`). Intersecting the
-    suppressions keeps unaffected runs' versions stable.
+    It depends on dismissals that can hide one of its findings (``touching``
+    *run_dismiss_keys*), deletions in *run_class_keys*, and only the standards
+    this run scored (*standards*, ``StandardsSnapshot.for_run``), so
+    unaffected runs keep their versions.
     """
     touching = as_dismissed_keys(dismissed_all).touching(run_dismiss_keys)
     payload = json.dumps({
@@ -202,7 +200,7 @@ def per_run_versions(
     out: list[tuple[str, RunState, str]] = []
     pending: list[tuple[int, str, RunState]] = []
     for idx, (rid, status) in enumerate(runs):
-        version = memoized_run_version(project_dir, rid, inputs.fingerprint) if status is RunState.DONE else None
+        version = memoized_run_version(project_dir, rid, inputs.run_state(rid)[0]) if status is RunState.DONE else None
         if version is None:
             pending.append((idx, rid, status))
         out.append((rid, status, version or ""))
@@ -218,17 +216,22 @@ class VersionInputs:
     params: ScoringParams
     dismissed: "DismissedKeys | set[tuple]"
     deleted: set[tuple]
-    standards: str
+    standards: StandardsSnapshot
     fingerprint: str
+
+    def run_state(self, run_id: str) -> tuple[str, str]:
+        """(memo state, standards fingerprint) for one run: only the standards it scored count."""
+        standards = self.standards.for_run(run_id)
+        return f"{self.fingerprint}:{standards}", standards
 
     @classmethod
     def of(
         cls, params: ScoringParams, dismissed: "DismissedKeys | set[tuple]", deleted: set[tuple],
         project_dir: Path,
     ) -> "VersionInputs":
-        """Bundle the inputs, read the project's standards fingerprint, and hash once for every run."""
-        standards = standards_fingerprint(project_dir)
-        fingerprint = suppression_state_fingerprint(params, dismissed, deleted, standards=standards)
+        """Bundle the inputs, load the standards once, and hash the suppression state once for every run."""
+        standards = StandardsSnapshot.load(project_dir)
+        fingerprint = suppression_state_fingerprint(params, dismissed, deleted, standards="per-run")
         return cls(params, dismissed, deleted, standards, fingerprint)
 
 
@@ -261,11 +264,11 @@ def _fill_versions(
             keys = read_run_key_sets(project_dir / rid)
             if terminal and conn is not None:
                 store_run_keys(conn, project, rid, keys[0], keys[1])
+        state, standards = inputs.run_state(rid)
         version = run_scoped_version(
-            inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted,
-            standards=inputs.standards)
+            inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted, standards=standards)
         if terminal:
-            remember_run_version(project_dir, rid, inputs.fingerprint, version)
+            remember_run_version(project_dir, rid, state, version)
         out[idx] = (rid, status, version)
 
 

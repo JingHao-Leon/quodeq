@@ -1,6 +1,6 @@
-"""Run-directory removal and reports-root scanning.
+"""Run-directory removal, reports-root scanning and run dimension listing.
 
-These two are plain filesystem operations (rmtree, directory scan) with no
+These are plain filesystem operations (rmtree, directory scans) with no
 run-index business logic of their own, so they belong in the data layer.
 ``services/_run_index_fs.py`` re-exports both (via ``services/wiring.py``)
 for its callers.
@@ -12,6 +12,10 @@ from pathlib import Path
 
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.utils.io import is_within
+from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX
+
+_EVALUATION_DIRNAME = "evaluation"
+_EVIDENCE_SUFFIX = "_evidence.jsonl"
 
 
 def remove_run_directory(
@@ -58,3 +62,25 @@ def scan_reports_root_for_run(reports_root: Path | None, run_id: str) -> Path | 
         if candidate.is_dir():
             return candidate
     return None
+
+
+def run_dimension_ids(run_dir: Path) -> frozenset[str]:
+    """Lowercase ids of the dimensions *run_dir* analysed, from listings only.
+
+    A finished run leaves ``evaluation/<dim>.json``; a run still in progress
+    has at least ``evidence/<dim>_evidence.jsonl``. Missing folders and other
+    files contribute nothing.
+    """
+    ids = {p.stem.lower() for p in _entries(run_dir / _EVALUATION_DIRNAME) if p.suffix == JSON_SUFFIX}
+    ids |= {
+        p.name[: -len(_EVIDENCE_SUFFIX)].lower()
+        for p in _entries(run_dir / EVIDENCE_DIRNAME) if p.name.endswith(_EVIDENCE_SUFFIX)
+    }
+    return frozenset(ids)
+
+
+def _entries(directory: Path) -> list[Path]:
+    try:
+        return list(directory.iterdir())
+    except OSError:
+        return []

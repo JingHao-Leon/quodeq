@@ -34,12 +34,25 @@ def _project(tmp_path: Path, repo: Path | None = None) -> Path:
     return project_dir
 
 
+def _edit(path: Path) -> None:
+    """Change what a rescore reads (a principle), not just the file's mtime."""
+    path.write_text('{"principles": [{"id": "edited"}]}', encoding="utf-8")
+    _bump_mtime(path)
+
+
 def _scored(project_dir: Path, *dims: str, run: str = "run-1") -> None:
     """A finished run that scored *dims* (evaluation files only, as on disk)."""
     evaluation = project_dir / run / "evaluation"
     evaluation.mkdir(parents=True, exist_ok=True)
     for dim in dims:
         (evaluation / f"{dim}.json").write_text("{}", encoding="utf-8")
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_evaluators(tmp_path, monkeypatch):
+    """Never stat the real ~/.quodeq/evaluators; tests that need one patch again."""
+    monkeypatch.setattr(
+        "quodeq.services.standards_version.standard_dirs", lambda: (None, tmp_path / "no-evaluators"))
 
 
 @pytest.fixture()
@@ -157,7 +170,7 @@ class TestScoredOnly:
         project_dir = _project(tmp_path)
         _scored(project_dir, "android-kotlin")
         before = standards_fingerprint(project_dir, compiled_dir=compiled)
-        _bump_mtime(evaluators / "android-kotlin.json")
+        _edit(evaluators / "android-kotlin.json")
         assert standards_fingerprint(project_dir, compiled_dir=compiled) != before
 
     def test_editing_an_unscored_compiled_standard_keeps_it(self, tmp_path):
@@ -183,7 +196,7 @@ class TestScoredOnly:
         evidence.mkdir(parents=True)
         (evidence / "quality_evidence.jsonl").write_text("", encoding="utf-8")
         before = standards_fingerprint(project_dir, compiled_dir=compiled)
-        _bump_mtime(compiled / "quality.json")
+        _edit(compiled / "quality.json")
         assert standards_fingerprint(project_dir, compiled_dir=compiled) != before
 
     def test_project_without_runs_is_stable(self, tmp_path):
@@ -198,7 +211,7 @@ class TestScoredOnly:
         project_dir = _project(tmp_path)
         _scored(project_dir, "Security")
         before = standards_fingerprint(project_dir, compiled_dir=compiled)
-        _bump_mtime(compiled / "security.json")
+        _edit(compiled / "security.json")
         assert standards_fingerprint(project_dir, compiled_dir=compiled) != before
 
     def test_non_run_entries_are_ignored(self, tmp_path):
@@ -227,10 +240,10 @@ class TestVersionHashesFoldStandards:
         monkeypatch.setattr(
             "quodeq.services.standards_version.standard_dirs", lambda: (compiled, None))
         before = VersionInputs.of(DEFAULT_PARAMS, set(), set(), project_dir)
-        _bump_mtime(compiled / "security.json")
+        _edit(compiled / "security.json")
         after = VersionInputs.of(DEFAULT_PARAMS, set(), set(), project_dir)
         assert before.standards != after.standards
-        assert before.fingerprint != after.fingerprint
+        assert before.run_state("run-1") != after.run_state("run-1")
 
     def test_score_cache_version_changes_with_standards(self, tmp_path, monkeypatch):
         compiled = _compiled(tmp_path)
@@ -239,5 +252,5 @@ class TestVersionHashesFoldStandards:
         monkeypatch.setattr(
             "quodeq.services.standards_version.standard_dirs", lambda: (compiled, None))
         before = score_cache_version(project_dir, DEFAULT_PARAMS)
-        _bump_mtime(compiled / "security.json")
+        _edit(compiled / "security.json")
         assert score_cache_version(project_dir, DEFAULT_PARAMS) != before

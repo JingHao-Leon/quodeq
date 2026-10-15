@@ -68,7 +68,7 @@ from quodeq.data.fs.run_files import (  # noqa: F401
 )
 
 # Run-directory removal (rmtree) and reports-root fallback scanning.
-from quodeq.data.fs.run_dirs import remove_run_directory, scan_reports_root_for_run  # noqa: F401
+from quodeq.data.fs.run_dirs import remove_run_directory, run_dimension_ids, scan_reports_root_for_run  # noqa: F401
 
 # Run-artifact copy/replace mechanics (shared-repo publish staging).
 from quodeq.data.fs.run_artifacts import (  # noqa: F401
