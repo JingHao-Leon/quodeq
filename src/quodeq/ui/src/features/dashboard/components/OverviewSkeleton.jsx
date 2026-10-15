@@ -126,13 +126,13 @@ function SkeletonDimensionCard({ index }) {
   );
 }
 
-/** The compact cards, balanced over their rows as DimensionCardsGrid balances them. */
-function SkeletonDimensions() {
+/** The compact cards, balanced over their rows as DimensionCardsGrid balances them, under `label`. */
+function SkeletonDimensions({ label }) {
   const [gridRef, gridStyle] = useBalancedColumns(DIMENSION_CARD_COUNT, COMPACT_MIN_WIDTH, GRID_GAP);
   return (
     <section className="quality-dimensions" aria-hidden="true">
       <div className="quality-dimensions__head">
-        <SectionLabel>{t('overview.qualityDimensionsLabel')}</SectionLabel>
+        <SectionLabel>{label}</SectionLabel>
       </div>
       <div className="dimensions-panel">
         <div className="dimensions-grid" ref={gridRef} style={gridStyle}>
@@ -198,12 +198,14 @@ export function SkeletonBottom({ run = false }) {
  *   formula or version, shown dimmed in the ring's place while it rebuilds.
  * @param {boolean} [props.run] the run page's footprint (History's "open run"):
  *   the run's header, no score history or radial, folders in the Where panel
+ * @param {string} [props.title] the header's name in place of the Overview's (a dimension page's dimension)
+ * @param {string} [props.cardsLabel] the cards' section label in place of "quality dimensions" (a dimension's principles)
  */
-export default function OverviewSkeleton({ projectName, lastKnown = null, run = false }) {
+export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, title, cardsLabel }) {
   return (
     <div className="overview-skeleton" aria-busy="true">
-      <SkeletonHead title={t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} />
-      <SkeletonDimensions />
+      <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} />
+      <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} />
       {!run && <SkeletonTopGrid />}
       <SkeletonBottom run={run} />
     </div>
