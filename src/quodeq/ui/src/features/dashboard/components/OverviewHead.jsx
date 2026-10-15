@@ -49,7 +49,7 @@ export function overviewSub({ projectInfo, lastDate = null, model = null, dimens
 }
 
 /** Beside the title: the score's trend (none under 0.05), and the shared badge on a shared project. */
-function HeadBadge({ delta, shared, publishedBy }) {
+export function HeadBadge({ delta, shared, publishedBy }) {
   const trend = scoreChangeShows(delta) ? <TrendBadge delta={delta} /> : null;
   if (!trend && !shared) return null;
   return <>{trend}{shared ? <SharedReadOnlyBadge publishedBy={publishedBy} /> : null}</>;

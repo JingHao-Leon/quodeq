@@ -105,7 +105,7 @@ src/quodeq/ui/src/features/dashboard/components/DashboardPage.fadeOnceIdentity.t
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.fadeOnceReArm.test.jsx:12
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.loadingAndErrors.test.jsx:5
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.noRunsTransition.test.jsx:11
-src/quodeq/ui/src/features/dashboard/components/DashboardPage.runModeAndTeammate.test.jsx:12
+src/quodeq/ui/src/features/dashboard/components/DashboardPage.runModeAndTeammate.test.jsx:13
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.selectorAndStartup.test.jsx:5
 src/quodeq/ui/src/features/dashboard/components/ProjectsPage.badgesAndFilters.test.jsx:40
 src/quodeq/ui/src/features/dashboard/components/ProjectsPage.groupingAndSync.test.jsx:40

@@ -65,4 +65,12 @@ describe('OverviewSkeleton', () => {
     expect(container.querySelector('.overview-skeleton__last-known')).toBeNull();
     expect(container.querySelector('.term-header__sub')).toHaveTextContent('loading');
   });
+
+  it('draws the run page\'s footprint for a run: the run\'s header, no history or radial, folders in the Where panel', () => {
+    const { container } = render(<OverviewSkeleton projectName="quodeq" run />);
+    const sections = [...container.querySelector('.overview-skeleton').children].map((n) => n.className);
+    expect(sections).toEqual(['findings-head qd-cards-panel', 'overview-since', 'quality-dimensions', 'explorer-bottom']);
+    expect(container.querySelector('.term-header__name')).toHaveTextContent(/^run$/);
+    expect(container.querySelector('.explorer-where .folders-panel')).not.toBeNull();
+  });
 });

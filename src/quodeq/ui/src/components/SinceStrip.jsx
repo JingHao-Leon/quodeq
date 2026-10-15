@@ -15,6 +15,17 @@ function FindingCounts({ summary }) {
   );
 }
 
+/** New and fixed findings, then the rule types that appeared and went away. */
+function SinceCounts({ summary }) {
+  return (
+    <>
+      <FindingCounts summary={summary} />
+      {summary.typesOpened > 0 && <span className="overview-since__num">{t('overview.sinceTypesOpened', { count: summary.typesOpened })}</span>}
+      {summary.typesClosed > 0 && <span className="overview-since__num">{t('overview.sinceTypesClosed', { count: summary.typesClosed })}</span>}
+    </>
+  );
+}
+
 /** The dimensions that moved most, each opening its page. */
 function Movers({ movers, onMover }) {
   if (!movers.length) return null;
@@ -31,22 +42,22 @@ function Movers({ movers, onMover }) {
 }
 
 /**
- * "Since the previous day / week / month" (the chart's grouping) in one
- * line: new and fixed findings, the rule types that appeared or went away,
- * and, on the Overview, the dimensions that moved most. Nothing without a
- * summary (sinceSummary).
- * @param {{summary: ?object, granularity?: string, movers?: {name: string, delta: number}[], onMover?: (name: string) => void}} props
+ * "Since the previous day / week / month" (the chart's grouping), or the
+ * caller's `label` ("since the previous run"), in one line: new and fixed
+ * findings, the rule types that appeared or went away, and, on the
+ * Overview and the run page, the dimensions that moved most. Without a
+ * summary (sinceSummary), the `emptyNote` saying why, or nothing.
+ * @param {{summary: ?object, granularity?: string, label?: string, emptyNote?: ?string,
+ *   movers?: {name: string, delta: number}[], onMover?: (name: string) => void}} props
  */
-export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, movers = [], onMover }) {
-  if (!summary) return null;
-  const label = t(`overview.sincePeriod_${granularity}`);
+export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, label: ownLabel, emptyNote = null, movers = [], onMover }) {
+  if (!summary && !emptyNote) return null;
+  const label = ownLabel || t(`overview.sincePeriod_${granularity}`);
   return (
     <section className="overview-since" aria-label={label}>
       <span className="overview-since__label">{label}</span>
-      <FindingCounts summary={summary} />
-      {summary.typesOpened > 0 && <span className="overview-since__num">{t('overview.sinceTypesOpened', { count: summary.typesOpened })}</span>}
-      {summary.typesClosed > 0 && <span className="overview-since__num">{t('overview.sinceTypesClosed', { count: summary.typesClosed })}</span>}
-      <Movers movers={movers} onMover={onMover} />
+      {summary ? <SinceCounts summary={summary} /> : <span className="overview-since__num overview-since__num--quiet">{emptyNote}</span>}
+      {summary && <Movers movers={movers} onMover={onMover} />}
     </section>
   );
 }

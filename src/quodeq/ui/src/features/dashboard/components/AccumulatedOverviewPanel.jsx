@@ -23,7 +23,7 @@ import { topMovers } from '../../../models/sinceSummary.js';
 import { useAccumulatedReportSpec } from './accumulatedReportSpecs.jsx';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { withPending } from '../../../utils/pendingClass.js';
-import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
+import { makeCardNavigate, makeFindingsNavigate, moverNavigate } from '../overviewNavigate.js';
 import { overviewAsOf } from '../overviewAsOf.js';
 import { nameKey } from '../../../utils/nameKey.js';
 
@@ -120,44 +120,6 @@ function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, on
       </WherePanel>
     </div>
   );
-}
-
-// Every finding view below opens as a scoped Findings view, today's or, on a
-// past run (`asOf`, see overviewAsOf), that run's, read-only.
-
-/** The header tiles: the project's findings, opened on the tile's severity or on the compliant checks. */
-function makeCardNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf);
-}
-
-/** Fix first: a requirement opens on its findings. */
-function makeRequirementNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (row) => openScope(onNavigate, { kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }, asOf);
-}
-
-/** Where the findings live: a folder opens on its findings. */
-function makeFolderNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (row) => openScope(onNavigate, { kind: SCOPE_KIND.FOLDER, path: row.dir }, asOf);
-}
-
-/** Violations by file: a file opens on its findings. */
-function makeFileNavigate({ onNavigate, asOf }) {
-  if (!onNavigate) return undefined;
-  return (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf);
-}
-
-/** What the panels below the cards open: a requirement, a folder, a file. */
-function makeFindingsNavigate(args) {
-  return { requirement: makeRequirementNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
-}
-
-/** The dimension a mover's name (lowercase) opens, if one is on show. */
-function moverNavigate(sorted, onDimensionClick) {
-  if (!onDimensionClick) return undefined;
-  return (name) => { const d = sorted.find((x) => nameKey(x.dimension) === name); if (d) onDimensionClick(d); };
 }
 
 /**

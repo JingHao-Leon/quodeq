@@ -28,9 +28,10 @@ const NOT_LIT = Object.freeze({ name: null, setName: null });
  * @param {() => void} [props.onEvaluate] what an empty card opens
  * @param {boolean} [props.compact] the principle card's form: ring beside grade, pills and pass rate
  * @param {{name: ?string, setName: ?Function}} [props.lit] the card lit with its radial point, and who to tell which card the pointer or keyboard is on
+ * @param {(item: object) => import('react').ReactNode} [props.footerFor] compact only: a card's footer in place of its pass rate (the run page's new and fixed findings)
  */
 export default function DimensionCardsGrid({
-  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, lit = NOT_LIT,
+  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, lit = NOT_LIT, footerFor,
 }) {
   const dimNameSet = selectedDayDimNames instanceof Set ? selectedDayDimNames : new Set();
   const [gridRef, gridStyle] = useBalancedColumns(sortedDimensions.length + notEvaluated.length, compact ? COMPACT_MIN_WIDTH : CARD_MIN_WIDTH, GRID_GAP);
@@ -52,6 +53,7 @@ export default function DimensionCardsGrid({
             showDate={!compact}
             highlighted={lit.name === item.dimension}
             onHover={lit.setName ? (on) => lit.setName(on ? item.dimension : null) : undefined}
+            footer={footerFor?.(item)}
           />
         );
       })}

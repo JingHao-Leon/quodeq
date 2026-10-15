@@ -26,9 +26,8 @@ function gateFrame(className, children) {
 
 // `pending` mutes the page text (section-pending) itself: only for
 // gate states with no sections of their own to carry it.
-export function dashboardPageClassName({ appearClass = '', dimmed = false, pending = false }) {
-  const state = dimmed ? 'dashboard-loading' : `dashboard-ready${appearClass}`;
-  return `dashboard-page dashboard-fade ${state}${pending ? ' section-pending' : ''}`;
+export function dashboardPageClassName({ appearClass = '', pending = false }) {
+  return `dashboard-page dashboard-fade dashboard-ready${appearClass}${pending ? ' section-pending' : ''}`;
 }
 
 function renderNoProjectsGate({ sharedHasContent, onNavigate, readyClass }) {

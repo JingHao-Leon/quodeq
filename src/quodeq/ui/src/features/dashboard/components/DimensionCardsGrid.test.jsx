@@ -72,4 +72,10 @@ describe('DimensionCardsGrid, compact (the Overview)', () => {
     fireEvent.mouseLeave(card);
     expect(onHover.mock.calls).toEqual([['maintainability'], [null]]);
   });
+
+  it('puts the caller\'s footer in a compact card, in place of its pass rate', () => {
+    const { container } = render(<DimensionCardsGrid sortedDimensions={DIMS} compact footerFor={(item) => <span>{`${item.dimension} moved`}</span>} />);
+    expect(screen.getByText('maintainability moved')).toBeInTheDocument();
+    expect(container.querySelector('.dim-gauge-card__pass')).toBeNull();
+  });
 });

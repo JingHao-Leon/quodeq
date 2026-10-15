@@ -46,12 +46,13 @@ export function useOverviewSince({ project, source = PROJECT_SOURCE.LOCAL, dimen
 }
 
 /**
- * The model the run on show was evaluated with (the run log's, the newest
- * finished run's when it does not list that run); null for a shared
- * project, which has no run log.
- * @param {{project: ?string, source?: string, runId: ?string}} args
+ * The project's run log entries, newest first (the History run log's
+ * query); null for a shared project, which has no run log, and while it loads.
+ * @param {?string} project
+ * @param {string} [source]
+ * @returns {?object[]}
  */
-export function useRunModel({ project, source = PROJECT_SOURCE.LOCAL, runId }) {
+export function useRunLogRuns(project, source = PROJECT_SOURCE.LOCAL) {
   const api = useApi();
   const local = source !== PROJECT_SOURCE.SHARED;
   const log = useQuery({
@@ -60,5 +61,16 @@ export function useRunModel({ project, source = PROJECT_SOURCE.LOCAL, runId }) {
     enabled: Boolean(project && local),
     staleTime: STALE_TIME_MS,
   });
-  return local ? modelOfRun(log.data?.runs, runId) : null;
+  return local ? log.data?.runs ?? null : null;
+}
+
+/**
+ * The model the run on show was evaluated with (the run log's, the newest
+ * finished run's when it does not list that run); null for a shared
+ * project, which has no run log.
+ * @param {{project: ?string, source?: string, runId: ?string}} args
+ */
+export function useRunModel({ project, source = PROJECT_SOURCE.LOCAL, runId }) {
+  const runs = useRunLogRuns(project, source);
+  return runs ? modelOfRun(runs, runId) : null;
 }

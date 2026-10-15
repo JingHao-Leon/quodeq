@@ -86,12 +86,12 @@ function SkeletonTile({ index }) {
   );
 }
 
-function SkeletonHead({ projectName, lastKnown }) {
+function SkeletonHead({ title, projectName, lastKnown }) {
   return (
     <section className="findings-head qd-cards-panel">
       <SkeletonRing lastKnown={lastKnown} />
       <div className="findings-head__who">
-        <TermHeader name={t('overview.termName')} sub={skeletonSub(projectName, lastKnown)} />
+        <TermHeader name={title} sub={skeletonSub(projectName, lastKnown)} />
       </div>
       <div className="findings-head__stats" aria-hidden="true">
         {placeholders(HEAD_TILE_COUNT).map((index) => <SkeletonTile key={index} index={index} />)}
@@ -172,13 +172,18 @@ function SkeletonListPanel({ className, label, rows }) {
   );
 }
 
-function SkeletonBottom() {
+/**
+ * Fix first beside the Where panel, on the Overview's areas or, on the run
+ * page (`run`), its folders; the run page shows it alone while the run's
+ * findings load.
+ */
+export function SkeletonBottom({ run = false }) {
   return (
     <div className="explorer-bottom" aria-hidden="true">
       <SkeletonListPanel className="fix-first-panel" label={t('overview.fixFirstLabel')} rows={FIX_FIRST_SHOWN} />
       <section className="explorer-where">
         <Bar kind="where-switch" />
-        <SkeletonListPanel className="risk-areas-panel" label={t('overview.riskAreasLabel')} rows={WHERE_ROW_COUNT} />
+        <SkeletonListPanel className={run ? 'folders-panel' : 'risk-areas-panel'} label={t(run ? 'overview.foldersLabel' : 'overview.riskAreasLabel')} rows={WHERE_ROW_COUNT} />
       </section>
     </div>
   );
@@ -191,15 +196,17 @@ function SkeletonBottom() {
  * @param {{grade?: string, score?: number, files?: number}|null} [props.lastKnown]
  *   The grade the server last computed for the project, under the previous
  *   formula or version, shown dimmed in the ring's place while it rebuilds.
+ * @param {boolean} [props.run] the run page's footprint (History's "open run"):
+ *   the run's header, no score history or radial, folders in the Where panel
  */
-export default function OverviewSkeleton({ projectName, lastKnown = null }) {
+export default function OverviewSkeleton({ projectName, lastKnown = null, run = false }) {
   return (
     <div className="overview-skeleton" aria-busy="true">
-      <SkeletonHead projectName={projectName} lastKnown={lastKnown} />
+      <SkeletonHead title={t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} />
       <SkeletonSince />
       <SkeletonDimensions />
-      <SkeletonTopGrid />
-      <SkeletonBottom />
+      {!run && <SkeletonTopGrid />}
+      <SkeletonBottom run={run} />
     </div>
   );
 }
