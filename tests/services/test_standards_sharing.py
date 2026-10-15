@@ -52,3 +52,10 @@ def test_hash_ignores_keys_an_install_drops_and_key_order():
     reordered = dict(reversed(list(plain.items())))
     assert share_hash(noisy) == share_hash(plain) == share_hash(reordered)
     assert share_hash({**plain, "weight": 2.0}) != share_hash(plain)
+
+
+def test_weight_hashes_as_a_float_with_the_editor_default():
+    plain = {"id": "a", "name": "A", "principles": []}
+    same = {share_hash({**plain, "weight": w}) for w in (1, 1.0, True, "heavy")} | {share_hash(plain)}
+    assert len(same) == 1
+    assert share_hash({**plain, "weight": 2}) != share_hash(plain)

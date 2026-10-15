@@ -132,9 +132,19 @@ def _requirement_texts(req: dict) -> Iterator[tuple[str, str]]:
         yield f"{where} parameter '{name}' label", spec["label"]
 
 
+_DEFAULT_WEIGHT = 1.0  # what the editor's detail fills in for a file without one
+
+
+def _weight(value: object) -> float:
+    """*value* as a float; missing or not a real number reads as the default, so 1 == 1.0 == absent."""
+    return float(value) if _is_number(value) else _DEFAULT_WEIGHT
+
+
 def normalized_for_share(data: dict) -> dict:
     """What an install keeps of *data*: the comparable content of a shared standard."""
-    return with_share_extras(sanitize_import(data), data)
+    out = with_share_extras(sanitize_import(data), data)
+    out["weight"] = _weight(data.get("weight"))
+    return out
 
 
 def extra_texts(content: dict) -> list[tuple[str, str]]:
