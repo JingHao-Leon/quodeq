@@ -1,0 +1,52 @@
+import { useMemo } from 'react';
+import { t } from '../../../strings/index.js';
+import { chartScale, maxSavedWeight, principleDots, DIR } from './chartScale.js';
+import { Backdrop, Curves } from './ChartBackdrop.jsx';
+
+const DOT_RADIUS = 4;
+const FLIP_DOT_RADIUS = 6;
+const HIT_RADIUS = 9;
+
+function Dots({ dots, litProject, onHoverProject }) {
+  return (
+    <g>
+      {dots.map((d) => d.dir !== DIR.SAME && (
+        <line key={`s-${d.key}`} className={`gf-stem gf-stem--${d.dir}`} x1={d.x} x2={d.x} y1={d.yBefore} y2={d.yAfter} />
+      ))}
+      {dots.map((d) => {
+        const dim = litProject && litProject !== d.project;
+        const cls = `gf-dot gf-dot--${d.dir}${d.flip ? ' gf-dot--flip' : ''}${dim ? ' gf-dot--dim' : ''}`;
+        return (
+          <g key={d.key}>
+            <circle className={cls} cx={d.x} style={{ cy: d.yAfter }} r={d.flip ? FLIP_DOT_RADIUS : DOT_RADIUS} />
+            <circle className="gf-dot-hit" cx={d.x} cy={d.yAfter} r={HIT_RADIUS}
+              onMouseEnter={() => onHoverProject(d.project)} onMouseLeave={() => onHoverProject(null)}>
+              <title>{t('gradeFormula.dotTitle', { principle: d.id, project: d.project, dimension: d.dimension, before: d.before.toFixed(1), after: d.after.toFixed(1) })}</title>
+            </circle>
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+/** Every principle: finding weight across, score up, under the saved formula and the draft. */
+export default function PrincipleChart({ inputs, saved, draft, highlight, litProject, onHoverProject }) {
+  const scale = useMemo(() => chartScale(maxSavedWeight(inputs, saved)), [inputs, saved]);
+  const dots = useMemo(() => principleDots(inputs, saved, draft), [inputs, saved, draft]);
+  const moved = dots.filter((d) => d.dir !== DIR.SAME).length;
+  const flips = dots.filter((d) => d.flip).length;
+  return (
+    <figure className="gf-chart-wrap">
+      <svg className={`gf-chart${highlight ? ` gf-chart--hl-${highlight}` : ''}`} viewBox={`0 0 ${scale.width} ${scale.height}`}
+        role="img" aria-label={t('gradeFormula.chartAria')}>
+        <Backdrop scale={scale} draft={draft} />
+        <Curves scale={scale} saved={saved} draft={draft} />
+        <Dots dots={dots} litProject={litProject} onHoverProject={onHoverProject} />
+      </svg>
+      <figcaption className="gf-chart__count">
+        {moved === 0 ? t('gradeFormula.chartCountRest', { shown: dots.length }) : t('gradeFormula.chartCount', { shown: dots.length, moved, flips })}
+      </figcaption>
+    </figure>
+  );
+}

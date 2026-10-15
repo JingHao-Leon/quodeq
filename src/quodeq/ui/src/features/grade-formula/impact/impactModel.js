@@ -7,6 +7,9 @@ import { applyKnob } from '../knobs/knobGroups.js';
 import { GRADE } from '../../../vocab/grade.js';
 
 export const GRADE_ORDER = [GRADE.EXEMPLARY, GRADE.GOOD, GRADE.ADEQUATE, GRADE.POOR, 'Critical'];
+const GRADE_CLASS_NAMES = ['top', 'high', 'mid', 'low', 'bottom'];
+/** The css class suffix of each grade (top ... bottom). */
+export const GRADE_CLASS = Object.fromEntries(GRADE_ORDER.map((grade, i) => [grade, GRADE_CLASS_NAMES[i]]));
 
 function scoreProject(project, params) {
   const dims = project.dimensions.map((d) => ({ dimension: d.dimension, score: dimensionScore(d, params) }));

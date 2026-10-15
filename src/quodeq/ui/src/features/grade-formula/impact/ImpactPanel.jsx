@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react';
-import { projectImpact, principleShifts, gradeDistribution, GRADE_ORDER } from './impactModel.js';
+import { projectImpact, principleShifts, gradeDistribution, GRADE_ORDER, GRADE_CLASS } from './impactModel.js';
 import { t } from '../../../strings/index.js';
 import { pluralKey } from '../../../utils/plural.js';
 
 // A score change of this many points fills half the change bar.
 const FULL_BAR_POINTS = 2;
 const HALF_BAR_PERCENT = 50;
-const GRADE_CLASS_NAMES = ['top', 'high', 'mid', 'low', 'bottom'];
-const GRADE_CLASS = Object.fromEntries(GRADE_ORDER.map((grade, i) => [grade, GRADE_CLASS_NAMES[i]]));
 const fmt = (v) => (v == null ? '-' : v.toFixed(1));
 
 function ChangeBar({ before, after }) {
