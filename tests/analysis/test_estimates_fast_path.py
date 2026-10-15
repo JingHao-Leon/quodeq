@@ -123,7 +123,7 @@ def test_endpoint_payload_uses_the_fast_path(tmp_path: Path, monkeypatch) -> Non
     monkeypatch.setattr(estimates, "_build_estimate_config", lambda *a: _config(tmp_path))
     monkeypatch.setattr(estimates, "load_analysis_context", lambda config: (DIMS, None))
 
-    estimates.project_estimates_payload(tmp_path, None, False)
+    estimates.project_estimates_payload(tmp_path, None, False, standards_settings=None)
 
     assert captured["count_only"] is True
     assert captured["memo"] == {}

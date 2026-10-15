@@ -40,6 +40,7 @@ from quodeq.services.fs_project_helpers import (
     scan_json_exists,
 )
 from quodeq.services.fs_scan import scan_project
+from quodeq.services.standards_prefs import project_settings_file, settings_reports_root
 from quodeq.core.types.project_source import ProjectLocation
 from quodeq.shared.csv_values import split_csv
 
@@ -143,15 +144,17 @@ def project_estimates(project: str) -> Response | tuple[Response, int]:
     if err is not None:
         return err
 
-    # Lazy import: pulls in the analysis pipeline, which the API process
-    # should not pay for at startup. Layer exception is baselined — same
-    # seam as api/_evaluation_routes.py.
+    # Lazy import: the analysis pipeline is too heavy for API startup. Layer
+    # exception is baselined, same seam as api/_evaluation_routes.py.
     from quodeq.analysis.estimates import project_estimates_payload
 
     raw_dims = request.args.get("dimensions", "")
     requested = split_csv(raw_dims) or None
     clean_scan = request.args.get("cleanScan", "false").strip().lower() == QUERY_FLAG_TRUE
-    return jsonify(project_estimates_payload(project_dir, requested, clean_scan))
+    # Read-only: the run's settings file, never migrating legacy repo files.
+    settings = project_settings_file(settings_reports_root(), project_dir.name, migrate=False)
+    return jsonify(project_estimates_payload(
+        project_dir, requested, clean_scan, standards_settings=settings))
 
 
 def scan_path() -> Response | tuple[Response, int]:

@@ -18,7 +18,6 @@ from quodeq.analysis.manifest import build_manifest, detect_language
 from quodeq.analysis.manifest_scope import filter_manifest_by_scope
 from quodeq.analysis.runner import load_universal_dimensions
 from quodeq.config.paths import default_paths
-from quodeq.data.fs.standards_prefs import project_settings_file
 from quodeq.shared.utils import read_json
 
 EMPTY_ESTIMATES_PAYLOAD = {
@@ -113,7 +112,8 @@ def _aggregate_project_totals(estimates: dict) -> dict:
 
 
 def project_estimates_payload(
-    project_dir: Path, requested: list[str] | None, clean_scan: bool,
+    project_dir: Path, requested: list[str] | None, clean_scan: bool, *,
+    standards_settings: Path | None,
 ) -> dict:
     """Compute read-only pre-run estimates for a project.
 
@@ -121,16 +121,16 @@ def project_estimates_payload(
     dimension resolution via ``load_analysis_context``) without creating a
     run or writing anything to disk. Any resolution failure degrades to the
     zeros payload instead of an error: a project that was never scanned
-    simply has nothing to estimate.
+    simply has nothing to estimate. *standards_settings* is the project's
+    settings file as the caller resolved it (read-only, never migrated); its
+    overrides key the cache lookups exactly as a run's do.
     """
     resolved = _resolve_repo_source(project_dir)
     if resolved is None:
         return dict(EMPTY_ESTIMATES_PAYLOAD)
     src, scope_path = resolved
 
-    # Read-only: resolve the run's settings file without migrating anything.
-    settings = project_settings_file(project_dir.parent, project_dir.name, migrate=False)
-    config = _build_estimate_config(src, scope_path, requested, clean_scan, settings)
+    config = _build_estimate_config(src, scope_path, requested, clean_scan, standards_settings)
     if config is None:
         return dict(EMPTY_ESTIMATES_PAYLOAD)
 

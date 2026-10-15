@@ -47,7 +47,7 @@ class TestBuildRunConfigAiModel:
         args = self._make_args()
         inputs = self._make_inputs(tmp_path)
         env = {"AI_MODEL": "qwen3.5:9b"}
-        config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env=env)
+        config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env=env)
         assert config.options.ai_model == "qwen3.5:9b"
 
     def test_ai_model_none_when_not_set(self, tmp_path):
@@ -55,7 +55,7 @@ class TestBuildRunConfigAiModel:
         args = self._make_args()
         inputs = self._make_inputs(tmp_path)
         env = {}
-        config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env=env)
+        config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env=env)
         assert config.options.ai_model is None
 
     def test_subagent_model_used_as_fallback(self, tmp_path):
@@ -63,7 +63,7 @@ class TestBuildRunConfigAiModel:
         args = self._make_args()
         inputs = self._make_inputs(tmp_path)
         env = {"SUBAGENT_MODEL": "sonnet"}
-        config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env=env)
+        config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env=env)
         assert config.options.ai_model == "sonnet"
 
 
@@ -200,7 +200,7 @@ class TestCliRunSettingsReachTheDimensionConfig:
         monkeypatch.setenv("QUODEQ_CACHE_ROOT", str(tmp_path / "root"))
         args = TestBuildRunConfigAiModel._make_args()
         run_config = build_run_config(
-            args, inputs=TestBuildRunConfigAiModel._make_inputs(tmp_path), evidence_dir=tmp_path,
+            args, inputs=TestBuildRunConfigAiModel._make_inputs(tmp_path), reports_root=tmp_path, evidence_dir=tmp_path,
         )
         # Read once per run: a later change to the process env is not seen.
         monkeypatch.setenv("AI_CMD", "gemini")
@@ -217,7 +217,7 @@ class TestCliRunSettingsReachTheDimensionConfig:
         monkeypatch.setenv("QUODEQ_DEFAULT_MAX_DURATION", "77")
         inputs = TestBuildRunConfigAiModel._make_inputs(tmp_path)
         run_config = build_run_config(
-            TestBuildRunConfigAiModel._make_args(), inputs=inputs, evidence_dir=tmp_path,
+            TestBuildRunConfigAiModel._make_args(), inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path,
         )
         monkeypatch.setenv("QUODEQ_DEFAULT_MAX_TURNS", "5")
         ac = self._dimension_config(tmp_path, run_config)
@@ -225,7 +225,7 @@ class TestCliRunSettingsReachTheDimensionConfig:
 
         explicit = build_run_config(
             TestBuildRunConfigAiModel._make_args(max_turns=10, max_duration=300),
-            inputs=inputs, evidence_dir=tmp_path,
+            inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path,
         )
         ac = self._dimension_config(tmp_path, explicit)
         assert (ac.max_turns, ac.max_duration) == (10, 300)

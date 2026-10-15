@@ -25,7 +25,7 @@ from quodeq.data.fs.standards_loader import load_compiled_refs as _load_compiled
 from quodeq.context.project_shape import detect_shape
 from quodeq.context.trust_model import resolve_trust_model
 from quodeq.data.fs.standards_loader import load_compiled_requirements as _load_compiled_requirements
-from quodeq.data.fs.standards_prefs import load_overrides_file, project_settings_file
+from quodeq.data.fs.standards_prefs import load_overrides_file, project_settings_file, settings_reports_root
 from quodeq.shared.fault_isolation import run_isolated
 
 # Re-export public API so existing imports keep working.
@@ -79,13 +79,14 @@ def findings_standards_settings(findings_path: str) -> Path | None:
     The findings path is ``<reports>/<project>/<run>/evidence/<dim>_evidence.jsonl``,
     so the project dir is its great-grandparent. This server is its own process:
     it resolves the same file the parent run's ``RunConfig.standards_settings``
-    holds. It never migrates (the parent run already did), so this
+    holds, with the owner looked up under the local evaluations root (the
+    environment it inherits from the run). It never migrates (the parent run already did), so this
     subprocess never writes the settings file.
     """
     project_dir = Path(findings_path).parent.parent.parent
     if not project_dir.name:
         return None
-    return project_settings_file(project_dir.parent, project_dir.name, migrate=False)
+    return project_settings_file(settings_reports_root(), project_dir.name, migrate=False)
 
 
 def _build_compiled_context(sa: ServerArgs) -> CompiledContext:

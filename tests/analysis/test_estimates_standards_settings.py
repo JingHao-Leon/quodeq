@@ -2,7 +2,8 @@
 
 Overrides fold into every cache key's params_hash, so estimates must read the
 same settings file a run reads, or every file in an overridden dimension
-counts as a miss. Estimates never migrate legacy repo files.
+counts as a miss. The route resolves that file (read-only, never migrating;
+see tests/api/test_estimates_route_standards_settings.py) and passes it in.
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ def _project(tmp_path: Path) -> tuple[Path, Path]:
     return src, project_dir
 
 
-def _captured_config(monkeypatch, project_dir: Path):
+def _captured_config(monkeypatch, project_dir: Path, settings: Path | None):
     seen = []
 
     def capture(config, dimensions, count_only=False):
@@ -33,7 +34,8 @@ def _captured_config(monkeypatch, project_dir: Path):
         return {}
 
     monkeypatch.setattr(estimates, "compute_dim_estimates", capture)
-    estimates.project_estimates_payload(project_dir, ["maintainability"], clean_scan=False)
+    estimates.project_estimates_payload(
+        project_dir, ["maintainability"], clean_scan=False, standards_settings=settings)
     assert len(seen) == 1
     return seen[0]
 
@@ -42,10 +44,10 @@ def test_estimates_key_with_the_runs_overrides(tmp_path, monkeypatch):
     monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
     src, project_dir = _project(tmp_path)
     run_file = standards_settings_for_run(
-        project_dir.parent, project_dir / "run-1" / "evidence", src)
+        project_dir / "run-1" / "evidence", src, reports_root=project_dir.parent)
     write_project_standards(run_file, ProjectStandards(overrides={"M-MOD-1": {"max_complexity": 30}}))
 
-    config = _captured_config(monkeypatch, project_dir)
+    config = _captured_config(monkeypatch, project_dir, run_file)
 
     assert config.standards_settings == run_file
     est_hash, _ = dimension_params_state(config.standards_dir, "maintainability", config.standards_settings)
@@ -53,14 +55,12 @@ def test_estimates_key_with_the_runs_overrides(tmp_path, monkeypatch):
     assert est_hash == run_hash != ""
 
 
-def test_estimates_never_migrate_legacy_repo_files(tmp_path, monkeypatch):
+def test_estimates_never_write_the_settings_file(tmp_path, monkeypatch):
     monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
-    src, project_dir = _project(tmp_path)
-    (src / ".quodeq").mkdir()
-    (src / ".quodeq" / "standards-overrides.json").write_text(
-        json.dumps({"version": 1, "overrides": {"M-MOD-1": {"max_complexity": 30}}}))
+    _src, project_dir = _project(tmp_path)
+    settings = tmp_path / "home" / "projects" / "proj" / "standards.json"
 
-    config = _captured_config(monkeypatch, project_dir)
+    config = _captured_config(monkeypatch, project_dir, settings)
 
-    assert config.standards_settings == tmp_path / "home" / "projects" / "proj" / "standards.json"
-    assert not config.standards_settings.exists()
+    assert config.standards_settings == settings
+    assert not settings.exists()

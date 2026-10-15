@@ -225,12 +225,16 @@ def test_server_and_run_resolve_the_same_settings_file(tmp_path, monkeypatch):
     """The findings server (its own process) and the run's RunConfig must
     read overrides from the SAME settings file, or the two cache writers
     key one file's results under different params hashes. A scoped child
-    project resolves to its parent's file on both sides."""
+    project (recorded under the local evaluations root) resolves to its
+    parent's file on both sides."""
     from quodeq.analysis.mcp.findings_server import findings_standards_settings
     from quodeq.cli_evaluation import standards_settings_for_run
+    from pathlib import Path
+
+    from quodeq.shared.env_paths import get_evaluations_dir
 
     monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
-    reports = tmp_path / "evaluations"
+    reports = Path(get_evaluations_dir())
     (reports / "parent").mkdir(parents=True)
     (reports / "parent" / "repository_info.json").write_text(json.dumps({"name": "m"}))
     (reports / "child").mkdir()
@@ -241,7 +245,7 @@ def test_server_and_run_resolve_the_same_settings_file(tmp_path, monkeypatch):
     src = tmp_path / "src"
     src.mkdir()
 
-    run_side = standards_settings_for_run(reports, evidence, src)
+    run_side = standards_settings_for_run(evidence, src, reports_root=reports)
     server_side = findings_standards_settings(str(evidence / "security_evidence.jsonl"))
 
     assert server_side == run_side

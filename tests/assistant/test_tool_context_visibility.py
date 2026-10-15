@@ -232,3 +232,29 @@ def test_mcp_path_no_repo_root_falls_back_to_defaults(tmp_path, monkeypatch):
 
     assert captured["ctx"].repo_root is None
     assert captured["ctx"].visible_standard_ids == DEFAULT_VISIBLE_STANDARDS
+
+
+def test_api_helper_shared_scoped_child_uses_the_local_owner(tmp_path, monkeypatch):
+    """A shared clone may record 'child' under 'parent'; the owner is read only
+    from the LOCAL evaluations root, so the assistant sees what the API saved."""
+    import json
+
+    from quodeq.api.app import create_app
+
+    shared = tmp_path / "shared"
+    for pid, info in (("parent", {}), ("child", {"parent": "parent"})):
+        (shared / pid).mkdir(parents=True)
+        (shared / pid / "repository_info.json").write_text(json.dumps({"name": pid, **info}))
+    with create_app(test_config={"TESTING": True}).test_client() as c:
+        resp = c.put("/api/projects/child/standards-visibility",
+                     json={"visibleStandardIds": ["security"]}, headers={"Origin": "http://localhost"})
+    assert resp.status_code == 200
+    helpers = "quodeq.api._assistant_helpers"
+    monkeypatch.setattr(f"{helpers}.read_settings", lambda: SharedSettings(url="file:///o.git"))
+    monkeypatch.setattr(f"{helpers}.read_state", lambda url: "ok")
+    monkeypatch.setattr(f"{helpers}.shared_evaluations_root", lambda url: shared)
+    monkeypatch.setattr(f"{helpers}.shared_score_cache_path", lambda url: tmp_path / "cache.db")
+    app = _app(tmp_path)
+    with app.app_context():
+        ctx = build_tool_context(app, _session(source="shared", project_id="child"))
+    assert ctx.visible_standard_ids == ("security",)

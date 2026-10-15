@@ -34,7 +34,7 @@ class TestFailureStreakResolvedOncePerRun:
             legacy_incremental=False,
         )
         inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-        cli_options = build_run_config(args, inputs=inputs, evidence_dir=tmp_path).options
+        cli_options = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path).options
         monkeypatch.setenv("QUODEQ_FAILURE_STREAK", "0")  # would disable it if re-read
 
         config, _src = _setup(tmp_path, {"a.py": "x", "b.py": "y", "c.py": "z"})

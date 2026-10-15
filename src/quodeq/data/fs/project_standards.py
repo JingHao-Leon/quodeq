@@ -21,7 +21,7 @@ from quodeq.data.fs.legacy_standards_files import legacy_repo_overrides, legacy_
 from quodeq.data.fs.project_files import read_repository_info
 from quodeq.data.locking import get_file_lock
 from quodeq.shared.advisory_json import read_advisory_json
-from quodeq.shared.env_paths import get_quodeq_dir
+from quodeq.shared.env_paths import get_evaluations_dir, get_quodeq_dir
 from quodeq.shared.validation import validate_path_segment
 
 _logger = logging.getLogger(__name__)
@@ -55,6 +55,16 @@ class ProjectStandards:
         return self.enabled is None
 
 
+def settings_reports_root(env: Mapping[str, str] | None = None) -> Path:
+    """The LOCAL evaluations root every settings reader resolves owners under.
+
+    A scoped child's ``parent`` is read only from here, never from a shared
+    clone's reports root, so the API, the assistant and the dashboard all
+    resolve one project to the same settings file.
+    """
+    return Path(get_evaluations_dir(env=dict(env) if env is not None else None))
+
+
 def is_safe_owner_id(value: object) -> bool:
     """True when *value* is one plain path segment (no separator, traversal or drive)."""
     if not isinstance(value, str) or value in ("", "."):
@@ -82,7 +92,7 @@ def _settings_lock(target: Path) -> Iterator[None]:
     """Hold the cross-process lock that guards *target* (a sidecar lock file)."""
     target.parent.mkdir(parents=True, exist_ok=True)
     lock = get_file_lock()
-    with open(target.with_name(_LOCK_FILENAME), "a+b") as fh:
+    with open(target.with_name(_LOCK_FILENAME), "ab+") as fh:
         lock.acquire(fh)
         try:
             yield

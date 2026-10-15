@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 
 from quodeq.services.evidence_rescore import standard_dirs
-from quodeq.services.wiring import load_project_standards
+from quodeq.services.wiring import load_project_standards, settings_reports_root
 from quodeq.shared.utils import TEXT_ENCODING
 
 _UNSET = object()
@@ -47,8 +47,10 @@ def standards_fingerprint(project_dir: Path, *, compiled_dir: Path | None | obje
     """Hash of the compiled and custom standards and *project_dir*'s overrides.
 
     *project_dir* is ``<reports root>/<project>``; its overrides live in the
-    machine settings file, hashed by their parsed content so a visibility
-    toggle (which shares that file) never changes the fingerprint. *compiled_dir* defaults to
+    machine settings file (owner resolved under the local evaluations root),
+    hashed by their parsed content so a visibility toggle (which shares that
+    file) never changes the fingerprint. The first read may migrate legacy
+    repo files into that file. *compiled_dir* defaults to
     the directory a rescore resolves. Custom evaluators count too: their
     suggested severities reach the prompt.
     """
@@ -57,7 +59,7 @@ def standards_fingerprint(project_dir: Path, *, compiled_dir: Path | None | obje
         compiled_dir = default_compiled
     compiled = _stat_dir(compiled_dir)
     evaluators = _stat_dir(evaluators_dir)
-    settings = load_project_standards(project_dir.parent, project_dir.name)
+    settings = load_project_standards(settings_reports_root(), project_dir.name)
     overrides = dict(settings.overrides) or None
     payload = json.dumps({"compiled": compiled, "evaluators": evaluators, "overrides": overrides}, sort_keys=True)
     return hashlib.sha256(payload.encode(TEXT_ENCODING)).hexdigest()

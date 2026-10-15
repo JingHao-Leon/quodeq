@@ -22,7 +22,7 @@ def test_run_settings_file_is_owner_keyed_and_migrated(tmp_path, monkeypatch):
     (repo / ".quodeq" / "standards-overrides.json").write_text(
         json.dumps({"version": 1, "overrides": {"R": {"n": 3}}}))
 
-    path = standards_settings_for_run(reports, evidence, repo)
+    path = standards_settings_for_run(evidence, repo, reports_root=reports)
 
     assert path == tmp_path / "home" / "projects" / "parent" / "standards.json"
     assert json.loads(path.read_text())["overrides"] == {"R": {"n": 3}}

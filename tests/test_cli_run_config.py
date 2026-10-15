@@ -25,7 +25,7 @@ class TestBuildRunConfig:
         inputs = ResolvedInputs(
             src=tmp_path, language="python", manifest=None, dims_data={}
         )
-        config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env={})
+        config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env={})
         assert config.language == "python"
         assert config.options.verify_findings is True
 
@@ -49,7 +49,7 @@ class TestBuildRunConfig:
                 src=tmp_path, language="java", manifest=None, dims_data={}
             )
             env = {"SUBAGENT_MODEL": "ollama/llama3"}
-            return build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env=env)
+            return build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env=env)
 
     def test_subagent_model_fallback(self, _fallback_config):
         assert _fallback_config.options.ai_model == "ollama/llama3"
@@ -90,7 +90,7 @@ class TestBuildRunConfig:
         )
         inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
         env = {"QUODEQ_MAX_TURNS": "50", "QUODEQ_MAX_DURATION": "900", "QUODEQ_POOL_BUDGET": "300"}
-        config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env=env)
+        config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env=env)
         assert config.options.max_turns == 50
         assert config.options.max_duration == 900
         # Legacy QUODEQ_POOL_BUDGET still routes into time_limit via the env-var fallback.
@@ -114,5 +114,5 @@ class TestBuildRunConfig:
             pool_budget=None, clean_scan=True, legacy_incremental=False,
         )
         inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-        config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path, env={"QUODEQ_TIME_LIMIT": "0"})
+        config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path, env={"QUODEQ_TIME_LIMIT": "0"})
         assert config.options.time_limit == 0

@@ -128,12 +128,13 @@ def dimensions_filter_for(args: argparse.Namespace) -> list[str] | None:
     return dimensions_filter
 
 
-def standards_settings_for_run(reports_root: Path | None, evidence_dir: Path, src: Path) -> Path:
+def standards_settings_for_run(evidence_dir: Path, src: Path, *, reports_root: Path) -> Path:
     """The run project's settings file, migrated from *src*'s legacy repo files on first use.
 
     *evidence_dir* is ``<reports>/<project>/<run>/evidence``, so the project
-    id is its grandparent's name. *reports_root* (from ``setup_run_dirs``)
-    resolves a scoped child to its parent's file; None skips that lookup.
+    id is its grandparent's name. *reports_root* is the LOCAL evaluations
+    root: a scoped child resolves to its parent's file only from there, the
+    same lookup the API and the assistant make.
     """
     from quodeq.data.fs.standards_prefs import project_settings_file  # noqa: PLC0415
     project_id = evidence_dir.parent.parent.name
