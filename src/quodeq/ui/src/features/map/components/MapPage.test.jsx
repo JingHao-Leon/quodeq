@@ -239,20 +239,22 @@ describe('MapPage: Concentration and Activity', () => {
     expect(screen.queryByRole('button', { name: 'Violations' })).toBeNull();
   });
 
-  it('a shared project cannot pick Activity', () => {
-    renderPage(baseData({ accumulated: { dimensions: DIMS } }));
+  it('a project without history cannot pick Activity, and the button says why', async () => {
+    renderPage(local());
     const button = screen.getByRole('button', { name: t('map.colorActivity') });
-    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
     expect(button).toHaveAttribute('title', t('map.activityUnavailable'));
+    expect(document.getElementById(button.getAttribute('aria-describedby'))).toHaveTextContent(t('map.activityUnavailable'));
     fireEvent.click(button);
     expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('the blocked Activity button carries its reason as an accessible description', () => {
-    renderPage(baseData({ accumulated: { dimensions: DIMS } }));
+  it('a shared project with history can pick Activity', async () => {
+    const sharedGetMapHistory = vi.fn().mockResolvedValue({ activitySource: 'estimated', fileNames: [], frames: [] });
+    renderPage(baseData({ accumulated: { dimensions: DIMS } }), {}, fakeApi({ sharedGetMapHistory }));
     const button = screen.getByRole('button', { name: t('map.colorActivity') });
-    const note = document.getElementById(button.getAttribute('aria-describedby'));
-    expect(note).toHaveTextContent(t('map.activityUnavailable'));
+    await waitFor(() => expect(sharedGetMapHistory).toHaveBeenCalled());
+    await waitFor(() => expect(button).not.toHaveAttribute('aria-disabled'));
   });
 
   it('the history is not fetched on the Galaxy', () => {

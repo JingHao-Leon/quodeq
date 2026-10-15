@@ -10,7 +10,7 @@ import { skyFrame } from '../core/skyLayers.js';
 import { DEFAULT_CANVAS_W, DEFAULT_CANVAS_H } from '../core/galaxyTunables.js';
 
 const area = (name, files, kind) => ({ name, density: 0.9, kind, touchedShare: 0.2, layers: ['feature'], dots: [{ path: `${name}/a.kt`, stats: { violations: 0, compliance: 2, weight: 0, files: 1, critical: 0, major: 0 }, checks: 2 }], stats: { violations: 3, compliance: 9, weight: 2, files, critical: 0, major: 1 } });
-const READY = { areaSet: { areas: [area('article', 8, AREA_KIND.HOTSPOT), area('tiny', 2, AREA_KIND.SMALL)], files: [], average: 1 }, loading: false, failed: false, unavailable: false };
+const READY = { areaSet: { areas: [area('article', 8, AREA_KIND.HOTSPOT), area('tiny', 2, AREA_KIND.SMALL)], files: [], average: 1 }, loading: false, failed: false };
 const props = (areaState) => ({ areaState, dark: true, showLabels: true, resetKey: 0, onViewDetails: vi.fn() });
 
 /** RiskView with its selection held by name, as the Risk tab holds it; `onSelectName` sees every change. */
@@ -28,11 +28,6 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('RiskView states', () => {
-  it('a shared project explains why there is nothing to show', () => {
-    render(<Selecting {...props({ ...READY, unavailable: true })} />);
-    expect(screen.getByText(t('map.activityUnavailable'))).toBeInTheDocument();
-  });
-
   it('loading, failed and empty each say so', () => {
     const { rerender } = render(<Selecting {...props({ ...READY, loading: true })} />);
     expect(screen.getByText(t('map.riskLoading'))).toBeInTheDocument();

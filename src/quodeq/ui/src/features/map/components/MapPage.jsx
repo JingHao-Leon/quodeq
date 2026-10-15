@@ -176,17 +176,17 @@ function MapBody({ ready, state, pack, risk, timelapse, timelapseToggle, legendT
 // the history, and the history is fetched only while the pack is on screen.
 function useMapPackData(project, source, packShown) {
   const { activity, loading, failed } = useMapActivity(project, source, packShown);
-  const weights = useSeverityWeights(project, source);
-  const activityUnavailable = source === PROJECT_SOURCE.SHARED || (activity.source === ACTIVITY_SOURCE.NONE && !loading);
+  const weights = useSeverityWeights(project);
+  const activityUnavailable = activity.source === ACTIVITY_SOURCE.NONE && !loading;
   return { pack: { weights, activity, loading, failed }, activityUnavailable };
 }
 
 const hasTimelapse = (vizStyle) => vizStyle === VIZ_STYLE.ZOOMPACK || vizStyle === VIZ_STYLE.RISK;
 
-/** The time-lapse switch: offered on the Circle Pack and Risk for local projects; turning it off returns to today. */
-function useTimelapseToggle({ vizStyle, source, timelapse, on, setOn }) {
+/** The time-lapse switch: offered on the Circle Pack and Risk; turning it off returns to today. */
+function useTimelapseToggle({ vizStyle, timelapse, on, setOn }) {
   return {
-    available: hasTimelapse(vizStyle) && source !== PROJECT_SOURCE.SHARED,
+    available: hasTimelapse(vizStyle),
     on,
     onChange: (v) => { if (!v) timelapse.controls.latest(); setOn(v); },
   };
@@ -227,7 +227,7 @@ export default function MapPage(props) {
   const [timelapseOn, setTimelapseOn] = useMapTimelapsePref();
   const [legendOn, setLegendOn] = useMapLegendPref();
   const timelapse = usePageTimelapse({ project: selectedProject, source: selectedSource, vizStyle, dimensionState: state.dimensionState, selection: riskFilter.selection, grouping: props.grouping, on: timelapseOn });
-  const timelapseToggle = useTimelapseToggle({ vizStyle, source: selectedSource, timelapse, on: timelapseOn, setOn: setTimelapseOn });
+  const timelapseToggle = useTimelapseToggle({ vizStyle, timelapse, on: timelapseOn, setOn: setTimelapseOn });
 
   if (!projectsLoaded) return <MapLoadingState />;
   if (projects.length === 0 && selectedSource !== PROJECT_SOURCE.SHARED) return <MapNoProjectsState onNavigate={onNavigate} />;

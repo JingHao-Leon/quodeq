@@ -19,7 +19,7 @@ vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({
 vi.mock('../../../hooks/usePrincipleSeries.js', () => ({ usePrincipleSeries: () => ({ rows: deltas.seriesRows, loading: false, error: null }) }));
 vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: ['run-sec'], payloads: deltas.diffs }) }));
 vi.mock('../../map/hooks/useRiskAreas.js', () => ({
-  default: (args) => { if (args.active) deltas.riskArgs = args; return { areas: deltas.areas, loading: false, failed: false, unavailable: false }; },
+  default: (args) => { if (args.active) deltas.riskArgs = args; return { areas: deltas.areas, loading: false, failed: false }; },
 }));
 
 const v = (over) => ({ file: 'src/app.py', dimension: 'security', principle: 'Input', ...over });

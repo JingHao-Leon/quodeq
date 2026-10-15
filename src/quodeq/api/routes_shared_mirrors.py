@@ -31,6 +31,7 @@ from quodeq.api._scores_routes import finding_detail_response
 from quodeq.api.helpers import json_error, validate_segment
 from quodeq.api.routes_shared_findings_mirrors import register_shared_findings_mirror_routes
 from quodeq.api.routes_principle_series import register_shared_principle_series_route
+from quodeq.api.routes_map_history import register_shared_map_history_route
 from quodeq.services import fs_reports, fs_projects
 from quodeq.api.fleet_request import FLEET_LOG, fleet_projects_or_error
 from quodeq.services.compare import build_compare_summary, build_fleet_compare
@@ -294,3 +295,4 @@ def register_shared_mirror_routes(app: Flask) -> None:
     app.get("/api/shared/projects/<project>/violations")(shared_violations)
     register_shared_findings_mirror_routes(app)
     register_shared_principle_series_route(app)
+    register_shared_map_history_route(app)

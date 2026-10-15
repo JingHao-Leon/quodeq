@@ -4,8 +4,8 @@ import { decodeActivity, NO_ACTIVITY } from '../model/mapActivity.js';
 import { mapHistoryQuery, mapHistoryEnabled } from './mapHistoryQuery.js';
 
 /**
- * Per-file edit counts for the Activity colour mode. Local projects only:
- * shared projects have no local runs, so they never fetch. The history is
+ * Per-file edit counts for the Activity colour mode, from the project's own
+ * source (a shared project's from the shared clone). The history is
  * fetched only while the Circle Pack is the active view (`active`). A failed
  * fetch keeps retrying on the error interval, so it recovers in-session
  * (the webview never refetches an errored query on focus).
@@ -17,6 +17,6 @@ import { mapHistoryQuery, mapHistoryEnabled } from './mapHistoryQuery.js';
 export default function useMapActivity(project, source, active = true) {
   const api = useApi();
   const query = useQuery({ ...mapHistoryQuery({ api, project, source, active }), select: decodeActivity });
-  const enabled = mapHistoryEnabled(project, source, active);
+  const enabled = mapHistoryEnabled(project, active);
   return { activity: query.data || NO_ACTIVITY, loading: enabled && query.isPending, failed: query.isError };
 }

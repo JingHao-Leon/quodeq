@@ -2032,7 +2032,7 @@
   "map.legendActivityGit": "from git history",
   "map.legendActivityEstimated": "estimated from finding changes",
   "map.legendActivityLoading": "Loading history",
-  "map.activityUnavailable": "No local history for this project",
+  "map.activityUnavailable": "No history for this project yet",
   "map.timelapseAria": "Time-lapse",
   "map.timelapseToggle": "Time-lapse",
   "map.legendToggle": "Legend",

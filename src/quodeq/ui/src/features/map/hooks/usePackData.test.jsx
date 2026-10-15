@@ -18,11 +18,12 @@ describe('useMapActivity', () => {
     expect(getMapHistory).toHaveBeenCalledWith('p', 'latest');
   });
 
-  it('never fetches for a shared project', () => {
+  it('a shared project reads the shared clone\'s history', async () => {
     const getMapHistory = vi.fn();
-    const { result } = renderHook(() => useMapActivity('p', PROJECT_SOURCE.SHARED), { wrapper: withStableQueryApi({ getMapHistory }) });
+    const sharedGetMapHistory = vi.fn(async () => ({ activitySource: 'estimated', fileNames: ['a.py'], frames: [{ files: [[0, 1, 1, 0, 0, 0, 3, 0]] }] }));
+    const { result } = renderHook(() => useMapActivity('p', PROJECT_SOURCE.SHARED), { wrapper: withStableQueryApi({ getMapHistory, sharedGetMapHistory }) });
+    await waitFor(() => expect(result.current.activity.source).toBe('estimated'));
     expect(getMapHistory).not.toHaveBeenCalled();
-    expect(result.current.activity.source).toBe('none');
   });
 
   it('a failing endpoint is no activity, flagged as failed', async () => {
@@ -59,13 +60,13 @@ describe('useMapActivity recovery', () => {
 describe('useSeverityWeights', () => {
   it('uses the saved formula weights', async () => {
     const getGradeFormula = vi.fn(async () => ({ current: { severityWeight: { critical: 5, major: 3, minor: 1 } } }));
-    const { result } = renderHook(() => useSeverityWeights('p', PROJECT_SOURCE.LOCAL), { wrapper: withStableQueryApi({ getGradeFormula }) });
+    const { result } = renderHook(() => useSeverityWeights('p'), { wrapper: withStableQueryApi({ getGradeFormula }) });
     await waitFor(() => expect(result.current.critical).toBe(5));
   });
 
-  it('falls back to the defaults while loading and for shared projects', () => {
+  it('falls back to the defaults while loading', () => {
     const getGradeFormula = vi.fn(() => new Promise(() => {}));
-    const { result } = renderHook(() => useSeverityWeights('p', PROJECT_SOURCE.SHARED), { wrapper: withStableQueryApi({ getGradeFormula }) });
+    const { result } = renderHook(() => useSeverityWeights('p'), { wrapper: withStableQueryApi({ getGradeFormula }) });
     expect(result.current).toEqual(DEFAULT_SEVERITY_WEIGHTS);
   });
 });

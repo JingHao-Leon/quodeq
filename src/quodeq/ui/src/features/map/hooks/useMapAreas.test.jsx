@@ -25,10 +25,12 @@ describe('useMapAreas', () => {
     expect(getMapHistory).toHaveBeenCalledTimes(1);
   });
 
-  it('a shared project is unavailable and never fetches', () => {
+  it('a shared project reads the shared clone\'s history', async () => {
     const getMapHistory = vi.fn();
-    const { result } = renderHook(() => useMapAreas('p', PROJECT_SOURCE.SHARED, true), { wrapper: withStableQueryApi({ getMapHistory }) });
-    expect(result.current.unavailable).toBe(true);
+    const sharedGetMapHistory = vi.fn(async () => PAYLOAD);
+    const { result } = renderHook(() => useMapAreas('p', PROJECT_SOURCE.SHARED, true), { wrapper: withStableQueryApi({ getMapHistory, sharedGetMapHistory }) });
+    await waitFor(() => expect(result.current.areaSet.areas).toHaveLength(1));
+    expect(sharedGetMapHistory).toHaveBeenCalledWith('p', 'latest');
     expect(getMapHistory).not.toHaveBeenCalled();
   });
 
