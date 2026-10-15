@@ -851,22 +851,23 @@ button.term-sev-badge--clickable:focus-visible {
   }
 
   /* TopBar compact layout: back + (centered title) + burger.
-     The title is absolutely centered relative to the topbar so it
-     stays in the optical middle regardless of back-button width.
-     `!important` overrides the default desktop rules later in the file. */
+     The title takes the spacer's place and centres in the room between the
+     back button and the actions, so a long one (a run's date) shortens with an
+     ellipsis instead of sliding under the icons, as an absolutely centred
+     title did. `!important` overrides the default desktop rules later in the file. */
   .topbar { position: relative; }
   .topbar-menu-btn { display: inline-flex !important; }
   .topbar-back-btn { display: inline-flex !important; }
+  .topbar-spacer { display: none; }
   .topbar-mobile-title {
     display: inline-flex !important;
     align-items: center;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    max-width: calc(100% - 160px);
+    justify-content: center;
+    flex: 1 1 0;
     pointer-events: none;
   }
+  /* the page shortens first; the project keeps its name up to a share of the room */
+  .topbar-mobile-title .topbar-mobile-project { flex-shrink: 0; max-width: 45%; }
   .topbar-breadcrumb-slot { display: none !important; }
   .topbar-pill,
   .topbar-btn--evaluate,
