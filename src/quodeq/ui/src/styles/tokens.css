@@ -1485,10 +1485,11 @@ html[data-theme="deckard-light"]:root, [data-theme="deckard-light"] {
   --space-8:  32px;
   --space-10: 40px;
   --space-12: 48px;
-  /* Where every page's first row starts under the main padding: the
-     Overview's header panel and the tool pages' toolbar share this line,
-     level with the first sidebar icon. */
-  --page-top-gap: var(--space-4);
+  /* Where every page's first row starts: the Overview's header panel and
+     the tool pages' toolbar share this line, just under the topbar. It
+     reaches up into the main padding (.dashboard, --space-8) so the empty
+     band above the first row stays thin. */
+  --page-top-gap: calc(var(--space-3) - var(--space-8));
 }
 
 /* ── 7. Border radius ─────────────────────────────────── */
