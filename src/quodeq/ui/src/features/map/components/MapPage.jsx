@@ -10,7 +10,7 @@ import { useThemeIsDark } from '../../../hooks/useThemeIsDark.js';
 import { t } from '../../../strings/index.js';
 import { DATA_THEME_ATTR } from '../../../constants.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
-import { PACK_COLOR_MODES, VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, PACK_COLOR_MODE } from '../mapVocab.js';
+import { VIZ_STYLE, GALAXY_MODE, ACTIVITY_SOURCE, isPackStyle } from '../mapVocab.js';
 import useMapActivity from '../hooks/useMapActivity.js';
 import useMapTimelapse from '../hooks/useMapTimelapse.js';
 import MapPackPanel from './MapPackPanel.jsx';
@@ -35,9 +35,10 @@ function getDarkThemeAttr() {
 }
 
 const VIZ_STYLES = [
-  { id: VIZ_STYLE.ZOOMPACK, label: t('map.vizCirclePack'), enabled: true },
-  { id: VIZ_STYLE.RISK, label: t('map.vizRisk'), enabled: true },
-  { id: VIZ_STYLE.GALAXY, label: t('map.vizGalaxy'), enabled: true },
+  { id: VIZ_STYLE.ZOOMPACK, label: t('map.vizCirclePack') },
+  { id: VIZ_STYLE.ACTIVITY, label: t('map.vizActivity') },
+  { id: VIZ_STYLE.RISK, label: t('map.vizRisk') },
+  { id: VIZ_STYLE.GALAXY, label: t('map.vizGalaxy') },
 ];
 
 const GALAXY_MODES = [
@@ -45,22 +46,22 @@ const GALAXY_MODES = [
   { id: GALAXY_MODE.STANDARDS, label: t('map.vizStandards') },
 ];
 
-// A blocked mode stays focusable (aria-disabled, like the style toggles) so
-// keyboard and screen-reader users reach the reason it is unavailable.
-function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
+// A blocked tab stays focusable (aria-disabled) so keyboard and
+// screen-reader users reach the reason it is unavailable.
+function VizStyleSeg({ vizStyle, setVizStyle, activityUnavailable }) {
   const noteId = useId();
   return (
-    <div className="term-seg" role="group" aria-label={t('map.colorModeAria')}>
-      {PACK_COLOR_MODES.map((m) => {
-        const blocked = m.value === PACK_COLOR_MODE.ACTIVITY && activityUnavailable;
+    <div className="term-seg">
+      {VIZ_STYLES.map((s) => {
+        const blocked = s.id === VIZ_STYLE.ACTIVITY && activityUnavailable;
         return (
           <button
-            key={m.value} type="button" className={`term-btn${viewMode === m.value ? ' term-btn--on' : ''}`}
-            onClick={() => !blocked && setViewMode(m.value)} aria-pressed={viewMode === m.value}
+            key={s.id} type="button" className={`term-btn${vizStyle === s.id ? ' term-btn--on' : ''}`}
+            onClick={() => !blocked && setVizStyle(s.id)} aria-pressed={vizStyle === s.id}
             aria-disabled={blocked || undefined} aria-describedby={blocked ? noteId : undefined}
             title={blocked ? t('map.activityUnavailable') : undefined}
           >
-            {t(m.labelKey)}
+            {s.label}
           </button>
         );
       })}
@@ -71,14 +72,13 @@ function PackColorSeg({ viewMode, setViewMode, activityUnavailable }) {
 
 // The Dimensions filter shows on every tab; on Risk it re-measures the areas over the kept dimensions.
 function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activityUnavailable }) {
-  const { viewMode, setViewMode, vizStyle, setVizStyle } = viewState;
+  const { vizStyle, setVizStyle } = viewState;
   const { galaxyMode, setGalaxyMode } = galaxyState;
   const { allDimensions, selectedDimensions } = dimensionState;
   return (
     <>
       <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={riskFilter.onToggleDimension} onShowOnly={riskFilter.onShowOnlyDimension} />
       {vizStyle === VIZ_STYLE.RISK && <RiskPrincipleChip principle={riskFilter.principle} onClear={riskFilter.clearPrinciple} />}
-      {vizStyle === VIZ_STYLE.ZOOMPACK && <PackColorSeg viewMode={viewMode} setViewMode={setViewMode} activityUnavailable={activityUnavailable} />}
       {vizStyle === VIZ_STYLE.GALAXY && (
         <div className="term-seg">
           {GALAXY_MODES.map((m) => (
@@ -88,13 +88,7 @@ function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activ
           ))}
         </div>
       )}
-      <div className="term-seg">
-        {VIZ_STYLES.map((s) => (
-          <button key={s.id} type="button" className={`term-btn${vizStyle === s.id ? ' term-btn--on' : ''}`} aria-disabled={!s.enabled || undefined} onClick={() => s.enabled && setVizStyle(s.id)} title={!s.enabled ? t('map.comingSoon') : ''} aria-pressed={vizStyle === s.id}>
-            {s.label}
-          </button>
-        ))}
-      </div>
+      <VizStyleSeg vizStyle={vizStyle} setVizStyle={setVizStyle} activityUnavailable={activityUnavailable} />
     </>
   );
 }
@@ -110,7 +104,7 @@ function MapBreadcrumb({ path, onNavigate, projectName }) {
 
 // The Galaxy draws its own trail and Risk has no folder level to show.
 function hasBreadcrumb(vizStyle) {
-  return vizStyle === VIZ_STYLE.ZOOMPACK;
+  return isPackStyle(vizStyle);
 }
 
 function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, pack, risk, timelapse, dock }) {
@@ -128,7 +122,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
       {vizStyle === VIZ_STYLE.RISK && (
         <MapRiskPanel risk={risk} riskActions={riskActions} view={{ dark: darkMode || appIsDark, showLabels, resetKey }} timelapse={timelapse} />
       )}
-      {vizStyle === VIZ_STYLE.ZOOMPACK && (
+      {isPackStyle(vizStyle) && (
         <MapPackPanel
           view={{ fullTree, viewMode, dark: darkMode || appIsDark, showLabels, resetKey, currentPath, onDrillDown, onFileClick, onPastDetails }}
           pack={pack} timelapse={timelapse}
@@ -160,7 +154,7 @@ function dockOf(state, timelapse, toggle, legend) {
     toggle,
     legend,
     shown: toggle.available && toggle.on && !single,
-    filtered: state.vizState.vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(state.dimensionState),
+    filtered: isPackStyle(state.vizState.vizStyle) && dimensionsFiltered(state.dimensionState),
   };
 }
 
@@ -174,16 +168,17 @@ function MapBody({ ready, state, pack, risk, timelapse, timelapseToggle, legendT
 
 // The pack's severity weights and edit counts; Concentration never waits on
 // the history, and the history is fetched only while the pack is on screen.
+// The Activity tab is blocked once the history (fetched on any tab) has no edits.
 function useMapPackData(project, source, packShown) {
-  const { activity, loading, failed } = useMapActivity(project, source, packShown);
+  const { activity, loading, failed, settled } = useMapActivity(project, source, packShown);
   const weights = useSeverityWeights(project);
-  const activityUnavailable = activity.source === ACTIVITY_SOURCE.NONE && !loading;
+  const activityUnavailable = settled && activity.source === ACTIVITY_SOURCE.NONE;
   return { pack: { weights, activity, loading, failed }, activityUnavailable };
 }
 
-const hasTimelapse = (vizStyle) => vizStyle === VIZ_STYLE.ZOOMPACK || vizStyle === VIZ_STYLE.RISK;
+const hasTimelapse = (vizStyle) => isPackStyle(vizStyle) || vizStyle === VIZ_STYLE.RISK;
 
-/** The time-lapse switch: offered on the Circle Pack and Risk; turning it off returns to today. */
+/** The time-lapse switch: offered on the Circle Pack, Activity and Risk; turning it off returns to today. */
 function useTimelapseToggle({ vizStyle, timelapse, on, setOn }) {
   return {
     available: hasTimelapse(vizStyle),
@@ -192,14 +187,14 @@ function useTimelapseToggle({ vizStyle, timelapse, on, setOn }) {
   };
 }
 
-// The time-lapse plays under the Circle Pack and Risk tabs; a Dimensions
+// The time-lapse plays under the Circle Pack, Activity and Risk tabs; a Dimensions
 // filter holds it on the latest run on the pack, and on Risk plays the
 // history the server measured over the filter's selection.
 function usePageTimelapse({ project, source, vizStyle, dimensionState, selection, grouping = {}, on }) {
   return useMapTimelapse({
     project, source, granularity: grouping.granularity, onGranularityChange: grouping.onGranularityChange,
     active: on && hasTimelapse(vizStyle),
-    blocked: vizStyle === VIZ_STYLE.ZOOMPACK && dimensionsFiltered(dimensionState),
+    blocked: isPackStyle(vizStyle) && dimensionsFiltered(dimensionState),
     selection: vizStyle === VIZ_STYLE.RISK ? selection : null,
   });
 }
@@ -220,7 +215,7 @@ export default function MapPage(props) {
   // is no project or no run data, which is exactly what we use for case C.
   const state = useMapPageState({ ...props, deferTree: !ready });
   const { vizStyle } = state.viewState;
-  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, vizStyle === VIZ_STYLE.ZOOMPACK);
+  const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, isPackStyle(vizStyle));
   const { riskFilter, areaState, selection: measuredOver } = useRiskState({
     nav: props.nav, dimensionState: state.dimensionState, project: selectedProject, source: selectedSource, active: vizStyle === VIZ_STYLE.RISK,
   });
