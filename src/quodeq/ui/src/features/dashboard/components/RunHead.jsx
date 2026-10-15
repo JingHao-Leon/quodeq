@@ -43,8 +43,9 @@ function RunNotes({ formulaUpdated, suppressed }) {
  * @param {string} props.source a PROJECT_SOURCE value
  * @param {boolean} [props.formulaUpdated]
  * @param {?Function} props.onCardNavigate
+ * @param {React.ReactNode} [props.since] what changed since the previous run, under the sub line
  */
-export default function RunHead({ dashboard, comparison, projectInfo, source, formulaUpdated = false, onCardNavigate }) {
+export default function RunHead({ dashboard, comparison, projectInfo, source, formulaUpdated = false, onCardNavigate, since = null }) {
   const dims = dashboard.dimensions || [];
   const summary = buildRunSummary(dims);
   const metrics = dimensionsMetrics(dims);
@@ -58,7 +59,7 @@ export default function RunHead({ dashboard, comparison, projectInfo, source, fo
       badge={<HeadBadge delta={scoreChange(dims, comparison.previousDims)} shared={source === PROJECT_SOURCE.SHARED} publishedBy={projectInfo?.publishedBy} />}
       metrics={metrics} filesHint={t('overview.per100Hint', { count: dims.length })}
       deltas={severityChanges(metrics, previous) || undefined} changes={tileChanges(metrics, previous)}
-      actions={headActions(onCardNavigate, metrics)}
+      actions={headActions(onCardNavigate, metrics)} since={since}
     />
   );
 }

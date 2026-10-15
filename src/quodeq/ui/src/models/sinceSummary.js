@@ -4,11 +4,7 @@
  * changed, finding by finding. Read by the Overview, the dimension page and
  * a principle's page. Pure functions, no framework imports.
  */
-import { scoreChangeShows } from '../utils/trendUtils.js';
 import { nameKey } from '../utils/nameKey.js';
-
-// The dimensions the Overview's since line names as moving most.
-const MOVERS_SHOWN = 3;
 
 /** The items of `list` that belong to `principle` (any case); all of them without one. */
 function ofPrinciple(list, principle) {
@@ -72,18 +68,4 @@ export function runClosingPreviousPeriod(periodTrend, runOnShow) {
   const rows = periodTrend || [];
   const at = runOnShow ? rows.findIndex((r) => r.runId === runOnShow) : 0;
   return at >= 0 ? rows[at + 1]?.runId ?? null : null;
-}
-
-/**
- * The dimensions that moved most this period, largest change first: those
- * whose change shows (scoreChangeShows), at most MOVERS_SHOWN.
- * @param {Object<string, {delta: ?number}>} dimTrends by lowercase dimension name
- * @returns {{name: string, delta: number}[]}
- */
-export function topMovers(dimTrends) {
-  return Object.entries(dimTrends || {})
-    .map(([name, entry]) => ({ name, delta: entry?.delta }))
-    .filter((m) => typeof m.delta === 'number' && scoreChangeShows(m.delta))
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, MOVERS_SHOWN);
 }

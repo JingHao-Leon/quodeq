@@ -1932,7 +1932,6 @@
   "overview.sinceFixed": "{count} fixed",
   "overview.sinceTypesOpened": "{count} rule types opened",
   "overview.sinceTypesClosed": "{count} closed",
-  "overview.sinceMovers": "moved most",
   "overview.gaugeSummaryAria": "Score {score}, grade {grade}",
   "projects.relocatePathAria": "New project path",
   "dashboard.runHistoryKbdLabel": "Run history bars",

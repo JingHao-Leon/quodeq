@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sinceSummary, runClosingPreviousPeriod, topMovers } from './sinceSummary.js';
+import { sinceSummary, runClosingPreviousPeriod } from './sinceSummary.js';
 
 const finding = (principle) => ({ principle, file: 'a.py' });
 const dim = ({ added = 0, fixed = 0, newList = [], resolved = [], opened = [], closed = [] } = {}) => ({
@@ -41,9 +41,4 @@ test('runClosingPreviousPeriod is the row after the one on show, the newest row\
   assert.equal(runClosingPreviousPeriod(rows, 'r1'), null);
   assert.equal(runClosingPreviousPeriod(rows, 'gone'), null);
   assert.equal(runClosingPreviousPeriod(undefined, null), null);
-});
-
-test('topMovers keeps the three largest changes that show, largest first', () => {
-  const trends = { a: { delta: 0.2 }, b: { delta: -1.4 }, c: { delta: 0.01 }, d: { delta: 0.6 }, e: { delta: -0.3 }, f: { delta: null } };
-  assert.deepEqual(topMovers(trends).map((m) => m.name), ['b', 'd', 'e']);
 });

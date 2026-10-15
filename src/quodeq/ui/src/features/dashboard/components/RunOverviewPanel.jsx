@@ -12,10 +12,9 @@ import { SectionLabel } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
 import { withPending } from '../../../utils/pendingClass.js';
 import { nameKey } from '../../../utils/nameKey.js';
-import { topMovers } from '../../../models/sinceSummary.js';
 import { buildRunViewData } from '../runViewData.js';
 import { weakestDimensionFirst } from '../overviewHeadModel.js';
-import { makeCardNavigate, makeFindingsNavigate, moverNavigate } from '../overviewNavigate.js';
+import { makeCardNavigate, makeFindingsNavigate } from '../overviewNavigate.js';
 import { useRunReportSpecs } from './runReportSpecs.jsx';
 import { useRunFindings } from '../hooks/useRunFindings.js';
 import { useRunComparison } from '../hooks/useRunComparison.js';
@@ -102,10 +101,9 @@ export default function RunOverviewPanel({
   return (
     <div className={withPending('run-page', refreshing)} aria-busy={refreshing || undefined}>
       <RunHead dashboard={dashboard} comparison={comparison} projectInfo={projectInfo} source={selectedSource}
-        formulaUpdated={formulaUpdated} onCardNavigate={model.opens.card} />
-      <SinceStrip summary={comparison.change?.since ?? null} label={t('overview.sincePreviousRun')}
-        emptyNote={comparison.settled && !comparison.compared ? t('history.noBaseline') : null}
-        movers={topMovers(comparison.dimTrends)} onMover={moverNavigate(sorted, openDimension)} />
+        formulaUpdated={formulaUpdated} onCardNavigate={model.opens.card}
+        since={<SinceStrip summary={comparison.change?.since ?? null} label={t('overview.sincePreviousRun')}
+          emptyNote={comparison.settled && !comparison.compared ? t('history.noBaseline') : null} />} />
       <RunDimensionsSection sorted={sorted} dimTrends={comparison.dimTrends} footerFor={runFooter(comparison)} onDimensionClick={openDimension} />
       <RunBottom dimensions={model.dimensions} topFiles={model.runTopFiles} loading={model.findingsLoading} opens={model.opens} />
     </div>

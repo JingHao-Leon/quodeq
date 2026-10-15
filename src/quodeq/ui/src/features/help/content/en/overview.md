@@ -20,7 +20,7 @@ Pick an older run in the score history and the header says **Viewing** that day,
 
 ### Since the previous period
 
-Under the header, one line says what changed since the previous day, week or month (the chart's grouping): the new and fixed findings, the rule types that appeared or went away, and the dimensions that moved most (click one to open it). Each dimension is compared, finding by finding, from its own latest run with the run that closed the previous period. When nothing moved it says **no new or fixed findings**.
+In the header, under the project's sub line, one line says what changed since the previous day, week or month (the chart's grouping): the new and fixed findings and the rule types that appeared or went away. Each dimension is compared, finding by finding, from its own latest run with the run that closed the previous period. When nothing moved it says **no new or fixed findings**.
 
 ### Panels
 

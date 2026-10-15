@@ -82,14 +82,13 @@ describe('RunOverviewPanel header', () => {
 });
 
 describe('RunOverviewPanel since line and cards', () => {
-  it('counts the new and fixed findings since the previous run, and the dimension that moved most', async () => {
+  it('counts the new and fixed findings since the previous run, in the header', async () => {
     const { container } = renderRun();
     const strip = await screen.findByRole('region', { name: 'since the previous run' });
+    expect(head(container)).toContainElement(strip);
     await waitFor(() => expect(strip).toHaveTextContent('4 new'));
     expect(strip).toHaveTextContent('3 fixed');
     expect(strip).toHaveTextContent('1 rule types opened');
-    await waitFor(() => expect(within(strip).getByRole('button', { name: /security/ })).toBeInTheDocument());
-    expect(container.querySelectorAll('.overview-since__mover')).toHaveLength(1);
   });
 
   it('shows the dimensions weakest first, each with what the run changed in it', async () => {
@@ -124,11 +123,10 @@ describe('RunOverviewPanel on a run with no previous run', () => {
     await waitFor(() => expect(screen.getAllByText('not compared')).toHaveLength(2));
   });
 
-  it('shows no changes or movers and asks for no diff', async () => {
+  it('shows no changes and asks for no diff', async () => {
     const { container, api } = renderFirst();
     await screen.findByRole('region', { name: 'since the previous run' });
     expect(head(container).querySelector('.findings-head__change, .term-sev-badge__delta')).toBeNull();
-    expect(container.querySelector('.overview-since__mover')).toBeNull();
     expect(api.getRunDiff).not.toHaveBeenCalled();
   });
 });

@@ -1,13 +1,13 @@
 import { formatRunWhen } from '../../../utils/dateFormatting.js';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
 // The areas table and the header read through react-query; this test is about the Overview's layout and order.
 vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => <div>areas table</div> }));
-vi.mock('./OverviewHead.jsx', () => ({ default: ({ pastRun }) => (pastRun ? <p>past {pastRun.when}</p> : null) }));
+vi.mock('./OverviewHead.jsx', () => ({ default: ({ pastRun, since }) => <header>{pastRun ? <p>past {pastRun.when}</p> : null}{since}</header> }));
 vi.mock('../hooks/useOverviewPeriod.js', () => ({
   usePreviousPeriodMetrics: () => null,
   useOverviewSince: () => ({ newCount: 3, resolvedCount: 1, typesOpened: 0, typesClosed: 0 }),
@@ -44,12 +44,12 @@ describe('AccumulatedOverviewPanel layout', () => {
     expect(evaluated.every((el) => el.classList.contains('dim-gauge-card--compact'))).toBe(true);
   });
 
-  it('reads the since line for the chart\'s period, a mover opening its dimension', () => {
-    const onDimensionClick = renderPanel();
+  it('reads the since line for the chart\'s period in the header, with no movers', () => {
+    renderPanel();
     const since = screen.getByRole('region', { name: 'since the previous day' });
     expect(since).toHaveTextContent('3 new');
-    fireEvent.click(within(since).getByRole('button', { name: /^security/ }));
-    expect(onDimensionClick).toHaveBeenCalledWith(expect.objectContaining({ dimension: 'security' }));
+    expect(since.closest('header')).not.toBeNull();
+    expect(within(since).queryByRole('button')).toBeNull();
   });
 
   it('shows the dimensions radial beside the history, and the areas first in the Where panel', () => {
