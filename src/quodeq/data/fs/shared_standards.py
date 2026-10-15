@@ -31,9 +31,12 @@ def shared_standards_dir(url: str, env: Mapping[str, str] | None = None) -> Path
 def read_shared_standards(directory: Path) -> dict[str, dict]:
     """``{id: payload}`` for every readable standard file in *directory*."""
     out: dict[str, dict] = {}
-    if not directory.is_dir():
+    try:
+        paths = sorted(directory.glob(f"*{JSON_SUFFIX}")) if directory.is_dir() else []
+    except OSError as exc:
+        _logger.warning("Cannot list shared standards in %s: %s", directory, exc)
         return out
-    for path in sorted(directory.glob(f"*{JSON_SUFFIX}")):
+    for path in paths:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError, RecursionError) as exc:
@@ -56,9 +59,13 @@ def write_shared_standard(directory: Path, standard_id: str, payload: dict) -> N
 
 
 def stage_standard_paths(repo: Path, standard_ids: Iterable[str]) -> tuple[bool, str]:
-    """``git add`` the format marker, ignore file and each shared standard file."""
+    """``git add`` the format marker, ignore file and each shared standard file.
+
+    Literal pathspecs: an id is a file name, never a glob that could stage
+    other standards.
+    """
     paths = [MARKER_FILENAME, _IGNORE_FILENAME,
              *(f"{SHARED_STANDARDS_DIRNAME}/{sid}{JSON_SUFFIX}" for sid in standard_ids)]
     if (repo / _GITKEEP).exists():
         paths.append(_GITKEEP)
-    return run_git(["add", "--", *paths], cwd=repo)
+    return run_git(["--literal-pathspecs", "add", "--", *paths], cwd=repo)
