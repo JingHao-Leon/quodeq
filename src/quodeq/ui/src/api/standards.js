@@ -1,5 +1,5 @@
 /**
- * Standards API — standard CRUD and library operations.
+ * Standards API — standard CRUD operations.
  */
 
 import { request, BASE } from './request.js';
@@ -59,21 +59,8 @@ export async function duplicateStandard(standardId, newId) {
 }
 
 /** @returns {Promise<Object[]>} */
-export async function listLibrary() {
-  return request('/standards/library');
-}
-
-/** @returns {Promise<Object[]>} */
 export async function listCwes() {
   return request('/standards/refs/cwe');
-}
-
-/**
- * @param {string} file - Library file identifier
- * @returns {Promise<Object>}
- */
-export async function importFromLibrary(file) {
-  return request('/standards/library/import', { method: 'POST', body: JSON.stringify({ file }) });
 }
 
 /**

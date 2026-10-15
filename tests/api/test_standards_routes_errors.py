@@ -10,15 +10,12 @@ than an addition to it.
 """
 from __future__ import annotations
 
-import json
 import logging
 
 from quodeq.api.app import create_app
 from quodeq.api.standards_read_routes import CweCache
 
 from tests.api.test_standards_routes import (  # noqa: F401 -- `dirs` is a fixture
-    _FakeLibraryHttpClient,
-    _library_client,
     dirs,
 )
 
@@ -67,36 +64,6 @@ def test_create_standard_duplicate_id_reports_the_real_reason(dirs):
     assert body["code"] == "bad_request"
     assert "dup-std" in body["error"]
     assert "already exists" in body["error"]
-
-
-# --- 6144: library-import conflict states how to resolve it -----------------
-
-def test_import_from_library_conflict_message_gives_a_resolution_path(dirs, monkeypatch):
-    existing = {
-        "id": "clean-arch", "name": "Clean Architecture", "description": "",
-        "weight": 1.0, "source": "", "principles": [],
-        "origin": "other-repo/clean-arch.json", "managed": False, "type": "custom",
-    }
-    dirs["evaluators"].joinpath("clean-arch.json").write_text(json.dumps(existing))
-    remote_standard = {
-        "id": "clean-arch", "name": "Clean Architecture", "description": "Test",
-        "weight": 1.0, "source": "Martin", "principles": [],
-    }
-    http_client = _FakeLibraryHttpClient({"https://example.com/standards/clean-arch.json": remote_standard})
-    app = _library_client(dirs, monkeypatch, http_client)
-    with app.test_client() as c:
-        resp = c.post(
-            "/api/standards/library/import",
-            json={"file": "standards/clean-arch.json"},
-            headers={"Origin": "http://localhost"},
-        )
-    assert resp.status_code == 409
-    body = resp.get_json()
-    assert body["code"] == "conflict"
-    lowered = body["error"].lower()
-    assert "duplicate" in lowered or "delete" in lowered, (
-        f"conflict message must say how to resolve it, got: {body['error']!r}"
-    )
 
 
 # --- 6143: import_standard's ValueError names the real reason ---------------
