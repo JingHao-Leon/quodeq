@@ -14,15 +14,18 @@ vi.mock('../hooks/useMapAreas.js', () => ({
   default: (_p, _s, _active, selection) => { asked.selection = selection; return { areaSet, loading: false, failed: false, unavailable: false }; },
 }));
 
+// The rows under the column header.
+const bodyRows = () => screen.getAllByRole('row').slice(1);
+
 describe('RiskAreasPanel', () => {
   it('lists the areas with their zone and density, and counts both zones', () => {
     areaSet = { areas: [area('hot', 1.4, { kind: 'hotspot' }), area('warm', 0.6), area('calm', 0.1)] };
     render(<RiskAreasPanel project="p" source="local" />);
-    const rows = screen.getAllByRole('row');
+    const rows = bodyRows();
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent('hot');
     expect(rows[0]).toHaveTextContent(t('overview.riskZoneFixFirst'));
-    expect(rows[0]).toHaveTextContent('1.40/f');
+    expect(rows[0]).toHaveTextContent('1.40');
     expect(rows[0]).toHaveTextContent(t('map.riskKindHotspot'));
     expect(screen.getByText(t('overview.riskAreasFoot', { areas: '3', fixFirst: 1, watch: 1 }))).toBeInTheDocument();
   });
@@ -30,7 +33,7 @@ describe('RiskAreasPanel', () => {
   it('shows at most the top few', () => {
     areaSet = { areas: Array.from({ length: AREAS_SHOWN + 3 }, (_, i) => area(`a${i}`, 1 + i / 10)) };
     render(<RiskAreasPanel project="p" source="local" />);
-    expect(screen.getAllByRole('row')).toHaveLength(AREAS_SHOWN);
+    expect(bodyRows()).toHaveLength(AREAS_SHOWN);
   });
 
   it('a row opens the area\'s findings over every finding, and the foot the whole sky', () => {
@@ -51,7 +54,7 @@ describe('RiskAreasPanel', () => {
     render(<RiskAreasPanel project="p" source="local" onAreaFindings={onAreaFindings} onAreaInMap={onAreaInMap} />);
     const icon = screen.getByRole('button', { name: t('overview.riskAreaInMapAria', { name: 'hot' }) });
     expect(icon).toHaveAttribute('title', t('overview.riskAreaInMap'));
-    expect(screen.getAllByRole('row')[0]).not.toHaveAttribute('tabindex');
+    expect(bodyRows()[0]).not.toHaveAttribute('tabindex');
     expect(icon.closest('.risk-areas-panel__open')).toBeNull();
     fireEvent.click(icon);
     expect(onAreaInMap).toHaveBeenCalledTimes(1);
@@ -75,7 +78,7 @@ describe('RiskAreasPanel', () => {
   it('leaves out an area too small to judge, and one the sky does not draw', () => {
     areaSet = { areas: [area('hot', 1.4), area('tiny', 3, { kind: 'small' }), area('few', 2, { files: 2 })] };
     render(<RiskAreasPanel project="p" source="local" />);
-    expect(screen.getAllByRole('row').map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['hot']);
+    expect(bodyRows().map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['hot']);
     expect(screen.getByText(t('overview.riskAreasFoot', { areas: '2', fixFirst: 1, watch: 0 }))).toBeInTheDocument();
   });
 });
@@ -85,7 +88,7 @@ describe('RiskAreasPanel over a dimension', () => {
     areaSet = { areas: [area('warm', 0.6, { lift: 4 }), area('hot', 0.9, { lift: 1.25 })] };
     render(<RiskAreasPanel project="p" source="local" dimensions={['security']} />);
     expect(asked.selection).toEqual({ dimensions: ['security'], principle: '' });
-    const rows = screen.getAllByRole('row');
+    const rows = bodyRows();
     expect(rows.map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['hot', 'warm']);
     expect(rows[1]).toHaveTextContent(t('overview.riskLift', { lift: '4.0' }));
   });
@@ -108,7 +111,7 @@ describe('RiskAreasPanel over a dimension', () => {
   it('lists the healthy areas after the two zones over a dimension, by lift, as its findings seldom reach the lines', () => {
     areaSet = { areas: [area('calm', 0.2, { lift: 6 }), area('quiet', 0.1, { lift: 2 }), area('warm', 0.6, { lift: 1.5 }), area('tiny', 3, { kind: 'small', lift: 9 })] };
     render(<RiskAreasPanel project="p" source="local" dimensions={['security']} />);
-    const rows = screen.getAllByRole('row');
+    const rows = bodyRows();
     expect(rows.map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['warm', 'calm', 'quiet']);
     expect(rows[1]).toHaveTextContent(t('overview.riskZoneHealthy'));
     expect(screen.getByText(t('overview.riskAreasFoot', { areas: '4', fixFirst: 0, watch: 1 }))).toBeInTheDocument();

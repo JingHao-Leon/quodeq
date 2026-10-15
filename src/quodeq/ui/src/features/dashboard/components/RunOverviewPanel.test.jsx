@@ -146,7 +146,7 @@ describe('RunOverviewPanel bottom', () => {
     const asOf = { runId: 'r2', day: '2026-10-08' };
     fireEvent.click(head(container).querySelector('.findings-head__hit'));
     fireEvent.click(await screen.findByText('rule S-1'));
-    fireEvent.click(within(container.querySelector('.folders-panel')).getAllByRole('row')[0]);
+    fireEvent.click(within(container.querySelector('.folders-panel')).getAllByRole('row')[1]);
     fireEvent.click(screen.getByRole('button', { name: 'files' }));
     fireEvent.click(await screen.findByText('a.py'));
     expect(onNavigate.mock.calls.map(([page, p]) => [page, p.scope.kind, p.asOf])).toEqual([
