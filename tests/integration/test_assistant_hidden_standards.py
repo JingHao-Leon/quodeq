@@ -80,7 +80,6 @@ def _evaluators_dir(tmp_path):
 
 
 def _build_registry(tmp_path, repo_root, monkeypatch):
-    env = _env(tmp_path)
     """An accumulated-scope registry (no run_dir selected -- the default
     dashboard/overview view) whose visible_standard_ids is loaded through the
     REAL load path: `load_project_standards(...)`, the same call
@@ -100,6 +99,7 @@ def _build_registry(tmp_path, repo_root, monkeypatch):
     monkeypatch.setattr(
         "quodeq.services.fs_reports.get_accumulated",
         lambda *a, **kw: _ACCUMULATED)
+    env = _env(tmp_path)
     repo = AssistantRepository(tmp_path / "assistant.db")
     repo.create_session(session_id="s1", provider="ollama")
     ctx = ToolContext(
