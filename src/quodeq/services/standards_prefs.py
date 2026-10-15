@@ -10,15 +10,9 @@ from quodeq.data.fs.compiled_standards import (  # noqa: F401 — re-exported AP
 )
 from quodeq.data.fs.standards_prefs import (  # noqa: F401 — re-exported API
     ProjectStandards,
-    clear_project_overrides,
     collect_requirement_ids,
-    save_project_overrides,
     collect_declared_params,
-    load_project_overrides,
     load_project_standards,
     save_enabled_ids,
     save_overrides,
-    load_visible_standard_ids,
-    save_visible_standard_ids,
-    visibility_is_default,
 )

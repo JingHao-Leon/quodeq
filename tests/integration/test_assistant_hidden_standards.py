@@ -1,7 +1,7 @@
 """Issue #883: the assistant must not answer with standards the dashboard hides.
 
 Pins the issue's own reproduction end to end: once a standard is hidden via
-`save_visible_standard_ids`, it must disappear from every general-purpose
+`save_enabled_ids`, it must disappear from every general-purpose
 read tool (get_overview, get_scores, list_standards) while staying reachable
 when named explicitly (get_standard, get_violations) -- the deliberate escape
 hatch. Also pins that the overview's summary omits `overallGrade` and
@@ -28,7 +28,7 @@ this one still runs.
 import json
 
 from quodeq.assistant.tools import ToolContext, build_registry
-from quodeq.data.fs.standards_prefs import load_visible_standard_ids, save_visible_standard_ids
+from quodeq.data.fs.standards_prefs import load_project_standards, save_enabled_ids
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
 
 # Accumulated (cross-run) payload backing get_overview/get_scores/get_violations
@@ -61,6 +61,11 @@ _ACCUMULATED = {
 }
 
 
+def _env(tmp_path):
+    """Machine-local settings live under a sandboxed QUODEQ_DIR."""
+    return {"QUODEQ_DIR": str(tmp_path / "quodeq-home")}
+
+
 def _evaluators_dir(tmp_path):
     """Real on-disk custom-standard files, glob'd by StandardsService.list_custom()
     (matching tests/assistant/test_tools_read.py::_standards_ctx) so
@@ -75,9 +80,10 @@ def _evaluators_dir(tmp_path):
 
 
 def _build_registry(tmp_path, repo_root, monkeypatch):
+    env = _env(tmp_path)
     """An accumulated-scope registry (no run_dir selected -- the default
     dashboard/overview view) whose visible_standard_ids is loaded through the
-    REAL load path: `load_visible_standard_ids(repo_root)`, the same call
+    REAL load path: `load_project_standards(...)`, the same call
     `_build_registry_from_args` makes in quodeq.assistant.mcp.server, rather
     than hand-setting the tuple.
 
@@ -101,7 +107,7 @@ def _build_registry(tmp_path, repo_root, monkeypatch):
         evaluators_dir=_evaluators_dir(tmp_path), compiled_dir=tmp_path / "compiled",
         dimensions_file=tmp_path / "dimensions.json",
         project_id="acme", reports_dir=tmp_path / "reports",
-        visible_standard_ids=load_visible_standard_ids(repo_root),
+        visible_standard_ids=load_project_standards(None, "acme", env=env).visible_ids,
     )
     return build_registry(ctx)
 
@@ -109,7 +115,7 @@ def _build_registry(tmp_path, repo_root, monkeypatch):
 def test_hidden_standard_is_absent_from_every_general_answer(tmp_path, monkeypatch):
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    save_visible_standard_ids(repo_root, ["security", "reliability"])
+    save_enabled_ids(None, "acme", ["security", "reliability"], env=_env(tmp_path))
 
     registry = _build_registry(tmp_path, repo_root, monkeypatch)
 
@@ -148,7 +154,7 @@ def test_hidden_standard_is_absent_from_every_general_answer(tmp_path, monkeypat
 def test_hidden_standard_is_reachable_when_named(tmp_path, monkeypatch):
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
-    save_visible_standard_ids(repo_root, ["security", "reliability"])
+    save_enabled_ids(None, "acme", ["security", "reliability"], env=_env(tmp_path))
 
     registry = _build_registry(tmp_path, repo_root, monkeypatch)
 

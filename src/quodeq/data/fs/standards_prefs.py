@@ -1,7 +1,6 @@
 """Filesystem store for per-project standards preferences.
 
-Reads/writes ``<project root>/.quodeq/standards-visibility.json`` and reads
-``standards-overrides.json`` + compiled dimension files. The pure logic
+Collects declared params and requirement ids from compiled dimension files. The pure logic
 (validation, partitioning, param resolution) stays in ``core/standards/``;
 the API layer goes through ``services/standards_prefs.py``. The machine-local
 settings store is in ``project_standards``; its public names are re-exported here.
@@ -20,12 +19,6 @@ import json
 import logging
 from pathlib import Path
 
-from quodeq.core.standards.overrides import OVERRIDES_RELPATH
-from quodeq.core.standards.visibility import (
-    DEFAULT_VISIBLE_STANDARDS,
-    VISIBILITY_RELPATH,
-    normalize_ids,
-)
 from quodeq.data.fs.compiled_standards import iter_compiled_standards
 from quodeq.data.fs.project_standards import (  # noqa: F401 - re-exported API
     SETTINGS_VERSION,
@@ -40,58 +33,8 @@ from quodeq.data.fs.project_standards import (  # noqa: F401 - re-exported API
     settings_owner_id,
     write_project_standards,
 )
-from quodeq.data.fs.project_standards import (
-    legacy_repo_overrides,
-    legacy_repo_visibility,
-)
 
 _logger = logging.getLogger(__name__)
-
-
-def load_visible_standard_ids(project_root: str | Path | None) -> tuple[str, ...]:
-    """Visible standard ids for a project; defaults when absent or malformed."""
-    ids = legacy_repo_visibility(project_root)
-    return DEFAULT_VISIBLE_STANDARDS if ids is None else ids
-
-
-def visibility_is_default(project_root: str | Path | None) -> bool:
-    """True when *project_root* has no saved visibility selection on disk.
-
-    A live ``is_file()`` stat, never cached -- callers (the standards-
-    visibility PUT route) need this to reflect a save that just happened in
-    the same request. No project root at all is trivially "default" (there
-    is nowhere a selection file could live), mirroring
-    ``load_visible_standard_ids``'s None handling.
-    """
-    if not project_root:
-        return True
-    return not (Path(project_root) / VISIBILITY_RELPATH).is_file()
-
-
-def save_visible_standard_ids(project_root: str | Path, ids: list[str]) -> None:
-    """Write the selection, creating ``.quodeq/`` when needed."""
-    path = Path(project_root) / VISIBILITY_RELPATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"version": 1, "visibleStandardIds": list(normalize_ids(ids))}
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-
-def load_project_overrides(project_root: str | Path | None) -> dict[str, dict]:
-    """Load ``{req_id: {param: value}}``; ``{}`` when absent or malformed."""
-    return legacy_repo_overrides(project_root)
-
-
-def save_project_overrides(project_root: str | Path, overrides: dict[str, dict]) -> None:
-    """Write ``{req_id: {param: value}}``, creating ``.quodeq/`` when needed."""
-    path = Path(project_root) / OVERRIDES_RELPATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps({"version": 1, "overrides": overrides}, indent=2) + "\n"
-    path.write_text(payload, encoding="utf-8")
-
-
-def clear_project_overrides(project_root: str | Path) -> None:
-    """Remove the overrides file. No-op when it does not exist."""
-    (Path(project_root) / OVERRIDES_RELPATH).unlink(missing_ok=True)
 
 
 def collect_declared_params(compiled_dir: Path) -> dict[str, dict]:
