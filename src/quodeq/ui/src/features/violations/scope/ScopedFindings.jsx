@@ -197,7 +197,7 @@ function ScopedFile({ file, within, dims, head, initialFilter, onDismissFinding,
   return (
     <div className="findings-scope">
       <FindingsHead title={within.inPrinciple ? String(file.file).toLowerCase() : file.file} sub={head.sub} description={head.description} grade={head.grade}
-        badge={scoreChangeShows(head.change) ? <TrendBadge delta={head.change} /> : null} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} metrics={metrics} filesHint={filesHint}
+        badge={scoreChangeShows(head.change) ? <TrendBadge delta={head.change} /> : null} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} history={head.scoreHistory} metrics={metrics} filesHint={filesHint}
         changes={head.previous ? tileChanges(metrics, scopeMetrics({ ...head.previous, files: metrics.files })) : undefined}
         deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={head.pastRun} />
       {head.since && <SinceStrip summary={head.since} granularity={head.granularity} />}

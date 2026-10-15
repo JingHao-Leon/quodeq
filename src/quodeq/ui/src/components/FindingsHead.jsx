@@ -7,6 +7,7 @@ import { RISK_SMALL } from '../models/findingMetrics.js';
 import { t } from '../strings/index.js';
 import { useScrolledPast } from '../hooks/useScrolledPast.js';
 import { TileChange, Description, PastRunNote, SlimBar } from './findingsHeadParts.jsx';
+import ScoreSparkline from './ScoreSparkline.jsx';
 
 const NO_VALUE = '-';
 const fixed1 = (n) => (n == null ? NO_VALUE : n.toFixed(1));
@@ -165,10 +166,11 @@ function GradeRing({ grade }) {
  * @param {{passPct?: ?number, per100?: ?number, criticalPerK?: ?number}} [props.changes] the tiles' change since the previous period (tileChanges)
  * @param {?{when: string, onBack: Function}} [props.pastRun] a past run on show, and the way back to the latest
  * @param {{onViolations?: Function, onCompliance?: Function, onSeverity?: Function}} [props.actions]
+ * @param {?{points: {score: number, dateLabel?: string}[], label: string}} [props.history] the score per period, oldest first (a principle's)
  */
 export default function FindingsHead({
   title, sub, description, grade, badge, metrics, filesHint, oneFile = false, showRisk = false, requirements = null, riskAreas = null, deltas, changes,
-  pastRun = null, actions,
+  pastRun = null, actions, history = null,
 }) {
   const headRef = useRef(null);
   const scrolledPast = useScrolledPast(headRef);
@@ -182,6 +184,7 @@ export default function FindingsHead({
           {pastRun && <PastRunNote pastRun={pastRun} />}
           {grade && description && <Description text={description} />}
           {grade?.hint && <p className="findings-head__hint">{grade.hint}</p>}
+          {history && <ScoreSparkline points={history.points} label={history.label} />}
         </div>
         <HeadStats m={metrics} filesHint={filesHint} oneFile={oneFile} showRisk={showRisk} requirements={requirements} riskAreas={riskAreas}
           deltas={deltas} changes={changes} actions={actions} />

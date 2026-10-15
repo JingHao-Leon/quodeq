@@ -189,6 +189,11 @@ describe('buildDashboardDataBundle', () => {
     expect(bundle.formulaUpdated).toBe(true);
   });
 
+  it('forwards lastKnown (the Overview skeleton never shows the last known grade without it)', () => {
+    const lastKnown = { grade: 'Good', score: 8.5, files: 12 };
+    expect(buildDashboardDataBundle({ state: { ...stubState(), lastKnown } }).lastKnown).toBe(lastKnown);
+  });
+
   it('forwards every key DashboardPage destructures off its data prop', () => {
     const bundle = buildDashboardDataBundle({ state: stubState(), sharedHasContent: true });
     // Mirrors the destructure at the top of DashboardPage.
