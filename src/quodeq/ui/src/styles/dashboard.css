@@ -3789,6 +3789,10 @@
 /* a divider reads only between two things on one row: none on a tile that starts a row (hooks/useRowStarts) */
 .findings-head__stats[data-row-start] > .findings-head__stat:first-child,
 .findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; padding-left: 0; }
+/* once the tiles sit below the name they fill that row, and each wrapped row of tiles fills its own: grow only,
+   never basis, so the wrap itself (and its row marks) stays decided by the tiles' natural width */
+.findings-head__stats[data-row-start] { flex-grow: 1; }
+.findings-head__stats[data-row-start] > .findings-head__stat { flex-grow: 1; }
 /* the Violations tile's severity pills wrap inside the tile */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
 

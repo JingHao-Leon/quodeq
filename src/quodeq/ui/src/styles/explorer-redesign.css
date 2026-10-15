@@ -100,6 +100,10 @@
 .overview-since__movers { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding-left: 18px; border-left: 1px solid var(--color-border); }
 /* the movers' divider only beside the counts on one row (hooks/useRowStarts) */
 .overview-since__movers[data-row-start] { border-left-color: transparent; padding-left: 0; }
+/* once the movers wrap to their own line, the counts spread across the strip's width; the movers line stays
+   left so one mover does not drift to the far edge (grow only, so the wrap stays put) */
+.overview-since:has(> .overview-since__movers[data-row-start]:not(:first-child)) { justify-content: space-between; }
+.overview-since__movers[data-row-start] { flex-grow: 1; }
 .overview-since__mover { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 0; font: inherit; font-family: var(--font-mono); color: var(--color-text); cursor: pointer; }
 .overview-since__mover:hover { color: var(--color-accent); }
 .overview-top-grid { margin-top: var(--space-3, 12px); }
