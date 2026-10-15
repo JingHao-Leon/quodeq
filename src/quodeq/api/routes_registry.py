@@ -40,6 +40,7 @@ from quodeq.api.routes_runs import register_runs_routes
 from quodeq.api.routes_grade_explain import register_grade_explain_routes
 from quodeq.api.routes_run_diff import register_run_diff_routes
 from quodeq.api.routes_map_history import register_map_history_routes
+from quodeq.api.routes_principle_series import register_principle_series_routes
 from quodeq.api.routes_run_log import register_run_log_routes
 from quodeq.api.routes_shared import register_shared_routes
 from quodeq.api.routes_github_access import register_github_access_routes
@@ -88,6 +89,7 @@ def register_all_routes(
     register_run_diff_routes(app)
     register_run_log_routes(app, provider)
     register_map_history_routes(app)
+    register_principle_series_routes(app)
     register_grade_explain_routes(app)
     register_shared_routes(app, provider)
     register_github_access_routes(app)

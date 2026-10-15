@@ -11,6 +11,7 @@ import sqlite3
 from quodeq.data.sqlite._score_cache_epoch import (
     CACHE_WRITER_EPOCH, RUN_KEYS_SHAPE_SINCE_EPOCH, RUN_KEYS_SHAPE_VERSION,
 )
+from quodeq.data.sqlite.score_cache_principles import PRINCIPLE_ADDED_COLUMNS
 from quodeq.data.sqlite.score_cache_rows import RUN_SCALARS_COLUMNS, column_type
 
 _logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ SCHEMA = (
     "CREATE TABLE IF NOT EXISTS run_principle_scalars ("
     " project TEXT NOT NULL, run_id TEXT NOT NULL, version TEXT NOT NULL,"
     " dimension TEXT NOT NULL, principle TEXT NOT NULL, score TEXT, grade TEXT, confidence TEXT,"
+    " violation_count INTEGER, critical INTEGER, major INTEGER,"
     " PRIMARY KEY (project, run_id, dimension, principle, version));"
     "CREATE INDEX IF NOT EXISTS idx_run_principle_scalars_lookup ON run_principle_scalars(project, version);"
     "DROP TABLE IF EXISTS accumulated_cache;"
@@ -131,13 +133,22 @@ def ensure_run_scalars_columns(conn: sqlite3.Connection) -> None:
         _logger.warning("run_scalars column migration failed", exc_info=True)
 
 
-def ensure_principle_confidence_column(conn: sqlite3.Connection) -> None:
-    """Add ``confidence`` to a ``run_principle_scalars`` table created before it (NULL on old rows)."""
+def ensure_principle_columns(conn: sqlite3.Connection) -> None:
+    """Add the columns a ``run_principle_scalars`` table created before them lacks.
+
+    The thin-evidence marker and the violation counts; NULL on old rows, which
+    read back as unknown (feature detection, no epoch bump: a NULL count is
+    told apart from a zero).
+    """
     try:
         present = {row[1] for row in conn.execute("PRAGMA table_info(run_principle_scalars)")}
-        if "confidence" not in present:
-            conn.execute("ALTER TABLE run_principle_scalars ADD COLUMN confidence TEXT")
-            conn.commit()
+        missing = [c for c in PRINCIPLE_ADDED_COLUMNS if c not in present]
+        if not missing:
+            return
+        conn.execute("BEGIN")
+        for column in missing:
+            conn.execute(f"ALTER TABLE run_principle_scalars ADD COLUMN {column} {PRINCIPLE_ADDED_COLUMNS[column]}")
+        conn.commit()
     except sqlite3.Error:
         _rollback_quietly(conn)
         _logger.warning("run_principle_scalars column migration failed", exc_info=True)

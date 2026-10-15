@@ -95,6 +95,9 @@ export const projectKeys = {
   // In the project subtree so dismissals invalidate it with the rest.
   runDiff: (projectId, run, against = null, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runDiff", run || LATEST_RUN_ID, against),
   info: (projectId, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "info"),
+  // One dimension's per-principle score series (the dimension and principle
+  // pages). In the project subtree so dismiss and formula invalidations refetch it.
+  principleSeries: (projectId, dimension, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "principleSeries", dimension),
   // Explorer (dimension detail) queries. Distinct from `scores`: that one is
   // GET /projects/<p>/scores?as_of= (full payload incl. trend/availableRuns),
   // runScores is the slim GET /projects/<p>/scores/<run> used for the rescore
