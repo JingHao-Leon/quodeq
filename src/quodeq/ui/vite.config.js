@@ -14,6 +14,8 @@ export default defineConfig({
   build: {
     outDir: process.env.QUODEQ_BUILD_OUTDIR || '../static',
     emptyOutDir: true,
+    // The Python-driven build captures Vite's output, so skip the gzip report.
+    reportCompressedSize: !process.env.QUODEQ_BUILD_QUIET,
     rollupOptions: {
       output: {
         manualChunks(id) {
