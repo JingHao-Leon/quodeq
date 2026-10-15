@@ -1,3 +1,4 @@
+import { formatRunWhen } from '../../utils/dateFormatting.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -47,6 +48,13 @@ test('overviewPastRun: an older run names its day and goes back to the latest fi
   note.onBack();
   assert.deepEqual(picked, ['r2']);
   assert.equal(overviewPastRun(null, runs, () => {}), null);
+});
+
+test('overviewPastRun: a run with its date reads when it ran, in words, never its id', () => {
+  const runs = [{ runId: 'r2', status: 'done' }, { runId: 'r1', status: 'done', dateISO: '2026-10-13T04:55:00' }];
+  const note = overviewPastRun({ runId: 'r1', day: null }, runs, () => {});
+  assert.equal(note.when, formatRunWhen('2026-10-13T04:55:00'));
+  assert.notEqual(note.when, 'r1');
 });
 
 test('modelOfRun: the run\'s own model, else the newest finished run\'s', () => {

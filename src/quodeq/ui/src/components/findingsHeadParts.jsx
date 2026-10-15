@@ -53,7 +53,8 @@ export function Description({ text }) {
 export function PastRunNote({ pastRun }) {
   return (
     <p className="findings-head__past">
-      {t('violations.headPast', { when: pastRun.when })}
+      <span className="findings-head__past-label">{t('violations.headPastLabel')}</span>
+      <span className="findings-head__past-when">{pastRun.when}</span>
       <button type="button" className="findings-head__back" onClick={pastRun.onBack}>{t('violations.headBackToLatest')}</button>
     </p>
   );

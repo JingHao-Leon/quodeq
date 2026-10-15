@@ -1,3 +1,4 @@
+import { formatRunWhen } from '../../../utils/dateFormatting.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -139,12 +140,12 @@ describe('ExplorerPage header', () => {
     expect(screen.getByText(t('violations.scopeStatFilesRead', { count: 20 }))).toBeInTheDocument();
   });
 
-  it('a past run says so, and the way back shows the latest again', () => {
+  it('a past run says when it ran, in words, and the way back shows the latest again', () => {
     const trend = [{ runId: 'r9', dateLabel: 'Oct 14', dateISO: '2026-10-14T10:00:00' }, { runId: 'r1', dateLabel: 'Oct 1', dateISO: '2026-10-01T10:00:00' }];
     page({ runId: 'r1', dateLabel: 'Oct 1', trend, scopedFindings: { latestRunId: 'r9' } });
-    expect(screen.getByText(t('violations.headPast', { when: 'Oct 1' }))).toBeInTheDocument();
+    expect(document.querySelector('.findings-head__past-when')).toHaveTextContent(formatRunWhen('2026-10-01T10:00:00'));
     fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
-    expect(screen.queryByText(t('violations.headPast', { when: 'Oct 1' }))).toBeNull();
+    expect(document.querySelector('.findings-head__past')).toBeNull();
   });
 
   it('a Fix first row opens its requirement, a folder the list on that folder and this dimension', async () => {
