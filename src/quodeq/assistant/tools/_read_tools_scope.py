@@ -250,3 +250,18 @@ def finding_keys_in_scope(ctx: ToolContext) -> set[tuple]:
     keys: set[tuple] = set()
     _accumulated_finding_keys(ctx, lambda v: keys.add(_identity(v)))
     return keys
+
+
+def project_location(ctx: ToolContext) -> tuple[Path, str]:
+    """``(reports_root, project)`` the project-level services read from.
+
+    The overview scope names them directly; a run-only context derives them
+    from the run directory's place in the evaluations tree. Raises the
+    no-scope ToolError when neither is attached.
+    """
+    if ctx.reports_dir is not None and ctx.project_id is not None:
+        return Path(ctx.reports_dir), ctx.project_id
+    if ctx.run_dir is not None:
+        project_dir = ctx.run_dir.parent
+        return project_dir.parent, project_dir.name
+    raise no_scope_error()

@@ -5,6 +5,9 @@ import dataclasses
 
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import find_dimension, raw_run_dims, validate_dimension
+from quodeq.assistant.tools._read_tools_compare import register_compare_tools
+from quodeq.assistant.tools._read_tools_dismissed import register_dismissed_tools
+from quodeq.assistant.tools._read_tools_history import register_history_tools
 from quodeq.assistant.tools._read_tools_scope import (
     accumulated_dims,
     finding_keys_in_scope,  # noqa: F401 - re-export (actions.py, external tests)
@@ -192,10 +195,15 @@ def _register_findings_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
     registry.register(ToolSpec(
         "get_violations",
         "List violations for a dimension (or all dimensions if omitted), "
-        "severity-sorted with per-principle counts. Uses the selected run if "
-        "one is selected, otherwise the accumulated (per-dimension-latest) view.",
+        "severity-sorted with per-principle, per-requirement and per-file "
+        "counts. `path` narrows to one folder or file (repo-relative, matched "
+        "on whole path segments, e.g. the folder open in the Map or the file "
+        "open in the Explorer); use it for 'why does this module/file have so "
+        "many findings'. Uses the selected run if one is selected, otherwise "
+        "the accumulated (per-dimension-latest) view.",
         {"type": JSON_SCHEMA_TYPE_OBJECT, "properties": {
             "dimension": {"type": JSON_SCHEMA_TYPE_STRING},
+            "path": {"type": JSON_SCHEMA_TYPE_STRING},
             "limit": {"type": "integer", "minimum": 1, "maximum": VIOLATIONS_MAX_LIMIT},
         }},
         lambda **kw: get_violations(ctx, **kw)))
@@ -244,4 +252,7 @@ def _register_standards_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
 def register_read_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
     _register_findings_tools(registry, ctx)
     _register_score_tools(registry, ctx)
+    register_history_tools(registry, ctx)
+    register_compare_tools(registry, ctx)
+    register_dismissed_tools(registry, ctx)
     _register_standards_tools(registry, ctx)
