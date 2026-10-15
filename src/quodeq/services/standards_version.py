@@ -12,9 +12,10 @@ Per run, and only what scoring reads (Victor, 2026-10-15):
   (``run_dimension_ids``). Creating or installing a standard, or starting the
   first run of one, leaves every other run's version alone; editing or
   deleting a standard rebuilds only the runs that scored it.
-- A standard is hashed by its content minus the descriptive fields
+- A custom standard is hashed by its content minus the descriptive fields
   (``_DESCRIPTIVE_KEYS``): renaming or rewording it, or saving it unchanged,
-  rebuilds nothing.
+  rebuilds nothing. Built-ins change only on upgrade and are keyed by size
+  and mtime, so a request never reads them.
 
 Cost per request: one ``stat`` per standard file (the content is read only
 when a file changes, memoized by size and mtime) and two ``stat`` calls per
@@ -78,17 +79,30 @@ def _content_hash(path: Path) -> str | None:
 
 
 def standards_catalog(compiled_dir: object = _UNSET) -> Mapping[str, str]:
-    """``{dimension id: content hash}`` over the compiled and custom standards."""
+    """``{dimension id: hash}`` over the built-in and custom standards.
+
+    Built-ins only change on a Quodeq upgrade, so they are keyed by size and
+    mtime and never read on a request (perf budget ``standards_reads`` is 0);
+    custom standards, which people edit, are hashed by their scoring content.
+    """
     default_compiled, evaluators_dir = standard_dirs()
     if compiled_dir is _UNSET:
         compiled_dir = default_compiled
     catalog: dict[str, str] = {}
-    for path in standard_files((compiled_dir, evaluators_dir)):
+    for path in standard_files((compiled_dir,)):
+        stamp = file_stamp(path)
+        if stamp is not None:
+            _add(catalog, path, f"built-in:{stamp[0]}:{stamp[1]}")
+    for path in standard_files((evaluators_dir,)):
         digest = _content_hash(path)
         if digest is not None:
-            sid = path.stem.lower()
-            catalog[sid] = catalog.get(sid, "") + digest
+            _add(catalog, path, digest)
     return MappingProxyType(catalog)
+
+
+def _add(catalog: dict[str, str], path: Path, digest: str) -> None:
+    sid = path.stem.lower()
+    catalog[sid] = catalog.get(sid, "") + digest
 
 
 def run_dimensions(run_dir: Path) -> frozenset[str]:

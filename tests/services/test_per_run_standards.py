@@ -101,3 +101,15 @@ def test_unchanged_run_folders_are_not_listed_again(tmp_path, monkeypatch):
     _versions(pd, "r-sec")
     assert sv.standards_fingerprint(pd)
     assert calls == []
+
+
+def test_built_in_standards_are_never_read(tmp_path, monkeypatch):
+    """Built-ins are keyed by stat only: the overview_cold perf budget allows 0 standards reads."""
+    pd = tmp_path / "proj"
+    _run(pd, "r-sec", "security")
+    read = []
+    real = sv.scoring_content_hash
+    monkeypatch.setattr(sv, "scoring_content_hash", lambda path, keys: read.append(path.name) or real(path, keys))
+    _standard(tmp_path / "compiled", "security", ["S2"])
+    _versions(pd, "r-sec")
+    assert "security.json" not in read
