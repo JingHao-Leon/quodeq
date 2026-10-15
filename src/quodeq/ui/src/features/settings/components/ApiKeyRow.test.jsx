@@ -26,7 +26,7 @@ describe('ApiKeyRow', () => {
     fireEvent.change(input, { target: { value: 'sk-123' } });
     fireEvent.click(screen.getByRole('button', { name: /save key/i }));
     expect(update).toHaveBeenCalledWith('api-key', 'sk-123');
-    expect(input).toHaveValue('');
+    await waitFor(() => expect(input).toHaveValue(''));
   });
 
   it('after the save lands, re-reads the status and shows key saved', async () => {
@@ -53,5 +53,16 @@ describe('ApiKeyRow', () => {
     expect(screen.queryByLabelText(/api key/i, { selector: 'input' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /replace/i }));
     expect(screen.getByLabelText(/api key/i, { selector: 'input' })).toHaveValue('');
+  });
+
+  it('keeps the typed key and the field when the keychain refuses it', async () => {
+    const update = vi.fn(async () => false);
+    renderRow({ configured: false, update });
+    const input = await screen.findByLabelText(/api key/i, { selector: 'input' });
+    fireEvent.change(input, { target: { value: 'sk-123' } });
+    fireEvent.click(screen.getByRole('button', { name: /save key/i }));
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(screen.getByLabelText(/api key/i, { selector: 'input' })).toHaveValue('sk-123');
+    expect(screen.queryByText(/key saved/i)).not.toBeInTheDocument();
   });
 });

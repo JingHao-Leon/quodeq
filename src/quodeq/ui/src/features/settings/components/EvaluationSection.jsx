@@ -18,7 +18,7 @@ export default function EvaluationSection({ onOpenGradeFormula }) {
       </div>
       <button type="button" className="settings-row settings-row--last settings-link-row" onClick={onOpenGradeFormula}>
         <SettingsRowLabel hintSlot={false} label={t('settings.gradeFormula')} description={t('settings.gradeFormulaDesc')} />
-        <span className="settings-link-row__go" aria-hidden="true">{t('settings.openEditorLink')}</span>
+        <span className="settings-link-row__go">{t('settings.openEditorLink')}</span>
       </button>
     </section>
   );

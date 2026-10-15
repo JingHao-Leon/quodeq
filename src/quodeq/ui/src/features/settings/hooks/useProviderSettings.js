@@ -136,7 +136,8 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
   }, [showToast]);
 
   const update = useCallback((key, value) => {
-    setState(prev => ({ ...prev, [key]: String(value) }));
+    // A raw API key never enters live state: it goes straight to the keychain.
+    if (key !== PROVIDER_SETTING_KEY.API_KEY) setState(prev => ({ ...prev, [key]: String(value) }));
     const onPersistError = () => showToast(t('settings.persistError'));
     let saved;
     if (key === PROVIDER_SETTING_KEY.API_KEY) {
@@ -146,13 +147,14 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
         apiErrorKey(err?.code) ? apiErrorMessage(err, 'settings.persistError') : t('settings.persistError'));
       // saveProviderApiKey catches its own failures, reports them through
       // onPersistError and resolves false, so the returned promise never
-      // rejects; callers await it to know the keychain write has landed.
+      // rejects; it resolves to whether the keychain write landed.
       saved = saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
         // Clear the field rather than parking the sentinel in live state:
         // state['api-key'] is passed to providers as a real credential (see
         // OmlxTab), and the sentinel is not one. Storage still records it,
         // which is what survives a reload.
         if (ok) setState(prev => ({ ...prev, [key]: '' }));
+        return ok;
       });
     } else {
       saveProviderSetting(providerId, key, value, storage, { onPersistError });

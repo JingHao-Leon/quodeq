@@ -47,15 +47,17 @@ export default function ApiKeyRow({ providerId, update, description, onSaved }) 
   const save = () => {
     const value = draft.trim();
     if (!value) return;
-    setDraft('');
-    setReplacing(false);
-    // Re-read the status once the keychain write has landed, not before.
+    // Clear and re-read only once the keychain write has landed. A refused
+    // write keeps the typed key (the toast says why) so it can be retried.
     Promise.resolve(update(PROVIDER_SETTING_KEY.API_KEY, value))
-      .then(() => {
+      .then((ok) => {
+        if (ok === false) return;
+        setDraft('');
+        setReplacing(false);
         queryClient.invalidateQueries({ queryKey: keyStatusQuery(providerId) });
         onSaved?.();
       })
-      .catch((err) => console.warn('[ApiKeyRow] key status refresh failed:', err));
+      .catch((err) => console.warn('[ApiKeyRow] key save follow-up failed:', err));
   };
 
   return (
@@ -63,7 +65,7 @@ export default function ApiKeyRow({ providerId, update, description, onSaved }) 
       <SettingsRowLabel hintSlot={false} label={t('settings.apiKey')} description={description} labelId={labelId} />
       {stored ? (
         <div className="settings-pill-group">
-          <span className="settings-description">{t('settings.apiKeySaved')}</span>
+          <span className="settings-description" role="status">{t('settings.apiKeySaved')}</span>
           <button type="button" className="settings-pill" onClick={() => setReplacing(true)}>{t('settings.apiKeyReplace')}</button>
         </div>
       ) : (

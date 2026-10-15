@@ -5,13 +5,13 @@ import '@testing-library/jest-dom/vitest';
 const killTerminal = vi.fn(() => Promise.resolve({ ok: true }));
 vi.mock('../../../api/terminal.js', () => ({ killTerminal: (...a) => killTerminal(...a) }));
 vi.mock('../../../utils/confirmDialog.js', () => ({ confirmDialog: vi.fn() }));
-import TerminalSection from './TerminalSection.jsx';
+import TerminalRows from './TerminalRows.jsx';
 import { confirmDialog } from '../../../utils/confirmDialog.js';
 
 beforeEach(() => { localStorage.clear(); vi.clearAllMocks(); confirmDialog.mockResolvedValue(true); });
 
 it('toggles the terminal on and off', () => {
-  render(<TerminalSection />);
+  render(<TerminalRows />);
   fireEvent.click(screen.getByRole('tab', { name: 'On' }));
   expect(localStorage.getItem('cc-terminal-enabled')).toBe('true');
 });
@@ -20,7 +20,7 @@ it('Restart terminal kills the server session and signals the pane to reconnect'
   localStorage.setItem('cc-terminal-enabled', 'true');
   const onRestart = vi.fn();
   window.addEventListener('quodeq:terminal-restart', onRestart);
-  render(<TerminalSection />);
+  render(<TerminalRows />);
   fireEvent.click(screen.getByRole('button', { name: /restart terminal/i }));
   await waitFor(() => expect(confirmDialog).toHaveBeenCalledWith(
     expect.objectContaining({ variant: 'danger' }),
@@ -36,7 +36,7 @@ it('does not signal a reconnect when the kill fails (avoids restarting onto the 
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
   const onRestart = vi.fn();
   window.addEventListener('quodeq:terminal-restart', onRestart);
-  render(<TerminalSection />);
+  render(<TerminalRows />);
   fireEvent.click(screen.getByRole('button', { name: /restart terminal/i }));
   await waitFor(() => expect(warn).toHaveBeenCalled());
   expect(onRestart).not.toHaveBeenCalled();
@@ -47,7 +47,7 @@ it('does not signal a reconnect when the kill fails (avoids restarting onto the 
 it('does not kill the terminal when the confirm dialog is cancelled', async () => {
   localStorage.setItem('cc-terminal-enabled', 'true');
   confirmDialog.mockResolvedValueOnce(false);
-  render(<TerminalSection />);
+  render(<TerminalRows />);
   fireEvent.click(screen.getByRole('button', { name: /restart terminal/i }));
   await waitFor(() => expect(confirmDialog).toHaveBeenCalledWith(
     expect.objectContaining({ variant: 'danger' }),
