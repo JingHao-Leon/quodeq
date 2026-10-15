@@ -1449,7 +1449,7 @@
   "settings.analysisPower": "Analysis power",
   "settings.analysisPowerDesc": "Pick which tier above the evaluation should use.",
   "settings.apiKey": "API key",
-  "settings.apiKeyCloudDesc": "Kept in your system keychain, never in this browser.",
+  "settings.apiKeyCloudDesc": "Stored by quodeq outside this browser, in your system keychain by default.",
   "settings.apiKeyPlaceholder": "paste a key",
   "settings.apiKeyReplace": "replace",
   "settings.apiKeySave": "save key",

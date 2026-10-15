@@ -24,3 +24,9 @@ it('opens the grade formula editor from its link row', () => {
   fireEvent.click(screen.getByRole('button', { name: /grade formula/i }));
   expect(onOpenGradeFormula).toHaveBeenCalledTimes(1);
 });
+
+it('the grade formula link row holds only phrasing content', () => {
+  render(<EvaluationSection onOpenGradeFormula={vi.fn()} />);
+  const button = screen.getByRole('button', { name: /grade formula/i });
+  expect(button.querySelector('div')).toBeNull();
+});

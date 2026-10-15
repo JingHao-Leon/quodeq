@@ -65,4 +65,23 @@ describe('ApiKeyRow', () => {
     expect(screen.getByLabelText(/api key/i, { selector: 'input' })).toHaveValue('sk-123');
     expect(screen.queryByText(/key saved/i)).not.toBeInTheDocument();
   });
+
+  it('replace can be backed out of without saving', async () => {
+    renderRow({ configured: true });
+    fireEvent.click(await screen.findByRole('button', { name: /replace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+    expect(screen.getByText(/key saved/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/api key/i, { selector: 'input' })).not.toBeInTheDocument();
+  });
+
+  it('shows checking, not an empty field, while the key status loads', () => {
+    renderRow({ configured: true });
+    expect(screen.getByText(/checking/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/api key/i, { selector: 'input' })).not.toBeInTheDocument();
+  });
+
+  it('asks the browser not to offer a saved password', async () => {
+    renderRow({ configured: false });
+    expect(await screen.findByLabelText(/api key/i, { selector: 'input' })).toHaveAttribute('autocomplete', 'new-password');
+  });
 });

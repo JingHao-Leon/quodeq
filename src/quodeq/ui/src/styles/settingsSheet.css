@@ -19,6 +19,15 @@
 .settings-group__gutter {
   border-right: 1px solid var(--color-border);
   background: var(--color-surface-alt);
+  /* The panel keeps overflow visible for the sticky gutter, so the gutter
+     rounds its own outer corners to follow the panel's. */
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+/* A group is a whole page section, not a card to point at: no hover tint. */
+.settings-group:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border);
 }
 
 /* Name and state stay in view while a tall group scrolls past. */
@@ -156,7 +165,11 @@
 @container settings (max-width: 760px) {
   .settings-group { grid-template-columns: minmax(0, 1fr); }
 
-  .settings-group__gutter { border-right: none; border-bottom: 1px solid var(--color-border); }
+  .settings-group__gutter {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
 
   .settings-group__sticky { position: static; padding: var(--space-4) var(--space-5); }
 
