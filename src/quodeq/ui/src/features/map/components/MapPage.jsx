@@ -76,7 +76,7 @@ function MapControls({ viewState, galaxyState, dimensionState, riskFilter, activ
   const { allDimensions, selectedDimensions } = dimensionState;
   return (
     <>
-      <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={riskFilter.onToggleDimension} />
+      <DimensionFilter allDimensions={allDimensions} selectedDimensions={selectedDimensions} onToggle={riskFilter.onToggleDimension} onShowOnly={riskFilter.onShowOnlyDimension} />
       {vizStyle === VIZ_STYLE.RISK && <RiskPrincipleChip principle={riskFilter.principle} onClear={riskFilter.clearPrinciple} />}
       {vizStyle === VIZ_STYLE.ZOOMPACK && <PackColorSeg viewMode={viewMode} setViewMode={setViewMode} activityUnavailable={activityUnavailable} />}
       {vizStyle === VIZ_STYLE.GALAXY && (

@@ -58,7 +58,7 @@ function useMapTabCache(selectedProject, tabKey, cache) {
  * for every consumer of useMapPageState. */
 function buildMapPageResult({
   allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-  dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
+  dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, currentNode, fullTree, currentPath,
   setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
   showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName, standardTypes,
 }) {
@@ -66,7 +66,7 @@ function buildMapPageResult({
     allDimensions,
     viewState: { viewMode, setViewMode, vizStyle, setVizStyle },
     galaxyState: { galaxyMode, setGalaxyMode },
-    dimensionState: { allDimensions: dimensionNames, selectedDimensions: effectiveSelected, onToggleDimension: handleToggleDimension },
+    dimensionState: { allDimensions: dimensionNames, selectedDimensions: effectiveSelected, onToggleDimension: handleToggleDimension, onShowOnlyDimension: handleShowOnlyDimension },
     vizState: { vizStyle, viewMode, galaxyMode, setGalaxyMode },
     treeState: { node: currentNode, fullTree, currentPath, onPathChange: setCurrentPath },
     dimensions: filteredDimensions,
@@ -141,7 +141,7 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
 
   const { showLabels, setShowLabels, darkMode, setDarkMode } = useMapDisplayPrefs();
 
-  const { dimensionNames, effectiveSelected, handleToggleDimension, filteredDimensions } = useMapDimensionFilter({
+  const { dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, filteredDimensions } = useMapDimensionFilter({
     allDimensions, selectedProject, cachedSelectedArr: initialDimensions(nav, cached), cache,
   });
 
@@ -151,7 +151,7 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
 
   return buildMapPageResult({
     allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-    dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
+    dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, currentNode, fullTree, currentPath,
     setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
     showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName: data?.projectName, standardTypes,
   });
