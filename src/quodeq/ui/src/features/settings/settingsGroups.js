@@ -43,8 +43,8 @@ export function appState({ mode, family }) {
 }
 
 /** The about group's line: the version, or the update waiting. */
-export function aboutState({ status }) {
-  if (!status) return { tone: STATE_TONE.NONE, text: t('settings.stateChecking') };
+export function aboutState({ status, failed = false }) {
+  if (!status) return { tone: STATE_TONE.NONE, text: t(failed ? 'settings.stateUpdateUnknown' : 'settings.stateChecking') };
   if (status.update_available) {
     return { tone: STATE_TONE.WARN, text: t('settings.stateUpdate', { current: status.current, latest: status.latest }) };
   }

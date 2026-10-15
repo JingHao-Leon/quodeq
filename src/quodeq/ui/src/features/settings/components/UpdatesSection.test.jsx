@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 import UpdatesSection from './UpdatesSection.jsx';
+import { useUpdateStatus } from '../../updates/useUpdateStatus.js';
+
+// The page owns the status and hands it down; this stands in for the page.
+function Page() {
+  return <UpdatesSection update={useUpdateStatus()} />;
+}
 
 const UP_TO_DATE = {
   current: '1.4.0', latest: '1.4.0', update_available: false, is_security: false,
@@ -20,7 +26,7 @@ const fakeApi = {
 function renderWithApi() {
   return render(
     <ApiProvider value={fakeApi}>
-      <UpdatesSection />
+      <Page />
     </ApiProvider>,
   );
 }

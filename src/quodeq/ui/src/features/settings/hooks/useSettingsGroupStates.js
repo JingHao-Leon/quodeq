@@ -6,7 +6,6 @@ import { GITHUB_ACCOUNT_QUERY_KEY } from '../../github-access/accessVocab.js';
 import { useAiClientList } from './useAiClientList.js';
 import useLiveFeedSettings from './useLiveFeedSettings.js';
 import { useSettingsChangeSync } from './settingsSync.js';
-import { useUpdateStatus } from '../../updates/useUpdateStatus.js';
 import { modelState, evaluationState, connectionsState, appState, aboutState, SETTINGS_GROUP } from '../settingsGroups.js';
 
 const MODEL_EVENTS = [PROVIDER_SETTINGS_CHANGED_EVENT];
@@ -26,11 +25,12 @@ function shownProvider(stored, clients) {
 
 /**
  * Each settings group's gutter line, read from the same hooks and queries
- * the group's sections use. Re-reads the model whenever a provider setting
+ * the group's sections use (`update` is the page's shared update status).
+ * Re-reads the model whenever a provider setting
  * changes, in this window or another.
  * @returns {Record<string, {tone: string, text: string}>}
  */
-export default function useSettingsGroupStates({ providerConfigs, theme, storage = localStorage }) {
+export default function useSettingsGroupStates({ providerConfigs, theme, update, storage = localStorage }) {
   const [stored, setStored] = useState(() => readStoredModel(storage));
   const load = useCallback(readStoredModel, []);
   useSettingsChangeSync(MODEL_EVENTS, { load, setState: setStored, storage });
@@ -39,12 +39,11 @@ export default function useSettingsGroupStates({ providerConfigs, theme, storage
   const { newOnly } = useLiveFeedSettings();
   const { getGithubAccount } = useApi();
   const { data: account } = useQuery({ queryKey: GITHUB_ACCOUNT_QUERY_KEY, queryFn: getGithubAccount });
-  const { status } = useUpdateStatus();
   return {
     [SETTINGS_GROUP.MODEL]: modelState({ provider, model: provider ? stored.modelOf(provider) : '' }),
     [SETTINGS_GROUP.EVALUATION]: evaluationState({ newOnly }),
     [SETTINGS_GROUP.CONNECTIONS]: connectionsState({ account }),
     [SETTINGS_GROUP.APP]: appState({ mode: theme.mode, family: theme.family }),
-    [SETTINGS_GROUP.ABOUT]: aboutState({ status }),
+    [SETTINGS_GROUP.ABOUT]: aboutState({ status: update.status, failed: update.failed }),
   };
 }

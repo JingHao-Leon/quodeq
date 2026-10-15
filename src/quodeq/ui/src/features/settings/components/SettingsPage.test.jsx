@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
@@ -15,18 +15,19 @@ const OVERRIDES = {
   getSharedStatus: async () => ({ configured: false, url: null }),
   getMenubar: async () => ({ supported: false }),
 };
-const api = new Proxy(OVERRIDES, { get: (target, name) => target[name] ?? (async () => ({})) });
+const proxyOf = (overrides) => new Proxy(overrides, { get: (target, name) => target[name] ?? (async () => ({})) });
+const api = proxyOf(OVERRIDES);
 
 // The app mounts the real log provider higher up; the page only needs its shape.
 const serverLog = { open: false, openLog: () => {}, closeLog: () => {} };
 
 const theme = { mode: 'system', family: 'daruma', onApplyMode: () => {}, onApplyFamily: () => {} };
 
-function renderPage() {
+function renderPage(pageApi = api) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <ApiProvider value={api}>
+      <ApiProvider value={pageApi}>
         <SidePaneProvider>
           <ServerLogContext.Provider value={serverLog}>
             <SettingsPage theme={theme} onOpenGradeFormula={() => {}} onSharedDisconnected={() => {}} onShowWelcome={() => {}} />
@@ -59,5 +60,20 @@ describe('SettingsPage', () => {
     renderPage();
     await screen.findByText('v1.13.1');
     expect(screen.queryAllByText(/1\.13\.1/)).toHaveLength(1);
+  });
+
+  it('the About line follows a manual check that finds an update', async () => {
+    renderPage(proxyOf({
+      ...OVERRIDES,
+      checkForUpdates: async () => ({ current: '1.13.1', latest: '1.14.0', update_available: true, auto_check_enabled: true }),
+    }));
+    await screen.findByText('v1.13.1');
+    fireEvent.click(screen.getByRole('button', { name: /check now/i }));
+    expect(await screen.findByText('v1.13.1 · 1.14.0 available')).toBeInTheDocument();
+  });
+
+  it('says so when the update status cannot be read, instead of checking forever', async () => {
+    renderPage(proxyOf({ ...OVERRIDES, getUpdateStatus: async () => { throw new Error('offline'); } }));
+    expect(await screen.findByText('update check unavailable')).toBeInTheDocument();
   });
 });

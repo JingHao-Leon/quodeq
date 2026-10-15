@@ -1625,6 +1625,7 @@
   "settings.stateModelReady": "{provider} · {model}",
   "settings.stateNoProvider": "pick a provider",
   "settings.stateTheme": "{mode} · {family}",
+  "settings.stateUpdateUnknown": "update check unavailable",
   "settings.stateUpdate": "v{current} · {latest} available",
   "settings.stateVersion": "v{version}",
   "settings.subagentsDescRemote": "How many subagents work side by side. Pick a number from 1 to 10.",

@@ -29,6 +29,7 @@ test('about: an update waiting warns', () => {
   assert.deepEqual(aboutState({ status: { current: '1.13.1', latest: '1.14.0', update_available: true } }),
     { tone: STATE_TONE.WARN, text: 'v1.13.1 · 1.14.0 available' });
   assert.equal(aboutState({ status: { current: '1.13.1', update_available: false } }).tone, STATE_TONE.OK);
+  assert.equal(aboutState({ status: null, failed: true }).text, 'update check unavailable');
 });
 
 test('evaluation: live feed mode', () => {

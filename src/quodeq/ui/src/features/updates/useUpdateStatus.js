@@ -11,8 +11,11 @@ import { useApi } from '../../api/ApiContext.jsx';
 export function useUpdateStatus() {
   const { getUpdateStatus } = useApi();
   const [status, setStatus] = useState(null);
+  const [failed, setFailed] = useState(false);
   const refresh = useCallback(() => {
-    getUpdateStatus().then(setStatus).catch((e) => console.warn('update status refresh failed:', e));
+    getUpdateStatus()
+      .then((next) => { setStatus(next); setFailed(false); })
+      .catch((e) => { console.warn('update status refresh failed:', e); setFailed(true); });
   }, [getUpdateStatus]);
   const adopt = useCallback((next) => setStatus(next), []);
   // Local-only: the caller awaits the request and calls this again with the
@@ -21,5 +24,5 @@ export function useUpdateStatus() {
     setStatus((s) => ({ ...(s || {}), auto_check_enabled: enabled }));
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
-  return { status, refresh, adopt, setAutoCheck };
+  return { status, failed, refresh, adopt, setAutoCheck };
 }

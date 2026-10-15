@@ -16,6 +16,7 @@ import SettingsGroup from './SettingsGroup.jsx';
 import useSettingsGroupStates from '../hooks/useSettingsGroupStates.js';
 import { SETTINGS_GROUPS, SETTINGS_GROUP } from '../settingsGroups.js';
 import { t } from '../../../strings/index.js';
+import { useUpdateStatus } from '../../updates/useUpdateStatus.js';
 
 const _SETTINGS_PHRASE_KEYS = [
   'settingsPhrase.cuore',
@@ -27,7 +28,7 @@ const _SETTINGS_PHRASE_KEYS = [
 
 // What each group holds, keyed by group id. The sections keep their own
 // behaviour; the group panel only frames them.
-function groupBodies({ providerConfigs, theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase }) {
+function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase }) {
   return {
     [SETTINGS_GROUP.MODEL]: (<>
       <ProviderTabs providerConfigs={providerConfigs} />
@@ -49,7 +50,7 @@ function groupBodies({ providerConfigs, theme, onOpenGradeFormula, onSharedDisco
       </details>
     </>),
     [SETTINGS_GROUP.ABOUT]: (<>
-      <UpdatesSection />
+      <UpdatesSection update={update} />
       <AboutSection settingsPhrase={settingsPhrase} />
     </>),
   };
@@ -58,14 +59,17 @@ function groupBodies({ providerConfigs, theme, onOpenGradeFormula, onSharedDisco
 export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome }) {
   const [settingsPhrase, setSettingsPhrase] = useState('');
   const [providerConfigs, setProviderConfigs] = useState({});
-  const states = useSettingsGroupStates({ providerConfigs, theme });
+  // One update status for the page: the Updates section and the About line
+  // must never disagree after a manual check.
+  const update = useUpdateStatus();
+  const states = useSettingsGroupStates({ providerConfigs, theme, update });
 
   useEffect(() => {
     setSettingsPhrase(t(_SETTINGS_PHRASE_KEYS[Math.floor(Math.random() * _SETTINGS_PHRASE_KEYS.length)]));
     getProviderConfigs().then(setProviderConfigs).catch(() => setProviderConfigs({}));
   }, []);
 
-  const bodies = groupBodies({ providerConfigs, theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase });
+  const bodies = groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase });
   return (
     <div className="settings-page settings-page--terminal settings-sheet">
       {SETTINGS_GROUPS.map((group) => (
