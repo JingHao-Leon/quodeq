@@ -1872,6 +1872,8 @@
 .overview-skeleton { display: flex; flex-direction: column; }
 /* The run page (History, "open run"): the Overview's panels for one run, a flex column the same way. */
 .run-page { display: flex; flex-direction: column; }
+/* The run page's rescored note: its help button a little apart from the words. */
+.run-page .findings-head__hint .help-hint { margin-left: 4px; }
 .overview-skeleton__bar {
   display: inline-block;
   flex: none;
