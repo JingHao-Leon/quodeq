@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import FindingsHead from '../../../components/FindingsHead.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import SharedReadOnlyBadge from '../../../components/SharedReadOnlyBadge.jsx';
@@ -31,11 +32,11 @@ export function languageSub(projectInfo) {
  * The Overview's sub line, as the other pages': what it is (the project's
  * files and languages), when and by which model it was last evaluated, and
  * a warning only when a dimension's files read round below 100%, and for
- * a shared project when its copy was last fetched.
+ * a shared project when its copy was last fetched. One string per part.
  * @param {{projectInfo?: object, lastDate?: ?string, model?: ?string, dimensions?: object[]}} args
- * @returns {?string}
+ * @returns {string[]}
  */
-export function overviewSub({ projectInfo, lastDate = null, model = null, dimensions = [] }) {
+export function overviewSubParts({ projectInfo, lastDate = null, model = null, dimensions = [] }) {
   const partial = partialDimensionCount(dimensions);
   // A shared project's copy is as fresh as its last fetch: say when that was.
   const fetched = projectInfo?.lastFetchedAt ? relativeTime(projectInfo.lastFetchedAt) : null;
@@ -45,8 +46,33 @@ export function overviewSub({ projectInfo, lastDate = null, model = null, dimens
     model ? t('overview.subModel', { model }) : null,
     partial ? t(pluralKey(partial, 'overview.subPartialOne', 'overview.subPartial'), { count: partial }) : null,
     fetched ? t('overview.subFetched', { when: fetched }) : null,
-  ].filter(Boolean).join(t('violations.wbDot')) || null;
+  ].filter(Boolean);
 }
+
+/** The sub line as one string; null when it has no parts. */
+export function overviewSub(args) {
+  return overviewSubParts(args).join(t('violations.wbDot')) || null;
+}
+
+/** Each part with the dot that closes it, the last one bare. */
+export function subPartTexts(parts) {
+  const dot = t('violations.wbDot').trimEnd();
+  return parts.map((part, i) => (i < parts.length - 1 ? part + dot : part));
+}
+
+/**
+ * The sub line with each part kept whole: a narrow header wraps between the
+ * parts, never inside one, and the dot stays at the end of the line it closes.
+ * @param {{parts: string[]}} props
+ */
+export function SubParts({ parts }) {
+  return subPartTexts(parts).map((text, i) => (
+    <Fragment key={text}>{i > 0 ? ' ' : null}<span className="overview-sub__part">{text}</span></Fragment>
+  ));
+}
+
+/** The sub line for the header, null when there is nothing to say. */
+const subLineOf = (parts) => (parts.length ? <SubParts parts={parts} /> : null);
 
 /** Beside the title: the score's trend (none under 0.05), and the shared badge on a shared project. */
 export function HeadBadge({ delta, shared, publishedBy }) {
@@ -86,10 +112,11 @@ export default function OverviewHead({ data, accumulated, stats, headline, previ
   const shared = data.selectedSource === PROJECT_SOURCE.SHARED;
   const model = useRunModel({ project: data.selectedProject, source: data.selectedSource, runId: stats.lastRun?.runId });
   const metrics = projectMetrics(summary, headline);
+  const subParts = overviewSubParts({ projectInfo: data.projectInfo, lastDate: stats.lastRun?.date, model, dimensions });
   return (
     <FindingsHead
       title={data.projectInfo?.displayName || data.projectInfo?.name || t('overview.termName')}
-      sub={overviewSub({ projectInfo: data.projectInfo, lastDate: stats.lastRun?.date, model, dimensions })}
+      sub={subLineOf(subParts)}
       grade={{ score: summary.numericAverage, insufficient: false, hint: data.customFormula ? t('overview.customFormulaNote') : null }}
       badge={<HeadBadge delta={stats.scoreDelta} shared={shared} publishedBy={data.projectInfo?.publishedBy} />}
       metrics={metrics} filesHint={t('overview.per100Hint', { count: dimensions.length })}

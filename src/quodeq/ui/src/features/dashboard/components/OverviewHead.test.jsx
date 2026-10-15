@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import OverviewHead, { languageSub, overviewSub } from './OverviewHead.jsx';
+import OverviewHead, { languageSub, overviewSub, SubParts } from './OverviewHead.jsx';
 import { scopeMetrics } from '../../../models/findingMetrics.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 
@@ -21,7 +21,7 @@ describe('OverviewHead', () => {
   it('names the project, its make-up, when and by which model it was evaluated', async () => {
     renderHead();
     expect(document.querySelector('.findings-head .term-header__name')).toHaveTextContent('proj');
-    await waitFor(() => expect(screen.getByText('61 files · evaluated 14 Oct 2026 · by qwen')).toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('.term-header__sub')).toHaveTextContent('61 files · evaluated 14 Oct 2026 · by qwen'));
   });
 
   it('warns about coverage only when a dimension read part of the files', () => {
@@ -84,5 +84,12 @@ describe('the Overview\'s sub line', () => {
   it('a shared project says when its copy was last fetched', () => {
     const lastFetchedAt = new Date().toISOString();
     expect(overviewSub({ projectInfo: { lastFetchedAt }, lastDate: '14 Oct 2026' })).toMatch(/^evaluated 14 Oct 2026 · fetched /);
+  });
+
+  it('keeps each part whole, the dot closing the part before it, so a narrow header wraps between parts', () => {
+    const { container } = render(<SubParts parts={['61 files', 'evaluated 14 Oct 2026', 'by qwen']} />);
+    const parts = [...container.querySelectorAll('.overview-sub__part')].map((el) => el.textContent);
+    expect(parts).toEqual(['61 files ·', 'evaluated 14 Oct 2026 ·', 'by qwen']);
+    expect(container.textContent).toBe('61 files · evaluated 14 Oct 2026 · by qwen');
   });
 });
