@@ -177,6 +177,8 @@
 .dim-gauge-card__gradeword { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1; }
 .dim-gauge-card__pills { display: flex; flex-wrap: wrap; gap: 4px; }
 .dim-gauge-card__pass { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
+/* a dimension that read only part of its files: how much, in the warning colour */
+.dim-gauge-card__partial { font-size: 11px; color: var(--color-warning-text); white-space: nowrap; }
 /* the ring and its numbers sit in the middle of a wide card */
 .dim-gauge-card__row { justify-content: center; }
 /* the compact not-evaluated card (the Overview's): a button that reads as the other cards */

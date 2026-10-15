@@ -79,12 +79,24 @@ function PassLine({ passPct }) {
 }
 
 /**
+ * The compact card's partial note: only when the dimension read part of its
+ * files (or stopped early), the share it read, amber, with the full card's
+ * tooltip saying how many files and why it stopped.
+ */
+function PartialLine({ coverage, tooltip }) {
+  if (!coverage?.isPartial) return null;
+  const text = coverage.coveragePct !== null ? t('overview.cardRead', { pct: coverage.coveragePct }) : t('overview.cardPartial');
+  return <span className="dim-gauge-card__partial" title={tooltip}>{text}</span>;
+}
+
+/**
  * A compact card (the principle row of a dimension page): the name and its
  * trend (none under 0.05) across the top; below, the ring with the score
  * only, and beside it the grade word at text size in the ring's colour, the
- * severities as the app's pills, and the pass rate (or the caller's footer in its place).
+ * severities as the app's pills, and the pass rate (or the caller's footer in its place),
+ * then, on a dimension that read only part of its files, how much it read.
  */
-function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient, footer, footerId }) {
+function CompactCardBody({ name, delta, ring, sev, passPct, partial, summaryId, isInsufficient, footer, footerId }) {
   return (
     <>
       <div className="dim-gauge-card__top">
@@ -101,6 +113,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsuffi
           </span>
           <SevPills sev={sev} />
           {footer ? <div id={footerId}>{footer}</div> : <PassLine passPct={passPct} />}
+          <PartialLine coverage={partial.coverage} tooltip={partial.tooltip} />
         </div>
       </div>
       {!isInsufficient && <span id={summaryId} className="sr-only">{t('overview.gaugeSummaryAria', { score: ring.scoreDisplay, grade: ring.gradeWord })}</span>}
@@ -233,7 +246,7 @@ export default function DimensionGaugeCard({
       aria-describedby={describedByIds({ isInsufficient, summaryId, compact, footer, footerId })}
     >
       {compact ? (
-        <CompactCardBody name={item.dimension} delta={delta} sev={sev} passPct={passPctOf(item)} summaryId={summaryId} isInsufficient={isInsufficient}
+        <CompactCardBody name={item.dimension} delta={delta} sev={sev} passPct={passPctOf(item)} partial={{ coverage, tooltip: partialTooltip }} summaryId={summaryId} isInsufficient={isInsufficient}
           ring={{ scoreDisplay, gradeWord, ringColor, dashOffset }} footer={footer} footerId={footerId} />
       ) : (
         <FullCardBody item={item} delta={delta} derived={derived} summaryId={summaryId} isInsufficient={isInsufficient} thinEvidence={thinEvidence} />

@@ -27,6 +27,13 @@ describe('DimensionGaugeCard, compact', () => {
     expect(container.querySelector('.dim-gauge-card__pass')).toHaveTextContent(t('overview.cardPass', { pct: 75 }));
   });
 
+  it('says how much a partial dimension read, and nothing when it read every file', () => {
+    const { container, rerender } = card({ item: { ...item, filesRead: 86, sourceFileCount: 100 } });
+    expect(container.querySelector('.dim-gauge-card__partial')).toHaveTextContent(t('overview.cardRead', { pct: 86 }));
+    rerender(<DimensionGaugeCard item={{ ...item, filesRead: 100, sourceFileCount: 100 }} onDimensionClick={vi.fn()} compact showDate={false} />);
+    expect(container.querySelector('.dim-gauge-card__partial')).toBeNull();
+  });
+
   it('a footer takes the pass rate\'s place', () => {
     const { container } = card({ footer: <span className="probe-footer">run changes</span> });
     expect(container.querySelector('.dim-gauge-card__rowbody .probe-footer')).toHaveTextContent('run changes');
