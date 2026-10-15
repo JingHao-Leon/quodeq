@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 from quodeq.core.utils.io import resolve_child_dir
-from quodeq.shared.process import is_pid_alive
+from quodeq.shared.process import is_original_process
 
 _PID_FILENAME = ".pid"
 
@@ -51,10 +51,14 @@ def resolve_external_pid(project_dir: Path, run_id: str) -> int | None:
         return None
     try:
         pid = int(pid_file.read_text(encoding="utf-8").strip())
+        written_at = pid_file.stat().st_mtime
     except (OSError, ValueError):
         return None
-    # is_pid_alive rather than os.kill(pid, 0) -- signal 0 is unsafe on
-    # Windows (CTRL_C_EVENT can broadcast Ctrl+C to the calling process).
-    if not is_pid_alive(pid):
+    # The file outlives the run, and the OS reuses PIDs: a live pid that
+    # started after the run wrote this file is some other program (a
+    # cancelled July run's pid was a Chrome helper by October). Cancelling
+    # would signal it. is_pid_alive underneath, never os.kill(pid, 0), which
+    # is CTRL_C_EVENT on Windows.
+    if not is_original_process(pid, written_at):
         return None
     return pid

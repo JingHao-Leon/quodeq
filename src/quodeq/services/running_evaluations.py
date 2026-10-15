@@ -13,10 +13,8 @@ from pathlib import Path
 
 from quodeq.core.run.state import TERMINAL_STATES
 from quodeq.services.wiring import read_repository_info, read_run_status_json
-from quodeq.shared.process import process_has_arg
+from quodeq.shared.process import is_original_process
 
-# `quodeq evaluate ...` from a terminal and the dashboard's `-m quodeq.cli evaluate ...`
-_EVALUATE_ARG = "evaluate"
 _SECONDS_PER_MINUTE = 60
 _MINUTES_PER_HOUR = 60
 
@@ -31,12 +29,14 @@ class RunningEvaluation:
     running_for: str  # "12m" / "2h 5m", or "" when the start time is unknown
 
 
-def _read_pid(pid_file: Path) -> int | None:
+def _read_pid(pid_file: Path) -> tuple[int, float] | None:
+    """The PID in *pid_file* and when it was written."""
     try:
         raw = pid_file.read_text(encoding="utf-8").strip()
+        written_at = pid_file.stat().st_mtime
     except OSError:
         return None
-    return int(raw) if raw.isdigit() else None
+    return (int(raw), written_at) if raw.isdigit() else None
 
 
 def _running_for(started_at: object) -> str:
@@ -59,9 +59,10 @@ def running_evaluations(evaluations_dir: Path) -> list[RunningEvaluation]:
         status = read_run_status_json(run_dir)
         if not status or status.get("state") in TERMINAL_STATES:
             continue
-        pid = _read_pid(pid_file)
-        if pid is None or not process_has_arg(pid, _EVALUATE_ARG):
+        record = _read_pid(pid_file)
+        if record is None or not is_original_process(*record):
             continue
+        pid = record[0]
         info = read_repository_info(run_dir.parent) or {}
         runs.append(RunningEvaluation(
             project=str(info.get("name") or run_dir.parent.name),
