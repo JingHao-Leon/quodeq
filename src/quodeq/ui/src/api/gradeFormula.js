@@ -25,10 +25,10 @@ export function rescoreGradeFormula() {
   return request('/grade-formula/rescore', { method: 'POST' });
 }
 
-/** @returns {Promise<{project: string, runId: string, before: Object, after: Object}>} */
-export function previewGradeFormula(projectId, params) {
+/** @returns {Promise<{projects: Array<{id: string, before: Object, after: Object}>, runsToRescore: number}>} */
+export function previewGradeFormula(params) {
   return request('/grade-formula/preview', {
     method: 'POST',
-    body: JSON.stringify({ project: projectId, params }),
+    body: JSON.stringify({ params }),
   });
 }
