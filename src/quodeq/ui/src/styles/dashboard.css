@@ -3632,6 +3632,15 @@
 .risk-zone-chip--fixFirst { color: var(--color-sev-critical-text); border-color: var(--color-sev-critical-border); background: var(--color-sev-critical-bg); }
 .risk-zone-chip--watch { color: var(--color-sev-major-text); border-color: var(--color-sev-major-border); background: var(--color-sev-major-bg); }
 .risk-areas-panel__none { padding: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+/* A row's end: the area in the Risk map, a muted glyph that takes the accent on hover and focus. */
+.risk-areas-panel__map {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  border: none; border-radius: 4px; background: transparent;
+  color: var(--color-text-muted); cursor: pointer;
+}
+.risk-areas-panel__map:hover, .risk-areas-panel__map:focus-visible { color: var(--color-accent); }
+.risk-areas-panel__map:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 
 /* The Findings header (scoped views, the dimension page) and the scoped views' list and cards. */
 .findings-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); padding: 12px 18px; margin-bottom: var(--space-3); }

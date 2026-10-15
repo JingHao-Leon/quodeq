@@ -8,6 +8,7 @@ const stats = (files, violations = 3, critical = 0, major = 1) => ({ files, viol
 const area = (name, density, { files = 8, kind = 'watch', lift = null } = {}) => ({ name, density, kind, lift, stats: stats(files), dots: [], layers: [] });
 
 let areaSet = { areas: [], files: [], average: 0 };
+const FILES = [{ path: 'src/hot/a.py', area: 'hot' }, { path: 'src/hot/b.py', area: 'hot' }, { path: 'src/warm/c.py', area: 'warm' }];
 const asked = vi.hoisted(() => ({ selection: undefined }));
 vi.mock('../hooks/useMapAreas.js', () => ({
   default: (_p, _s, _active, selection) => { asked.selection = selection; return { areaSet, loading: false, failed: false, unavailable: false }; },
@@ -32,15 +33,35 @@ describe('RiskAreasPanel', () => {
     expect(screen.getAllByRole('row')).toHaveLength(AREAS_SHOWN);
   });
 
-  it('opens an area, and the whole sky from the foot', () => {
-    areaSet = { areas: [area('hot', 1.4)] };
-    const onAreaClick = vi.fn();
+  it('a row opens the area\'s findings over every finding, and the foot the whole sky', () => {
+    areaSet = { areas: [area('hot', 1.4)], files: FILES };
+    const onAreaFindings = vi.fn();
     const onOpenRisk = vi.fn();
-    render(<RiskAreasPanel project="p" source="local" onAreaClick={onAreaClick} onOpenRisk={onOpenRisk} />);
+    render(<RiskAreasPanel project="p" source="local" onAreaFindings={onAreaFindings} onOpenRisk={onOpenRisk} />);
     fireEvent.click(screen.getAllByRole('row')[0]);
-    expect(onAreaClick.mock.calls[0][0].name).toBe('hot');
+    expect(onAreaFindings).toHaveBeenCalledWith({ kind: 'area', name: 'hot', paths: ['src/hot/'], small: false });
     fireEvent.click(screen.getByRole('button', { name: t('overview.riskAreasOpen') }));
     expect(onOpenRisk).toHaveBeenCalled();
+  });
+
+  it('a row\'s map icon opens the area in the Risk map, never its findings, from the mouse or the keys', () => {
+    areaSet = { areas: [area('hot', 1.4)], files: FILES };
+    const onAreaFindings = vi.fn();
+    const onAreaInMap = vi.fn();
+    render(<RiskAreasPanel project="p" source="local" onAreaFindings={onAreaFindings} onAreaInMap={onAreaInMap} />);
+    const icon = screen.getByRole('button', { name: t('overview.riskAreaInMapAria', { name: 'hot' }) });
+    expect(icon).toHaveAttribute('title', t('overview.riskAreaInMap'));
+    fireEvent.click(icon);
+    fireEvent.keyDown(icon, { key: 'Enter' });
+    expect(onAreaInMap).toHaveBeenCalledTimes(1);
+    expect(onAreaInMap.mock.calls[0][0].name).toBe('hot');
+    expect(onAreaFindings).not.toHaveBeenCalled();
+  });
+
+  it('has no map icon when the page cannot open the Map', () => {
+    areaSet = { areas: [area('hot', 1.4)], files: FILES };
+    render(<RiskAreasPanel project="p" source="local" onAreaFindings={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: t('overview.riskAreaInMapAria', { name: 'hot' }) })).toBeNull();
   });
 
   it('says so in one line when no area needs rework', () => {
@@ -66,6 +87,14 @@ describe('RiskAreasPanel over a dimension', () => {
     const rows = screen.getAllByRole('row');
     expect(rows.map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['hot', 'warm']);
     expect(rows[1]).toHaveTextContent(t('overview.riskLift', { lift: '4.0' }));
+  });
+
+  it('a row opens the area\'s findings over that dimension', () => {
+    areaSet = { areas: [area('hot', 0.9, { lift: 2 })], files: FILES };
+    const onAreaFindings = vi.fn();
+    render(<RiskAreasPanel project="p" source="local" dimensions={['security']} onAreaFindings={onAreaFindings} />);
+    fireEvent.click(screen.getAllByRole('row')[0]);
+    expect(onAreaFindings).toHaveBeenCalledWith({ kind: 'area', name: 'hot', paths: ['src/hot/'], small: false, dimensions: ['security'] });
   });
 
   it('shows no lift over every finding', () => {

@@ -5,7 +5,15 @@ import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
 
 // Each panel is a button that hands its callback one row: this test is about where the Overview sends it.
-vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
+const AREA = { kind: 'area', name: 'api', paths: ['src/api/'], small: false };
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({
+  default: ({ dimensions, onAreaFindings, onAreaInMap }) => (
+    <>
+      <button type="button" onClick={() => onAreaFindings(AREA)}>area row {String(dimensions ?? 'all')}</button>
+      <button type="button" onClick={() => onAreaInMap({ name: 'api' })}>area in map</button>
+    </>
+  ),
+}));
 // The header's previous period, since line and model read through react-query too.
 vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () => null, useOverviewSince: () => null, useRunModel: () => null }));
 vi.mock('./OverviewHead.jsx', () => ({
@@ -75,6 +83,22 @@ describe('AccumulatedOverviewPanel opens scoped Findings views', () => {
       ['violations', { scope: { kind: 'requirement', dimension: 'security', req: 'S-1', text: 'Hash it' }, asOf: null }],
       ['violations', { scope: { kind: 'folder', path: 'src/api' }, asOf: null }],
     ]);
+  });
+
+  it('an area row opens its scope over every finding; its map icon, the Risk tab with the area selected', () => {
+    const onNavigate = renderPanel(null);
+    click('area row all');
+    click('area in map');
+    expect(onNavigate.mock.calls).toEqual([
+      ['violations', { scope: AREA, asOf: null }],
+      ['map', { vizStyle: 'risk', area: 'api' }],
+    ]);
+  });
+
+  it('an area opens today\'s view on a past run too: the Map measures today\'s findings', () => {
+    const onNavigate = renderPanel('r1');
+    click('area row all');
+    expect(onNavigate.mock.calls).toEqual([['violations', { scope: AREA, asOf: null }]]);
   });
 
   it('on a past run every entry opens that run, read-only', () => {
