@@ -19,11 +19,11 @@ import { rankedAreas } from '../model/rankedAreas.js';
  * `onNavigate(NAV_TAB.MAP, { vizStyle: VIZ_STYLE.RISK, dimensions, principle, area })`.
  * @param {{project: string, source: string, dimensions: string[], principle?: string, active?: boolean}} args
  *   `principle` needs exactly one dimension (as reported: the finding's practice id or principle name)
- * @returns {{areas: object[], files: {path: string, area: string}[], loading: boolean, failed: boolean, unavailable: boolean}}
+ * @returns {{areas: object[], files: {path: string, area: string}[], loading: boolean, failed: boolean}}
  */
 export default function useRiskAreas({ project, source, dimensions, principle = '', active = true }) {
   // The query is keyed by the selection's content, so a new object each render refetches nothing.
-  const { areaSet, loading, failed, unavailable } = useMapAreas(project, source, active, selectionOf(dimensions, principle));
+  const { areaSet, loading, failed } = useMapAreas(project, source, active, selectionOf(dimensions, principle));
   const areas = useMemo(() => rankedAreas(areaSet), [areaSet]);
-  return { areas, files: areaSet.files, loading, failed, unavailable };
+  return { areas, files: areaSet.files, loading, failed };
 }

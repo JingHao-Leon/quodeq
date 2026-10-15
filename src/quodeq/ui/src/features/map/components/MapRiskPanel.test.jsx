@@ -18,7 +18,7 @@ const DATA = decodeTimelapse({
     { day: '2026-09-08', new: 5, fixed: 0, areas: [metrics('app'), metrics('lib')], files: [row(0, 4), ...[5, 6, 7, 8, 9].map((i) => row(i))], gone: [] },
   ],
 });
-const RISK = { areaState: { areaSet: areaSetAt(DATA, 1), loading: false, failed: false, unavailable: false } };
+const RISK = { areaState: { areaSet: areaSetAt(DATA, 1), loading: false, failed: false } };
 const ACTIONS = { onViewDetails: () => {} };
 const ON_SETTLED = vi.fn();
 const timelapse = (over = {}) => ({

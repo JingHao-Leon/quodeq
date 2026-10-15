@@ -6,14 +6,13 @@ import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { selectionKey } from '../model/riskSelection.js';
 
 /**
- * Whether the map history may be fetched: a local project whose view is on screen.
+ * Whether the map history may be fetched: a project whose view is on screen.
  * @param {string} project
- * @param {string} source a PROJECT_SOURCE value
  * @param {boolean} active
  * @returns {boolean}
  */
-export function mapHistoryEnabled(project, source, active) {
-  return Boolean(active) && Boolean(project) && source !== PROJECT_SOURCE.SHARED;
+export function mapHistoryEnabled(project, active) {
+  return Boolean(active) && Boolean(project);
 }
 
 /**
@@ -24,6 +23,12 @@ export function mapHistoryEnabled(project, source, active) {
  */
 export function refetchUnlessRefused(query) {
   return query.state.error?.status === HTTP_STATUS.BAD_REQUEST ? false : refetchWhileError(query);
+}
+
+/** The history from the project's own source: a shared project's from the shared clone. Every finding keeps the two-argument call. */
+function fetchMapHistory(api, { project, source, frames, selection }) {
+  const get = source === PROJECT_SOURCE.SHARED ? api.sharedGetMapHistory : api.getMapHistory;
+  return selection ? get(project, frames, selection) : get(project, frames);
 }
 
 /**
@@ -37,9 +42,8 @@ export function refetchUnlessRefused(query) {
 export function mapHistoryQuery({ api, project, source, active, frames = MAP_FRAMES.LATEST, selection = null }) {
   return {
     queryKey: projectKeys.mapHistory(project, frames, source, selectionKey(selection)),
-    // Every finding keeps the two-argument call.
-    queryFn: () => (selection ? api.getMapHistory(project, frames, selection) : api.getMapHistory(project, frames)),
-    enabled: mapHistoryEnabled(project, source, active),
+    queryFn: () => fetchMapHistory(api, { project, source, frames, selection }),
+    enabled: mapHistoryEnabled(project, active),
     staleTime: STALE_TIME_MS,
     retry: false,
     refetchInterval: refetchUnlessRefused,

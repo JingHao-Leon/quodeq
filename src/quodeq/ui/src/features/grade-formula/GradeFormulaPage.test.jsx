@@ -180,7 +180,7 @@ describe('GradeFormulaPage', () => {
     mockHook({ preview: null });
     mount(<GradeFormulaPage navigation={{ selectedProject: 'proj-1' }} />);
     expect(
-      screen.getByText('No evaluation with an event log yet. Run an evaluation to see a live preview.'),
+      screen.getByText('No finished evaluation for this project yet. Run one to see a live preview.'),
     ).toBeInTheDocument();
   });
 

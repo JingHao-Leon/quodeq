@@ -72,15 +72,15 @@ describe('MapPage: the Time-lapse switch', () => {
     expect(container()).not.toHaveClass('has-dock');
   });
 
-  it('is offered on Risk too, but not on Galaxy nor for a shared project', () => {
+  it('is offered on Risk too and for a shared project, but not on Galaxy', () => {
     const { unmount } = page({ nav: { vizStyle: 'risk' } });
     expect(toggle('map.timelapseToggle')).not.toBeNull();
     unmount();
     page({ nav: { vizStyle: 'galaxy' } });
     expect(toggle('map.timelapseToggle')).toBeNull();
     cleanup();
-    page({ source: 'shared' });
-    expect(toggle('map.timelapseToggle')).toBeNull();
+    page({ source: 'shared', fake: { ...api(), sharedGetMapHistory: vi.fn().mockResolvedValue(HISTORY) } });
+    expect(toggle('map.timelapseToggle')).not.toBeNull();
   });
 });
 

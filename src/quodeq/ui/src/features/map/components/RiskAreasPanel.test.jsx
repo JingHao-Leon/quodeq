@@ -11,7 +11,7 @@ let areaSet = { areas: [], files: [], average: 0 };
 const FILES = [{ path: 'src/hot/a.py', area: 'hot' }, { path: 'src/hot/b.py', area: 'hot' }, { path: 'src/warm/c.py', area: 'warm' }];
 const asked = vi.hoisted(() => ({ selection: undefined }));
 vi.mock('../hooks/useMapAreas.js', () => ({
-  default: (_p, _s, _active, selection) => { asked.selection = selection; return { areaSet, loading: false, failed: false, unavailable: false }; },
+  default: (_p, _s, _active, selection) => { asked.selection = selection; return { areaSet, loading: false, failed: false }; },
 }));
 
 // The rows under the column header.

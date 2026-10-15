@@ -5,11 +5,24 @@ import { clampFloors } from '../gradeFormulaRules.js';
 const PREVIEW_DEBOUNCE_MS = 250;
 
 /**
+ * The selected project's side of the all-projects preview, or null when the
+ * preview has no entry for it (a shared repository, a project without runs).
+ * @param {{projects: Array<{id: string, before: object, after: object}>}|null} payload
+ * @param {string|null} projectId
+ * @returns {{before: object, after: object}|null}
+ */
+export function projectPreview(payload, projectId) {
+  const entry = payload?.projects?.find((p) => p.id === projectId);
+  return entry ? { before: entry.before, after: entry.after } : null;
+}
+
+/**
  * The grade-formula editor's debounced preview request plus the draft
  * `update` that triggers it. Every keystroke restarts one shared timer, so
  * dragging a slider issues a single request once it settles.
  * @param {object} args
- * @param {string|null} args.projectId - no preview is requested without one.
+ * @param {string|null} args.projectId - the project whose side of the preview is
+ *   shown; no preview is requested without one.
  * @param {object|null} args.draft - the current draft formula.
  * @param {Function} args.updateDraft - applies a patch to the draft.
  * @param {Function} args.showPreview - receives the preview payload, or null
@@ -21,14 +34,26 @@ const PREVIEW_DEBOUNCE_MS = 250;
  * @returns {{requestPreview: Function, update: Function}}
  */
 export function useGradePreview({ projectId, draft, updateDraft, showPreview, debounceRef, loaded }) {
+  // A preview scores every project and can take seconds, so answers may land
+  // out of order: only the latest request's answer is shown.
+  const latestRef = useRef(0);
   const requestPreview = useCallback((params) => {
     if (!projectId) return;
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      previewGradeFormula(projectId, params)
-        .then(showPreview)
-        .catch(() => showPreview(null));
+      const request = ++latestRef.current;
+      const land = (value) => { if (request === latestRef.current) showPreview(value); };
+      previewGradeFormula(params)
+        .then((payload) => land(projectPreview(payload, projectId)))
+        .catch(() => land(null));
     }, PREVIEW_DEBOUNCE_MS);
+  }, [projectId]);
+
+  // Another project: its strip must not show the previous project's numbers
+  // while its own preview is on the way, and an answer in flight is dropped.
+  useEffect(() => {
+    latestRef.current += 1;
+    showPreview(null);
   }, [projectId]);
 
   // Fire the preview once both the draft (post-load) and the project are

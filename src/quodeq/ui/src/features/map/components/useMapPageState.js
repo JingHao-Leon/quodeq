@@ -5,7 +5,7 @@ import { useStandardTypes } from './useStandardTypes.js';
 import { useMapDisplayPrefs } from './useMapDisplayPrefs.js';
 import { useMapDimensionFilter } from './useMapDimensionFilter.js';
 import { useMapTreeState } from './useMapTreeState.js';
-import { MAP_VIEW_MODE, VIZ_STYLE, GALAXY_MODE, normalizePackMode, normalizeVizStyle } from '../mapVocab.js';
+import { MAP_VIEW_MODE, GALAXY_MODE, isPackStyle, normalizeVizStyle, packColorModeOf } from '../mapVocab.js';
 import { nodeScope, openPastScope } from '../model/detailScopes.js';
 import { openScope } from '../../violations/scope/scopeModel.js';
 
@@ -32,10 +32,10 @@ function useMapNavParams(nav) {
     galaxyMode = GALAXY_MODE.FILESYSTEM,
     onPathChange, onVizStyleChange, onViewModeChange, onGalaxyModeChange,
   } = nav || {};
-  const vizStyle = normalizeVizStyle(rawVizStyle);
+  const vizStyle = normalizeVizStyle(rawVizStyle, viewMode);
   return {
     currentPath, vizStyle, galaxyMode,
-    viewMode: vizStyle === VIZ_STYLE.ZOOMPACK ? normalizePackMode(viewMode) : viewMode,
+    viewMode: isPackStyle(vizStyle) ? packColorModeOf(vizStyle) : viewMode,
     setCurrentPath: (p) => onPathChange?.(p),
     setVizStyle: (v) => onVizStyleChange?.(v),
     setViewMode: (v) => onViewModeChange?.(v),

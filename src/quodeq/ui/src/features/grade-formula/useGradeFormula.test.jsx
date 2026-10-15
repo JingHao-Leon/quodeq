@@ -61,9 +61,12 @@ beforeEach(() => {
   invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
   getGradeFormula.mockResolvedValue({ current: CURRENT, defaults: DEFAULTS, isCustom: false, rescore: IDLE_RESCORE });
   previewGradeFormula.mockResolvedValue({
-    project: 'proj', runId: 'r1',
-    before: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
-    after: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
+    projects: [{
+      id: 'proj',
+      before: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
+      after: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
+    }],
+    runsToRescore: 1,
   });
 });
 
@@ -95,7 +98,7 @@ describe('useGradeFormula', () => {
     expect(previewGradeFormula).not.toHaveBeenCalled();
 
     await act(async () => { await vi.advanceTimersByTimeAsync(300); });
-    expect(previewGradeFormula).toHaveBeenCalledWith('proj', expect.objectContaining({ baseK: 9 }));
+    expect(previewGradeFormula).toHaveBeenCalledWith(expect.objectContaining({ baseK: 9 }));
   });
 
   it('update() clamps floorMinor against the current floorMajor (gradeFormulaRules.clampFloors)', async () => {
@@ -126,6 +129,12 @@ describe('useGradeFormula', () => {
     act(() => { result.current.update({ gradeThresholds: [[9, 'Exemplary']] }); });
     expect(result.current.draft.floorMinor).toBe(CURRENT.floorMinor);
     expect(result.current.draft.floorMajor).toBe(CURRENT.floorMajor);
+  });
+
+  it('shows the selected project out of the all-projects preview', async () => {
+    const { result } = renderGradeFormula('proj');
+    await waitFor(() => expect(result.current.preview).not.toBeNull());
+    expect(result.current.preview.after.overall.score).toBe(7);
   });
 
   it('does not request a preview when projectId is null', async () => {

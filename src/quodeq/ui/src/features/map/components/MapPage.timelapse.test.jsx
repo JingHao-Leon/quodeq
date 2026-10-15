@@ -49,7 +49,9 @@ const data = (over) => ({
   accumulated: { dimensions: DIMS }, dashboard: null, projectName: 'p1', projects: [{ id: 'p1', name: 'p1' }], projectsLoaded: true,
   selectedProject: 'p1', selectedSource: 'local', loading: false, isFetching: false, ...over,
 });
-const api = () => ({ getMapHistory: vi.fn().mockResolvedValue(HISTORY), getGradeFormula: vi.fn().mockResolvedValue(FORMULA) });
+const api = () => ({
+  getMapHistory: vi.fn().mockResolvedValue(HISTORY), sharedGetMapHistory: vi.fn().mockResolvedValue(HISTORY), getGradeFormula: vi.fn().mockResolvedValue(FORMULA),
+});
 const page = (props) => render(<MapPage data={data(props?.data)} callbacks={{}} nav={props?.nav} />, { wrapper: withStableQueryApi(api()) });
 const button = (key) => screen.getByRole('button', { name: t(key) });
 
@@ -59,9 +61,9 @@ describe('MapPage: the time-lapse', () => {
     expect(await screen.findByRole('group', { name: t('map.timelapseAria') })).toBeInTheDocument();
   });
 
-  it('a shared project shows no bar', () => {
+  it('a shared project with history shows the bar too', async () => {
     page({ data: { selectedSource: 'shared' } });
-    expect(screen.queryByRole('group', { name: t('map.timelapseAria') })).toBeNull();
+    expect(await screen.findByRole('group', { name: t('map.timelapseAria') })).toBeInTheDocument();
   });
 
   it('going to the first run fades in the past layer', async () => {

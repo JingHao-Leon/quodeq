@@ -95,17 +95,17 @@ const NO_DIMENSIONS = [];
 /**
  * The principle's Risk tile: the Map's areas measured over its findings
  * (its dimension narrowed to it), counted in fix first and watch, opening
- * the Risk tab on the principle. Null for any other scope, for a shared
- * project (no Map history), while the areas load and when they failed to.
+ * the Risk tab on the principle. Null for any other scope, while the areas
+ * load and when they failed to.
  */
 function usePrincipleRisk({ isPrinciple, scope, history, onOpenMap }) {
   const dimensions = useMemo(() => (isPrinciple ? [scope.dimension] : NO_DIMENSIONS), [isPrinciple, scope.dimension]);
-  const { areas, loading, failed, unavailable } = useRiskAreas({
+  const { areas, loading, failed } = useRiskAreas({
     project: isPrinciple ? history?.project : null, source: history?.selectedSource, dimensions,
     principle: isPrinciple ? scope.principle : '', active: isPrinciple,
   });
   const { fixFirst, watch } = useMemo(() => reworkSummary(areas), [areas]);
-  if (!isPrinciple || !history?.project || loading || failed || unavailable) return null;
+  if (!isPrinciple || !history?.project || loading || failed) return null;
   const onOpen = onOpenMap ? () => onOpenMap(riskMapParams({ dimensions, principle: scope.principle })) : undefined;
   // The Map measures today's findings: on a past run the tile says its areas are today's.
   return { fixFirst, watch, onOpen, today: Boolean(history?.runId) };

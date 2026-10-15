@@ -163,26 +163,15 @@ def test_apply_to_all_runs_clears_cache_when_root_missing(formula_path, monkeypa
     assert cleared["called"] is True
 
 
-def test_preview_scores_reads_only_and_reports_before_after(tmp_path, formula_path):
-    project_dir = tmp_path / "proj-uuid"
-    project_dir.mkdir()
-    run_dir = project_dir / "run1"
-    shutil.move(str(_make_run(tmp_path)), str(run_dir))
+def test_count_rescorable_runs_counts_event_log_runs(tmp_path):
+    for name in ("r1", "r2"):
+        run = tmp_path / "proj" / name
+        run.mkdir(parents=True)
+        (run / "events.jsonl").write_text("")
+    (tmp_path / "proj" / "legacy").mkdir()
 
-    db_before = (run_dir / "evaluation.db").read_bytes()
-    result = grade_formula.preview_scores(tmp_path, "proj-uuid", _STRICT)
-    assert result is not None
-    assert result["runId"] == "run1"
-    assert result["before"]["overall"]["score"] is not None
-    assert result["after"]["overall"]["score"] is not None
-    assert result["after"]["overall"]["score"] != result["before"]["overall"]["score"]
-    assert (run_dir / "evaluation.db").read_bytes() == db_before  # read-only
-
-
-def test_preview_scores_none_when_no_runs(tmp_path, formula_path):
-    (tmp_path / "empty-proj").mkdir()
-    assert grade_formula.preview_scores(tmp_path, "empty-proj", DEFAULT_PARAMS) is None
-    assert grade_formula.preview_scores(tmp_path, "missing", DEFAULT_PARAMS) is None
+    assert grade_formula.count_rescorable_runs(tmp_path) == 2
+    assert grade_formula.count_rescorable_runs(tmp_path / "missing") == 0
 
 
 def test_a_failing_rescore_backs_off_with_jitter_and_logs_once(

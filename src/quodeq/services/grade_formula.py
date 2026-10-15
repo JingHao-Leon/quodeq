@@ -15,8 +15,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.core.scoring.params import ScoringParams
-from quodeq.core.scoring.projector_scoring import compute_run_score
-from quodeq.services.ports import GradeTablesReader
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
@@ -56,6 +54,11 @@ def _run_recency_key(run_dir: Path) -> tuple[int, str | float]:
     return (0, run_dir.stat().st_mtime)
 
 
+def has_event_log(run_dir: Path) -> bool:
+    """True when *run_dir* has the events.jsonl an apply rescores from."""
+    return (run_dir / "events.jsonl").is_file()
+
+
 def _event_log_runs(project_dir: Path) -> list[Path]:
     """Run dirs under *project_dir* that have an events.jsonl, newest-first.
 
@@ -68,8 +71,7 @@ def _event_log_runs(project_dir: Path) -> list[Path]:
     genuinely newer ones.
     """
     return sorted(
-        (r for r in project_dir.iterdir()
-         if r.is_dir() and (r / "events.jsonl").is_file()),
+        (r for r in project_dir.iterdir() if r.is_dir() and has_event_log(r)),
         key=_run_recency_key, reverse=True,
     )
 
@@ -117,6 +119,11 @@ def _iter_event_log_runs(reports_root: Path) -> Iterator[Path]:
     per_project.sort(key=lambda runs: _run_recency_key(runs[0]), reverse=True)
     for runs in per_project:
         yield from runs
+
+
+def count_rescorable_runs(reports_root: Path) -> int:
+    """How many runs an apply rescores: every run dir with an events.jsonl."""
+    return sum(1 for _ in _iter_event_log_runs(reports_root))
 
 
 def _recompute_with_retries(run_dir: Path, params: ScoringParams) -> bool:
@@ -218,49 +225,3 @@ def _rescore_runs(
         if progress is not None:
             progress(done, total)
     return ApplyResult(rescored=rescored, failed=failed)
-
-
-def preview_scores(
-    reports_root: Path, project: str, params: ScoringParams,
-    *, store_factory: Callable[[Path], GradeTablesReader] | None = None,
-) -> dict | None:
-    """Recompute the project's latest event-log run in memory with *params*.
-
-    Read-only: never writes evaluation.db. Returns None when the project has
-    no run with an events.jsonl. The ``before`` numbers use the currently
-    SAVED params (what the dashboard shows today); the ``after`` numbers use
-    the candidate *params* being previewed. *store_factory* lets callers
-    inject a fake ``GradeTablesReader`` instead of a real SQLite file;
-    defaults to ``SQLiteStateStore``.
-    """
-    project_dir = reports_root / project
-    if not project_dir.is_dir():
-        return None
-    run_dirs = _event_log_runs(project_dir)
-    if not run_dirs:
-        return None
-    run_dir = run_dirs[0]
-
-    saved = load_params()
-    store = (store_factory or SQLiteStateStore)(run_dir)
-    before_dims = store.read_dimension_scores()
-    before_overall = compute_run_score(before_dims, params=saved)
-
-    _, after_dims = compute_run_grades(run_dir, params)
-    after_overall = compute_run_score(after_dims, params=params)
-
-    def _payload(dims: list[dict], overall: dict) -> dict:
-        return {
-            "overall": overall,
-            "dimensions": [
-                {"dimension": d["dimension"], "score": d["score"], "grade": d["grade"]}
-                for d in sorted(dims, key=lambda x: x["dimension"] or "")
-            ],
-        }
-
-    return {
-        "project": project,
-        "runId": run_dir.name,
-        "before": _payload(before_dims, before_overall),
-        "after": _payload(after_dims, after_overall),
-    }
