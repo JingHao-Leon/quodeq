@@ -449,8 +449,8 @@ tests/api/test_sse_log_helpers.py:14:private-name:quodeq.api._sse_log_helpers._t
 tests/api/test_terminal_routes.py:7:private-name:quodeq.api.terminal_routes._apply_control
 tests/api/test_terminal_ws_helpers.py:17:private-module:quodeq.api._terminal_ws_helpers
 tests/api/test_terminal_ws_helpers.py:18:private-module:quodeq.api._terminal_ws_helpers.setup_terminal_session
-tests/assistant/test_api_adapter.py:104:private-name:quodeq.assistant.adapters.api._extra_body
-tests/assistant/test_api_adapter.py:116:private-name:quodeq.assistant.adapters.api._extra_body
+tests/assistant/test_api_adapter.py:109:private-name:quodeq.assistant.adapters.api._extra_body
+tests/assistant/test_api_adapter.py:121:private-name:quodeq.assistant.adapters.api._extra_body
 tests/assistant/test_cli_adapter_sandbox.py:14:private-module:quodeq.assistant.adapters._cli_spawn.sb
 tests/assistant/test_cli_command.py:1:private-module:quodeq.assistant.adapters._cli_command.TurnArgvRequest
 tests/assistant/test_cli_command.py:1:private-module:quodeq.assistant.adapters._cli_command.build_turn_argv

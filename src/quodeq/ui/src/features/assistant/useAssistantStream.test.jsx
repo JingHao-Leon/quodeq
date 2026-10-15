@@ -253,3 +253,33 @@ it('applyFrame calls no handler for a frame type it does not know', () => {
   expect(() => applyFrame({ type: 'future_frame', text: 'x' }, handlers)).not.toThrow();
   for (const fn of Object.values(handlers)) expect(fn).not.toHaveBeenCalled();
 });
+
+it('merges a tool call\'s start and end frames into one line and settles stragglers on done', () => {
+  const { result } = renderHook(() => useAssistantStream('s1'));
+  const es = MockES.instances[0];
+  act(() => {
+    es.emit('message', { type: 'tool_call', callId: 'c1', name: 'get_report', kind: 'quodeq', status: 'running', args: { dimension: 'security' } });
+    es.emit('message', { type: 'tool_call', callId: 'c1', name: 'get_report', kind: 'quodeq', status: 'ok', durationMs: 90 });
+    es.emit('message', { type: 'tool_call', callId: 'c2', name: 'get_violations', kind: 'quodeq', status: 'running' });
+  });
+  flush();
+  const tools = result.current.messages.filter((m) => m.role === 'tool');
+  expect(tools).toHaveLength(2);
+  expect(tools[0]).toMatchObject({ callId: 'c1', status: 'ok', durationMs: 90, args: { dimension: 'security' } });
+  expect(tools[1].status).toBe('running');
+  act(() => { es.emit('message', { type: 'done' }); });
+  flush();
+  expect(result.current.messages.filter((m) => m.role === 'tool')[1].status).toBe('ok');
+  expect(result.current.streaming).toBe(false);
+});
+
+it('marks running tool lines failed when the turn is stopped', () => {
+  const { result } = renderHook(() => useAssistantStream('s1'));
+  const es = MockES.instances[0];
+  act(() => {
+    es.emit('message', { type: 'tool_call', callId: 'c1', name: 'get_report', kind: 'quodeq', status: 'running' });
+    es.emit('message', { type: 'stopped' });
+  });
+  flush();
+  expect(result.current.messages.find((m) => m.role === 'tool').status).toBe('error');
+});

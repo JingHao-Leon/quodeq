@@ -3,6 +3,8 @@ import { assistantEventsUrl } from '../../api/assistant.js';
 import { t } from '../../strings/index.js';
 import { FRAME_TYPE } from '../../vocab/frameType.js';
 import { MESSAGE_ROLE } from './messageRole.js';
+import { TOOL_STATUS } from '../../vocab/toolStatus.js';
+import { settleRunningTools, withToolFrame } from './toolActivity.js';
 import { STREAM_INACTIVITY_MS } from '../../constants.js';
 
 // Max characters revealed per flush tick. Delta-streaming providers (ollama,
@@ -112,8 +114,9 @@ function createContentGate({ turnBoundary, setError, setStreaming }) {
   return () => { if (turnBoundary.current) setError(null); setStreaming(true); };
 }
 
-function makeFrameHandlers({ revealer, append, beginContent, setError, endPending }) {
+function makeFrameHandlers({ revealer, append, beginContent, setError, endPending, setMessages }) {
   const { drain, flushTokens, revealText, endTurn } = revealer;
+  const settleTools = (status) => setMessages((prev) => settleRunningTools(prev, status));
   return {
     onToken: (f) => {
       // A next-turn token during the previous turn's reveal: close that
@@ -121,13 +124,13 @@ function makeFrameHandlers({ revealer, append, beginContent, setError, endPendin
       if (endPending.current) drain(true);
       beginContent(); revealText(f.text || '');
     },
-    onToolCall: (f) => { beginContent(); flushTokens(); append({ role: MESSAGE_ROLE.TOOL, name: f.name, argsSummary: f.argsSummary }); },
+    onToolCall: (f) => { beginContent(); flushTokens(); setMessages((prev) => withToolFrame(prev, f)); },
     onActionDraft: (f) => { beginContent(); flushTokens();
       append({ role: MESSAGE_ROLE.ACTION, actionId: f.actionId, actionType: f.actionType, summary: f.summary }); },
     onWarning: (f) => { beginContent(); flushTokens(); append({ role: MESSAGE_ROLE.WARNING, message: f.message }); },
-    onError: (f) => { flushTokens(); setError(f.message || 'error'); endTurn(); },
-    onStopped: () => { flushTokens(); append({ role: MESSAGE_ROLE.WARNING, message: t('assistant.turnStopped') }); endTurn(); },
-    onDone: () => { endTurn(); },
+    onError: (f) => { flushTokens(); settleTools(TOOL_STATUS.ERROR); setError(f.message || 'error'); endTurn(); },
+    onStopped: () => { flushTokens(); settleTools(TOOL_STATUS.ERROR); append({ role: MESSAGE_ROLE.WARNING, message: t('assistant.turnStopped') }); endTurn(); },
+    onDone: () => { settleTools(TOOL_STATUS.OK); endTurn(); },
   };
 }
 
@@ -145,7 +148,7 @@ function buildStreamPipeline({
   const resetInactivity = createInactivityGuard({ inactivity, setError, endTurn: revealer.endTurn });
   const append = (msg) => setMessages((prev) => [...prev, msg]);
   const beginContent = createContentGate({ turnBoundary, setError, setStreaming });
-  const handlers = makeFrameHandlers({ revealer, append, beginContent, setError, endPending });
+  const handlers = makeFrameHandlers({ revealer, append, beginContent, setError, endPending, setMessages });
   return { revealer, resetInactivity, handlers };
 }
 

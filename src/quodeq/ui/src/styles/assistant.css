@@ -498,9 +498,123 @@ a.assistant-outline-ref:hover {
   color: var(--color-console-text);
 }
 
-.assistant-msg-tool {
+/* ── Tool activity block ──────────────────────────────── */
+.assistant-activity {
+  margin: 0.25rem 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.assistant-activity-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.15rem 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.assistant-activity-toggle::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 0.35rem;
+  height: 0.35rem;
+  margin-left: 0.25rem;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s;
+  opacity: 0.7;
+}
+
+.assistant-activity-toggle[aria-expanded="true"]::after {
+  transform: rotate(45deg);
+}
+
+.assistant-activity-title {
   color: var(--color-text-subtle, var(--color-text-muted));
-  font-style: italic;
+}
+
+.assistant-activity-failed {
+  color: var(--color-danger, var(--color-text-muted));
+}
+
+.assistant-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0.2rem 0 0 0.3rem;
+  padding: 0 0 0 0.85rem;
+  list-style: none;
+  border-left: 1px solid var(--color-border, rgb(128 128 128 / 30%));
+}
+
+.assistant-activity-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.assistant-activity-label {
+  color: var(--color-text-subtle, var(--color-text-muted));
+}
+
+.assistant-activity-detail {
+  min-width: 0;
+  max-width: 44ch;
+  overflow: hidden;
+  font-family: var(--font-mono, monospace);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+.assistant-activity-meta {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+.assistant-activity-glyph {
+  position: relative;
+  top: 0.1rem;
+  flex: 0 0 auto;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  line-height: 0.7rem;
+  text-align: center;
+}
+
+.assistant-activity-glyph--running {
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  animation: assistant-activity-spin 0.8s linear infinite;
+}
+
+.assistant-activity-glyph--ok::before {
+  content: '\2713';
+  color: var(--color-success, currentColor);
+}
+
+.assistant-activity-glyph--error::before {
+  content: '\00d7';
+  color: var(--color-danger, currentColor);
+}
+
+@keyframes assistant-activity-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-activity-glyph--running { animation: none; }
 }
 
 .assistant-msg-warning {

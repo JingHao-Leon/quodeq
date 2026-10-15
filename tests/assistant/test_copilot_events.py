@@ -22,10 +22,13 @@ def test_copilot_tool_details():
         "arguments": {"dimension": "security"},
     }}
     assert _stream.tool_use_details(event) == [
-        {"name": "get_scores", "args_summary": '{"dimension": "security"}'},
+        {"id": None, "name": "get_scores", "args": {"dimension": "security"}},
     ]
     event["type"] = "tool.execution_complete"
     assert _stream.tool_use_details(event) == []
+    assert _stream.tool_result_details(event) == [{"id": None, "name": "get_scores", "ok": True}]
+    event["data"]["success"] = False
+    assert _stream.tool_result_details(event)[0]["ok"] is False
 
 
 @pytest.mark.parametrize("tool", ["view", "grep"])
