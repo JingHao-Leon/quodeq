@@ -82,10 +82,10 @@ describe('RunOverviewPanel header', () => {
 });
 
 describe('RunOverviewPanel since line and cards', () => {
-  it('counts the new and fixed findings since the previous run, in the header', async () => {
+  it('counts the new and fixed findings since the previous run, in a row right above the header', async () => {
     const { container } = renderRun();
     const strip = await screen.findByRole('region', { name: 'since the previous run' });
-    expect(head(container)).toContainElement(strip);
+    expect(strip.nextElementSibling).toBe(head(container));
     await waitFor(() => expect(strip).toHaveTextContent('4 new'));
     expect(strip).toHaveTextContent('3 fixed');
     expect(strip).toHaveTextContent('1 rule types opened');

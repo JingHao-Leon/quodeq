@@ -11,18 +11,17 @@ import { FIX_FIRST_SHOWN } from '../../../components/FixFirstPanel.jsx';
 const ring = (container) => container.querySelector('.findings-head__ring');
 
 describe('OverviewSkeleton', () => {
-  it('draws the Overview\'s sections in its order: header (the since line in it), cards, history beside the radial, Fix first beside Where', () => {
+  it('draws the Overview\'s sections in its order: since row, header, cards, history beside the radial, Fix first beside Where', () => {
     const { container } = render(<OverviewSkeleton projectName="quodeq" />);
     const sections = [...container.querySelector('.overview-skeleton').children].map((n) => n.className);
     expect(sections).toEqual([
-      'findings-head qd-cards-panel', 'quality-dimensions', 'qd-top-grid overview-top-grid', 'explorer-bottom',
+      'overview-since', 'findings-head qd-cards-panel', 'quality-dimensions', 'qd-top-grid overview-top-grid', 'explorer-bottom',
     ]);
   });
 
   it('fills each section with the loaded one\'s parts: four tiles, compact cards, the chart and radial, the list rows', () => {
     const { container } = render(<OverviewSkeleton projectName="quodeq" />);
     expect(container.querySelectorAll('.findings-head__stats .findings-head__stat')).toHaveLength(4);
-    expect(container.querySelector('.findings-head__who .overview-since')).not.toBeNull();
     expect(container.querySelectorAll('.dimensions-grid .dim-gauge-card--compact').length).toBeGreaterThan(0);
     expect(container.querySelector('.overview-top-grid [data-testid="run-history-panel-placeholder"]')).not.toBeNull();
     expect(container.querySelector('.overview-top-grid .qd-top-right .qd-radial')).not.toBeNull();
@@ -70,7 +69,7 @@ describe('OverviewSkeleton', () => {
   it('draws the run page\'s footprint for a run: the run\'s header, no history or radial, folders in the Where panel', () => {
     const { container } = render(<OverviewSkeleton projectName="quodeq" run />);
     const sections = [...container.querySelector('.overview-skeleton').children].map((n) => n.className);
-    expect(sections).toEqual(['findings-head qd-cards-panel', 'quality-dimensions', 'explorer-bottom']);
+    expect(sections).toEqual(['overview-since', 'findings-head qd-cards-panel', 'quality-dimensions', 'explorer-bottom']);
     expect(container.querySelector('.term-header__name')).toHaveTextContent(/^run$/);
     expect(container.querySelector('.explorer-where .folders-panel')).not.toBeNull();
   });
