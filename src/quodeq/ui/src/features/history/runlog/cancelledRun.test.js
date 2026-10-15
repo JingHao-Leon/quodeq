@@ -16,6 +16,10 @@ test('row label: done of planned, or the done count when the plan is unknown', (
   assert.equal(cancelledScopeLabel({ ...run, plannedDims: undefined }), 'cancelled · 4 dims');
 });
 
+test('row label without a plan: one dimension reads in the singular', () => {
+  assert.equal(cancelledScopeLabel({ ...run, dims: ['security'], plannedDims: undefined }), 'cancelled · 1 dim');
+});
+
 test('note: how long, why, what finished, what becomes of the work', () => {
   assert.equal(cancelledNote(run),
     'Cancelled after 4h 34m (stopped by a signal). 4 of 6 dimensions finished; performance and security did not. '

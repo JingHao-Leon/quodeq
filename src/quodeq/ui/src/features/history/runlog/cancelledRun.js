@@ -24,12 +24,12 @@ export function cancelledScope(run) {
   return { planned: dims.length + missing.length, missing };
 }
 
-/** The run list's scope for a cancelled run: `cancelled · 4 of 6`, or `cancelled · 4 dims` without a plan. */
+/** The run list's scope for a cancelled run: `cancelled · 4 of 6`, or `cancelled · 4 dims` (`1 dim`) without a plan. */
 export function cancelledScopeLabel(run) {
   const done = (run.dims || []).length;
   const { planned } = cancelledScope(run);
   return planned == null
-    ? t('history.scopeCancelledDims', { count: done })
+    ? t(done === ONE ? 'history.scopeCancelledDimsOne' : 'history.scopeCancelledDimsMany', { count: done })
     : t('history.scopeCancelledOf', { done, planned });
 }
 
