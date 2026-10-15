@@ -166,7 +166,7 @@ function GradeRing({ grade }) {
  * @param {object} [props.deltas] the severities' change, by severity
  * @param {{passPct?: ?number, per100?: ?number, criticalPerK?: ?number}} [props.changes] the tiles' change since the previous period (tileChanges)
  * @param {?{when: string, onBack: Function}} [props.pastRun] a past run on show, and the way back to the latest
- * @param {React.ReactNode} [props.since] what changed since the previous period (SinceStrip), under the sub line
+ * @param {React.ReactNode} [props.since] what changed since the previous period (SinceStrip), a slim row above the panel
  * @param {{onViolations?: Function, onCompliance?: Function, onSeverity?: Function}} [props.actions]
  * @param {?{points: {score: number, dateLabel?: string}[], label: string}} [props.history] the score per period, oldest first (a principle's)
  */
@@ -180,11 +180,11 @@ export default function FindingsHead({
   return (
     <>
       <SlimBar title={title} grade={grade} metrics={metrics} shown={scrolledPast} />
+      {since}
       <section ref={headRef} className="findings-head qd-cards-panel">
         {grade && <GradeRing grade={grade} />}
         <div className="findings-head__who">
           <TermHeader name={title} description={grade ? null : description} sub={sub} badge={badge} />
-          {since}
           {pastRun && <PastRunNote pastRun={pastRun} />}
           {grade && description && <Description text={description} />}
           {grade?.hint && <p className="findings-head__hint">{grade.hint}</p>}

@@ -8,7 +8,7 @@ import { useBalancedColumns } from '../hooks/useBalancedColumns.js';
 
 // Skeleton frame for the Overview's full footprint, top to bottom as
 // AccumulatedOverviewPanel lays it out: the header panel (ring, title and sub
-// line, the since line under it, tiles), the dimensions as compact cards, the score
+// line, tiles) under the since row, the dimensions as compact cards, the score
 // history beside the dimensions radial, then Fix first beside the Where
 // panel. Rides the same classes the real FindingsHead / SinceStrip /
 // DimensionGaugeCard (compact) / RunHistoryPanel / RadialPanel /
@@ -92,7 +92,6 @@ function SkeletonHead({ title, projectName, lastKnown }) {
       <SkeletonRing lastKnown={lastKnown} />
       <div className="findings-head__who">
         <TermHeader name={title} sub={skeletonSub(projectName, lastKnown)} />
-        <SkeletonSince />
       </div>
       <div className="findings-head__stats" aria-hidden="true">
         {placeholders(HEAD_TILE_COUNT).map((index) => <SkeletonTile key={index} index={index} />)}
@@ -204,6 +203,7 @@ export function SkeletonBottom({ run = false }) {
 export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, title, cardsLabel }) {
   return (
     <div className="overview-skeleton" aria-busy="true">
+      <SkeletonSince />
       <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} />
       <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} />
       {!run && <SkeletonTopGrid />}

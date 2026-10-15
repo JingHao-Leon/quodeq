@@ -35,7 +35,7 @@ caption: The score history header. The select groups bars by day, week, or month
 
 **Open run** opens the run on its own page, laid out like the **Overview** but for that one run. The header shows the run's score ring and grade, when it ran, and where it came from: the origin (a nightly, a pull request, the app or the CLI), the model, the commit, how long it took and how many files it analysed. Its tiles (violations with their severities, pass rate, per 100 files and critical per 1,000) each show their change against the run it was compared with, the same run the History log counts new and fixed findings against. A run rescored by a newer grade formula says so under the title, as does the number of findings that were suppressed.
 
-In the header, *since the previous run* counts the findings the run found new and the ones it fixed, and the rule types that appeared or went away. The dimensions follow as the Overview's cards, weakest first, each with what the run changed in it. At the bottom, *Fix first* sits beside the run's folders and files (areas are measured for today only, so a past run has none).
+Above the header, *since the previous run* counts the findings the run found new and the ones it fixed, and the rule types that appeared or went away. The dimensions follow as the Overview's cards, weakest first, each with what the run changed in it. At the bottom, *Fix first* sits beside the run's folders and files (areas are measured for today only, so a past run has none).
 
 Everything on the page opens as of the run and read-only: a tile, a requirement, a folder or a file opens its findings as they were in that run, and a card opens the dimension as of the run. The sidebar keeps **History** selected, and Back returns to the run page.
 
