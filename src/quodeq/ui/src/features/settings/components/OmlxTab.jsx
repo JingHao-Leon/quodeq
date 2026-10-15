@@ -6,6 +6,8 @@ import { warnAndRethrow } from '../settingsHelpers.js';
 import { t } from '../../../strings/index.js';
 import { tRich } from '../../../strings/rich.jsx';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
+import ApiKeyRow from './ApiKeyRow.jsx';
+import { PROVIDER } from '../../../vocab/provider.js';
 
 function ModelSelector({ value, models, onChange, labelId }) {
   const needsModel = !value;
@@ -44,12 +46,11 @@ function ModelSelector({ value, models, onChange, labelId }) {
 
 export default function OmlxTab({ state, update }) {
   const { testOmlxConcurrency } = useApi();
-  const apiBase = state[PROVIDER_SETTING_KEY.API_BASE] || '';
   const apiKey = state[PROVIDER_SETTING_KEY.API_KEY] || '';
-  const { omlxStatus, models, modelsError } = useOmlxModels({ apiBase, apiKey });
+  const { omlxStatus, models, modelsError, reloadModels } = useOmlxModels({ apiKey });
 
   const concurrency = useLocalApiTabTest({
-    probe: warnAndRethrow(() => testOmlxConcurrency(state.model, apiBase || undefined, apiKey || undefined), 'omlx'),
+    probe: warnAndRethrow(() => testOmlxConcurrency(state.model, undefined, apiKey || undefined), 'omlx'),
     errorKey: 'settings.concurrencyTestFailedOmlx',
     update,
     enabled: !!state.model,
@@ -60,6 +61,7 @@ export default function OmlxTab({ state, update }) {
       serverStatus={omlxStatus}
       offlineMessage={<span>{tRich('settings.omlxOffline')}</span>}
       modelsError={modelsError}
+      apiKeyRow={<ApiKeyRow providerId={PROVIDER.OMLX} update={update} description={t('settings.apiKeyDesc')} onSaved={reloadModels} />}
       modelRow={<LocalApiModelSelectRow hint={tRich('settings.omlxModelHint')} Control={ModelSelector} state={state} update={update} models={models} />}
       state={state}
       update={update}

@@ -138,15 +138,16 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
   const update = useCallback((key, value) => {
     setState(prev => ({ ...prev, [key]: String(value) }));
     const onPersistError = () => showToast(t('settings.persistError'));
+    let saved;
     if (key === PROVIDER_SETTING_KEY.API_KEY) {
       // A coded backend refusal (e.g. KEYRING_UNAVAILABLE) says what to do;
       // anything else keeps the generic persist copy.
       const onKeyError = (err) => showToast(
         apiErrorKey(err?.code) ? apiErrorMessage(err, 'settings.persistError') : t('settings.persistError'));
-      // Fire and forget: saveProviderApiKey catches its own failures, reports
-      // them through onPersistError and resolves false, so there is nothing
-      // left here to reject.
-      void saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
+      // saveProviderApiKey catches its own failures, reports them through
+      // onPersistError and resolves false, so the returned promise never
+      // rejects; callers await it to know the keychain write has landed.
+      saved = saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
         // Clear the field rather than parking the sentinel in live state:
         // state['api-key'] is passed to providers as a real credential (see
         // OmlxTab), and the sentinel is not one. Storage still records it,
@@ -159,6 +160,7 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
     // Let the assistant gate re-read: in Default mode it mirrors the analysis
     // model, so a model change here must update its display live.
     notifyProviderSettingsChanged();
+    return saved;
   }, [providerId, storage, showToast]);
 
   return { state, update };

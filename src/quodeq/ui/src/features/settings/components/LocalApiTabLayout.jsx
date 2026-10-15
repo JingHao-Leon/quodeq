@@ -22,6 +22,7 @@ import { PROVIDER_SETTING_KEY } from '../../../constants.js';
  * @param {boolean} props.consoleOpen
  * @param {string} props.modelsError  message shown when the model list failed to load
  * @param {React.ReactNode} props.modelRow  the provider's own model picker
+ * @param {React.ReactNode} [props.apiKeyRow]  the provider's key row, when it takes one
  * @param {object} props.state  settings state
  * @param {(patch: object) => void} props.update  settings updater
  * @param {string} props.subagentsDescription
@@ -31,7 +32,7 @@ import { PROVIDER_SETTING_KEY } from '../../../constants.js';
  * @returns {JSX.Element}
  */
 export function LocalApiTabLayout({
-  serverStatus, offlineMessage, onToggleConsole, consoleOpen, modelsError, modelRow,
+  serverStatus, offlineMessage, onToggleConsole, consoleOpen, modelsError, modelRow, apiKeyRow,
   state, update, subagentsDescription, subagentsAriaLabel, testDisabled, concurrency,
 }) {
   return (
@@ -45,6 +46,7 @@ export function LocalApiTabLayout({
       />
       {modelsError && <div className="settings-row"><span className="settings-error">{modelsError}</span></div>}
       {modelRow}
+      {apiKeyRow}
       <TimeLimitSetting state={state} update={update} providerType={PROVIDER_CLASSIFICATION.LOCAL_API} />
       <LocalApiAdvancedPanel
         subagentsDescription={subagentsDescription}

@@ -7,6 +7,7 @@ import { clampSubagentsTo } from './localApiSubagents.js';
 import { t } from '../../../strings/index.js';
 import { tRich } from '../../../strings/rich.jsx';
 import { PROVIDER_CLASSIFICATION } from './providerUtils.js';
+import ApiKeyRow from './ApiKeyRow.jsx';
 
 // A cloud tab falls back to the minimum when the entry is unusable.
 const clampCloudSubagents = (raw) => clampSubagentsTo(raw, String(MIN_SUBAGENTS));
@@ -82,6 +83,7 @@ export default function CloudProviderTab({ providerId, providerConfig, state, up
 
   return (
     <>
+      <ApiKeyRow providerId={providerId} update={update} description={t('settings.apiKeyCloudDesc')} />
       <ModelRow hint={hint} browseUrl={browseUrl} state={state} update={update} testing={testing} testResult={testResult} runTest={runTest} />
       <TimeLimitSetting state={state} update={update} providerType={PROVIDER_CLASSIFICATION.CLOUD_API} />
       <RemoteSubagentsRow state={state} update={update} clampSubagents={clampCloudSubagents} />

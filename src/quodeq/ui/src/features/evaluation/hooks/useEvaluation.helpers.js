@@ -71,8 +71,6 @@ export function preparePayload(payload, storage = localStorage) {
     maxSubagents: settings.subagents,
     timeLimit: payload.timeLimit ?? settings.timeLimitS,
   };
-  const apiBase = get("api-base");
-  if (apiBase) result.apiBase = apiBase;
   // The Settings field pre-fills the provider id as its default; only a
   // real change is an override worth sending.
   const cmdPath = get("cmd-path");

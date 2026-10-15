@@ -57,7 +57,7 @@ export { getRunDiff } from './runDiff.js';
 
 export {
   getAiClients, getClientModels, checkCmdPath, testProviderConnection,
-  getKnownModels, getProviderConfigs,
+  getKnownModels, getProviderConfigs, getProviderKeyStatus,
 } from './providers.js';
 
 export {
