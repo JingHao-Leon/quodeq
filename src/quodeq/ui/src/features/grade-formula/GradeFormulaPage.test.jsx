@@ -1,5 +1,5 @@
 import {
-  describe, it, expect, vi, afterEach,
+  describe, it, expect, vi, beforeEach, afterEach,
 } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -138,6 +138,45 @@ describe('GradeFormulaPage', () => {
     mockHook({ draft: null });
     mount(<GradeFormulaPage navigation={NAVIGATION} />);
     expect(screen.getByText('loading')).toBeInTheDocument();
+  });
+
+  describe('while an apply or reset is in flight', () => {
+    let rectSpy;
+
+    beforeEach(() => {
+      rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, right: 100, bottom: 28, width: 100, height: 28, x: 0, y: 0, toJSON: () => {},
+      });
+    });
+
+    afterEach(() => { rectSpy.mockRestore(); });
+
+    it('disables the sliders and the impact panel actions', () => {
+      mockHook({ busy: true, isDirty: true });
+      mount(<GradeFormulaPage navigation={NAVIGATION} />);
+      expect(screen.getByLabelText('major')).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Review and apply' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Undo all' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'RESET Q²' })).toBeDisabled();
+    });
+
+    it('blocks boundary-bar drags: update is not called', () => {
+      const state = mockHook({ busy: true, isDirty: true });
+      mount(<GradeFormulaPage navigation={NAVIGATION} />);
+      fireEvent.pointerDown(screen.getByLabelText('Boundary 1'), { clientX: 30 });
+      fireEvent.pointerMove(window, { clientX: 70 });
+      fireEvent.pointerUp(window);
+      expect(state.update).not.toHaveBeenCalled();
+    });
+
+    it('a boundary-bar drag calls update once the request is done', () => {
+      const state = mockHook({ busy: false });
+      mount(<GradeFormulaPage navigation={NAVIGATION} />);
+      fireEvent.pointerDown(screen.getByLabelText('Boundary 1'), { clientX: 30 });
+      fireEvent.pointerMove(window, { clientX: 50 });
+      fireEvent.pointerUp(window);
+      expect(state.update).toHaveBeenCalled();
+    });
   });
 
   it('shows rescore progress in a live region', () => {

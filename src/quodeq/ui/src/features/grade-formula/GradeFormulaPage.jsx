@@ -168,7 +168,7 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
   const bodyProps = { editor, inputs, view, draft: editor.draft, update: editor.update, ...types };
   return (
     <div className="settings-page settings-page--terminal">
-      <PageToolbar title={t('gradeFormula.headerName')} facts={headerFacts(editor, inputs?.projects.length ?? (projects || []).length)} />
+      <PageToolbar title={t('gradeFormula.headerName')} facts={headerFacts(editor, inputs?.projects?.length ?? (projects || []).length)} />
       <TabButtons tab={view.tab} setTab={view.setTab} />
       <div className="gf-split">
         <TabBody busy={editor.busy} ActiveBody={ActiveBody} activeTabId={view.tab} bodyProps={bodyProps} />
