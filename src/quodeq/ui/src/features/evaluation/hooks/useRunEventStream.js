@@ -179,6 +179,12 @@ export function useRunEventStream(jobId) {
       queryClient.setQueryData(key, updater);
     };
 
+    // Only the live feed reads the dimension results, and it unmounts when
+    // the user leaves the screen. Unwatched, the slot fell to gcTime and the
+    // next frame rebuilt it without the dimensions that had already finished,
+    // so their grades never came back. clearJob removes it with the run.
+    queryClient.setQueryDefaults(evaluationKeys.dimensions(jobId), { gcTime: Infinity });
+
     return acquireRunStream(queryClient, jobId, (source, finish) => {
       // A new connection replays the run from its first event, so the
       // findings list restarts with it. Appending the replay onto rows a
