@@ -20,6 +20,7 @@ from quodeq.services._standards_io import (
 from quodeq.services.import_validator import (
     StandardImportValidationError, validate_import, scan_injection,
 )
+from quodeq.services.standards_sharing import SHARED_HASH_KEY
 
 _CUSTOM_DEFAULTS = {"type": TYPE_CUSTOM, "managed": False, "origin": None, "origin_hash": None}
 
@@ -123,6 +124,9 @@ def update(standard_id: str, data: dict, evaluators_dir: Path, store: StandardsS
     _reject_managed(existing, standard_id, "edit")
     payload = _edited({**data, "id": standard_id, "type": TYPE_CUSTOM, "managed": False},
                       existing, store.modified_date(path), today())
+    payload.pop(SHARED_HASH_KEY, None)  # machine-local: carried from the file, never the request
+    if isinstance(existing.get(SHARED_HASH_KEY), str):
+        payload[SHARED_HASH_KEY] = existing[SHARED_HASH_KEY]
     store.write(path, payload)
     return build_detail(payload)
 

@@ -107,3 +107,12 @@ def test_unchanged_save_of_a_legacy_standard_keeps_its_file_date(svc):
     os.utime(path, (ts, ts))
     service.update_standard("old", _roundtrip(service, "old"))
     assert _dates(_file(ev, "old")) == ("2026-09-01", "2026-09-01", "2026.09.01")
+
+
+def test_editing_keeps_the_shared_base(svc):
+    service, ev, clock = svc
+    service.create_standard({"id": "a", "name": "A", "principles": _PRINCIPLES})
+    data = _file(ev, "a")
+    (ev / "a.json").write_text(json.dumps({**data, "shared_hash": "base"}), encoding="utf-8")
+    service.update_standard("a", {"id": "a", "name": "A2", "principles": _PRINCIPLES})
+    assert _file(ev, "a")["shared_hash"] == "base"
