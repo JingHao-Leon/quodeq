@@ -1,19 +1,6 @@
 import { useCallback } from 'react';
-import { areaPathFilters } from '../model/areaPaths.js';
-import { SCOPE_KIND, openScope } from '../../violations/scope/scopeModel.js';
-import { openPastScope } from '../model/detailScopes.js';
-import { AREA_KIND } from '../mapVocab.js';
-
-/**
- * An area as a scoped view: its name, its paths, whether the Map judged it
- * too small, and, on a filtered sky, the selection it was measured over (its
- * dimensions, and its principle), so its findings are that selection's.
- */
-function areaScope(area, paths, selection) {
-  const scope = { kind: SCOPE_KIND.AREA, name: area.name, paths, small: area.kind === AREA_KIND.SMALL };
-  if (!selection) return scope;
-  return { ...scope, dimensions: selection.dimensions, ...(selection.principle ? { principle: selection.principle } : {}) };
-}
+import { openScope } from '../../violations/scope/scopeModel.js';
+import { areaScope, areaFindingsScope, openPastScope } from '../model/detailScopes.js';
 
 /**
  * The Risk panel's actions: View Details opens the area's findings as one
@@ -28,7 +15,7 @@ function areaScope(area, paths, selection) {
 export default function useRiskActions({ areaState, selection = null, onNavigate }) {
   const files = areaState.areaSet.files;
   const viewDetails = useCallback((area) => {
-    openScope(onNavigate, areaScope(area, areaPathFilters(files, area.name), selection));
+    openScope(onNavigate, areaFindingsScope(area, files, selection));
   }, [files, selection, onNavigate]);
   const viewPastDetails = useCallback(
     (area, run) => openPastScope(onNavigate, areaScope(area, area.dots.map((d) => d.path), selection), run),

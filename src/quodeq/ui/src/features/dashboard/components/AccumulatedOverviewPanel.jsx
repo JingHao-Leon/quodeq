@@ -109,8 +109,8 @@ function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, on
       <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={opens.requirement} />
       <WherePanel view={where} onView={setWhere}>
         {where === WHERE.AREAS && (
-          <RiskAreasPanel project={data.selectedProject} source={data.selectedSource}
-            onAreaClick={openMap ? (area) => openMap(riskMapParams({ area: area.name })) : undefined}
+          <RiskAreasPanel project={data.selectedProject} source={data.selectedSource} onAreaFindings={opens.area}
+            onAreaInMap={openMap ? (area) => openMap(riskMapParams({ area: area.name })) : undefined}
             onOpenRisk={openMap ? () => openMap(riskMapParams()) : undefined} />
         )}
         {where === WHERE.FOLDERS && (

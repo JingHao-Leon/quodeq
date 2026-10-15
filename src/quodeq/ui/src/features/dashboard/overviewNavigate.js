@@ -27,9 +27,17 @@ const makeFolderNavigate = scopeOpener((row) => ({ kind: SCOPE_KIND.FOLDER, path
 /** Violations by file: a file opens on its findings. */
 const makeFileNavigate = scopeOpener((f) => ({ kind: SCOPE_KIND.FILE, path: f.file }));
 
-/** What the panels below the cards open: a requirement, a folder, a file. */
+/**
+ * The areas: an area opens on its findings. The Map measures today's
+ * findings, so its areas open today's view even on a past run.
+ */
+function makeAreaNavigate({ onNavigate }) {
+  return onNavigate ? (scope) => openScope(onNavigate, scope) : undefined;
+}
+
+/** What the panels below the cards open: a requirement, an area, a folder, a file. */
 export function makeFindingsNavigate(args) {
-  return { requirement: makeRequirementNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
+  return { requirement: makeRequirementNavigate(args), area: makeAreaNavigate(args), folder: makeFolderNavigate(args), file: makeFileNavigate(args) };
 }
 
 /** The dimension a mover's name (lowercase) opens, if one is on show. */

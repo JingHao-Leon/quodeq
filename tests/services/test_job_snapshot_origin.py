@@ -9,12 +9,14 @@ from quodeq.services.filesystem import FilesystemActionProvider
 from quodeq.services.wiring import run_index
 
 
-def _register(tmp_path: Path, run_id: str, *, commit: str | None, origin: str | None) -> FilesystemActionProvider:
+def _register(
+    tmp_path: Path, run_id: str, *, commit: str | None, origin: str | None, origin_key: str = "originUrl",
+) -> FilesystemActionProvider:
     reports = tmp_path / "reports"
     run = reports / "proj-x" / run_id
     run.mkdir(parents=True)
     if origin is not None:
-        (run.parent / "repository_info.json").write_text(json.dumps({"uuid": "proj-x", "originUrl": origin}))
+        (run.parent / "repository_info.json").write_text(json.dumps({"uuid": "proj-x", origin_key: origin}))
     write_status(run, RunStatus(
         state=RunState.RUNNING, job_id=f"ext-{run_id}",
         started_at="2026-10-08T06:00:00+00:00", dimensions=["security"], commit_sha=commit,
@@ -39,3 +41,10 @@ def test_snapshot_without_commit_or_origin(tmp_path: Path) -> None:
     snap = provider.get_evaluation_status("ext-r2", reports_dir=str(tmp_path / "reports"))
     assert snap.commit_sha is None
     assert snap.origin_url is None
+
+
+def test_snapshot_reads_the_remote_a_cli_run_records(tmp_path: Path) -> None:
+    """A PR review in CI files its run under a throwaway project whose info names only ``remote_url``."""
+    provider = _register(tmp_path, "r3", commit="9c536a7", origin="github.com/quodeq/quodeq", origin_key="remote_url")
+    snap = provider.get_evaluation_status("ext-r3", reports_dir=str(tmp_path / "reports"))
+    assert snap.origin_url == "github.com/quodeq/quodeq"

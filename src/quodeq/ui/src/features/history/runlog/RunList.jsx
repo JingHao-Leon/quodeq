@@ -7,6 +7,7 @@ import { originLabel } from '../../../models/runOrigin.js';
 
 const OTHER_MODEL = 'other-model';
 const PENDING_DOTS = '··';
+const DIM_SEP = ', ';
 const SCROLL_PAD = 28;
 const SCROLL_TOP_ROOM = 36;
 const SCROLL_BOTTOM_ROOM = 8;
@@ -61,6 +62,16 @@ function useKeepSelectedInView(selectedId) {
   return ref;
 }
 
+/** A cancelled run's scope: how far it got, its finished dimensions in the tooltip and for screen readers. */
+function PartialScope({ run }) {
+  const names = run.dims.join(DIM_SEP);
+  return (
+    <span className="rl-row__scope rl-row__scope--partial" title={names}>
+      {scopeLabel(run, t)} <span className="sr-only">{names}</span>
+    </span>
+  );
+}
+
 function RunRow({ run, selected, hovered, onSelect, onHover }) {
   const origin = originLabel(run.origin);
   const cls = `rl-row${selected ? ' is-sel' : ''}${hovered ? ' is-hover' : ''}`;
@@ -70,7 +81,7 @@ function RunRow({ run, selected, hovered, onSelect, onHover }) {
       <span className="rl-row__time">{timeLabel(run.startedAt)}</span>
       <span className="rl-row__what">
         {origin && <span className="rl-row__origin">{origin}</span>}
-        {run.partial && <span className="rl-row__scope rl-row__scope--partial">{scopeLabel(run, t)}</span>}
+        {run.partial && <PartialScope run={run} />}
       </span>
       <Moves run={run} />
       <span className="rl-row__score">{scoreText(run.score)}</span>

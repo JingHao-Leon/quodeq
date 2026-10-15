@@ -26,6 +26,11 @@ const FAILURE_STREAK = {
 
 const CANCELLED = { label: t('exitReason.cancelledLabel'), hint: null };
 
+// A run stopped by a process signal records `signal_<NAME>` (signal_SIGTERM,
+// signal_SIGINT, or the number when the signal has no name).
+const SIGNAL_PREFIX = 'signal_';
+const SIGNAL = { label: t('exitReason.signalLabel'), hint: null };
+
 export const EXIT_REASON_INFO = {
   copilot_mcp_policy: {
     label: t('exitReason.copilotMcpPolicyLabel'),
@@ -51,6 +56,7 @@ export const EXIT_REASON_INFO = {
  */
 export function exitReasonInfo(code) {
   if (typeof code !== 'string') return null;
+  if (code.startsWith(SIGNAL_PREFIX)) return SIGNAL;
   // hasOwn, not a plain lookup: exit_reason comes off the backend payload,
   // and EXIT_REASON_INFO['constructor'] would return an inherited function
   // rather than the null this contract promises for unknown codes.
@@ -82,4 +88,12 @@ export function exitReasonWarn(code) {
  */
 export function isTimeLimitExit(code) {
   return exitReasonInfo(code) === TIME_LIMIT;
+}
+
+/**
+ * True when the reason only says the run was cancelled, which a caller that
+ * already says so has no need to repeat.
+ */
+export function isPlainCancelExit(code) {
+  return exitReasonInfo(code) === CANCELLED;
 }

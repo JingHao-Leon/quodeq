@@ -18,3 +18,9 @@ test('an older finished run is a past day, named by its run and its day', () => 
   assert.deepEqual(overviewAsOf('r1', runs), { runId: 'r1', day: '2026-10-01' });
   assert.deepEqual(overviewAsOf('r2', runs), { runId: 'r2', day: '2026-10-10' });
 });
+
+test('a cancelled run newer than the last finished one has no bar: the newest done run is today, the cancelled one a past run', () => {
+  const withCancelled = [{ runId: 'c5', dateISO: '2026-10-15T02:22:00', status: 'cancelled' }, ...runs.slice(1)];
+  assert.equal(overviewAsOf('r3', withCancelled), null);
+  assert.deepEqual(overviewAsOf('c5', withCancelled), { runId: 'c5', day: '2026-10-15' });
+});

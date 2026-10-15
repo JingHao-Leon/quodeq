@@ -1,6 +1,8 @@
+import { useRef } from 'react';
 import TrendBadge from './TrendBadge.jsx';
 import { GRANULARITY } from '../utils/granularity.js';
 import { t } from '../strings/index.js';
+import { useRowStarts } from '../hooks/useRowStarts.js';
 
 /** New and fixed findings, or, when neither moved, one quiet line saying so. */
 function FindingCounts({ summary }) {
@@ -50,11 +52,17 @@ function Movers({ movers, onMover }) {
  * @param {{summary: ?object, granularity?: string, label?: string, emptyNote?: ?string,
  *   movers?: {name: string, delta: number}[], onMover?: (name: string) => void}} props
  */
-export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, label: ownLabel, emptyNote = null, movers = [], onMover }) {
+export default function SinceStrip({ summary, granularity = GRANULARITY.DAY, label = null, emptyNote = null, movers = [], onMover }) {
   if (!summary && !emptyNote) return null;
-  const label = ownLabel || t(`overview.sincePeriod_${granularity}`);
+  return <SinceStripBody summary={summary} label={label || t(`overview.sincePeriod_${granularity}`)} emptyNote={emptyNote} movers={movers} onMover={onMover} />;
+}
+
+// Mounted only with something to say, so the row marks start with the strip itself.
+function SinceStripBody({ summary, label, emptyNote, movers, onMover }) {
+  const stripRef = useRef(null);
+  useRowStarts(stripRef);
   return (
-    <section className="overview-since" aria-label={label}>
+    <section ref={stripRef} className="overview-since" aria-label={label}>
       <span className="overview-since__label">{label}</span>
       {summary ? <SinceCounts summary={summary} /> : <span className="overview-since__num overview-since__num--quiet">{emptyNote}</span>}
       {summary && <Movers movers={movers} onMover={onMover} />}

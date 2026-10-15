@@ -10,6 +10,7 @@ import { computeCoverageInfo } from './components/dimensionGaugeMath.js';
 import { scopeMetrics } from '../../models/findingMetrics.js';
 import { weakestFirst } from '../../models/scoreOrder.js';
 import { PERCENT } from '../../constants.js';
+import { latestHistoryRunId } from '../../models/runRules.js';
 import { RUN_STATE } from '../../vocab/runState.js';
 import { nameKey } from '../../utils/nameKey.js';
 
@@ -71,7 +72,7 @@ export function dimensionPoints(dimensions) {
  * @param {?(runId: string) => void} onRunClick
  */
 export function overviewPastRun(asOf, availableRuns, onRunClick, trend = []) {
-  const latest = (availableRuns || []).find((r) => r.status !== RUN_STATE.RUNNING)?.runId;
+  const latest = latestHistoryRunId(availableRuns);
   if (!asOf || !latest || !onRunClick) return null;
   // When it ran, as a person reads it ("Tue 13 Oct · 04:55"), never the run's id: the score history holds the
   // run's time; the run list only its day.

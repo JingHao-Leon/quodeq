@@ -5,29 +5,37 @@
  * `dimensions` (a dimension page), whose findings alone seldom reach the
  * lines, the healthy areas follow them, and each area says how many times
  * the selection's average its density is (its lift, which orders the areas
- * within a zone and never moves one into another). A row opens the Risk tab
- * with that area selected; the foot counts both zones and links to the
- * whole sky. With nothing to list it says so in one line.
+ * within a zone and never moves one into another). A row opens the area's
+ * findings (a scoped Findings view, as the Map's View details does, over the
+ * same dimensions); the map icon at its end opens the Risk tab with that
+ * area selected. The foot counts both zones and links to the whole sky.
+ * With nothing to list it says so in one line.
  */
-import { useMemo } from 'react';
+import { cloneElement, useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
 import useRiskAreas from '../hooks/useRiskAreas.js';
 import { reworkSummary } from '../model/rankedAreas.js';
 import { SKY_ZONE, AREA_KIND } from '../mapVocab.js';
 import { SeverityAndFilesCells } from '../../../components/SeverityBadges.jsx';
+import { ICON_MAP } from '../../../constants/navigation.jsx';
+import { areaFindingsScope } from '../model/detailScopes.js';
 
 // Two-line rows, as many as the folders panel shows.
 export const AREAS_SHOWN = 5;
 const DENSITY_DECIMALS = 2;
 const LIFT_DECIMALS = 1;
-/** Name, zone chip, density, severities, files. */
+/** Name, zone chip, density, severities, files; then the map icon when the panel can open the Map. */
 const AREA_COLUMNS = 'minmax(0, 1fr) auto 64px auto 48px';
+const AREA_COLUMNS_WITH_MAP = `${AREA_COLUMNS} 28px`;
 const ZONE_KEY = {
   [SKY_ZONE.FIX_FIRST]: 'overview.riskZoneFixFirst', [SKY_ZONE.WATCH]: 'overview.riskZoneWatch', [SKY_ZONE.HEALTHY]: 'overview.riskZoneHealthy',
 };
 const KIND_KEY = { [AREA_KIND.HOTSPOT]: 'map.riskKindHotspot', [AREA_KIND.DORMANT]: 'map.riskKindDormant' };
 const NO_DIMENSIONS = [];
+// The sidebar's map glyph, a step smaller to sit in a row of text.
+const ROW_ICON_SIZE = 14;
+const MAP_ICON = cloneElement(ICON_MAP, { width: ROW_ICON_SIZE, height: ROW_ICON_SIZE });
 
 /**
  * The line under an area's name: its kind when it has a ring on the sky and
@@ -42,18 +50,49 @@ function areaSub(area) {
   return kind ? t('overview.riskAreaSubKind', { kind, files: area.files }) : t('overview.riskAreaSub', { files: area.files });
 }
 
-function AreaRow({ area, onClick }) {
+/** The row's end: the area in the Risk map, raised above the row's open button. */
+function AreaMapButton({ area, onClick }) {
   return (
-    <GridRow onClick={onClick ? () => onClick(area) : undefined}>
-      <GridCell>
-        <div className="offending-file-cell">
-          <span className="offending-file-name">{area.name}</span>
-          <span className="offending-file-path">{areaSub(area)}</span>
-        </div>
-      </GridCell>
+    <GridCell align="right">
+      <button type="button" className="risk-areas-panel__map" aria-label={t('overview.riskAreaInMapAria', { name: area.name })}
+        title={t('overview.riskAreaInMap')} onClick={() => onClick(area)}>
+        {MAP_ICON}
+      </button>
+    </GridCell>
+  );
+}
+
+/**
+ * The area's name and its sub line; with `onOpen` they are a button
+ * stretched over the whole row (as .term-stat__hitbox), so a click anywhere
+ * on the row opens the area and the map icon stays a sibling, never nested.
+ */
+function AreaNameCell({ area, onOpen }) {
+  const name = (
+    <div className="offending-file-cell">
+      <span className="offending-file-name">{area.name}</span>
+      <span className="offending-file-path">{areaSub(area)}</span>
+    </div>
+  );
+  if (!onOpen) return <GridCell>{name}</GridCell>;
+  return (
+    <GridCell>
+      <button type="button" className="risk-areas-panel__open" aria-label={t('overview.riskAreaOpenAria', { name: area.name })}
+        onClick={() => onOpen(area)}>
+        {name}
+      </button>
+    </GridCell>
+  );
+}
+
+function AreaRow({ area, onOpen, onShowInMap }) {
+  return (
+    <GridRow>
+      <AreaNameCell area={area} onOpen={onOpen} />
       <GridCell><span className={`risk-zone-chip risk-zone-chip--${area.zone}`}>{t(ZONE_KEY[area.zone])}</span></GridCell>
       <GridCell numeric>{t('overview.riskDensity', { density: area.density.toFixed(DENSITY_DECIMALS) })}</GridCell>
       <SeverityAndFilesCells sev={area.severities} fileCount={area.files} />
+      {onShowInMap && <AreaMapButton area={area} onClick={onShowInMap} />}
     </GridRow>
   );
 }
@@ -63,11 +102,17 @@ function AreaRow({ area, onClick }) {
  * @param {string} props.project
  * @param {string} props.source a PROJECT_SOURCE value
  * @param {string[]} [props.dimensions] measure the areas over these dimensions only (none: every finding)
- * @param {(area: {name: string}) => void} [props.onAreaClick]
+ * @param {(scope: object) => void} [props.onAreaFindings] opens a row's area as a scoped Findings view (an AREA scope)
+ * @param {(area: {name: string}) => void} [props.onAreaInMap] opens the Risk tab with the area selected (the row's icon)
  * @param {() => void} [props.onOpenRisk]
  */
-export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENSIONS, onAreaClick, onOpenRisk }) {
-  const { areas, loading, unavailable } = useRiskAreas({ project, source, dimensions });
+export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENSIONS, onAreaFindings, onAreaInMap, onOpenRisk }) {
+  const { areas, files, loading, unavailable } = useRiskAreas({ project, source, dimensions });
+  const openArea = useMemo(() => {
+    if (!onAreaFindings) return undefined;
+    const selection = dimensions.length ? { dimensions } : null;
+    return (area) => onAreaFindings(areaFindingsScope(area, files, selection));
+  }, [onAreaFindings, dimensions, files]);
   const { rows: rework, fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
   // Over a selection every area judged is listed, zones first, then by lift.
   const rows = useMemo(() => (dimensions.length ? areas.filter((a) => a.zone) : rework), [dimensions, areas, rework]);
@@ -79,8 +124,8 @@ export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENS
         <span className="run-history-panel__stats">{t('overview.riskAreasNote')}</span>
       </div>
       {rows.length ? (
-        <GridTable columns={AREA_COLUMNS} dense>
-          {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onClick={onAreaClick} />)}
+        <GridTable columns={onAreaInMap ? AREA_COLUMNS_WITH_MAP : AREA_COLUMNS} dense>
+          {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onOpen={openArea} onShowInMap={onAreaInMap} />)}
         </GridTable>
       ) : <div className="risk-areas-panel__none">{t('overview.riskAreasNone')}</div>}
       <div className="panel-foot">

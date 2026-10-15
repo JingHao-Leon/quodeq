@@ -43,7 +43,7 @@ The oldest run with a set of dimensions has nothing to compare with: its tiles s
 
 ### Partial and cancelled runs
 
-Cancelled runs that kept their partial findings appear with a *partial* tag. They count for trend purposes, and their run page shows only the dimensions they scored, so you do not over-interpret them.
+A cancelled run that finished some of its dimensions is listed with its own grade for those dimensions, reads *cancelled · 4 of 6* in the list, and says under its score how it stopped and which dimensions did not finish. Its run page shows only the dimensions it scored. It is not part of the score history, so the Overview chart leaves it out, and the next run reuses the work it finished instead of analysing those files again.
 
 > **Comparing across time**
 >
