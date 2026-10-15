@@ -1,0 +1,170 @@
+/* Settings as a sheet: one panel per group, a gutter naming the group and its
+   state, the group's own sections merged inside. */
+.settings-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--page-top-gap);
+}
+
+.settings-sheet > .panel + .panel { margin-top: 0; }
+
+.settings-group {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  padding: 0;
+  overflow: visible;
+}
+
+.settings-group__gutter {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+}
+
+/* Name and state stay in view while a tall group scrolls past. */
+.settings-group__sticky {
+  position: sticky;
+  top: var(--page-top-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+}
+
+.settings-group__name {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.settings-group__desc {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.settings-group__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.settings-group__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.settings-group__dot--ok { background: var(--color-trend-up); }
+.settings-group__dot--warn { background: var(--color-accent); }
+
+/* The sections inside a group lose their own card; their header becomes a
+   quiet sub-label. */
+.settings-group__body { min-width: 0; display: flex; flex-direction: column; }
+
+.settings-group__body > .settings-section,
+.settings-diagnostics > .settings-section {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  margin: 0;
+}
+
+.settings-group__body > * + * { border-top: 1px solid var(--color-border); }
+
+.settings-group__body > .settings-section > .panel-header {
+  background: none;
+  border-bottom: none;
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+.settings-group__body > .settings-section > .panel-header .term-section-label {
+  color: var(--color-text-subtle);
+  font-size: var(--text-xs);
+}
+
+.settings-group__body .settings-row:last-child { border-bottom: none; }
+
+/* Rows: label left, control right; a wide control wraps under its label. */
+.settings-sheet .settings-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--space-6);
+}
+
+.settings-sheet .settings-row > .settings-row-label { flex: 1 1 260px; min-width: 0; }
+
+/* Peer sections side by side. */
+.settings-group--connections .settings-group__body,
+.settings-group--about .settings-group__body {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.settings-group--connections .settings-group__body > * + *,
+.settings-group--about .settings-group__body > * + * {
+  border-top: none;
+  border-left: 1px solid var(--color-border);
+}
+
+/* App: Appearance | Toolbar | Desktop on the first line, Welcome and
+   Diagnostics on a quieter second line. */
+.settings-group--app .settings-group__body {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.settings-group--app .settings-group__body > * + * { border-top: none; border-left: 1px solid var(--color-border); }
+.settings-group--app .settings-group__body > :nth-child(n + 4) { border-left: none; border-top: 1px solid var(--color-border); }
+.settings-group--app .settings-group__body > .settings-diagnostics { grid-column: 2 / -1; border-left: 1px solid var(--color-border); }
+
+.settings-link-row {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.settings-link-row:hover { background: var(--color-surface-alt); }
+
+.settings-link-row__go {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.settings-link-row:hover .settings-link-row__go { color: var(--color-accent); }
+
+.settings-diagnostics > summary {
+  cursor: pointer;
+  padding: var(--space-4) var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Narrow: the gutter stacks on top, every group becomes one column. */
+@container settings (max-width: 760px) {
+  .settings-group { grid-template-columns: minmax(0, 1fr); }
+
+  .settings-group__gutter { border-right: none; border-bottom: 1px solid var(--color-border); }
+
+  .settings-group__sticky { position: static; padding: var(--space-4) var(--space-5); }
+
+  .settings-group .settings-group__body { display: flex; flex-direction: column; }
+
+  .settings-group .settings-group__body > * + * {
+    border-left: none;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .settings-sheet .settings-row > .settings-row-label { flex-basis: 100%; }
+}

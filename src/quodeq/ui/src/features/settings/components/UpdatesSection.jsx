@@ -9,7 +9,7 @@ import { SettingsOnOffPills, SettingsRowLabel } from './settingsRowParts.jsx';
 
 // Up to date, an update waiting, or a security update waiting.
 function versionDescription({ available, status, current }) {
-  if (!available) return t('settings.upToDate', { version: current });
+  if (!available) return t('settings.upToDate');
   return status.is_security
     ? t('settings.updateAvailableSecurity', { current, latest: status.latest })
     : t('settings.updateAvailable', { current, latest: status.latest });

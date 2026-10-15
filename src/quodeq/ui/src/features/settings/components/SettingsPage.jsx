@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
-import { getHealth, getProviderConfigs } from '../../../api/index.js';
+import { getProviderConfigs } from '../../../api/index.js';
 import AboutSection from './AboutSection.jsx';
 import AppearanceSection from './AppearanceSection.jsx';
 import UpdatesSection from './UpdatesSection.jsx';
 import DesktopSection from './DesktopSection.jsx';
 import ProviderTabs from './ProviderTabs.jsx';
 import AssistantProviderTabs from './AssistantProviderTabs.jsx';
+import ToolbarSection from './ToolbarSection.jsx';
 import EvaluationSection from './EvaluationSection.jsx';
-import TerminalSection from './TerminalSection.jsx';
 import ServerSection from './ServerSection.jsx';
 import GitHubAccessSection from './GitHubAccessSection.jsx';
 import SharedRepoSection from './SharedRepoSection.jsx';
 import OnboardingSection from './OnboardingSection.jsx';
-import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
+import useSettingsGroupStates from '../hooks/useSettingsGroupStates.js';
+import { SETTINGS_GROUPS, SETTINGS_GROUP } from '../settingsGroups.js';
 import { t } from '../../../strings/index.js';
-import { SettingsRowLabel } from './settingsRowParts.jsx';
 
 const _SETTINGS_PHRASE_KEYS = [
   'settingsPhrase.cuore',
@@ -24,45 +25,52 @@ const _SETTINGS_PHRASE_KEYS = [
   'settingsPhrase.compass',
 ];
 
+// What each group holds, keyed by group id. The sections keep their own
+// behaviour; the group panel only frames them.
+function groupBodies({ providerConfigs, theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase }) {
+  return {
+    [SETTINGS_GROUP.MODEL]: (<>
+      <ProviderTabs providerConfigs={providerConfigs} />
+      <AssistantProviderTabs providerConfigs={providerConfigs} />
+    </>),
+    [SETTINGS_GROUP.EVALUATION]: <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} />,
+    [SETTINGS_GROUP.CONNECTIONS]: (<>
+      <GitHubAccessSection />
+      <SharedRepoSection onDisconnected={onSharedDisconnected} />
+    </>),
+    [SETTINGS_GROUP.APP]: (<>
+      <AppearanceSection themeMode={theme.mode} themeFamily={theme.family} onApplyMode={theme.onApplyMode} onApplyFamily={theme.onApplyFamily} />
+      <ToolbarSection />
+      <DesktopSection />
+      <OnboardingSection onShowWelcome={onShowWelcome} />
+      <details className="settings-diagnostics">
+        <summary>{t('settings.diagnostics')}</summary>
+        <ServerSection />
+      </details>
+    </>),
+    [SETTINGS_GROUP.ABOUT]: (<>
+      <UpdatesSection />
+      <AboutSection settingsPhrase={settingsPhrase} />
+    </>),
+  };
+}
+
 export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome }) {
-  const { mode: themeMode, family: themeFamily, onApplyMode, onApplyFamily } = theme;
-  const [appVersion, setAppVersion] = useState(null);
   const [settingsPhrase, setSettingsPhrase] = useState('');
   const [providerConfigs, setProviderConfigs] = useState({});
+  const states = useSettingsGroupStates({ providerConfigs, theme });
 
   useEffect(() => {
     setSettingsPhrase(t(_SETTINGS_PHRASE_KEYS[Math.floor(Math.random() * _SETTINGS_PHRASE_KEYS.length)]));
-    getHealth().then((d) => setAppVersion(d.version || null)).catch((err) => console.warn('Failed to fetch app version:', err));
     getProviderConfigs().then(setProviderConfigs).catch(() => setProviderConfigs({}));
   }, []);
 
+  const bodies = groupBodies({ providerConfigs, theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase });
   return (
-    <div className="settings-page settings-page--terminal">
-      <div className="settings-grid">
-        <ProviderTabs providerConfigs={providerConfigs} />
-        <AssistantProviderTabs providerConfigs={providerConfigs} />
-        <EvaluationSection />
-        <TerminalSection />
-        <ServerSection />
-        <GitHubAccessSection />
-        <SharedRepoSection onDisconnected={onSharedDisconnected} />
-        <OnboardingSection onShowWelcome={onShowWelcome} />
-        <section className="panel settings-section">
-          <div className="panel-header">
-            <SectionLabel marker="▶">{t('settings.gradeFormula')}</SectionLabel>
-          </div>
-          <div className="settings-row">
-            <SettingsRowLabel hintSlot={false} label={t('settings.gradeFormula')} description={t('settings.gradeFormulaDesc')} />
-            <button type="button" className="settings-pill" onClick={onOpenGradeFormula}>
-              {t('settings.openEditor')}
-            </button>
-          </div>
-        </section>
-        <AppearanceSection themeMode={themeMode} themeFamily={themeFamily} onApplyMode={onApplyMode} onApplyFamily={onApplyFamily} />
-        <DesktopSection />
-        <UpdatesSection />
-        <AboutSection appVersion={appVersion} settingsPhrase={settingsPhrase} />
-      </div>
+    <div className="settings-page settings-page--terminal settings-sheet">
+      {SETTINGS_GROUPS.map((group) => (
+        <SettingsGroup key={group.id} group={group} state={states[group.id]}>{bodies[group.id]}</SettingsGroup>
+      ))}
     </div>
   );
 }

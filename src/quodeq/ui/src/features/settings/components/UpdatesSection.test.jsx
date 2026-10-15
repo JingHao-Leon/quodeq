@@ -33,9 +33,9 @@ beforeEach(() => {
 afterEach(() => { vi.clearAllMocks(); delete window.pywebview; });
 
 describe('UpdatesSection', () => {
-  it('shows the current version and up-to-date state', async () => {
+  it('shows the up-to-date state (the version itself is in the About gutter)', async () => {
     renderWithApi();
-    await waitFor(() => expect(screen.getByText(/1\.4\.0/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/latest version/i)).toBeInTheDocument());
   });
 
   it('"Check now" calls the API and surfaces the new version', async () => {
@@ -65,7 +65,7 @@ describe('UpdatesSection', () => {
 
     // No optimistic status mutation happens for a check, so a rejection
     // leaves the prior "up to date" state in place rather than a false update.
-    expect(screen.getByText(/1\.4\.0/)).toBeInTheDocument();
+    expect(screen.getByText(/latest version/i)).toBeInTheDocument();
     expect(screen.queryByText(/1\.5\.0/)).toBeNull();
     warn.mockRestore();
   });
