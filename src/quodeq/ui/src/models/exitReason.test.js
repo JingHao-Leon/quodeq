@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { exitReasonInfo, exitReasonLabel, exitReasonHint, exitReasonWarn, isTimeLimitExit } from './exitReason.js';
+import { exitReasonInfo, exitReasonLabel, exitReasonHint, exitReasonWarn, isTimeLimitExit, isPlainCancelExit } from './exitReason.js';
 
 test('provider_fatal maps to a label and an actionable hint', () => {
   const info = exitReasonInfo('provider_fatal');
@@ -39,6 +39,21 @@ test('deadline and time_limit share the same guidance', () => {
 test('cancelled has a label but no hint', () => {
   assert.equal(exitReasonLabel('cancelled_signal'), 'cancelled');
   assert.equal(exitReasonHint('cancelled'), null);
+});
+
+test('a signal stop reads as one, whichever signal it was', () => {
+  assert.equal(exitReasonLabel('signal_SIGTERM'), 'stopped by a signal');
+  assert.equal(exitReasonLabel('signal_15'), 'stopped by a signal');
+  assert.equal(exitReasonHint('signal_SIGINT'), null);
+  assert.equal(exitReasonWarn('signal_SIGTERM'), false);
+});
+
+test('only the plain cancel reasons count as plain cancels', () => {
+  assert.equal(isPlainCancelExit('cancelled'), true);
+  assert.equal(isPlainCancelExit('cancelled_signal'), true);
+  assert.equal(isPlainCancelExit('signal_SIGTERM'), false);
+  assert.equal(isPlainCancelExit('time_limit'), false);
+  assert.equal(isPlainCancelExit(null), false);
 });
 
 test('unknown codes pass through verbatim with no hint', () => {

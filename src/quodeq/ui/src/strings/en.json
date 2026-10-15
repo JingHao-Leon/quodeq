@@ -672,6 +672,7 @@
   "evaluate.waitingForOutput": "Waiting for output…",
   "evaluate.wholeProject": "whole project",
   "exitReason.cancelledLabel": "cancelled",
+  "exitReason.signalLabel": "stopped by a signal",
   "exitReason.failureStreakHint": "Stopped after consecutive agent failures. Check that the AI provider is running and reachable, then run again.",
   "exitReason.failureStreakLabel": "repeated failures",
   "exitReason.providerFatalHint": "The AI provider rejected every request: quota exhausted, out of credits, or an invalid API key. Check your plan, billing or API key, then run again.",
