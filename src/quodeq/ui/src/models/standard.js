@@ -63,7 +63,10 @@ export function standardBaseLabel(standard) {
 }
 
 // A standard's sources as their bodies write them; anything else (a person's name, a long citation) stays as written.
-const SOURCE_NAMES = { iso25010: 'ISO 25010', cisq: 'CISQ', asvs: 'ASVS', wcag: 'WCAG', owasp: 'OWASP' };
+const SOURCE_NAMES = {
+  iso25010: 'ISO 25010', cisq: 'CISQ', asvs: 'ASVS', wcag: 'WCAG', wcag22: 'WCAG 2.2', owasp: 'OWASP',
+  cert: 'CERT', en301549: 'EN 301 549',
+};
 const SOURCE_SEPARATOR = /\s*,\s*/;
 const SOURCE_JOIN = ', ';
 

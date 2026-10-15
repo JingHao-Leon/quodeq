@@ -95,3 +95,8 @@ test('standardVersionTitle shows created and updated for custom standards only',
   assert.equal(standardVersionTitle({ createdAt: '2026-10-14', updatedAt: '2026-10-15' }), 'created 2026.10.14 · updated 2026.10.15');
   assert.equal(standardVersionTitle({ version: '2023.11' }), null);
 });
+
+test('standardSourceLine names every source body the built-ins ship with', () => {
+  assert.equal(standardSourceLine({ sources: ['iso25010', 'cisq', 'cert'] }), 'ISO 25010, CISQ, CERT');
+  assert.equal(standardSourceLine({ sources: ['wcag22', 'en301549'] }), 'WCAG 2.2, EN 301 549');
+});
