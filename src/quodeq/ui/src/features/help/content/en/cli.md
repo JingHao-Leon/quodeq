@@ -6,7 +6,9 @@ The dashboard is one subcommand of the `quodeq` CLI. The rest run headless: scri
 
 | Key | Value |
 | --- | --- |
-| quodeq | Launch the dashboard. Same as `quodeq dashboard`. If one is already running, it focuses the existing window instead of starting a second server. |
+| quodeq | Launch the dashboard. Same as `quodeq dashboard`. If one is already running, it focuses the existing window instead of starting a second server. Once the window is open the terminal is yours again; `--foreground` keeps it attached. |
+| quodeq status | Show whether the window and its API are running, and which evaluations are in progress. |
+| quodeq stop | Close the window and stop its API, also when the window no longer responds. Running evaluations keep going. |
 | quodeq evaluate &lt;repo&gt; | Run an evaluation without the UI. Takes a path or URL. |
 | quodeq review | Evaluate your current branch and post the findings as a GitHub pull request review. |
 | quodeq export sarif | Convert a finished evaluation to a SARIF file. |

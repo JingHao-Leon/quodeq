@@ -16,6 +16,7 @@ from quodeq.cli_parser import build_parser  # re-export
 from quodeq.update.checker import check_async, get_status, set_settings
 from quodeq.config.paths import default_paths, load_env_file
 from quodeq.dashboard.cli import main as dashboard_main
+from quodeq.dashboard.instances import dashboard_status, stop_dashboard
 
 # Re-export the evaluation entry points under their public spellings.
 from quodeq._cli_env import (  # noqa: F401 — public re-exports
@@ -63,6 +64,8 @@ class Command(StrEnum):
 
 _COMMAND_HANDLERS: dict[str, Callable] = {
     "dashboard": lambda argv: dashboard_main(argv[1:] if argv is not None else sys.argv[2:]),
+    "stop": lambda _argv: stop_dashboard(),
+    "status": lambda _argv: dashboard_status(),
 }
 
 
