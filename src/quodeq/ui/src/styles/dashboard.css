@@ -382,6 +382,12 @@
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
+/* The run page: History's run card tracks (.rl-cards), so cards keep the
+   Overview's size and a run with one dimension shows one card on the left. */
+.dimensions-grid--fill {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+}
+
 .dimension-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

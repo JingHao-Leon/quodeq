@@ -29,14 +29,18 @@ const NOT_LIT = Object.freeze({ name: null, setName: null });
  * @param {boolean} [props.compact] the principle card's form: ring beside grade, pills and pass rate
  * @param {{name: ?string, setName: ?Function}} [props.lit] the card lit with its radial point, and who to tell which card the pointer or keyboard is on
  * @param {(item: object) => import('react').ReactNode} [props.footerFor] compact only: a card's footer in place of its pass rate (the run page's new and fixed findings)
+ * @param {boolean} [props.fill] History's tracks instead of balanced rows: cards keep their size and fill
+ *   from the left, so a run with one or two dimensions shows one or two normal cards (the run page)
  */
 export default function DimensionCardsGrid({
-  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, lit = NOT_LIT, footerFor,
+  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, lit = NOT_LIT, footerFor, fill = false,
 }) {
   const dimNameSet = selectedDayDimNames instanceof Set ? selectedDayDimNames : new Set();
-  const [gridRef, gridStyle] = useBalancedColumns(sortedDimensions.length + notEvaluated.length, compact ? COMPACT_MIN_WIDTH : CARD_MIN_WIDTH, GRID_GAP);
+  // A filled grid balances nothing: no cards to balance, so no inline columns.
+  const balanced = fill ? 0 : sortedDimensions.length + notEvaluated.length;
+  const [gridRef, gridStyle] = useBalancedColumns(balanced, compact ? COMPACT_MIN_WIDTH : CARD_MIN_WIDTH, GRID_GAP);
   return (
-    <div className="dimensions-grid" ref={gridRef} style={gridStyle}>
+    <div className={fill ? 'dimensions-grid dimensions-grid--fill' : 'dimensions-grid'} ref={gridRef} style={gridStyle}>
       {sortedDimensions.map((item) => {
         const isActive = dimNameSet.size === 0 || dimNameSet.has((item.dimension || '').toLowerCase());
         const entry = dimTrends?.[(item.dimension || '').toLowerCase()];

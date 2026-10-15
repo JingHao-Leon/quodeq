@@ -79,3 +79,12 @@ describe('DimensionCardsGrid, compact (the Overview)', () => {
     expect(container.querySelector('.dim-gauge-card__pass')).toBeNull();
   });
 });
+
+describe('DimensionCardsGrid, filled (the run page)', () => {
+  it('lays the cards on History\'s tracks with no balanced columns, so one card keeps its size', () => {
+    const { container } = render(<DimensionCardsGrid sortedDimensions={DIMS} compact fill />);
+    const grid = container.querySelector('.dimensions-grid');
+    expect(grid).toHaveClass('dimensions-grid--fill');
+    expect(grid.style.gridTemplateColumns).toBe('');
+  });
+});

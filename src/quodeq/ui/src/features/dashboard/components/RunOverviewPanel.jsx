@@ -32,7 +32,7 @@ function RunDimensionsSection({ sorted, dimTrends, footerFor, onDimensionClick }
         <SectionLabel>{t('overview.qualityDimensionsLabel')} · {sorted.length}</SectionLabel>
       </div>
       <div className="dimensions-panel">
-        <DimensionCardsGrid sortedDimensions={sorted} onDimensionClick={onDimensionClick} dimTrends={dimTrends} compact footerFor={footerFor} />
+        <DimensionCardsGrid sortedDimensions={sorted} onDimensionClick={onDimensionClick} dimTrends={dimTrends} compact fill footerFor={footerFor} />
       </div>
     </section>
   );
