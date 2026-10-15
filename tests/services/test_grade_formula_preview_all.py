@@ -219,3 +219,66 @@ def test_sources_carry_the_saved_score_of_runs_an_apply_cannot_rescore(tmp_path,
 
     assert by_name["security"].saved_score == 6.3
     assert by_name["reliability"].saved_score is None
+
+
+def _card_run(reports: Path, run_id: str, majors_by_dim: dict[str, int], started: str) -> Path:
+    """A finished run the accumulated walk reads as real (shape of tests/services/_scalar_fixtures.py)."""
+    import json
+
+    from quodeq.core.scoring.projector_scoring import GRADE_ALGO_VERSION
+    from quodeq.data.projection.grade_projector import report_stamp
+
+    run_dir = reports / "proj" / run_id
+    run_dir.mkdir(parents=True)
+    (run_dir / "events.jsonl").write_text("")
+    store = SQLiteStateStore(run_dir)
+    store.save_projected_size(0)
+    store.save_grades_algo_version(GRADE_ALGO_VERSION)
+    for dim, majors in majors_by_dim.items():
+        for i in range(majors):
+            store.record_finding(Judgment(
+                practice_id="p1", dimension=dim, req=f"{dim}-r{i}", verdict="violation",
+                severity="major", file=f"{dim}{i}.py", line=1, title="t", reason=f"r{i}",
+            ))
+        for i in range(6):
+            store.record_finding(Judgment(
+                practice_id="p1", dimension=dim, req=f"{dim}-c{i}", verdict="compliance",
+                severity="minor", file=f"{dim}c{i}.py", line=1, title="t", reason=f"c{i}",
+            ))
+    # The scan records the project size before grading, as a real run does,
+    # so the baked grades and a later recompute agree on the spread.
+    (run_dir / "evidence").mkdir()
+    (run_dir / "evidence" / "manifest.json").write_text(json.dumps({"source_files_count": 100}))
+    recompute_grades(run_dir, params=DEFAULT_PARAMS)
+    eval_dir = run_dir / "evaluation"
+    eval_dir.mkdir()
+    for row in store.read_dimension_scores():
+        (eval_dir / f"{row['dimension']}.json").write_text(json.dumps({
+            "schema_version": 1, "dimension": row["dimension"], "discipline": "Python",
+            "date": started[:10], "sourceFileCount": 100,
+            "overallScore": f"{row['score']}/10", "overallGrade": row["grade"],
+            "principles": [], "violations": [], "compliance": [],
+            "totals": {"violationCount": 0, "complianceCount": 0, "severity": {}},
+        }))
+    store.save_coverage_stamp(report_stamp(run_dir))
+    (run_dir / "status.json").write_text(json.dumps({"state": "done", "started_at": started}))
+    return run_dir
+
+
+def test_before_equals_the_project_card_when_a_later_run_rescans_one_dimension(tmp_path, formula_path, monkeypatch):
+    from quodeq.services._fs_metadata import _project_rows, _summary_version, summarize_card
+    from quodeq.services.wiring import list_runs
+
+    monkeypatch.setenv("QUODEQ_DISABLE_SCORE_CACHE", "1")
+    reports = tmp_path / "evaluations"
+    _card_run(reports, "r_old", {"security": 1, "reliability": 5}, "2026-01-01T00:00:00Z")
+    _card_run(reports, "r_new", {"security": 7}, "2026-01-02T00:00:00Z")
+    runs = list_runs(reports, "proj")
+    card = summarize_card(_project_rows(reports, "proj", runs, DEFAULT_PARAMS),
+                          _summary_version(reports, "proj", runs, DEFAULT_PARAMS).visible_set)
+
+    before = gfp.preview_all(reports, DEFAULT_PARAMS)["projects"][0]["before"]
+
+    assert card["score"] is not None
+    assert before["overall"]["score"] == card["score"]
+    assert {d["dimension"] for d in before["dimensions"]} == {"security", "reliability"}
