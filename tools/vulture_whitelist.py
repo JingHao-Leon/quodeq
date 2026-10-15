@@ -165,6 +165,9 @@ _.principle_count  # core/types/standard.py: StandardMeta field; read by name th
 _.requirement_count  # core/types/standard.py: StandardMeta field; read by name through serialization or a dict key (7 refs).
 _.subtype  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict), shown as the edition in Standards.
 _.version  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
+_.created_at  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
+_.updated_at  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
+_.sources  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
 _.runId  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (704 refs).
 _.runNumericAverage  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (9 refs).
 _.runOverallGrade  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (7 refs).

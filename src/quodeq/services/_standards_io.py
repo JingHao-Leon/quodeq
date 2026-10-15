@@ -34,6 +34,19 @@ def default_write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def dotted_version(iso_date_text: str) -> str:
+    """"2026-10-15" -> "2026.10.15": the custom-standard version format."""
+    return iso_date_text.replace("-", ".")
+
+
+_ISO_DATE_LEN = len("2026-10-15")
+
+
+def iso_date(value: object) -> str | None:
+    """*value* when it looks like an ISO date string, else None."""
+    return value if isinstance(value, str) and len(value) >= _ISO_DATE_LEN else None
+
+
 def count_principles_and_requirements(data: dict) -> tuple[int, int]:
     """Return (principle_count, requirement_count) from a standard's JSON.
 
@@ -70,6 +83,8 @@ def _custom_fields(data: dict, sid: str, type_default: str) -> dict[str, object]
         "origin_hash": data.get("origin_hash"),
         "subtype": data.get("subtype"),
         "version": data.get("version"),
+        "created_at": iso_date(data.get("createdAt")),
+        "updated_at": iso_date(data.get("updatedAt")),
     }
 
 

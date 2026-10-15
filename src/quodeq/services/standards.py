@@ -19,6 +19,7 @@ from quodeq.services.wiring import (
     ensure_evaluators_dir as _ensure_evaluators_dir,
     remove_standard as _remove_standard,
     standard_exists as _standard_exists,
+    standard_modified_date as _standard_modified_date,
     standard_path as _standard_path,
 )
 
@@ -38,6 +39,7 @@ class _FsStandardsStore:
     compiled_exists = staticmethod(_compiled_exists)
     ensure_dir = staticmethod(_ensure_evaluators_dir)
     remove = staticmethod(_remove_standard)
+    modified_date = staticmethod(_standard_modified_date)
 
 
 class StandardsService:
@@ -56,7 +58,7 @@ class StandardsService:
     def list_standards(self) -> list[StandardMeta]:
         """Return metadata for all available standards (built-in + custom)."""
         return (list_builtin(self._dimensions_file, self._compiled_dir, self._read_json)
-                + list_custom(self._evaluators_dir, self._read_json))
+                + list_custom(self._evaluators_dir, self._read_json, self._store.modified_date))
 
     def get_standard(self, standard_id: str) -> StandardDetail:
         """Retrieve the full detail of a single standard by ID."""

@@ -9,6 +9,7 @@ CRUD service keeps its injected JsonIO for the payload contents.
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 
 from quodeq.data.fs.run_artifacts import replace_json_file
@@ -64,6 +65,14 @@ def read_standard_payload(path: Path) -> dict | None:
     if not isinstance(data, dict):
         raise ValueError(f"standard file is not a JSON object: {path.name}")
     return data
+
+
+def standard_modified_date(path: Path) -> str | None:
+    """ISO date (local time) of *path*'s last modification; None when it cannot be stat'd."""
+    try:
+        return date.fromtimestamp(path.stat().st_mtime).isoformat()
+    except OSError:
+        return None
 
 
 def write_standard_payload(path: Path, data: dict) -> None:
