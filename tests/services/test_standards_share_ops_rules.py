@@ -165,3 +165,26 @@ def test_a_malicious_hint_is_refused(tmp_path, remote):
         ops.install_standard("evil", url=remote, evaluators_dir=ev_b)
     assert err.value.code == "unsafe" and "hint 'web'" in str(err.value)
     assert not (ev_b / "evil.json").exists()
+
+
+def test_unknown_top_level_keys_read_published_on_both_machines(tmp_path, remote):
+    ev_a, ev_b = tmp_path / "a", tmp_path / "b"
+    _evaluator(ev_a, "go", sources=[], subtype=None, originHash=None, weight=1.0)
+    _share("go", remote, ev_a)
+    ops.install_standard("go", url=remote, evaluators_dir=ev_b)
+    shared = _shared_copy(tmp_path, remote, "go")
+    assert "sources" in shared  # what is pushed is unchanged
+    assert sync_state(_local(ev_b, "go"), shared) == SyncState.PUBLISHED
+    assert sync_state(_local(ev_a, "go"), shared) == SyncState.PUBLISHED
+    ops.install_standard("go", url=remote, evaluators_dir=ev_b)  # a re-install is not a conflict
+
+
+def test_extra_texts_are_capped_like_import_text():
+    long = "x" * 2500
+    raw = {"id": "x", "name": "x", "principles": [{"name": "P", "requirements": [
+        {"id": "R", "text": "t", "name": long, "hints": {"web": long, "ios": [long]},
+         "params": {"n": {"label": long, "type": "int"}}}]}]}
+    sanitized = {"id": "x", "name": "x", "principles": [{"name": "P", "requirements": [{"id": "R", "text": "t"}]}]}
+    req = with_share_extras(sanitized, raw)["principles"][0]["requirements"][0]
+    texts = [req["name"], req["hints"]["web"], req["hints"]["ios"][0], req["params"]["n"]["label"]]
+    assert {len(t) for t in texts} == {2000}

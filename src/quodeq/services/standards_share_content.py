@@ -1,11 +1,13 @@
-"""What an installed shared standard keeps beyond the import whitelist.
+"""The install-normalized form of a shared standard (pure, no I/O).
 
-``validate_import`` is the structural gate and its sanitized output the
-base; a duplicated built-in also carries principle ``id`` / ``source`` and
-requirement ``params`` / ``severity`` / ``scope`` / ``source``, which the
-analysis uses (thresholds in the text, the severity ladder). Each extra
-field is copied from the remote only when its type is right; a malformed
-one is dropped, never repaired.
+``normalized_for_share`` is exactly what an install keeps: the import
+allowlists (``sanitize_import``) plus the extras a duplicated built-in
+carries (principle ``id`` / ``source``; requirement ``params``, ``severity``,
+``scope``, ``source``, ``hints``, ``verifiability``, ``level``, ``name``,
+``check``), which the analysis uses. Each extra is copied only when its type
+is right (a malformed one is dropped, never repaired) and its texts are
+capped like the import caps requirement text. ``share_hash`` hashes this
+form, so every machine compares the same thing.
 """
 from __future__ import annotations
 
@@ -13,11 +15,14 @@ import re
 from collections.abc import Callable, Iterator
 
 from quodeq.core.types.severity import is_severity
+from quodeq.services.import_validator import sanitize_import
 
 _PARAM_TEXT_KEYS = ("label", "type")
 _PARAM_NUMBER_KEYS = ("default", "min", "max")
 # A built-in deterministic check's id, e.g. "entity-imports"; never code.
 _CHECK_ID = re.compile(r"[a-z0-9][a-z0-9-]*")
+# Same cap validate_import applies to requirement text and descriptions.
+_MAX_EXTRA_TEXT = 2000
 
 
 def _is_str(value: object) -> bool:
@@ -54,9 +59,20 @@ def _is_check(value: object) -> bool:
     return _is_str(value) and _CHECK_ID.fullmatch(value) is not None
 
 
+def _capped(value: str) -> str:
+    return value[:_MAX_EXTRA_TEXT]
+
+
 def _clean_params(value: dict) -> dict:
     keys = (*_PARAM_TEXT_KEYS, *_PARAM_NUMBER_KEYS)
-    return {name: {k: spec[k] for k in keys if k in spec} for name, spec in value.items()}
+    out = {name: {k: spec[k] for k in keys if k in spec} for name, spec in value.items()}
+    for spec in out.values():
+        spec["label"] = _capped(spec["label"])
+    return out
+
+
+def _clean_hints(value: dict) -> dict:
+    return {k: _capped(v) if _is_str(v) else [_capped(t) for t in v] for k, v in value.items()}
 
 
 def _as_is(value: object) -> object:
@@ -69,8 +85,8 @@ _PRINCIPLE_EXTRAS: _Extras = {"id": (_is_str, _as_is), "source": (_is_str, _as_i
 _REQUIREMENT_EXTRAS: _Extras = {
     "params": (_is_params, _clean_params), "severity": (is_severity, _as_is),
     "scope": (_is_str_or_none, _as_is), "source": (_is_str, _as_is),
-    "hints": (_is_hints, _as_is), "verifiability": (_is_str, _as_is), "level": (_is_str, _as_is),
-    "name": (_is_str, _as_is), "check": (_is_check, _as_is),
+    "hints": (_is_hints, _clean_hints), "verifiability": (_is_str, _as_is), "level": (_is_str, _as_is),
+    "name": (_is_str, _capped), "check": (_is_check, _as_is),
 }
 
 
@@ -114,6 +130,11 @@ def _requirement_texts(req: dict) -> Iterator[tuple[str, str]]:
             yield f"{where} hint '{key}'", text
     for name, spec in req.get("params", {}).items():
         yield f"{where} parameter '{name}' label", spec["label"]
+
+
+def normalized_for_share(data: dict) -> dict:
+    """What an install keeps of *data*: the comparable content of a shared standard."""
+    return with_share_extras(sanitize_import(data), data)
 
 
 def extra_texts(content: dict) -> list[tuple[str, str]]:

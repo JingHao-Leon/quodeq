@@ -44,3 +44,11 @@ def test_removed_remotely_and_same_content_without_base():
     assert sync_state(_local(shared_hash="anything"), None) is SyncState.REMOVED_REMOTELY
     assert sync_state(_local(), _shared(BASE)) is SyncState.PUBLISHED
     assert sync_state(_local(name="mine"), _shared(BASE)) is SyncState.DIVERGED
+
+
+def test_hash_ignores_keys_an_install_drops_and_key_order():
+    plain = {"id": "a", "name": "A", "weight": 1.0, "principles": [{"name": "P", "requirements": [{"id": "R", "text": "t"}]}]}
+    noisy = {"originHash": None, "subtype": None, "sources": [], "type": "custom", **plain}
+    reordered = dict(reversed(list(plain.items())))
+    assert share_hash(noisy) == share_hash(plain) == share_hash(reordered)
+    assert share_hash({**plain, "weight": 2.0}) != share_hash(plain)

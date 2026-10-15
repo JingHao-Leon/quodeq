@@ -140,6 +140,11 @@ def _sanitized(data: dict) -> dict:
     return cleaned
 
 
+def sanitize_import(data: dict) -> dict:
+    """*data* reduced to the import allowlists with every text field truncated, without validating it."""
+    return _sanitized(data)
+
+
 def validate_import(data: dict) -> dict:
     """Validate and sanitize an imported evaluator.
 

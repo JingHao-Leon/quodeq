@@ -10,11 +10,10 @@ import hashlib
 import json
 from enum import StrEnum
 
+from quodeq.services.standards_share_content import normalized_for_share
 from quodeq.shared.utils import TEXT_ENCODING
 
 MACHINE_KEYS = frozenset({"managed", "origin", "origin_hash", "shared_hash"})
-# Travel with the standard but never make two copies look different.
-_DATED_KEYS = frozenset({"createdAt", "updatedAt", "version", "publishedAt"})
 SHARED_HASH_KEY = "shared_hash"
 
 
@@ -36,8 +35,9 @@ def shareable_payload(data: dict) -> dict:
 
 
 def share_hash(data: dict) -> str:
-    """Identity of a standard's content: dates, version and machine keys ignored."""
-    content = {k: v for k, v in data.items() if k not in MACHINE_KEYS and k not in _DATED_KEYS}
+    """Identity of a standard's content: its install-normalized form, so dates,
+    version, machine keys and keys an install drops never make copies differ."""
+    content = normalized_for_share(data)
     return hashlib.sha256(json.dumps(content, sort_keys=True).encode(TEXT_ENCODING)).hexdigest()
 
 

@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from quodeq.services import shared_publish
-from quodeq.services.standards_share_content import extra_texts, with_share_extras
+from quodeq.services.standards_share_content import extra_texts, normalized_for_share
 from quodeq.services._publish_git import prepare_clone, push_with_rebase_fallback
 from quodeq.services.import_validator import scan_injection, scan_text, validate_import
 from quodeq.services.standards_sharing import SHARED_HASH_KEY, share_hash, shareable_payload
@@ -190,7 +190,7 @@ def _write_from_remote(standard_id: str, remote: dict, evaluators_dir: Path) -> 
 
     ``validate_import`` is the structural gate; what is written is its
     sanitized data plus the well-typed extras a duplicated built-in carries
-    (``with_share_extras``). Refuses a file the validator rejects, and one the
+    (``normalized_for_share``). Refuses a file the validator rejects, and one the
     injection scan flags: nothing is written in either case. The base is the
     hash of what was written.
     """
@@ -198,7 +198,7 @@ def _write_from_remote(standard_id: str, remote: dict, evaluators_dir: Path) -> 
     if not validation["valid"]:
         raise ShareError("invalid", f"The shared copy of {standard_id} is not a valid standard: "
                                     + "; ".join(validation["errors"]))
-    content = with_share_extras(validation["data"], shareable_payload(remote))
+    content = normalized_for_share(remote)
     warnings = scan_injection(content) + _extra_text_warnings(content)
     if warnings:
         raise ShareError("unsafe", "This standard contains text that looks like instructions to the "
