@@ -32,7 +32,6 @@ from quodeq.core.scoring.projector_scoring import compute_run_score
 from quodeq.core.scoring.report_grades import parse_numeric_score
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import read_run_data
-from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.grade_formula import count_rescorable_runs, has_event_log, load_params
@@ -40,7 +39,8 @@ from quodeq.services.rescore import filter_excluded_violations, rescore_dimensio
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import (
-    compute_run_grades, has_evaluation_db, load_suppression_rules, load_visible_standard_ids,
+    compute_run_grades, has_evaluation_db, load_project_standards, load_suppression_rules,
+    settings_reports_root,
 )
 from quodeq.shared.fault_isolation import run_isolated
 
@@ -89,7 +89,7 @@ def project_sources(reports_root: Path, project: str) -> ProjectSources | None:
     rows = ProjectRows.load(reports_root, project)
     if not rows.runs:
         return None
-    visible = set(load_visible_standard_ids(local_repo_root(reports_root, project)))
+    visible = set(load_project_standards(settings_reports_root(), project).visible_ids)
     keys = _suppression_keys(reports_root / project)
     by_run: dict[str, dict[str, DimensionResult]] = {}
     dims = []
