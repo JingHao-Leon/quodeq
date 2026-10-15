@@ -72,7 +72,6 @@ export const PROVIDER_SETTING_KEY = Object.freeze({
   MODEL_THOROUGH: 'model-thorough',
   SUBAGENTS: 'subagents',
   TIME_LIMIT: 'time-limit',
-  VERIFY: 'verify',
   API_KEY: 'api-key',
   API_BASE: 'api-base',
   CMD_PATH: 'cmd-path',

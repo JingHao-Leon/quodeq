@@ -1,5 +1,4 @@
 import PowerSelector from '../../evaluation/components/PowerSelector.jsx';
-import { AdvancedAnalysisSettings } from './ProviderSettings.jsx';
 import { t } from '../../../strings/index.js';
 import { SettingsRowLabel, SettingsAdvanced } from './settingsRowParts.jsx';
 import CopilotModelSelect from './CopilotModelSelect.jsx';
@@ -124,7 +123,6 @@ export function CliAdvancedPanel({
       <AnalysisModelsRow providerId={providerId} state={state} update={update} analysisHint={analysisHint} />
       <AnalysisPowerRow power={power} setPower={setPower} persistPower={persistPower} />
       <CmdOverrideRow providerId={providerId} state={state} update={update} cmdPathError={cmdPathError} validateCmdPath={validateCmdPath} />
-      <AdvancedAnalysisSettings state={state} update={update} />
     </SettingsAdvanced>
   );
 }
