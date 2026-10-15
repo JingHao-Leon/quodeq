@@ -3623,6 +3623,9 @@
 .findings-head__ring .dim-gauge-card__gauge { padding: 0; }
 .findings-head__ring svg { width: 76px; height: 76px; }
 .findings-head__ring .dim-gauge-card__insuf-line { display: none; }
+/* The ring keeps its own column; the name and the tiles wrap inside the body, so tiles that do not fit
+   beside the name sit under it, next to the ring, instead of on a row of their own below the ring. */
+.findings-head__body { display: flex; flex: 1 1 260px; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); min-width: 0; }
 .findings-head__who { flex: 1 1 400px; min-width: 0; }
 .findings-head__desc { margin: 8px 0 0; max-width: 64ch; color: var(--color-text-secondary); font-size: var(--text-sm); line-height: 1.45; }
 .findings-head__hint { margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-xs); }
@@ -3737,17 +3740,13 @@
 }
 
 /* ring | name and description | tiles share a row only while the name keeps room to read (its basis);
-   otherwise the tiles go below as one block, and wrap there on narrow screens */
+   otherwise the tiles go under the name as one block, at their natural width, and wrap there on narrow screens */
 @media (max-width: 600px) {
   .findings-head__who { flex-basis: 200px; }
 }
 /* a divider reads only between two things on one row: none on a tile that starts a row (hooks/useRowStarts) */
 .findings-head__stats[data-row-start] > .findings-head__stat:first-child,
 .findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; padding-left: 0; }
-/* once the tiles sit below the name they fill that row, and each wrapped row of tiles fills its own: grow only,
-   never basis, so the wrap itself (and its row marks) stays decided by the tiles' natural width */
-.findings-head__stats[data-row-start] { flex-grow: 1; }
-.findings-head__stats[data-row-start] > .findings-head__stat { flex-grow: 1; }
 /* the Violations tile's severity pills wrap inside the tile while the tiles share the name's row;
    once the tiles have their own row there is room, so the pills stay on one line */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
