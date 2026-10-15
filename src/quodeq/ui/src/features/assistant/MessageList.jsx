@@ -3,7 +3,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ActionPreviewCard } from './ActionPreviewCard.jsx';
 import { ToolActivityGroup } from './ToolActivityGroup.jsx';
-import { groupToolMessages } from './toolActivity.js';
+import { describeToolCall, groupToolMessages } from './toolActivity.js';
+import { TOOL_STATUS } from '../../vocab/toolStatus.js';
 import { QMarkIcon } from '../../components/QMarkIcon.jsx';
 import { t } from '../../strings/index.js';
 import { MESSAGE_ROLE } from './messageRole.js';
@@ -64,6 +65,18 @@ function MessageItem({ message }) {
 }
 
 /**
+ * What the turn is doing right now: the running tool in plain words, the
+ * answer once text is arriving, else the generic consulting line.
+ */
+export function liveStatus(messages) {
+  const last = messages[messages.length - 1];
+  if (last?.role === MESSAGE_ROLE.ASSISTANT) return t('assistant.statusWriting');
+  const running = [...messages].reverse().find((m) => m.role === MESSAGE_ROLE.TOOL && m.status === TOOL_STATUS.RUNNING);
+  if (running) return `${describeToolCall(running).label}…`;
+  return t('assistant.consulting');
+}
+
+/**
  * Renders the assistant conversation transcript. Auto-scrolls to the
  * bottom whenever messages or the streaming indicator change.
  */
@@ -88,7 +101,7 @@ export function MessageList({ messages, streaming }) {
       {streaming && (
         <div className="assistant-streaming-indicator" role="status" aria-live="polite">
           <CompassAvatar thinking />
-          <span className="assistant-streaming-text" aria-hidden="true">{t('assistant.consulting')}</span>
+          <span className="assistant-streaming-text" aria-hidden="true">{liveStatus(messages)}</span>
           <span className="sr-only">{t('assistant.responding')}</span>
         </div>
       )}

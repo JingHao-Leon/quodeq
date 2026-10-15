@@ -187,3 +187,37 @@ describe('default (non-read-only) sessions', () => {
     expect(response).toContain('I can explain scores, dig into findings, and draft standards for this project.');
   });
 });
+
+it('keeps the input enabled during a turn and queues what is sent', () => {
+  state.streaming = true;
+  state.sendMessage.mockClear();
+  const { rerender } = render(<AssistantPane uiState={{ activeTab: 'overview', page: 'explorer' }} />);
+  const input = screen.getByPlaceholderText(/ask the assistant/i);
+  expect(input).not.toBeDisabled();
+  fireEvent.change(input, { target: { value: 'and the majors?' } });
+  expect(screen.getByText(/queues it until this turn ends/i)).toBeInTheDocument();
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(state.sendMessage).not.toHaveBeenCalled();
+  expect(screen.getByRole('list', { name: 'Queued messages' })).toHaveTextContent('and the majors?');
+  // The turn ends: the queued message goes out with the page context of that moment.
+  state.streaming = false;
+  rerender(<AssistantPane uiState={{ activeTab: 'overview', page: 'file' }} />);
+  expect(state.sendMessage).toHaveBeenCalledWith('and the majors?', { activeTab: 'overview', page: 'file' });
+  expect(screen.queryByRole('list', { name: 'Queued messages' })).toBeNull();
+});
+
+it('drops a queued message on its ×, and Esc with an empty draft stops the turn', () => {
+  state.streaming = true;
+  state.sendMessage.mockClear();
+  state.stopTurn.mockClear();
+  const { rerender } = render(<AssistantPane uiState={{ activeTab: 'overview' }} />);
+  const input = screen.getByPlaceholderText(/ask the assistant/i);
+  fireEvent.change(input, { target: { value: 'never mind' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  fireEvent.click(screen.getByRole('button', { name: 'Remove queued message' }));
+  fireEvent.keyDown(input, { key: 'Escape' });
+  expect(state.stopTurn).toHaveBeenCalledTimes(1);
+  state.streaming = false;
+  rerender(<AssistantPane uiState={{ activeTab: 'overview' }} />);
+  expect(state.sendMessage).not.toHaveBeenCalled();
+});
