@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -99,11 +100,13 @@ def test_cli_dispatches_stop(monkeypatch, tmp_path: Path, capsys) -> None:
     assert "isn't running" in capsys.readouterr().out
 
 
-def _run(evaluations: Path, project: str, run: str, *, state: str, pid: int) -> None:
+def _run(evaluations: Path, project: str, run: str, *, state: str, pid: int, pid_written_at: float | None = None) -> None:
     run_dir = evaluations / project / run
     run_dir.mkdir(parents=True)
     (evaluations / project / "repository_info.json").write_text(json.dumps({"name": "quodeq-web"}), encoding="utf-8")
     (run_dir / ".pid").write_text(str(pid), encoding="utf-8")
+    if pid_written_at is not None:
+        os.utime(run_dir / ".pid", (pid_written_at, pid_written_at))
     (run_dir / "status.json").write_text(json.dumps({
         "state": state, "dimensions": ["security"], "started_at": "2026-10-15T09:00:00+00:00",
     }), encoding="utf-8")
@@ -115,7 +118,8 @@ def test_running_evaluations_trust_neither_a_final_state_nor_a_reused_pid(tmp_pa
     procs += [evaluation, stranger]
     _run(tmp_path, "p1", "live", state="running", pid=evaluation.pid)
     _run(tmp_path, "p2", "cancelled", state="cancelled", pid=evaluation.pid)  # finished, pid file kept
-    _run(tmp_path, "p3", "reused", state="running", pid=stranger.pid)  # crashed; OS reused its pid
+    # crashed an hour ago; the OS has since handed its pid to another program
+    _run(tmp_path, "p3", "reused", state="running", pid=stranger.pid, pid_written_at=time.time() - 3600)
 
     runs = running_evaluations(tmp_path)
 

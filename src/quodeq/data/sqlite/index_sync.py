@@ -17,7 +17,7 @@ from quodeq.core.run.exit_reason import ExitReason
 from quodeq.core.run.job_status import external_job_id
 from quodeq.shared.clock import utc_iso_from_epoch
 from quodeq.shared.constants import EVIDENCE_DIRNAME, MANIFEST_FILENAME
-from quodeq.shared.process import is_pid_alive as _is_pid_alive
+from quodeq.shared.process import is_original_process, is_pid_alive as _is_pid_alive
 from quodeq.shared.run_heartbeat import HEARTBEAT_FILENAME
 from quodeq.data.fs.run_status_store import (
     RunState,
@@ -63,6 +63,24 @@ ON CONFLICT(job_id) DO UPDATE SET
     origin_json=excluded.origin_json,
     dimensions_json=excluded.dimensions_json
 """
+
+
+def _run_pid_alive(run_dir: Path, pid: int) -> bool:
+    """True while *pid* is still the run's own process, not a reuse of its number.
+
+    The run writes ``.pid`` from inside that process, so a live *pid* that
+    started after the file was written got the number once the run ended.
+    No ``.pid`` naming the same pid (legacy runs) leaves liveness alone.
+    """
+    pid_path = run_dir / ".pid"
+    try:
+        recorded = int(pid_path.read_text(encoding="utf-8").strip())
+        written_at = pid_path.stat().st_mtime
+    except (OSError, ValueError):
+        return _is_pid_alive(pid)
+    if recorded != pid:
+        return _is_pid_alive(pid)
+    return is_original_process(pid, written_at)
 
 
 def _heartbeat_mtime(run_dir: Path) -> float | None:
@@ -163,7 +181,7 @@ def sync_legacy_run(
     elif pid_path.exists():
         try:
             pid = int(pid_path.read_text(encoding="utf-8").strip())
-            alive = _is_pid_alive(pid)
+            alive = is_original_process(pid, pid_path.stat().st_mtime)
         except (OSError, ValueError):
             alive = False
         if alive:
@@ -239,7 +257,7 @@ def check_stale_and_promote(
     heartbeat_stale = heartbeat_mtime is None or (time.time() - heartbeat_mtime) > stale_seconds
 
     pid = status.get("pid")
-    pid_alive = isinstance(pid, int) and _is_pid_alive(pid)
+    pid_alive = isinstance(pid, int) and _run_pid_alive(run_dir, pid)
 
     if heartbeat_stale and not pid_alive:
         # from_status_dict needs a known "state"; fall back if status.json
