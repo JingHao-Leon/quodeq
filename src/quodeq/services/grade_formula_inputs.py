@@ -47,8 +47,7 @@ def _from_tables(src: SourceDimension, saved: ScoringParams, cache: dict[Path, A
     if src.run_dir not in cache:
         cache[src.run_dir] = load_grade_inputs(src.run_dir)
     inputs = cache[src.run_dir]
-    keys = sorted(k for k in set(inputs.violations_by) | set(inputs.compliance_by)
-                  if k[0].lower() == src.name and k[1])
+    keys = sorted(k for k in set(inputs.violations_by) | set(inputs.compliance_by) if k[0].lower() == src.name)
     principles = []
     for key in keys:
         findings, compliance = inputs.violations_by.get(key, []), inputs.compliance_by.get(key, [])
