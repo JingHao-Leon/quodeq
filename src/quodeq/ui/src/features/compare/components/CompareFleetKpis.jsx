@@ -15,12 +15,12 @@ import { nf, score1 } from '../compareFormatters.js';
 const NONE = '·';
 const fixed1 = (v) => (v == null ? NONE : v.toFixed(1));
 
-export function Kpi({ label, value, valueClass = '', sub, desktopOnly = false, children = null }) {
+export function Kpi({ label, value, valueClass = '', sub, subTitle, desktopOnly = false, children = null }) {
   return (
     <div className={`compare-kpi${desktopOnly ? ' compare-fleet__desktop' : ''}`}>
       <span className="compare-kpi__label">{label}</span>
       <span className={`compare-kpi__value ${valueClass}`}>{value}{children}</span>
-      <span className="compare-kpi__sub">{sub}</span>
+      <span className="compare-kpi__sub" title={subTitle}>{sub}</span>
     </div>
   );
 }
@@ -51,6 +51,7 @@ export default function CompareFleetKpis({ rows, fleet }) {
         value={score1(k.score)}
         valueClass={scoreColorClass(k.score)}
         sub={t('compare.kpiScoreSub', { grade: scoreToGradeLabel(k.score) || NONE, weighted: score1(k.weighted) })}
+        subTitle={t('compare.kpiScoreSubTip', { weighted: score1(k.weighted) })}
       >
         <CompareDeltaBadge delta={k.delta} />
       </Kpi>

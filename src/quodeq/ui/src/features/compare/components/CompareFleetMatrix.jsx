@@ -6,7 +6,9 @@
  * ranks the rows by its column (again reverses); a tile opens that
  * project's own dimension screen (remote rows open the shared project).
  * Hovering a tile lights its row and column. Every dimension column has
- * the same width whatever its name's length (fixed table layout).
+ * the same width whatever its name's length (fixed table layout), and the
+ * table never gets narrower than its longest header word needs: a name
+ * wraps between words, never inside one (the panel scrolls instead).
  */
 import { useState } from 'react';
 import { t } from '../../../strings/index.js';
@@ -19,6 +21,11 @@ import { openProjectDimension } from '../compareOpenDimension.js';
 const OVERALL = 'overall';
 const NONE = '·';
 const NO_HOVER = Object.freeze({ row: null, col: null });
+
+/** Characters in the longest run a header cannot wrap inside (it wraps at spaces and after hyphens). */
+export function longestHeaderWord(labels) {
+  return Math.max(0, ...labels.flatMap((l) => String(l).split(/(?<=-)|\s+/).map((w) => w.length)));
+}
 
 function extremes(rows, key) {
   const values = rows.map((r) => r.dims.find((d) => d.key === key)?.score).filter((v) => v != null);
@@ -124,7 +131,11 @@ export default function CompareFleetMatrix({
       note={note ?? t('compare.matrixNoteFleet')}
     >
       <div className="compare-heat__scroll">
-        <table className="compare-heat" onMouseLeave={() => setHover(NO_HOVER)}>
+        <table
+          className="compare-heat"
+          style={{ '--heat-cols': board.length, '--heat-word': longestHeaderWord(board.map((b) => b.label)) }}
+          onMouseLeave={() => setHover(NO_HOVER)}
+        >
           <colgroup>
             <col className="compare-heat__colLead" />
             <col className="compare-heat__colOverall" />
