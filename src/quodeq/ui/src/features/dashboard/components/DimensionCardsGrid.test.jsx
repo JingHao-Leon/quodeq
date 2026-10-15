@@ -72,4 +72,19 @@ describe('DimensionCardsGrid, compact (the Overview)', () => {
     fireEvent.mouseLeave(card);
     expect(onHover.mock.calls).toEqual([['maintainability'], [null]]);
   });
+
+  it('puts the caller\'s footer in a compact card, in place of its pass rate', () => {
+    const { container } = render(<DimensionCardsGrid sortedDimensions={DIMS} compact footerFor={(item) => <span>{`${item.dimension} moved`}</span>} />);
+    expect(screen.getByText('maintainability moved')).toBeInTheDocument();
+    expect(container.querySelector('.dim-gauge-card__pass')).toBeNull();
+  });
+});
+
+describe('DimensionCardsGrid, filled (the run page)', () => {
+  it('lays the cards on History\'s tracks with no balanced columns, so one card keeps its size', () => {
+    const { container } = render(<DimensionCardsGrid sortedDimensions={DIMS} compact fill />);
+    const grid = container.querySelector('.dimensions-grid');
+    expect(grid).toHaveClass('dimensions-grid--fill');
+    expect(grid.style.gridTemplateColumns).toBe('');
+  });
 });

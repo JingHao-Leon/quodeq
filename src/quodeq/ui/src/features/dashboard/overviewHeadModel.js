@@ -29,6 +29,18 @@ function summedSeverity(dimensions) {
 }
 
 /**
+ * Dimensions' numbers summed, as the header tiles read them (scopeMetrics):
+ * their findings over the files they read.
+ * @param {object[]} dims dimensions with `totals` and `filesRead`
+ * @returns {object} scopeMetrics output
+ */
+export function dimensionsMetrics(dims) {
+  const headline = buildHeadline(dims);
+  const compliance = dims.reduce((n, d) => n + (d.totals?.complianceCount || 0), 0);
+  return scopeMetrics({ sevCounts: summedSeverity(dims), total: headline.violations, compliance, files: headline.filesRead || 0 });
+}
+
+/**
  * The previous period's numbers, as the header tiles read them, from its
  * as-of scores; only the dimensions on show count. Null with none of them.
  * @param {?object} scores a scores payload (`accumulated.dimensions`)
@@ -37,10 +49,7 @@ function summedSeverity(dimensions) {
  */
 export function previousPeriodMetrics(scores, visibleNames) {
   const dims = (scores?.accumulated?.dimensions || []).filter((d) => visibleNames.has(nameKey(d.dimension)));
-  if (!dims.length) return null;
-  const headline = buildHeadline(dims);
-  const compliance = dims.reduce((n, d) => n + (d.totals?.complianceCount || 0), 0);
-  return scopeMetrics({ sevCounts: summedSeverity(dims), total: headline.violations, compliance, files: headline.filesRead || 0 });
+  return dims.length ? dimensionsMetrics(dims) : null;
 }
 
 /** The dimensions weakest first (Victor's call: the one to open leads), ungraded last. */

@@ -215,3 +215,23 @@ export function useDashboard({ selectedProject, selectedRun, selectedSource = PR
     availableRuns, refreshDashboard, refreshDashboardActive, scheduleDashboardReconcile, dropRunFromCache, sharedProjectInfoQuery,
   });
 }
+
+/**
+ * One run's dashboard payload (the overview shape: its dimensions' scores
+ * and counts), sharing the cache entry the app's dashboard query keeps for
+ * that run; null without a run, while it loads or while the server still
+ * owes it. The run page reads the run it was compared with through it.
+ * @param {{project: ?string, runId: ?string, source?: string}} args
+ * @returns {?object}
+ */
+export function useRunDashboard({ project, runId, source = PROJECT_SOURCE.LOCAL }) {
+  const { getDashboard, sharedGetDashboard } = useApi();
+  const fetchDashboard = source === PROJECT_SOURCE.SHARED ? sharedGetDashboard : getDashboard;
+  const config = buildDashboardQueryConfig({
+    projectKey: project, selectedRun: runId, selectedSource: source, fetchDashboard, selectedProject: project, frozenRun: true, keepPlaceholder: false,
+  });
+  // Without a run the key names the latest run's entry, which the app's own
+  // dashboard query fills: read nothing rather than that run.
+  const { data } = useQuery({ ...config, enabled: Boolean(project && runId) });
+  return runId && data && !isPendingPayload(data) ? data : null;
+}

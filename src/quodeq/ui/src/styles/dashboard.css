@@ -26,10 +26,6 @@
   transition: opacity 250ms ease;
 }
 
-.dashboard-loading {
-  opacity: 0.4;
-}
-
 .dashboard-appear {
   animation: dashboard-fadein 400ms ease;
 }
@@ -45,49 +41,6 @@
 @keyframes dashboard-fadein {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-/* ── Run overview transitions ─────────────────────────── */
-
-.run-overview-fade {
-  transition: opacity 250ms ease;
-}
-
-.run-overview-loading {
-  opacity: 0.4;
-}
-
-.run-overview-ready {
-  animation: run-overview-fadein 300ms ease;
-}
-
-.run-overview-spinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-}
-
-.run-overview-spinner .loading-screen {
-  position: static;
-  inset: auto;
-  z-index: auto;
-  width: auto;
-  height: auto;
-}
-
-@keyframes run-overview-fadein {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* ── Stat cards ───────────────────────────────────────── */
-
-.acc-eval-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 28px;
 }
 
 /* --- Trend Section --- */
@@ -427,6 +380,12 @@
      below the 180px min — no half-empty rows just because a fixed max didn't
      divide cleanly. */
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+/* The run page: History's run card tracks (.rl-cards), so cards keep the
+   Overview's size and a run with one dimension shows one card on the left. */
+.dimensions-grid--fill {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
 }
 
 .dimension-card {
@@ -1917,6 +1876,10 @@
    A flex column like .dashboard-page, so the panels' margins add up as
    they do on the loaded page instead of collapsing. */
 .overview-skeleton { display: flex; flex-direction: column; }
+/* The run page (History, "open run"): the Overview's panels for one run, a flex column the same way. */
+.run-page { display: flex; flex-direction: column; }
+/* The run page's rescored note: its help button a little apart from the words. */
+.run-page .findings-head__hint .help-hint { margin-left: 4px; }
 .overview-skeleton__bar {
   display: inline-block;
   flex: none;

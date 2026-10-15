@@ -1,96 +1,73 @@
-import { withPending } from '../../../utils/pendingClass.js';
-import { useMemo } from 'react';
-import LoadingScreen from '../../../components/LoadingScreen.jsx';
-import TopOffendingFilesTable from '../../../components/TopOffendingFilesTable.jsx';
-import DimensionGaugeCard from './DimensionGaugeCard.jsx';
+import { useMemo, useState } from 'react';
+import RunHead from './RunHead.jsx';
+import DimensionCardsGrid from './DimensionCardsGrid.jsx';
+import OverviewSkeleton, { SkeletonBottom } from './OverviewSkeleton.jsx';
+import SinceStrip from '../../../components/SinceStrip.jsx';
+import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
+import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
+import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
+import RunChangeFooter from '../../../components/RunChangeFooter.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
-
 import { t } from '../../../strings/index.js';
-import { RunHeroSection } from './RunHeroSection.jsx';
-import { chipDeltas } from '../headlineStats.js';
+import { withPending } from '../../../utils/pendingClass.js';
+import { nameKey } from '../../../utils/nameKey.js';
+import { topMovers } from '../../../models/sinceSummary.js';
 import { buildRunViewData } from '../runViewData.js';
+import { weakestDimensionFirst } from '../overviewHeadModel.js';
+import { makeCardNavigate, makeFindingsNavigate, moverNavigate } from '../overviewNavigate.js';
 import { useRunReportSpecs } from './runReportSpecs.jsx';
 import { useRunFindings } from '../hooks/useRunFindings.js';
-import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
+import { useRunComparison } from '../hooks/useRunComparison.js';
 import { runAsOf } from '../../violations/asOf.js';
-import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
 
-export { RunHeroSection };
+// Areas exist only for today (the Map measures the latest findings): a run shows its folders and files.
+const RUN_WHERE_VIEWS = Object.freeze([WHERE.FOLDERS, WHERE.FILES]);
 
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-function RunDimensionsGrid({ dimensions, selectedRunId, dateLabel, onDimensionClick, trendDeltas }) {
-  const sorted = useMemo(
-    () => [...dimensions].sort((a, b) => a.dimension.localeCompare(b.dimension)),
-    [dimensions]
-  );
+/** The run's dimensions as the Overview's compact cards, weakest first, each with what the run changed in it. */
+function RunDimensionsSection({ sorted, dimTrends, footerFor, onDimensionClick }) {
   return (
-    <div className="dimensions-grid">
-      {sorted.map((item) => (
-        <DimensionGaugeCard
-          key={item.dimension}
-          item={item}
-          delta={trendDeltas?.[(item.dimension || '').toLowerCase()] ?? null}
-          onDimensionClick={onDimensionClick}
-          selectedRunId={selectedRunId}
-          dateLabel={dateLabel}
-          thinEvidence={item.confidence === EVIDENCE_CONFIDENCE.LOW}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Run-specific overview panel
-// ---------------------------------------------------------------------------
-
-function RunFileViolations({ runTopFiles, onFileClick }) {
-  if (runTopFiles.length === 0) return null;
-  return (
-    <section className="qd-cards-panel offending-panel" aria-label={t('overview.violationsByFileAria')}>
-      <div className="qd-cards-panel__head">
-        <SectionLabel>{t('overview.violationsByFileLabel')} · {runTopFiles.length}</SectionLabel>
-        <span className="run-history-panel__stats">{t('overview.sortedBySeverity')}</span>
+    <section className="quality-dimensions" aria-label={t('overview.qualityDimensionsAria')}>
+      <div className="quality-dimensions__head">
+        <SectionLabel>{t('overview.qualityDimensionsLabel')} · {sorted.length}</SectionLabel>
       </div>
-      <TopOffendingFilesTable files={runTopFiles} onFileClick={onFileClick} />
+      <div className="dimensions-panel">
+        <DimensionCardsGrid sortedDimensions={sorted} onDimensionClick={onDimensionClick} dimTrends={dimTrends} compact fill footerFor={footerFor} />
+      </div>
     </section>
   );
 }
 
-// Per-dimension deltas from the trend entry (same source the history rows use)
-function useTrendDeltas(dashboard) {
-  return useMemo(() => {
-    const currentRunId = dashboard?.selectedRun?.runId;
-    const entry = (dashboard?.trend || []).find((item) => item.runId === currentRunId);
-    if (!entry?.dimensionDetails) return {};
-    const lookup = {};
-    for (const d of entry.dimensionDetails) {
-      if (d.delta != null) lookup[(d.dimension || '').toLowerCase()] = d.delta;
-    }
-    return lookup;
-  }, [dashboard]);
+/** Fix first beside where the findings are, the run's folders or files; the skeleton while its findings load. */
+function RunBottom({ dimensions, topFiles, loading, opens }) {
+  const [where, setWhere] = useState(WHERE.FOLDERS);
+  if (loading) return <SkeletonBottom run />;
+  return (
+    <div className="explorer-bottom">
+      <FixFirstPanel dimensions={dimensions} onRequirementClick={opens.requirement} />
+      <WherePanel view={where} onView={setWhere} views={RUN_WHERE_VIEWS}>
+        {where === WHERE.FOLDERS && <FindingsByFolderPanel dimensions={dimensions} onFolderClick={opens.folder} />}
+        {where === WHERE.FILES && <OffendingFilesSection topFiles={topFiles} onFileClick={opens.file} />}
+      </WherePanel>
+    </div>
+  );
 }
 
-// A chosen run's findings open as scoped Findings views as of that run,
-// read-only: the hero cards the project on their filter, a file row the file.
-function useRunScopeNavigate({ asOf, onNavigate }) {
-  return useMemo(() => {
-    if (!onNavigate) return {};
-    return {
-      onCardNavigate: (kind) => openScope(onNavigate, { kind: SCOPE_KIND.PROJECT, filter: cardFilter(kind) }, asOf),
-      onFileClick: (f) => openScope(onNavigate, { kind: SCOPE_KIND.FILE, path: f.file }, asOf),
-    };
-  }, [onNavigate, asOf]);
+/**
+ * A card's footer: what the run changed in the dimension, "not compared"
+ * when the run was not; none (the pass rate shows) until that is known.
+ */
+function runFooter({ settled, compared, change }) {
+  if (!settled || (compared && !change)) return undefined;
+  return (item) => <RunChangeFooter change={change?.perDim[nameKey(item.dimension)] ?? null} />;
 }
 
-// The run's derived view data: summary, worst files, hero-card navigation and
-// the per-dimension deltas; also registers this run's report specs. The
-// dashboard is the overview shape (scores and counts); the finding lists the
-// worst files, navigation, report and fix plan need come from the run's
-// scores query and are merged in by dimension.
+/**
+ * The run's findings and what opens them: the finding lists (the run's
+ * scores, merged into the dashboard's dimensions), the worst files, and
+ * every finding view as a scoped Findings view as of the run, read-only.
+ * Also registers the run's report specs.
+ */
 function useRunOverviewModel({ dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName, onNavigate }) {
   const runId = dashboard?.selectedRun?.runId || selectedRunId;
   const findings = useRunFindings({ project: selectedProject, runId, source: selectedSource, availableRuns, enabled: !!dashboard?.dimensions });
@@ -99,43 +76,38 @@ function useRunOverviewModel({ dashboard, selectedRunId, selectedProject, select
     [dashboard, findings.dimensions],
   );
   const asOf = useMemo(() => runAsOf(runId, dashboard?.selectedRun?.dateISO), [runId, dashboard?.selectedRun?.dateISO]);
-  const { onCardNavigate, onFileClick } = useRunScopeNavigate({ asOf, onNavigate });
+  const opens = useMemo(() => ({ card: makeCardNavigate({ onNavigate, asOf }), ...makeFindingsNavigate({ onNavigate, asOf }) }), [onNavigate, asOf]);
   const reportDashboard = useMemo(() => (dashboard ? { ...dashboard, dimensions } : dashboard), [dashboard, dimensions]);
   useRunReportSpecs({ dashboard: reportDashboard, runSummary, selectedRunId, projectName, headline, since });
-  const trendDeltas = useTrendDeltas(dashboard);
-  return { runSummary, runTopFiles, onCardNavigate, onFileClick, trendDeltas, since, headline };
+  return { runId, dimensions, runTopFiles, opens, findingsLoading: findings.isLoading };
 }
 
+/**
+ * The run page (History, "open run"), the Overview for one run: its header
+ * (FindingsHead) with the changes since the run it was compared with, the
+ * since line, its dimensions as compact cards weakest first with what the
+ * run changed in each, then Fix first beside its folders or files. Every
+ * finding view opens as of the run, read-only; a card or a mover opens the
+ * dimension as of the run. The Overview's skeleton until the run lands.
+ */
 export default function RunOverviewPanel({
-  dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName,
+  dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName, projectInfo = null,
   onDimensionClick, onNavigate, refreshing = false, formulaUpdated = false,
 }) {
-  const { runSummary, runTopFiles, onCardNavigate, onFileClick, trendDeltas, since, headline } = useRunOverviewModel({
-    dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName, onNavigate,
-  });
-
-  const isLoading = !dashboard || !dashboard.dimensions;
-  if (isLoading) {
-    return (
-      <div className="run-overview-fade run-overview-loading">
-        <div className="run-overview-spinner"><LoadingScreen variant="inline" /></div>
-      </div>
-    );
-  }
-  const dimCount = (dashboard?.dimensions || []).length;
-
+  const model = useRunOverviewModel({ dashboard, selectedRunId, selectedProject, selectedSource, availableRuns, projectName, onNavigate });
+  const comparison = useRunComparison({ project: selectedProject, source: selectedSource, runId: model.runId, dimensions: dashboard?.dimensions });
+  const sorted = useMemo(() => [...(dashboard?.dimensions || [])].sort(weakestDimensionFirst), [dashboard]);
+  if (!dashboard?.dimensions) return <OverviewSkeleton run projectName={projectName} />;
+  const openDimension = onDimensionClick ? (item) => onDimensionClick(item, model.runId) : undefined;
   return (
-    <div className={withPending('run-overview-fade run-overview-ready', refreshing)} aria-busy={refreshing || undefined}>
-      <RunHeroSection dashboard={dashboard} selectedRunId={selectedRunId} runSummary={runSummary} onCardNavigate={onCardNavigate} deltas={chipDeltas(since)} density={headline.density} formulaUpdated={formulaUpdated} />
-      <section className="quality-dimensions" aria-label={t('overview.qualityDimensionsAria')}>
-        <div className="quality-dimensions__head">
-          <SectionLabel>{t('overview.qualityDimensionsLabel')} · {dimCount}</SectionLabel>
-        </div>
-        <div className="dimensions-panel">
-          <RunDimensionsGrid dimensions={dashboard?.dimensions || []} selectedRunId={selectedRunId} dateLabel={dashboard?.selectedRun?.dateLabel} onDimensionClick={onDimensionClick} trendDeltas={trendDeltas} />
-        </div>
-      </section>
-      <RunFileViolations runTopFiles={runTopFiles} onFileClick={onFileClick} />
+    <div className={withPending('run-page', refreshing)} aria-busy={refreshing || undefined}>
+      <RunHead dashboard={dashboard} comparison={comparison} projectInfo={projectInfo} source={selectedSource}
+        formulaUpdated={formulaUpdated} onCardNavigate={model.opens.card} />
+      <SinceStrip summary={comparison.change?.since ?? null} label={t('overview.sincePreviousRun')}
+        emptyNote={comparison.settled && !comparison.compared ? t('history.noBaseline') : null}
+        movers={topMovers(comparison.dimTrends)} onMover={moverNavigate(sorted, openDimension)} />
+      <RunDimensionsSection sorted={sorted} dimTrends={comparison.dimTrends} footerFor={runFooter(comparison)} onDimensionClick={openDimension} />
+      <RunBottom dimensions={model.dimensions} topFiles={model.runTopFiles} loading={model.findingsLoading} opens={model.opens} />
     </div>
   );
 }

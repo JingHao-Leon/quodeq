@@ -1,6 +1,7 @@
 import { t } from '../../../strings/index.js';
 import { LauncherButton, LauncherMenu, LauncherRoot, useLauncherPopover } from '../../../components/launcher/launcherParts.jsx';
-import { countBy, originLabel } from './runLogModel.js';
+import { countBy } from './runLogModel.js';
+import { originLabel } from '../../../models/runOrigin.js';
 import { FILTER_ALL } from './useRunFilters.js';
 
 const MIN_OPTIONS = 2;

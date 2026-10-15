@@ -5,7 +5,8 @@ import { LoadProjectFailedEmptyState } from '../../../components/ProjectEmptySta
 import { t } from '../../../strings/index.js';
 import { pluralKey } from '../../../utils/plural.js';
 import { useRunLog, useSharedRunLog } from './useRunLog.js';
-import { useRunDiff, useRunThroughput } from './useRunDetail.js';
+import { useRunThroughput } from './useRunDetail.js';
+import { useRunDiff } from '../../../hooks/useRunDiff.js';
 import { useHistorySelection } from './useHistorySelection.js';
 import { useKeyboardSelect } from './useKeyboardSelect.js';
 import { findingParams, dimensionParams, runStamp } from './runLogNavigation.js';

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { readJSON, writeJSON } from '../../../adapters/storage.js';
 import { historySession } from './historySession.js';
-import { originLabel } from './runLogModel.js';
+import { originLabel } from '../../../models/runOrigin.js';
 
 export const FILTER_ALL = 'all';
 const FILTERS_KEY = 'quodeq.history.filters';

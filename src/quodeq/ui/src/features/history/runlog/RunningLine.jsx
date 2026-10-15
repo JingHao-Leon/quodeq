@@ -1,6 +1,6 @@
 import { t } from '../../../strings/index.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
-import { originLabel } from './runLogModel.js';
+import { originLabel } from '../../../models/runOrigin.js';
 import { timeLabel } from './runFormat.js';
 
 const PART_SEPARATOR = ' · ';

@@ -3,13 +3,14 @@ import { scoreColorClass } from '../../../utils/formatters.js';
 import { formatDurationCoarse } from '../../../utils/dateFormatting.js';
 import { GradeChip } from '../../dashboard/components/heroSectionParts.jsx';
 import RunLogPanel from './RunLogPanel.jsx';
-import RunSevRow, { CRIT_MAJ, MAJOR_ONLY } from './RunSevRow.jsx';
-import RunSevText from './RunSevText.jsx';
+import RunSevRow, { MAJOR_ONLY } from './RunSevRow.jsx';
+import RunSevText from '../../../components/RunSevText.jsx';
+import { CRIT_MAJ } from '../../../vocab/severity.js';
 import RunMoreMenu from './RunMoreMenu.jsx';
 import RunFindings from './RunFindings.jsx';
 import RunDimensions from './RunDimensions.jsx';
 import { dayLabel, timeLabel, scoreText, numberText } from './runFormat.js';
-import { originLabel, originUrl } from './runLogModel.js';
+import { originLabel, originUrl } from '../../../models/runOrigin.js';
 import { cancelledNote } from './cancelledRun.js';
 
 const TAB_DIMS = 'dimensions';

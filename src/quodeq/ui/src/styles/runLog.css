@@ -3,12 +3,15 @@
 .rl {
   --rl-hover-bg: color-mix(in srgb, var(--color-text) 6%, var(--color-surface));
   --rl-hover-bar: inset 2px 0 0 var(--color-accent);
-  --rl-mono: var(--term-font-mono);
   --rl-col-move: 5.5ch;
   --rl-col-score: 32px;
   --rl-col-gap: 10px;
-  --rl-resolved-text: color-mix(in srgb, var(--color-change-resolved) 78%, var(--color-text));
   display: flex; flex-direction: column; gap: var(--term-space-2);
+}
+/* the run log's type and resolved colour, also on a run's card footer outside History (the run page) */
+.rl, .rl-card-moves {
+  --rl-mono: var(--term-font-mono);
+  --rl-resolved-text: color-mix(in srgb, var(--color-change-resolved) 78%, var(--color-text));
 }
 .rl-muted { color: var(--color-text-muted); }
 .rl-new { color: var(--color-change-new); }

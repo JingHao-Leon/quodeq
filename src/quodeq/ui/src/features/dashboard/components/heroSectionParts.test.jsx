@@ -1,47 +1,34 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { RatioDensityStat, ScoreStat, ratioDisplay } from './heroSectionParts.jsx';
+import { GradeChip, heroCardHandlers } from './heroSectionParts.jsx';
 
-describe('RatioDensityStat', () => {
-  it('ratio is the number; density is the tile\'s second hint line, one decimal, no "?"', () => {
-    const { container } = render(<RatioDensityStat ratio="1:3" density={12.64} />);
-    expect(screen.getByText('RATIO')).toBeInTheDocument();
-    expect(screen.getByText('1:3')).toBeInTheDocument();
-    expect(screen.getByText('violations : compliance')).toBeInTheDocument();
-    expect(screen.getByText('12.6')).toBeInTheDocument();
-    expect(screen.getByText(/violations : 100 files/)).toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
-    expect(container.querySelectorAll('.term-stat__hint-line')).toHaveLength(2);
-  });
-
-  it('no density: ratio alone, no dash', () => {
-    const { container } = render(<RatioDensityStat ratio="1:3" density={null} />);
-    expect(screen.getByText('RATIO')).toBeInTheDocument();
-    expect(container.querySelectorAll('.term-stat__hint-line')).toHaveLength(1);
-    expect(container.textContent).not.toMatch(/(^|\s)[-—](\s|$)/);
-  });
-
-  it('ratioDisplay reads 0:N without violations, never a dash', () => {
-    expect(ratioDisplay(0, 1922)).toBe('0:1922');
-    expect(ratioDisplay(2177, 1922)).toBe('1:1');
-  });
-
-  it('ScoreStat puts the grade chip and the trend under the number, like the violation chips', () => {
-    const { container } = render(<ScoreStat scoreDisplay="9.0" grade="Exemplary" extraTrailing={<span className="trend-badge">-0.1</span>} />);
-    const hint = container.querySelector('.term-stat__hint');
-    expect(hint.querySelector('.chip')).toHaveTextContent('EXEMPLARY');
-    expect(hint.querySelector('.trend-badge')).toHaveTextContent('-0.1');
-    expect(container.querySelector('.term-stat__trailing')).toBeNull();
-  });
-
+describe('GradeChip', () => {
   it('the grade word follows the score on show, not the stored grade', () => {
-    const { container } = render(<ScoreStat scoreDisplay="8.5" grade="Exemplary" />);
+    const { container } = render(<GradeChip score="8.5" grade="Exemplary" />);
     expect(container.querySelector('.chip')).toHaveTextContent('GOOD');
   });
 
   it('falls back to the stored grade when the score does not parse', () => {
-    const { container } = render(<ScoreStat scoreDisplay="—" grade="Adequate" />);
+    const { container } = render(<GradeChip score="—" grade="Adequate" />);
     expect(container.querySelector('.chip')).toHaveTextContent('ADEQUATE');
+  });
+});
+
+describe('heroCardHandlers', () => {
+  it('opens violations and a severity when there are violations', () => {
+    const open = vi.fn();
+    const some = heroCardHandlers(open, { violations: 3, compliance: 0 });
+    some.handleViolations();
+    some.handleSeverity('major');
+    expect(open.mock.calls).toEqual([['violations'], ['major']]);
+  });
+
+  it('opens no compliance without compliant checks', () => {
+    expect(heroCardHandlers(vi.fn(), { violations: 3, compliance: 0 }).handleCompliance).toBeUndefined();
+  });
+
+  it('opens nothing without a navigator', () => {
+    expect(heroCardHandlers(undefined, { violations: 3, compliance: 3 }).handleSeverity).toBeUndefined();
   });
 });

@@ -273,3 +273,22 @@ describe('NavBreadcrumb collapse and jump bar', () => {
     expect(onGoTo).toHaveBeenCalledWith(0);
   });
 });
+
+describe('NavBreadcrumb — a run page and what it opens read from History', () => {
+  const runPage = { page: 'history-run', runId: 'r2', dateLabel: 'Thu 8 Oct 08:23' };
+
+  it('the run page itself: history, then the run by when it ran', () => {
+    render(<NavBreadcrumb stack={[{ page: 'history' }, runPage]} projectName="repo" />);
+    const crumbs = screen.getAllByRole('listitem').map((li) => li.textContent);
+    expect(crumbs).toEqual(['repo', 'history', 'Thu 8 Oct 08:23']);
+  });
+
+  it('a dimension opened from the run: history, the run behind the ellipsis, the dimension', () => {
+    render(<NavBreadcrumb stack={[{ page: 'history' }, runPage, { page: 'explorer', dimension: 'Security', runId: 'r2' }]} projectName="repo" />);
+    const crumbs = screen.getAllByRole('listitem').map((li) => li.textContent);
+    expect(crumbs[1]).toBe('history');
+    expect(crumbs.at(-1)).toBe('security');
+    expect(crumbs).not.toContain('overview');
+    expect(crumbs).not.toContain('Thu 8 Oct 08:23');
+  });
+});

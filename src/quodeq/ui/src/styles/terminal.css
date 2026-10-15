@@ -160,8 +160,6 @@
   white-space: nowrap;
 }
 /* A hint of two lines (RATIO's reading, then the density). */
-.term-stat__hint-line { display: block; }
-.term-stat__hint-line + .term-stat__hint-line { margin-top: 2px; }
 
 .term-stat__hint {
   margin-top: var(--term-space-1);
@@ -329,7 +327,7 @@
   text-transform: uppercase;
   /* A chip is one token: the stat hint allows breaks anywhere, and a narrow
      tile would otherwise stack "7 9 3 m a j" one character per line. The row
-     wraps whole chips instead (see .acc-eval-sev-row). */
+     wraps whole chips instead. */
   white-space: nowrap;
 }
 /* The change since the previous run or period, inside a severity chip: the
@@ -553,55 +551,6 @@ button.term-sev-badge--clickable:focus-visible {
 .term-key-hint__sep {
   color: var(--color-text-subtle, var(--color-text-muted));
   opacity: 0.6;
-}
-
-/* ------------------------------------------------------------
-   Overview hero (migrated — replaces .acc-eval-top layout)
-   Scoped under --terminal variant so legacy consumers of
-   .acc-eval-panel remain untouched.
-   ------------------------------------------------------------ */
-.acc-eval-panel--terminal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--term-space-3);
-  margin-bottom: var(--term-space-4);
-}
-.acc-eval-panel--terminal .acc-eval-panel__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--term-space-3);
-}
-.acc-eval-panel--terminal .acc-eval-panel__top .term-header {
-  margin: 0;
-}
-.acc-eval-panel--terminal .acc-eval-panel__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--term-space-2);
-}
-.acc-eval-sev-row {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--term-space-1);
-  align-items: center;
-}
-/* Quiet meta note beside the severity badges: how many re-found findings the
-   project-level dismissed + deleted filters hid from this run view. */
-.term-stat__suppressed-note {
-  /* Own line, not trailing the severity badges: the count runs to four digits
-     on a triaged project, and inline it wrapped between the number and its
-     unit ("1337" / "suppressed"). */
-  display: block;
-  font-family: var(--term-font-mono);
-  font-size: 11px;
-  color: var(--color-text-muted);
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.acc-eval-sev-row + .term-stat__suppressed-note {
-  margin-top: var(--term-space-1);
 }
 
 /* ------------------------------------------------------------

@@ -2652,8 +2652,7 @@ button.eval-provider-badge--clickable:focus-visible {
 /* ------------------------------------------------------------
    .evaluate-panel--terminal — terminal-aesthetic wrapper for
    the ReEvaluateCard, EvaluationStatus job panel, and
-   NoProjectSelected card. Mirrors `.acc-eval-panel--terminal`
-   from the overview panel: subtle border, surface background,
+   NoProjectSelected card: subtle border, surface background,
    uniform internal padding.
    ------------------------------------------------------------ */
 .evaluate-panel--terminal {

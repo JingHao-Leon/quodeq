@@ -38,4 +38,15 @@ describe('SinceStrip', () => {
     const { container } = render(<SinceStrip summary={null} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('takes the caller\'s label', () => {
+    render(<SinceStrip summary={summary()} label="since the previous run" />);
+    expect(screen.getByRole('region', { name: 'since the previous run' })).toHaveTextContent('4 new');
+  });
+
+  it('says why there is nothing to count without a summary', () => {
+    render(<SinceStrip summary={null} label="since the previous run" emptyNote="nothing to compare with" />);
+    expect(screen.getByRole('region', { name: 'since the previous run' })).toHaveTextContent('nothing to compare with');
+    expect(screen.queryByText('4 new')).not.toBeInTheDocument();
+  });
 });
