@@ -27,4 +27,16 @@ describe('historyRoute', () => {
     props.navigation.historySelectedRun = 'latest';
     expect(historyRoute({}, props).props.selection.selectedRunId).toBeNull();
   });
+
+  it('opens a run\'s dimension as of the run with History still lit (sourceTab)', () => {
+    const props = routeProps();
+    historyRoute({}, props).props.callbacks.onDimensionClick({ dimension: 'security', fromRunId: 'r2', fromDateLabel: 'Thu 8 Oct 08:23' });
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('explorer', expect.objectContaining({ dimension: 'security', runId: 'r2', sourceTab: 'history' }));
+  });
+
+  it('opens a run on the run page', () => {
+    const props = routeProps();
+    historyRoute({}, props).props.callbacks.onRunClick('r2', 'Thu 8 Oct 08:23');
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('history-run', { runId: 'r2', dateLabel: 'Thu 8 Oct 08:23' });
+  });
 });
