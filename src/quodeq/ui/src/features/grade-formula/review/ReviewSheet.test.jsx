@@ -56,4 +56,28 @@ describe('ReviewSheet', () => {
     mount({ mode: 'reset', target: SAVED, saved: TARGET });
     expect(screen.getByRole('dialog', { name: 'Reset to Q² defaults' })).toBeInTheDocument();
   });
+
+  it('keeps focus and the listener across a parent re-render with a new onCancel', () => {
+    previewGradeFormula.mockReturnValue(new Promise(() => {}));
+    const first = vi.fn();
+    const props = { mode: 'apply', target: TARGET, saved: SAVED, inputs: { projects: [] }, names: {}, busy: false, onConfirm: vi.fn() };
+    const { rerender } = render(<ReviewSheet {...props} onCancel={first} />);
+    const keep = screen.getByRole('button', { name: 'Keep editing' });
+    keep.focus();
+    const second = vi.fn();
+    rerender(<ReviewSheet {...props} onCancel={second} />);
+    expect(keep).toHaveFocus();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(first).not.toHaveBeenCalled();
+  });
+
+  it('stops listening for Escape once unmounted', () => {
+    previewGradeFormula.mockReturnValue(new Promise(() => {}));
+    const onCancel = vi.fn();
+    const { unmount } = render(<ReviewSheet mode="apply" target={TARGET} saved={SAVED} inputs={{ projects: [] }} names={{}} busy={false} onConfirm={vi.fn()} onCancel={onCancel} />);
+    unmount();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });

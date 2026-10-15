@@ -75,15 +75,17 @@ export default function ReviewSheet({ mode, target, saved, inputs, names, busy, 
     [inputs, saved, target],
   );
   const dialogRef = useRef(null);
+  const cancelRef = useRef(onCancel);
+  cancelRef.current = onCancel;
+  useEffect(() => { headingRef.current?.focus(); }, []);
   useEffect(() => {
-    headingRef.current?.focus();
     const onKey = (e) => {
-      if (e.key === KEY.ESCAPE) onCancel();
+      if (e.key === KEY.ESCAPE) cancelRef.current();
       else if (dialogRef.current) trapTab(dialogRef.current, e);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onCancel]);
+  }, []);
   const reset = mode === REVIEW_MODE.RESET;
   const runs = server.payload?.runsToRescore;
   const confirmLabel = runs == null
