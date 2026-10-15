@@ -89,3 +89,24 @@ export function standardOriginParts(info) {
     sources ? t('explorer.standardSource', { source: sources }) : null,
   ].filter(Boolean);
 }
+
+const DATE_DASH = /-/g;
+const ISO_DATE_LENGTH = 10;
+
+/** "2026-10-14" -> "2026.10.14", the version format custom standards use. */
+export function dottedDate(iso) {
+  return String(iso || '').slice(0, ISO_DATE_LENGTH).replace(DATE_DASH, '.');
+}
+
+/** The sub line under a standard's name: a built-in's source bodies, or a custom standard's own source. */
+export function standardSourceLine(standard) {
+  const sources = Array.isArray(standard?.sources) ? standard.sources : [];
+  if (sources.length > 0) return standardSourceNames(sources.join(','));
+  return String(standard?.source || '');
+}
+
+/** Hover text for a custom standard's version: when it was created and last changed. */
+export function standardVersionTitle(standard) {
+  if (!standard?.createdAt || !standard?.updatedAt) return null;
+  return t('standards.versionTitle', { created: dottedDate(standard.createdAt), updated: dottedDate(standard.updatedAt) });
+}

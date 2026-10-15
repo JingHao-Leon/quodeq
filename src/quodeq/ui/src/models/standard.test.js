@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, shouldSyncIdFromName, applyNameChange, standardSourceNames, standardOriginParts, STANDARD_TYPES } from './standard.js';
+import { slugify, shouldSyncIdFromName, applyNameChange, standardSourceNames, standardOriginParts, STANDARD_TYPES, standardSourceLine, standardVersionTitle, dottedDate } from './standard.js';
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -77,4 +77,21 @@ test('standardOriginParts: family and edition, version, sources, each left out w
   assert.deepEqual(standardOriginParts({ type: STANDARD_TYPES.QUODEQ, version: '', source: '' }), ['quodeq']);
   assert.deepEqual(standardOriginParts({ type: 'mystery' }), []);
   assert.deepEqual(standardOriginParts(null), []);
+});
+
+// ---------------------------------------------------------------------------
+// Standards table: source line and version hover
+// ---------------------------------------------------------------------------
+
+test('standardSourceLine names a built-in by its sources, a custom one by its source', () => {
+  assert.equal(standardSourceLine({ type: 'iso', sources: ['iso25010', 'cisq'], source: 'ISO/IEC 25010:2023' }), 'ISO 25010, CISQ');
+  assert.equal(standardSourceLine({ type: 'iso', sources: [], source: 'ISO/IEC 25010:2023' }), 'ISO/IEC 25010:2023');
+  assert.equal(standardSourceLine({ type: 'custom', source: 'Android Developers; Kotlin Documentation' }), 'Android Developers; Kotlin Documentation');
+  assert.equal(standardSourceLine({ type: 'custom' }), '');
+});
+
+test('standardVersionTitle shows created and updated for custom standards only', () => {
+  assert.equal(dottedDate('2026-10-14'), '2026.10.14');
+  assert.equal(standardVersionTitle({ createdAt: '2026-10-14', updatedAt: '2026-10-15' }), 'created 2026.10.14 · updated 2026.10.15');
+  assert.equal(standardVersionTitle({ version: '2023.11' }), null);
 });
