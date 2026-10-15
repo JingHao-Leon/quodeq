@@ -39,15 +39,21 @@ function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSha
       <GitHubAccessSection />
       <SharedRepoSection onDisconnected={onSharedDisconnected} />
     </>),
+    // Two explicit lines, so a missing Desktop section (not macOS) only
+    // narrows the first line instead of reshuffling the second.
     [SETTINGS_GROUP.APP]: (<>
-      <AppearanceSection themeMode={theme.mode} themeFamily={theme.family} onApplyMode={theme.onApplyMode} onApplyFamily={theme.onApplyFamily} />
-      <ToolbarSection />
-      <DesktopSection />
-      <OnboardingSection onShowWelcome={onShowWelcome} />
-      <details className="settings-diagnostics">
-        <summary>{t('settings.diagnostics')}</summary>
-        <ServerSection />
-      </details>
+      <div className="settings-group__line">
+        <AppearanceSection themeMode={theme.mode} themeFamily={theme.family} onApplyMode={theme.onApplyMode} onApplyFamily={theme.onApplyFamily} />
+        <ToolbarSection />
+        <DesktopSection />
+      </div>
+      <div className="settings-group__line">
+        <OnboardingSection onShowWelcome={onShowWelcome} />
+        <details className="settings-diagnostics">
+          <summary>{t('settings.diagnostics')}</summary>
+          <ServerSection />
+        </details>
+      </div>
     </>),
     [SETTINGS_GROUP.ABOUT]: (<>
       <UpdatesSection update={update} />

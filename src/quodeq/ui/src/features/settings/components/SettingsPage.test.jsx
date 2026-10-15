@@ -76,4 +76,13 @@ describe('SettingsPage', () => {
     renderPage(proxyOf({ ...OVERRIDES, getUpdateStatus: async () => { throw new Error('offline'); } }));
     expect(await screen.findByText('update check unavailable')).toBeInTheDocument();
   });
+
+  it('keeps the welcome and diagnostics on their own line when there is no desktop section', async () => {
+    renderPage();
+    const welcome = await screen.findByText(/show the welcome again/i);
+    const line = welcome.closest('.settings-group__line');
+    expect(line).not.toBeNull();
+    expect(within(line).getByText(/diagnostics/i)).toBeInTheDocument();
+    expect(within(line).queryByText('Toolbar')).toBeNull();
+  });
 });
