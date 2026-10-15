@@ -159,7 +159,6 @@ src/quodeq/ui/src/features/terminal/components/TerminalTabStrip.jsx:11
 src/quodeq/ui/src/features/terminal/hooks/useTerminalPaneStatus.js:7
 src/quodeq/ui/src/features/violations/components/useDismissedFindings.mutations.test.jsx:7
 src/quodeq/ui/src/features/violations/components/useDismissedFindings.reconcileAndSource.test.jsx:7
-src/quodeq/ui/src/hooks/evaluationLifecycleHelpers.js:8
 src/quodeq/ui/src/hooks/projectScoresDerived.js:3
 src/quodeq/ui/src/hooks/useAppState.evalCompletion.test.jsx:9
 src/quodeq/ui/src/hooks/useAppState.reconcile.test.jsx:10

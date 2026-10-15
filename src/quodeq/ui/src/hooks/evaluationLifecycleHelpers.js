@@ -4,8 +4,8 @@ const TIER_NAMES = ['fast', 'balanced', 'thorough'];
 const DEFAULT_ANALYSIS_POWER = 2;
 
 /**
- * useEvaluationLifecycle.js's storage-read/write and subagent-model-
- * resolution helpers. Extracted verbatim.
+ * useEvaluationLifecycle.js's storage-read and subagent-model-resolution
+ * helpers.
  */
 
 // Every storage read below degrades the same way when the store throws. A
@@ -37,14 +37,6 @@ export function readAnalysisPower(storage) {
     warnStorageUnavailable(e);
     return DEFAULT_ANALYSIS_POWER;
   }
-}
-
-/**
- * Persists the analysis power tier, swallowing storage failures — the setting
- * is a preference, not something worth failing a run over.
- */
-export function writeAnalysisPower(storage, level) {
-  try { storage.setItem(POWER_KEY, String(level)); } catch (e) { warnStorageUnavailable(e); }
 }
 
 /**
