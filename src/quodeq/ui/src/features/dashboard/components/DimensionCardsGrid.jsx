@@ -8,8 +8,8 @@ import { useBalancedColumns } from '../hooks/useBalancedColumns.js';
 // line, and the grid's gap (--space-3).
 const CARD_MIN_WIDTH = 180;
 // A compact card (ring beside its numbers) needs room for both.
-const COMPACT_MIN_WIDTH = 240;
-const GRID_GAP = 12;
+export const COMPACT_MIN_WIDTH = 240;
+export const GRID_GAP = 12;
 
 const NOT_LIT = Object.freeze({ name: null, setName: null });
 

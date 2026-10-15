@@ -1909,52 +1909,62 @@
 
 /* ── Overview loading skeleton ──────────────────────────
    Static dimmed blocks (no shimmer/animation -- house idiom, see
-   SidePane.css:186-201) standing in for the stat-strip and dimension-card
-   content areas while the Overview is loading. OverviewSkeleton.jsx rides
-   the real .term-stat / .dim-gauge-card classes for layout; only these bar
-   elements are skeleton-specific. */
+   SidePane.css) standing in for the Overview's content while it loads.
+   OverviewSkeleton.jsx rides the real .findings-head / .overview-since /
+   .dim-gauge-card--compact / .qd-top-grid / .explorer-bottom classes for
+   layout; only these blocks are skeleton-specific, each sized to the text
+   or graphic it stands in for so the panels keep the loaded footprint.
+   A flex column like .dashboard-page, so the panels' margins add up as
+   they do on the loaded page instead of collapsing. */
+.overview-skeleton { display: flex; flex-direction: column; }
 .overview-skeleton__bar {
   display: inline-block;
+  flex: none;
   border-radius: 4px;
   background: var(--color-surface-alt);
   opacity: 0.6;
 }
-.overview-skeleton__bar--label { width: 45%; height: 8px; }
-/* 31px matches the real .term-stat__value box (font-size 28px, line-height
-   1.1, terminal.css:119-124) so the stat card's footprint doesn't shrink. */
-.overview-skeleton__bar--value { width: 55%; height: 31px; }
-/* The score slot's last known grade: real text at the bar's dimness. */
-.overview-skeleton__last-known { opacity: 0.55; }
-.overview-skeleton__bar--hint { width: 70%; height: 8px; }
-.overview-skeleton__bar--name { width: 60%; height: 14px; }
-/* 100px matches DimensionGaugeCard's RING_SIZE (DimensionGaugeCard.jsx) so the
-   card's overall height footprint lines up with the real gauge, not just the
-   head/sev-row min-heights. */
-.overview-skeleton__bar--gauge { width: 100px; height: 100px; border-radius: 50%; }
-.overview-skeleton__bar--meta { width: 50%; height: 8px; }
-.overview-skeleton__bar--sev { width: 40%; height: 12px; }
-/* Dimension-score table row slots. The spans they sit in carry the real
-   flex sizing (dashboard.css .dim-score-*), so the bars only need to fill
-   the text's height: rows stay the real ~28px (6px padding + content). */
-.overview-skeleton__bar--dim-label { width: 70%; height: 10px; }
-.overview-skeleton__bar--spark { width: 100%; height: 14px; }
-.overview-skeleton__bar--dim-value { width: 100%; height: 12px; }
-.overview-skeleton__bar--dim-trend { width: 100%; height: 10px; }
-.overview-skeleton__bar--dim-viol { width: 60%; height: 10px; }
-/* Offending-files placeholder rows: full-width dense-table rows. 25px
-   matches the real GridTable dense row (content + padding + row border). */
-.overview-skeleton__file-row {
-  display: block;
-  width: 100%;
-  height: 25px;
-  margin-top: 4px;
+/* The header: the ring's place (76px, the header ring's size, with a
+   ring-thick border) and the grade word under it; the tiles' label, value
+   (the 23px value line) and sub line. */
+.overview-skeleton__ring {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  width: 76px; height: 76px; border-radius: 50%; border: 6px solid var(--color-surface-alt);
 }
+.overview-skeleton__ring-score { font-family: var(--font-mono); font-size: 20px; font-weight: var(--weight-semibold); color: var(--color-text); }
+/* The ring's last known score and grade: real text at the blocks' dimness. */
+.overview-skeleton__last-known { opacity: 0.55; }
+.overview-skeleton__bar--gradeword { width: 40px; height: 10px; }
+.overview-skeleton__bar--tile-label { width: 80px; height: 10px; }
+.overview-skeleton__bar--tile-value { width: 56px; height: 23px; }
+.overview-skeleton__bar--tile-sub { width: 112px; height: 10px; }
+/* The since strip: its label, the counts, the movers (a trend badge tall). */
+.overview-skeleton__bar--since-label { width: 140px; height: 10px; }
+.overview-skeleton__bar--since-num { width: 64px; height: 12px; }
+.overview-skeleton__bar--since-movers { width: 360px; max-width: 100%; height: 25px; }
+/* A compact dimension card: the name, the 56px ring, the grade word, the
+   severity pills and the pass rate beside it. */
+.overview-skeleton__bar--name { width: 60%; height: 14px; }
+/* the top line as tall as a trend badge, which most rows of cards carry */
+.overview-skeleton .dim-gauge-card__top { min-height: 25px; align-items: center; }
+.overview-skeleton__bar--mini-ring { width: 56px; height: 56px; border-radius: 50%; }
+.overview-skeleton__bar--card-grade { width: 56px; height: 10px; }
+.overview-skeleton__bar--card-pills { width: 110px; height: 18px; }
+.overview-skeleton__bar--card-pass { width: 64px; height: 11px; }
+/* The radial's disc, as tall as the drawn radial. */
+.overview-skeleton__bar--radial { width: 290px; max-width: 100%; aspect-ratio: 1; border-radius: 50%; }
+/* The list panels' rows (Fix first, the areas): the dense two-line row's
+   height, the panels' foot (the show-more, the link out), and the Where
+   switch above the areas. */
+.overview-skeleton__rows { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.overview-skeleton__bar--row { display: block; width: 100%; height: 43px; }
+.overview-skeleton__bar--foot { width: 160px; height: 14px; }
+.overview-skeleton__bar--where-switch { width: 173px; height: 30px; }
 
-/* The real .dim-gauge-card and .dim-score-row are cursor:pointer + hover
-   affordances (dim-gauge-card.css, dashboard.css) -- the placeholders are
-   not clickable, so neutralize both rather than let them look interactive. */
-.overview-skeleton .dim-gauge-card,
-.overview-skeleton .dim-score-row {
+/* The real .dim-gauge-card is cursor:pointer with hover affordances
+   (dim-gauge-card.css); the placeholders are not clickable, so neutralize
+   both rather than let them look interactive. */
+.overview-skeleton .dim-gauge-card {
   cursor: default;
   pointer-events: none;
 }
