@@ -6,6 +6,7 @@ import secrets
 import subprocess
 import sys
 import typing
+from pathlib import Path
 
 _logger = logging.getLogger(__name__)
 # Env var read by quodeq.api.security to gate the webview-only CSP
@@ -110,3 +111,17 @@ def spawn_window_with_token(
     )
     _send_token(window_proc)
     return window_proc
+
+
+def open_webview_log():
+    """Where the window's stderr goes: ``~/.quodeq/run/webview.log``, or DEVNULL if unwritable.
+
+    A log file, not DEVNULL, so a platform import failure or GTK error is
+    actually recoverable.
+    """
+    webview_log_path = Path.home() / ".quodeq" / "run" / "webview.log"
+    try:
+        webview_log_path.parent.mkdir(parents=True, exist_ok=True)
+        return webview_log_path.open("a", encoding="utf-8")
+    except OSError:
+        return subprocess.DEVNULL
