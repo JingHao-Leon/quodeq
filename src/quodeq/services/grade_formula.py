@@ -15,8 +15,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.core.scoring.params import ScoringParams
-from quodeq.core.scoring.projector_scoring import compute_run_score
-from quodeq.services.ports import GradeTablesReader
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
@@ -223,49 +221,3 @@ def _rescore_runs(
         if progress is not None:
             progress(done, total)
     return ApplyResult(rescored=rescored, failed=failed)
-
-
-def preview_scores(
-    reports_root: Path, project: str, params: ScoringParams,
-    *, store_factory: Callable[[Path], GradeTablesReader] | None = None,
-) -> dict | None:
-    """Recompute the project's latest event-log run in memory with *params*.
-
-    Read-only: never writes evaluation.db. Returns None when the project has
-    no run with an events.jsonl. The ``before`` numbers use the currently
-    SAVED params (what the dashboard shows today); the ``after`` numbers use
-    the candidate *params* being previewed. *store_factory* lets callers
-    inject a fake ``GradeTablesReader`` instead of a real SQLite file;
-    defaults to ``SQLiteStateStore``.
-    """
-    project_dir = reports_root / project
-    if not project_dir.is_dir():
-        return None
-    run_dirs = _event_log_runs(project_dir)
-    if not run_dirs:
-        return None
-    run_dir = run_dirs[0]
-
-    saved = load_params()
-    store = (store_factory or SQLiteStateStore)(run_dir)
-    before_dims = store.read_dimension_scores()
-    before_overall = compute_run_score(before_dims, params=saved)
-
-    _, after_dims = compute_run_grades(run_dir, params)
-    after_overall = compute_run_score(after_dims, params=params)
-
-    def _payload(dims: list[dict], overall: dict) -> dict:
-        return {
-            "overall": overall,
-            "dimensions": [
-                {"dimension": d["dimension"], "score": d["score"], "grade": d["grade"]}
-                for d in sorted(dims, key=lambda x: x["dimension"] or "")
-            ],
-        }
-
-    return {
-        "project": project,
-        "runId": run_dir.name,
-        "before": _payload(before_dims, before_overall),
-        "after": _payload(after_dims, after_overall),
-    }

@@ -154,38 +154,40 @@ def test_invalid_put_does_not_start_a_rescore(rescore_client, formula_path):
     assert rescorer.snapshot().generation == 0
 
 
-def test_preview_returns_404_when_no_runs(client, formula_path, monkeypatch):
-    monkeypatch.setattr(grade_formula, "preview_scores", lambda root, project, params: None)
-    resp = client.post(
-        "/api/grade-formula/preview",
-        json={"project": "nope", "params": params_to_dict(DEFAULT_PARAMS)},
-        headers=_ORIGIN,
-    )
-    assert resp.status_code == 404
+def test_preview_returns_every_project(client, formula_path, monkeypatch):
+    from quodeq.services import grade_formula_preview
 
-
-def test_preview_returns_before_after(client, formula_path, monkeypatch):
-    fake = {
-        "project": "p", "runId": "r1",
-        "before": {"overall": {"score": 7.4, "grade": "Good"}, "dimensions": []},
-        "after": {"overall": {"score": 6.8, "grade": "Adequate"}, "dimensions": []},
-    }
-    monkeypatch.setattr(grade_formula, "preview_scores", lambda root, project, params: fake)
+    fake = {"projects": [{
+        "id": "p",
+        "before": {"overall": {"score": 7.3, "grade": "Good"}, "dimensions": []},
+        "after": {"overall": {"score": 6.5, "grade": "Adequate"}, "dimensions": []},
+    }], "runsToRescore": 12}
+    seen = []
+    monkeypatch.setattr(grade_formula_preview, "preview_all", lambda root, params: seen.append(params) or fake)
     resp = client.post(
-        "/api/grade-formula/preview",
-        json={"project": "p", "params": params_to_dict(DEFAULT_PARAMS)},
-        headers=_ORIGIN,
+        "/api/grade-formula/preview", json={"params": params_to_dict(DEFAULT_PARAMS)}, headers=_ORIGIN,
     )
     assert resp.status_code == 200
     assert resp.get_json() == fake
+    assert params_to_dict(seen[0]) == params_to_dict(DEFAULT_PARAMS)
+
+
+def test_preview_with_no_projects_is_an_empty_list(client, formula_path, monkeypatch):
+    from quodeq.services import grade_formula_preview
+
+    monkeypatch.setattr(grade_formula_preview, "preview_all",
+                        lambda root, params: {"projects": [], "runsToRescore": 0})
+    resp = client.post(
+        "/api/grade-formula/preview", json={"params": params_to_dict(DEFAULT_PARAMS)}, headers=_ORIGIN,
+    )
+    assert resp.status_code == 200
+    assert resp.get_json() == {"projects": [], "runsToRescore": 0}
 
 
 def test_preview_rejects_invalid_params(client, formula_path):
     payload = params_to_dict(DEFAULT_PARAMS)
     payload["baseK"] = 99.0
-    resp = client.post(
-        "/api/grade-formula/preview", json={"project": "p", "params": payload}, headers=_ORIGIN,
-    )
+    resp = client.post("/api/grade-formula/preview", json={"params": payload}, headers=_ORIGIN)
     assert resp.status_code == 400
 
 
