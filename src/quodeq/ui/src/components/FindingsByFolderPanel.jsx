@@ -14,7 +14,7 @@ export const FOLDERS_SHOWN = 5;
 import { GridTable, GridRow, GridCell, SectionLabel } from './terminal/index.js';
 import { t, LOCALE } from '../strings/index.js';
 import { groupByFolder, splitFolderLabel } from '../models/findingsGrouping.js';
-import { SeverityAndFilesCells } from './SeverityBadges.jsx';
+import { SeverityAndFilesCells, PLACE_COLUMNS } from './SeverityBadges.jsx';
 
 /** The folder on top, bright; the folders above it below, small and quiet. */
 function FolderPath({ label }) {
@@ -39,11 +39,16 @@ export default function FindingsByFolderPanel({ dimensions, onFolderClick, onOpe
           {prefix ? t('overview.foldersNoteIn', { prefix }) : t('overview.foldersNote')}
         </span>
       </div>
-      <GridTable columns="minmax(0, 1fr) auto 48px" dense>
+      <GridTable columns={PLACE_COLUMNS} dense>
+        <GridRow header>
+          <GridCell>{t('overview.folderCol')}</GridCell>
+          <GridCell>{t('overview.sevCol')}</GridCell>
+          <GridCell align="right">{t('overview.filesCol')}</GridCell>
+        </GridRow>
         {rows.slice(0, FOLDERS_SHOWN).map((r) => (
           <GridRow key={r.dir} onClick={onFolderClick ? () => onFolderClick(r) : undefined}>
             <GridCell><div title={r.dir || '/'}><FolderPath label={r.label} /></div></GridCell>
-            <SeverityAndFilesCells sev={r.sev} fileCount={r.fileCount} />
+            <SeverityAndFilesCells sev={r.sev} fileCount={r.fileCount} bare />
           </GridRow>
         ))}
       </GridTable>
