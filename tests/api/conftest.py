@@ -157,3 +157,18 @@ def inline_clone_job(monkeypatch):
     """Run the add-project job on the calling thread against a fresh slot."""
     monkeypatch.setattr(project_clone_job, "_default_status", project_clone_job.CloneStatus())
     monkeypatch.setattr(project_clone_job, "spawn_daemon", lambda target: target())
+
+
+@pytest.fixture(autouse=True)
+def _no_real_keychain(monkeypatch):
+    """Route tests never see a key saved on the machine running them.
+
+    The oMLX routes fall back to the keychain when a request carries no key;
+    a developer's real saved key would otherwise change what they assert.
+    Stubbing the fallback itself (not the shared lookup) keeps the
+    provider-key routes, which patch keyring directly, untouched. Tests that
+    exercise the fallback import the real one.
+    """
+    from quodeq.api import llm_bridge_routes
+
+    monkeypatch.setattr(llm_bridge_routes, "_omlx_key", lambda given, _base_url: given)
