@@ -192,3 +192,24 @@ describe('StandardsTable row keyboard', () => {
     expect(actions.onToggleVisibility).not.toHaveBeenCalled();
   });
 });
+
+describe('StandardsTable columns', () => {
+  it('shows the source line, type and version columns', () => {
+    const grouped = {
+      iso: [{ id: 'security', name: 'Security', type: 'iso', subtype: '25010', sources: ['iso25010'], version: '2023.11', principleCount: 4, requirementCount: 38 }],
+      custom: [{ id: 'android', name: 'Android', type: 'custom', source: 'Android Developers', version: '2026.10.15', createdAt: '2026-10-14', updatedAt: '2026-10-15', principleCount: 9, requirementCount: 41 }],
+    };
+    render(<StandardsTable grouped={grouped} actions={actions} />);
+    expect(screen.getByText('ISO 25010')).toBeInTheDocument();
+    expect(screen.getByText('Android Developers')).toBeInTheDocument();
+    expect(screen.getByText('2023.11')).toBeInTheDocument();
+    expect(screen.getByText('2026.10.15')).toHaveAttribute('title', 'created 2026.10.14 · updated 2026.10.15');
+    expect(screen.getByText(t('standards.colVersion'))).toBeInTheDocument();
+  });
+
+  it('renders no empty sub-line when a standard has no source', () => {
+    const grouped = { custom: [{ id: 'x', name: 'X', type: 'custom', principleCount: 0, requirementCount: 0 }] };
+    const { container } = render(<StandardsTable grouped={grouped} actions={actions} />);
+    expect(container.querySelector('.standards-row-subtitle')).toBeNull();
+  });
+});

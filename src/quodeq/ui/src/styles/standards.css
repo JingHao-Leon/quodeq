@@ -1299,7 +1299,7 @@
 .standards-table-head,
 .standards-row {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 100px 90px 110px 80px 124px;
+  grid-template-columns: minmax(0, 2fr) 100px 80px 96px 104px 64px 124px;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -1342,6 +1342,13 @@
 .standards-cell { min-width: 0; }
 .standards-cell--num { font-variant-numeric: tabular-nums; text-align: center; }
 .standards-cell--enabled { display: flex; justify-content: flex-start; }
+.standards-cell--version {
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .standards-cell--actions { display: flex; justify-content: flex-end; gap: 4px; }
 
 .standards-cell--name {
@@ -1453,10 +1460,10 @@
 @media (max-width: 900px) {
   .standards-table-head,
   .standards-row {
-    grid-template-columns: minmax(0, 1.6fr) 80px 70px 110px;
+    grid-template-columns: minmax(0, 1.6fr) 80px 70px 96px 64px;
     gap: var(--space-2);
   }
-  .standards-cell--num:first-of-type,
+  .standards-cell--principles,
   .standards-cell--actions { display: none; }
 }
 

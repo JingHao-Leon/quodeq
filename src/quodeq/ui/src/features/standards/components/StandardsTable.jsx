@@ -8,6 +8,7 @@ import { t } from '../../../strings/index.js';
 import { onActivateKeys } from '../../../utils/activateKeys.js';
 import { pluralKey } from '../../../utils/plural.js';
 import StandardsModal from './StandardsModal.jsx';
+import { standardSourceLine, standardVersionTitle } from '../../../models/standard.js';
 
 // The row-action glyph box, a step down from the sidebar rail's icons.
 const ROW_ICON_SIZE = 14;
@@ -110,6 +111,7 @@ function StandardRowMain({
   standard, isVisible, onToggleVisibility, baseLabel, customizedCounts, principleCount, requirementCount,
   isDeletable, onEdit, openDuplicate, handleDownload, openDelete,
 }) {
+  const sourceLine = standardSourceLine(standard);
   return (
     <div
       className={`standards-row${isVisible ? '' : ' standards-row--disabled'}`}
@@ -120,8 +122,8 @@ function StandardRowMain({
       onKeyDown={onActivateKeys(() => onToggleVisibility(standard.id))}
     >
       <div className="standards-cell standards-cell--name">
-        <span className="standards-row-name">{standard.name}</span>
-        {standard.description && <span className="standards-row-subtitle">{standard.description}</span>}
+        <span className="standards-row-name" title={standard.description || undefined}>{standard.name}</span>
+        {sourceLine && <span className="standards-row-subtitle">{sourceLine}</span>}
       </div>
       <div className="standards-cell standards-cell--base">
         <span className={`standards-base-pill standards-base-pill--${standard.type || 'unknown'}`}>{baseLabel}</span>
@@ -131,8 +133,9 @@ function StandardRowMain({
           </span>
         )}
       </div>
-      <div className="standards-cell standards-cell--num">{principleCount}</div>
+      <div className="standards-cell standards-cell--num standards-cell--principles">{principleCount}</div>
       <div className="standards-cell standards-cell--num">{requirementCount}</div>
+      <div className="standards-cell standards-cell--version" title={standardVersionTitle(standard) || undefined}>{standard.version || ''}</div>
       <div className="standards-cell standards-cell--enabled">
         <StarToggle isVisible={isVisible} standardId={standard.id} onToggleVisibility={onToggleVisibility} />
       </div>
@@ -215,8 +218,9 @@ export default function StandardsTable({ grouped, actions, customizedCounts }) {
       <div className="standards-table-head" role="row">
         <div className="standards-cell standards-cell--name">{t('standards.colName')}</div>
         <div className="standards-cell standards-cell--base">{t('standards.colBase')}</div>
-        <div className="standards-cell standards-cell--num">{t('standards.colPrinciples')}</div>
+        <div className="standards-cell standards-cell--num standards-cell--principles">{t('standards.colPrinciples')}</div>
         <div className="standards-cell standards-cell--num">{t('standards.colRequirements')}</div>
+        <div className="standards-cell standards-cell--version">{t('standards.colVersion')}</div>
         <div className="standards-cell standards-cell--enabled">{t('standards.colEnabled')}</div>
         <div className="standards-cell standards-cell--actions" />
       </div>

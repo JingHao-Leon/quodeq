@@ -120,9 +120,9 @@ from quodeq.data.sqlite.connection import evaluation_db_stamp  # noqa: F401
 
 # Custom-standard file mechanics (see StandardsStore in services/ports.py).
 from quodeq.data.fs.standards_store import (  # noqa: F401
-    compiled_exists,
-    ensure_evaluators_dir,
+    compiled_exists, ensure_evaluators_dir,
     read_standard_payload,
+    standard_modified_date,
     remove_standard,
     resolve_jailed_standard_path,
     standard_exists,
