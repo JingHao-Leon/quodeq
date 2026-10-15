@@ -66,6 +66,12 @@ function SevPills({ sev }) {
   return <SeverityBadges sev={sev} className="dim-gauge-card__pills" />;
 }
 
+/** The ids that describe the card: the score summary (none when insufficient) and a compact card's footer. */
+function describedByIds({ isInsufficient, summaryId, compact, footer, footerId }) {
+  const ids = [isInsufficient ? null : summaryId, compact && footer ? footerId : null].filter(Boolean);
+  return ids.length ? ids.join(' ') : undefined;
+}
+
 /** The compact card's pass rate line; nothing without checks. */
 function PassLine({ passPct }) {
   if (passPct == null) return null;
@@ -78,7 +84,7 @@ function PassLine({ passPct }) {
  * only, and beside it the grade word at text size in the ring's colour, the
  * severities as the app's pills, and the pass rate (or the caller's footer in its place).
  */
-function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient, footer }) {
+function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsufficient, footer, footerId }) {
   return (
     <>
       <div className="dim-gauge-card__top">
@@ -94,7 +100,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, summaryId, isInsuffi
             {isInsufficient ? t('overview.insufficientGrade') : ring.gradeWord}
           </span>
           <SevPills sev={sev} />
-          {footer ?? <PassLine passPct={passPct} />}
+          {footer ? <div id={footerId}>{footer}</div> : <PassLine passPct={passPct} />}
         </div>
       </div>
       {!isInsufficient && <span id={summaryId} className="sr-only">{t('overview.gaugeSummaryAria', { score: ring.scoreDisplay, grade: ring.gradeWord })}</span>}
@@ -158,7 +164,6 @@ function DimensionScoreBody({ scoreDisplay, gradeWord, ringColor, dashOffset, vi
  * @param {boolean}  [props.evaluatedToday=true] - accumulated overview only: mutes the frame when false
  * @param {string}   [props.dateLabel]         - forwarded to children for run overview
  * @param {string}   [props.selectedRunId]     - forwarded to click handler for run overview
- * @param {import('react').ReactNode} [props.footer] - compact only: shown in place of the pass rate
  */
 function computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunId }) {
   const violationCount = item.totals?.violationCount ?? 0;
@@ -186,6 +191,8 @@ function computeGaugeCardDerived({ item, evaluatedToday, dateLabel, selectedRunI
  * @param {boolean}  [props.compact=false] - the row form: ring left, name and one quiet line beside it
  * @param {boolean}  [props.highlighted=false] - lit from elsewhere on the page (its radial point)
  * @param {(on: boolean) => void} [props.onHover] - told when the pointer or keyboard focus enters and leaves
+ * @param {import('react').ReactNode} [props.footer] - compact only: shown in place of the pass rate, and read
+ *   out with the score summary (the card is a button, so its content is otherwise not read)
  * See computeGaugeCardDerived above for the remaining props.
  */
 export default function DimensionGaugeCard({
@@ -212,6 +219,7 @@ export default function DimensionGaugeCard({
   // tech at all. No description when insufficient:
   // InsufficientGauge's own caption isn't aria-hidden, so it's already exposed.
   const summaryId = useId();
+  const footerId = useId();
 
   return (
     <article
@@ -222,11 +230,11 @@ export default function DimensionGaugeCard({
       onClick={activate}
       onKeyDown={activateOnKey(activate)}
       aria-label={t('overview.dimensionDetailsAria', { name: item.dimension })}
-      aria-describedby={isInsufficient ? undefined : summaryId}
+      aria-describedby={describedByIds({ isInsufficient, summaryId, compact, footer, footerId })}
     >
       {compact ? (
         <CompactCardBody name={item.dimension} delta={delta} sev={sev} passPct={passPctOf(item)} summaryId={summaryId} isInsufficient={isInsufficient}
-          ring={{ scoreDisplay, gradeWord, ringColor, dashOffset }} footer={footer} />
+          ring={{ scoreDisplay, gradeWord, ringColor, dashOffset }} footer={footer} footerId={footerId} />
       ) : (
         <FullCardBody item={item} delta={delta} derived={derived} summaryId={summaryId} isInsufficient={isInsufficient} thinEvidence={thinEvidence} />
       )}

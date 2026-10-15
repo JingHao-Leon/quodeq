@@ -35,6 +35,7 @@ describe('RunDimensions', () => {
     const lines = [...cardOf('security').querySelectorAll('.rl-card-move')].map((n) => n.textContent);
     expect(lines).toEqual(['+4 new1 crit · 2 maj', '−2 fixed1 maj']);
     expect(cardOf('security').querySelector('.dim-gauge-card__pass')).toBeNull();
+    expect(cardOf('security')).toHaveAccessibleDescription(/\+4 new.*−2 fixed/);
   });
 
   it('zero counts read muted', () => {
