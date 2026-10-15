@@ -18,7 +18,10 @@ Per run, and only what scoring reads (Victor, 2026-10-15):
 
 Cost per request: one ``stat`` per standard file (the content is read only
 when a file changes, memoized by size and mtime) and two ``stat`` calls per
-run folder (its listing is memoized by the two folders' mtimes). The
+run folder (its listing is memoized by the two folders' mtimes). File
+mechanics live in ``data/fs/standards_scan`` and ``data/fs/run_dirs``; this
+module keeps the policy and the memos, which are keyed by stamps so they
+never serve a stale answer. The
 project's overrides are one small JSON read, hashed by content, so a
 visibility toggle (which shares that file) never changes a fingerprint.
 """
@@ -27,16 +30,19 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 from quodeq.services.evidence_rescore import standard_dirs
-from quodeq.services.wiring import load_project_standards, run_dimension_ids, settings_reports_root
-from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX
+from quodeq.services.wiring import (
+    file_stamp, load_project_standards, project_run_dirs, run_dimension_ids, run_listing_stamp,
+    scoring_content_hash, settings_reports_root, standard_files,
+)
 from quodeq.shared.utils import TEXT_ENCODING
 
 _UNSET = object()
-_EVALUATION_DIRNAME = "evaluation"
 # Top-level fields no rescore reads: a change to them must not rebuild scores.
 _DESCRIPTIVE_KEYS = frozenset({
     "name", "description", "source", "sources", "version", "type", "subtype",
@@ -55,61 +61,39 @@ def _remember(memo: dict, key: object, value: object) -> None:
         memo[key] = value
 
 
-def _mtime_ns(path: Path) -> int:
-    try:
-        return path.stat().st_mtime_ns
-    except OSError:
-        return 0
-
-
 def _content_hash(path: Path) -> str | None:
-    """Hash of what a rescore reads from one standard file; None when it is unreadable."""
-    try:
-        stat = path.stat()
-    except OSError:
+    """What a rescore reads from one standard file, memoized by size and mtime."""
+    stamp = file_stamp(path)
+    if stamp is None:
         return None
-    key = (str(path), stat.st_size, stat.st_mtime_ns)
+    key = (str(path), *stamp)
     with _LOCK:
         hit = _CONTENT_MEMO.get(key)
     if hit is not None:
         return hit
-    try:
-        raw = path.read_bytes()
-    except OSError:
-        return None
-    try:
-        data = json.loads(raw)
-    except (ValueError, RecursionError):
-        data = None
-    if isinstance(data, dict):
-        scoring = {k: v for k, v in data.items() if k not in _DESCRIPTIVE_KEYS}
-        digest = hashlib.sha256(json.dumps(scoring, sort_keys=True).encode(TEXT_ENCODING)).hexdigest()
-    else:
-        digest = hashlib.sha256(raw).hexdigest()
-    _remember(_CONTENT_MEMO, key, digest)
+    digest = scoring_content_hash(path, _DESCRIPTIVE_KEYS)
+    if digest is not None:
+        _remember(_CONTENT_MEMO, key, digest)
     return digest
 
 
-def standards_catalog(compiled_dir: object = _UNSET) -> dict[str, str]:
+def standards_catalog(compiled_dir: object = _UNSET) -> Mapping[str, str]:
     """``{dimension id: content hash}`` over the compiled and custom standards."""
     default_compiled, evaluators_dir = standard_dirs()
     if compiled_dir is _UNSET:
         compiled_dir = default_compiled
     catalog: dict[str, str] = {}
-    for directory in (compiled_dir, evaluators_dir):
-        if not isinstance(directory, Path) or not directory.is_dir():
-            continue
-        for path in sorted(directory.glob(f"*{JSON_SUFFIX}")):
-            digest = _content_hash(path)
-            if digest is not None:
-                sid = path.stem.lower()
-                catalog[sid] = catalog[sid] + digest if sid in catalog else digest
-    return catalog
+    for path in standard_files((compiled_dir, evaluators_dir)):
+        digest = _content_hash(path)
+        if digest is not None:
+            sid = path.stem.lower()
+            catalog[sid] = catalog.get(sid, "") + digest
+    return MappingProxyType(catalog)
 
 
 def run_dimensions(run_dir: Path) -> frozenset[str]:
     """``run_dimension_ids`` for *run_dir*, re-listed only when one of its two folders changed."""
-    stamp = (_mtime_ns(run_dir / _EVALUATION_DIRNAME), _mtime_ns(run_dir / EVIDENCE_DIRNAME))
+    stamp = run_listing_stamp(run_dir)
     with _LOCK:
         hit = _LISTING_MEMO.get(str(run_dir))
     if hit is not None and hit[0] == stamp:
@@ -127,11 +111,7 @@ def scored_dimensions(project_dir: Path) -> frozenset[str]:
     before the routed-to dimension wrote its own file, edits to that standard
     go unnoticed for this run. Routing only targets the run's own dimensions.
     """
-    try:
-        runs = [e for e in project_dir.iterdir() if e.is_dir() and not e.name.startswith(".")]
-    except OSError:
-        return frozenset()
-    return frozenset().union(*(run_dimensions(run) for run in runs))
+    return frozenset().union(*(run_dimensions(run) for run in project_run_dirs(project_dir)))
 
 
 @dataclass(frozen=True)
@@ -139,14 +119,15 @@ class StandardsSnapshot:
     """One request's view of the standards and a project's overrides."""
 
     project_dir: Path
-    catalog: dict[str, str]
-    overrides: dict | None
+    catalog: Mapping[str, str]
+    overrides: str
 
     @classmethod
     def load(cls, project_dir: Path, *, compiled_dir: object = _UNSET) -> "StandardsSnapshot":
         """Stat the standards once and read the project's overrides."""
         settings = load_project_standards(settings_reports_root(), project_dir.name)
-        return cls(project_dir, standards_catalog(compiled_dir), dict(settings.overrides) or None)
+        overrides = json.dumps(dict(settings.overrides) or None, sort_keys=True)
+        return cls(project_dir, standards_catalog(compiled_dir), overrides)
 
     def _hash(self, dims: frozenset[str]) -> str:
         standards = {dim: self.catalog.get(dim) for dim in sorted(dims)}
