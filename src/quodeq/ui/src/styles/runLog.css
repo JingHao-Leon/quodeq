@@ -57,9 +57,14 @@
 .rl-strip__page--older { left: 6px; }
 .rl-strip__page--newer { right: 6px; }
 
+/* The page fills the scroller's height (as the Map does), so the split takes whatever the toolbar and the strip
+   leave, down to the scroller's bottom padding, and never less than 460px; past that the page scrolls. */
+.dashboard > .tab-fade:has(> .history-page) { flex: 1 0 auto; display: flex; flex-direction: column; }
+.history-page { flex: 1 0 auto; }
+
 /* split: list and run side by side, same height */
-.rl-split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: var(--term-space-2); align-items: stretch;
-  height: max(460px, calc(100vh - 310px)); }
+.rl-split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; grid-template-rows: minmax(0, 1fr); gap: var(--term-space-2);
+  align-items: stretch; flex: 1 1 0; min-height: 460px; }
 
 /* run list column headings, on the same grid as the row's last three cells */
 .rl-listpanel > .qd-cards-panel__head { padding-right: 14px; }
@@ -150,14 +155,14 @@
 
 /* loading skeleton: the strip, then the list beside the run panel. House
    idiom: static dimmed blocks, no shimmer. */
-.history-skeleton { display: flex; flex-direction: column; gap: var(--term-space-2); }
+.history-skeleton { flex: 1 0 auto; display: flex; flex-direction: column; gap: var(--term-space-2); }
 .history-skeleton__block, .history-skeleton__row { display: block; border-radius: 4px; background: var(--color-surface-alt); opacity: .6; }
 .history-skeleton__strip { height: 118px; }
-.history-skeleton__split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: var(--term-space-2); height: max(460px, calc(100vh - 310px)); }
+.history-skeleton__split { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: var(--term-space-2); flex: 1 1 0; min-height: 460px; }
 .history-skeleton__list { display: flex; flex-direction: column; gap: 4px; }
 .history-skeleton__row { height: 28px; }
 @media (max-width: 900px) {
-  .history-skeleton__split { grid-template-columns: 1fr; height: auto; }
+  .history-skeleton__split { grid-template-columns: 1fr; flex: none; min-height: 0; }
   .history-skeleton__panel { height: 360px; }
 }
 
