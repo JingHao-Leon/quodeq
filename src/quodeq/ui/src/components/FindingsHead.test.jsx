@@ -121,7 +121,8 @@ describe('FindingsHead', () => {
   it('a past run says which, and offers the way back to the latest', () => {
     const onBack = vi.fn();
     head({ pastRun: { when: 'Oct 1', onBack } });
-    expect(screen.getByText(t('violations.headPast', { when: 'Oct 1' }))).toBeInTheDocument();
+    expect(screen.getByText(t('violations.headPastLabel'))).toBeInTheDocument();
+    expect(screen.getByText('Oct 1')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
     expect(onBack).toHaveBeenCalled();
   });

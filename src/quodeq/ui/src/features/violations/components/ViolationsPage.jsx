@@ -12,6 +12,7 @@ import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import FindingsWorkbench from '../workbench/FindingsWorkbench.jsx';
 import { sevAbbr } from '../workbench/sevWords.js';
 import { formatShortDate } from '../../../utils/formatters.js';
+import { formatRunWhen } from '../../../utils/dateFormatting.js';
 import { useShownData } from '../hooks/useShownData.js';
 import ScopedFindings from '../scope/ScopedFindings.jsx';
 
@@ -71,9 +72,17 @@ function mapOpener(onNavigate) {
   return onNavigate ? (params) => onNavigate(NAV_TAB.MAP, params) : undefined;
 }
 
-/** A past day on show, as a scoped view's header says it: which day, and the way back to today; null on today. */
-function pastRunOf(asOf, onBackToToday) {
-  return asOf && onBackToToday ? { when: asOf.day || asOf.runId, onBack: onBackToToday } : null;
+/**
+ * A past run on show, as a scoped view's header says it: when it ran, as a
+ * person reads it ("Tue 13 Oct · 04:55", from the score history; its day
+ * when the history does not hold it, never the run's id), and the way back
+ * to today; null on today.
+ */
+function pastRunOf(asOf, onBackToToday, trend) {
+  if (!asOf || !onBackToToday) return null;
+  const run = (trend || []).find((e) => e.runId === asOf.runId);
+  const day = asOf.day ? formatShortDate(dayDate(asOf.day).toISOString()) : '';
+  return { when: formatRunWhen(run?.dateISO, day), onBack: onBackToToday };
 }
 
 /** The dismissed count the header shows: none on a past day, nor while the dismissed list first loads. */
@@ -119,7 +128,7 @@ export default function ViolationsPage({ data: given, callbacks, workbench = nul
     return (
       <PageFrame {...frame} asOf={null}>
         <ScopedFindings scope={scope} dims={visibleDimensions} projectName={projectName} dateLabel={asOf?.day || null} readOnly={Boolean(asOf)}
-          history={{ project: selectedProject, selectedSource, trend, granularity, runId: asOf?.runId || null, pastRun: pastRunOf(asOf, callbacks.onBackToToday) }}
+          history={{ project: selectedProject, selectedSource, trend, granularity, runId: asOf?.runId || null, pastRun: pastRunOf(asOf, callbacks.onBackToToday, trend) }}
           onDismissFinding={actions.onDismiss} onOpenMap={mapOpener(onNavigate)} />
       </PageFrame>
     );

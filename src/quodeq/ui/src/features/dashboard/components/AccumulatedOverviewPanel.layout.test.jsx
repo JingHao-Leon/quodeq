@@ -1,3 +1,4 @@
+import { formatRunWhen } from '../../../utils/dateFormatting.js';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -60,6 +61,6 @@ describe('AccumulatedOverviewPanel layout', () => {
 
   it('hands the header the past-run note when an older run is picked', () => {
     renderPanel({ selectedRunId: 'r1' });
-    expect(screen.getByText('past 2026-10-13')).toBeInTheDocument();
+    expect(screen.getByText(`past ${formatRunWhen('2026-10-13T10:00:00')}`)).toBeInTheDocument();
   });
 });

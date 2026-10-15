@@ -173,7 +173,7 @@ function useOverviewView({ data, filteredStats, filteredDimensions, filteredPeri
   const period = { project: data.selectedProject, source: data.selectedSource, periodTrend: filteredPeriodTrend, runOnShow: currentOverviewRun };
   const previous = usePreviousPeriodMetrics({ ...period, visibleNames });
   const since = useOverviewSince({ ...period, dimensions: filteredDimensions });
-  const pastRun = overviewPastRun(asOf, data.availableRuns, onRunClick);
+  const pastRun = overviewPastRun(asOf, data.availableRuns, onRunClick, data.trend || filteredPeriodTrend);
   return { lit, sorted, previous, since, pastRun };
 }
 
