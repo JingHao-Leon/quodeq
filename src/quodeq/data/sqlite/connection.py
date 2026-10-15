@@ -2,7 +2,11 @@
 
 Sets WAL mode, foreign keys, and a busy-timeout that tolerates concurrent
 sibling MCP server processes (mirrors the behavior of the existing JSONL
-write path which relies on POSIX flock).
+write path which relies on POSIX flock). A process that may only read the
+run directory (the assistant's MCP server inside the Codex OS sandbox, a
+read-only mount) gets a read-only connection to an existing database, and
+the boundary's unreadable-store error when there is none, so readers fall
+back to the JSON reports instead of crashing.
 """
 from __future__ import annotations
 
@@ -12,9 +16,11 @@ from pathlib import Path
 from typing import Iterator
 
 from quodeq.data.sqlite._db_stamp_memo import db_stamp
-from quodeq.data.sqlite._migrations import apply_evaluation_schema
+from quodeq.data.sqlite._migrations import SchemaVersionError, apply_evaluation_schema
+from quodeq.data.sqlite._schema import SCHEMA_VERSION
 from quodeq.data.sqlite.constants import SQLITE_BUSY_TIMEOUT_MS
 from quodeq.data.sqlite.errors import SqliteStoreUnreadableError, as_store_error
+from quodeq.data.sqlite.read_only import connect_read_only, unwritable
 from quodeq.shared import request_metrics
 
 EVALUATION_DB_FILENAME = "evaluation.db"
@@ -32,6 +38,50 @@ def _configure(conn: sqlite3.Connection) -> None:
     conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
 
 
+def _connect_read_only(path: Path) -> sqlite3.Connection:
+    """The read-only fallback for an existing database, checked against the
+    schema this binary knows; the boundary error when there is no database."""
+    try:
+        conn = connect_read_only(path)
+    except FileNotFoundError:
+        raise SqliteStoreUnreadableError(
+            f"no evaluation database at {path} and its directory is not writable") from None
+    try:
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
+        if version > SCHEMA_VERSION:
+            raise SchemaVersionError(
+                f"evaluation.db has schema version {version}, this binary supports {SCHEMA_VERSION}")
+    except (sqlite3.DatabaseError, SchemaVersionError):
+        conn.close()
+        raise
+    return conn
+
+
+def _connect(path: Path) -> sqlite3.Connection:
+    """The regular read-write connection, or the read-only fallback when
+    this process cannot write where the database lives. A connection that
+    fails its setup is closed before the error leaves."""
+    try:
+        conn = sqlite3.connect(path)
+    except sqlite3.OperationalError as exc:
+        if not unwritable(exc):
+            raise
+        return _connect_read_only(path)
+    try:
+        _configure(conn)
+        apply_evaluation_schema(conn)
+        conn.commit()
+    except sqlite3.OperationalError as exc:
+        conn.close()
+        if not unwritable(exc):
+            raise
+        return _connect_read_only(path)
+    except Exception:
+        conn.close()
+        raise
+    return conn
+
+
 @contextmanager
 def open_evaluation_db(run_dir: Path) -> Iterator[sqlite3.Connection]:
     """Open (creating if needed) the run's evaluation.db with the schema applied.
@@ -41,16 +91,17 @@ def open_evaluation_db(run_dir: Path) -> Iterator[sqlite3.Connection]:
     mismatches and corruption surface as ``StoreUnreadableError`` (still a
     ``sqlite3.DatabaseError``) so readers can fall back to the filesystem.
     """
-    run_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        run_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        if not run_dir.is_dir():
+            raise
     path = run_dir / EVALUATION_DB_FILENAME
     conn: sqlite3.Connection | None = None
     try:
         try:
             request_metrics.count("db_opens")
-            conn = sqlite3.connect(path)
-            _configure(conn)
-            apply_evaluation_schema(conn)
-            conn.commit()
+            conn = _connect(path)
         except sqlite3.OperationalError as exc:
             # Connect/IO-level failures (locked or missing file, disk I/O error):
             # give callers a clear, run-scoped message instead of a bare sqlite3

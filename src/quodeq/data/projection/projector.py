@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.data.projection.engine import ProjectionEngine
+from quodeq.data.sqlite.read_only import is_read_only
 from quodeq.data.sqlite.state_store import SQLiteStateStore
 
 
@@ -264,17 +265,22 @@ class Projector:
             raise FileNotFoundError(f"Event log not found: {events_path}")
 
         with self._locks.acquire(run_dir):
-            if project_dir is not None:
-                from quodeq.data.migrations.dismissed_json_to_actions_log import (  # noqa: PLC0415
-                    migrate_if_needed,
-                )
-                migrate_if_needed(project_dir)
             store = self._store_factory(run_dir)
 
             # One connection for every run_meta read the check makes; each read
             # used to open and configure its own.
             held = store.connection() if hasattr(store, "connection") else nullcontext()
-            with held:
+            with held as conn:
+                # A store this process may only read (the assistant's MCP server
+                # inside the Codex sandbox): serve what the dashboard projected,
+                # never migrate or project here.
+                if conn is not None and is_read_only(conn):
+                    return ProjectionResult(events_projected=0, rebuilt=False)
+                if project_dir is not None:
+                    from quodeq.data.migrations.dismissed_json_to_actions_log import (  # noqa: PLC0415
+                        migrate_if_needed,
+                    )
+                    migrate_if_needed(project_dir)
                 staleness = self._detect_staleness(store, events_path, project_dir)
 
             if not (staleness.events_changed or staleness.actions_changed

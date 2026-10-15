@@ -33,6 +33,7 @@ from quodeq.data.sqlite.run_index import (
     write_run_dates,
 )
 from quodeq.shared.env import get_index_db_path
+from quodeq.data.sqlite.read_only import is_read_only
 
 _logger = logging.getLogger(__name__)
 
@@ -52,7 +53,8 @@ def remembered_run_dates(reports_root: Path, project: str) -> dict[str, tuple[st
     try:
         db = open_index(Path(get_index_db_path()))
         try:
-            sync_project_dates(db, Path(reports_root) / project, project)
+            if not is_read_only(db):
+                sync_project_dates(db, Path(reports_root) / project, project)
             rows = list_runs_for_project(db, project, limit=None)
             remembered = read_run_dates(db, project)
         finally:
@@ -78,7 +80,8 @@ def remember_run_dates(project: str, dates: dict[str, tuple[str | None, str]]) -
     try:
         db = open_index(Path(get_index_db_path()))
         try:
-            write_run_dates(db, project, dates)
+            if not is_read_only(db):
+                write_run_dates(db, project, dates)
         finally:
             db.close()
     except (sqlite3.Error, OSError):

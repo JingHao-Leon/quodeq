@@ -11,6 +11,7 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
+from quodeq.data.sqlite.read_only import connect_read_only, unwritable
 
 _logger = logging.getLogger(__name__)
 
@@ -259,10 +260,12 @@ def _open_or_rebuild(db_path: Path) -> sqlite3.Connection:
     """``open_index``'s body, run under that path's ``_open_lock``."""
     try:
         db = _connect_retrying(db_path)
-    except sqlite3.OperationalError:
-        # Lock contention or an I/O hiccup, NOT a bad file. Deleting a healthy
-        # database that another connection still holds open is what crashed the
-        # process with SIGBUS, so surface this and let the caller retry.
+    except sqlite3.OperationalError as exc:
+        # Contention or an I/O hiccup, not a bad file: never delete a healthy
+        # database another connection holds (that SIGBUSed). A file this process
+        # may not write to is served read-only; its callers skip their writes.
+        if db_path.is_file() and unwritable(exc):
+            return connect_read_only(db_path)
         raise
     except sqlite3.DatabaseError as exc:
         # Genuinely unusable bytes ("file is not a database", "database disk

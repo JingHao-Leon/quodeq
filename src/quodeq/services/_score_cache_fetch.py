@@ -26,6 +26,17 @@ from quodeq.services.wiring import (
 from quodeq.shared.env import score_cache_disabled
 
 
+def _writable(conn) -> bool:
+    """False for a connection the store opened read-only (``PRAGMA query_only``,
+    see ``data.sqlite.read_only``), so the best-effort write is skipped rather
+    than attempted and logged. Anything that is not such a connection is
+    treated as writable; the write's own guard still catches its failure."""
+    try:
+        return not conn.execute("PRAGMA query_only").fetchone()[0]
+    except (AttributeError, sqlite3.Error):
+        return True
+
+
 def _log_write_failure(operation: str, exc: sqlite3.Error, *, log: LogSink) -> None:
     """Log a best-effort cache write failure before degrading to recompute.
 
@@ -108,7 +119,8 @@ def read_through(
             return result
         try:
             with open_score_cache() as conn:
-                table.write(conn, project, version, result)
+                if _writable(conn):
+                    table.write(conn, project, version, result)
         except sqlite3.Error as exc:
             _log_write_failure(table.write_name, exc, log=log)
         return result
