@@ -41,8 +41,8 @@ from quodeq.data.fs.project_standards import (  # noqa: F401 - re-exported API
     write_project_standards,
 )
 from quodeq.data.fs.project_standards import (
-    _legacy_repo_overrides,
-    _legacy_repo_visibility,
+    legacy_repo_overrides,
+    legacy_repo_visibility,
 )
 
 _logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ _logger = logging.getLogger(__name__)
 
 def load_visible_standard_ids(project_root: str | Path | None) -> tuple[str, ...]:
     """Visible standard ids for a project; defaults when absent or malformed."""
-    ids = _legacy_repo_visibility(project_root)
+    ids = legacy_repo_visibility(project_root)
     return DEFAULT_VISIBLE_STANDARDS if ids is None else ids
 
 
@@ -78,7 +78,7 @@ def save_visible_standard_ids(project_root: str | Path, ids: list[str]) -> None:
 
 def load_project_overrides(project_root: str | Path | None) -> dict[str, dict]:
     """Load ``{req_id: {param: value}}``; ``{}`` when absent or malformed."""
-    return _legacy_repo_overrides(project_root)
+    return legacy_repo_overrides(project_root)
 
 
 def save_project_overrides(project_root: str | Path, overrides: dict[str, dict]) -> None:

@@ -136,8 +136,8 @@ def _migrate_from_repo(target: Path, repo_root: Path | None) -> None:
     """Copy the legacy repo files into *target* once. Never touches the repo."""
     if repo_root is None:
         return
-    visible = _legacy_repo_visibility(repo_root)
-    overrides = _legacy_repo_overrides(repo_root)
+    visible = legacy_repo_visibility(repo_root)
+    overrides = legacy_repo_overrides(repo_root)
     if visible is None and not overrides:
         return
     write_project_standards(target, ProjectStandards(
@@ -190,7 +190,7 @@ def save_overrides(
     return updated
 
 
-def _legacy_repo_visibility(repo_root: str | Path | None) -> tuple[str, ...] | None:
+def legacy_repo_visibility(repo_root: str | Path | None) -> tuple[str, ...] | None:
     """The visibility list in a repo's legacy file; None when absent or malformed."""
     if not repo_root:
         return None
@@ -213,7 +213,7 @@ def _legacy_repo_visibility(repo_root: str | Path | None) -> tuple[str, ...] | N
     return normalize_ids(ids)
 
 
-def _legacy_repo_overrides(repo_root: str | Path | None) -> dict[str, dict]:
+def legacy_repo_overrides(repo_root: str | Path | None) -> dict[str, dict]:
     """Overrides in a repo's legacy file; ``{}`` when absent or malformed."""
     if not repo_root:
         return {}
