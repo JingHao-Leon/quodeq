@@ -1,4 +1,4 @@
-import { it, expect, beforeEach } from 'vitest';
+import { it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import EvaluationSection from './EvaluationSection.jsx';
@@ -16,4 +16,11 @@ it('switching to All persists the opt-out', () => {
   fireEvent.click(screen.getByRole('tab', { name: 'All' }));
   expect(localStorage.getItem(NEW_FINDINGS_ONLY_KEY)).toBe('false');
   expect(screen.getByRole('tab', { name: 'All' })).toHaveAttribute('aria-selected', 'true');
+});
+
+it('opens the grade formula editor from its link row', () => {
+  const onOpenGradeFormula = vi.fn();
+  render(<EvaluationSection onOpenGradeFormula={onOpenGradeFormula} />);
+  fireEvent.click(screen.getByRole('button', { name: /grade formula/i }));
+  expect(onOpenGradeFormula).toHaveBeenCalledTimes(1);
 });

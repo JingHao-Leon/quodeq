@@ -22,6 +22,14 @@ def client(tmp_path):
 #          browser history, and referrers).
 # ---------------------------------------------------------------------------
 
+def test_api_tests_never_read_the_real_keychain(client):
+    # A key saved on the developer's machine must not leak into route tests.
+    with patch("keyring.get_password", return_value="real-machine-key"), \
+         patch("quodeq.api.llm_bridge_routes.list_omlx_models", return_value=[]) as listed:
+        client.get("/api/omlx/models")
+    assert listed.call_args.kwargs["api_key"] is None
+
+
 class TestOmlxModels:
     def test_api_key_read_from_header(self, client):
         with patch("quodeq.api.llm_bridge_routes.list_omlx_models") as mock:
@@ -34,17 +42,18 @@ class TestOmlxModels:
         mock.assert_called_once_with(base_url="http://localhost:10240", api_key="sk-header")
 
     def test_api_key_query_param_no_longer_honored(self, client):
-        with patch("quodeq.api.llm_bridge_routes.list_omlx_models") as mock:
+        with patch("quodeq.api.llm_bridge_routes.get_api_key_secure", return_value=None), \
+             patch("quodeq.api.llm_bridge_routes.list_omlx_models") as mock:
             mock.return_value = []
             resp = client.get("/api/omlx/models?api_key=sk-leaky")
         assert resp.status_code == 200
         mock.assert_called_once_with(base_url=None, api_key=None)
 
-
 # ---------------------------------------------------------------------------
 # REL-084/085/086/087/088 — POST routes must 400 on a JSON body that parses
 # but is not an object (e.g. [1] or "x"), instead of crashing at data.get.
 # ---------------------------------------------------------------------------
+
 
 class TestJsonObjectBodyRequired:
     @pytest.mark.parametrize("route", [

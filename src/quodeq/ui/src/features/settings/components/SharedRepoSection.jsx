@@ -8,10 +8,10 @@ import { useSyncStatus } from '../../../hooks/useSyncStatus.js';
 import { connectSlotError } from '../../../hooks/connectSlotError.js';
 import { t } from '../../../strings/index.js';
 import { apiErrorMessage } from '../../../strings/apiErrors.js';
-import { SettingsRowLabel } from './settingsRowParts.jsx';
 import AccessPanel from '../../github-access/components/AccessPanel.jsx';
 import { accessFailureFrom } from '../../github-access/accessFailure.js';
 import { runExclusive } from '../settingsHelpers.js';
+import { ErrorRow, UrlRow, UrlInputRow, DisconnectConfirmRow } from './sharedRepoRows.jsx';
 
 // Groups the section's own useState/useRef declarations so the outer
 // component's body stays under the function-length cap; still called
@@ -20,13 +20,14 @@ import { runExclusive } from '../settingsHelpers.js';
 function useSharedRepoFields() {
   const [newUrl, setNewUrl] = useState('');
   const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState(null);
   const [accessFailure, setAccessFailure] = useState(null);
   // Guards for synchronous dedup of save/disconnect calls
   const savingRef = useRef(false);
   const disconnectingRef = useRef(false);
   const initializedRef = useRef(false);
-  return { newUrl, setNewUrl, confirming, setConfirming, error, setError, accessFailure, setAccessFailure, savingRef, disconnectingRef, initializedRef };
+  return { newUrl, setNewUrl, confirming, setConfirming, editing, setEditing, error, setError, accessFailure, setAccessFailure, savingRef, disconnectingRef, initializedRef };
 }
 
 // Initialize newUrl when currentUrl changes (only once per status update)
@@ -41,13 +42,14 @@ function useInitNewUrl({ currentUrl, setNewUrl, initializedRef }) {
   }, [currentUrl]);
 }
 
-function buildConnectMutationConfig({ connectShared, setError, setAccessFailure, setNewUrl, refetchStatus, savingRef, queryClient }) {
+function buildConnectMutationConfig({ connectShared, setError, setAccessFailure, setNewUrl, setEditing, refetchStatus, savingRef, queryClient }) {
   return {
     mutationFn: (url) => runExclusive(savingRef, async () => {
       setError(null);
       setAccessFailure(null);
       const result = await connectShared(url);
       setNewUrl(result?.url || url);
+      setEditing(false);
       await refetchStatus();
       return result;
     }, (err) => {
@@ -109,100 +111,43 @@ function useLogStatusFailure(error) {
   }, [error]);
 }
 
-function ErrorRow({ error }) {
-  if (!error) return null;
+// The rows under the header: the URL row, the field while connecting or
+// changing, the access panel or error, and the disconnect confirmation.
+function SharedRepoRows({ fields, sync, isSaving, isDisconnecting, handleSave, handleDisconnect }) {
+  const { newUrl, setNewUrl, confirming, setConfirming, editing, setEditing, error, accessFailure, setAccessFailure } = fields;
+  const { status, isLoading, configured, url: currentUrl } = sync;
+  const refreshing = isSlotActive(sync.refresh);
+  const cancelEdit = () => { setEditing(false); setNewUrl(currentUrl || ''); setAccessFailure(null); };
   return (
-    <div className="settings-row settings-row--last">
-      <p className="inline-error">{error}</p>
-    </div>
-  );
-}
-
-function UrlStatusRow({ isLoading, status, configured, currentUrl }) {
-  return (
-    <div className="settings-row">
-      <SettingsRowLabel
-        hintSlot={false}
-        label={t('settings.repositoryUrl')}
-        description={isLoading && !status ? (
-          t('settings.checkingEllipsis')
-        ) : configured ? (
-          <>{t('settings.configuredPrefix')} <code>{currentUrl}</code></>
-        ) : (
-          t('settings.notConfigured')
-        )}
+    <>
+      <UrlRow
+        isLoading={isLoading} status={status} configured={configured} currentUrl={currentUrl}
+        busy={isSaving || isDisconnecting || confirming || refreshing}
+        onChange={() => setEditing(true)}
+        onDisconnect={editing ? null : () => setConfirming(true)}
       />
-    </div>
-  );
-}
-
-function UrlInputRow({ newUrl, setNewUrl, isSaving, isDisconnecting, handleSave }) {
-  return (
-    <div className="settings-row">
-      <input
-        type="text"
-        className="settings-input"
-        placeholder="https://github.com/team/results.git"
-        value={newUrl}
-        onChange={(e) => setNewUrl(e.target.value)}
-        disabled={isSaving || isDisconnecting}
-        aria-label={t('settings.sharedRepoUrlAria')}
-      />
-      <button
-        type="button"
-        className="settings-pill"
-        onClick={handleSave}
-        disabled={isSaving || isDisconnecting}
-        aria-disabled={isSaving || isDisconnecting || undefined}
-      >
-        {isSaving ? t('settings.saving') : t('settings.save')}
-      </button>
-    </div>
-  );
-}
-
-// Disconnect deletes the clone, so it waits while a refresh rewrites it (the
-// server answers 409 REFRESH_IN_PROGRESS then).
-function DisconnectRow({ configured, confirming, setConfirming, isSaving, isRefreshing, isDisconnecting, handleDisconnect }) {
-  if (!configured) return null;
-  const blocked = isSaving || isRefreshing || isDisconnecting;
-  if (!confirming) {
-    return (
-      <div className="settings-row settings-row--last">
-        <button
-          type="button"
-          className="settings-pill settings-pill--accent"
-          onClick={() => setConfirming(true)}
-          disabled={blocked}
-          aria-disabled={blocked || undefined}
-        >
-          {t('settings.disconnect')}
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div className="settings-row settings-row--last">
-      <span className="settings-row-confirm-label">{t('settings.disconnectConfirm')}</span>
-      <button
-        type="button"
-        className="settings-pill settings-pill--confirm"
-        onClick={handleDisconnect}
-        disabled={blocked}
-        aria-disabled={blocked || undefined}
-      >
-        {isDisconnecting ? t('settings.disconnecting') : t('settings.yes')}
-      </button>
-      <button
-        type="button"
-        className="settings-pill"
-        onClick={() => setConfirming(false)}
-        disabled={isDisconnecting}
-        aria-disabled={isDisconnecting || undefined}
-      >
-        {t('settings.no')}
-      </button>
-    </div>
+      {(!configured || editing) && (
+        <UrlInputRow
+          newUrl={newUrl} setNewUrl={setNewUrl} isSaving={isSaving} isDisconnecting={isDisconnecting} handleSave={handleSave}
+          onCancel={editing ? cancelEdit : null}
+        />
+      )}
+      {accessFailure ? (
+        <div className="settings-row settings-row--last">
+          <AccessPanel failure={accessFailure} url={newUrl.trim()} onResolved={handleSave} onRetry={handleSave} />
+        </div>
+      ) : (
+        <ErrorRow error={error ?? connectSlotError(sync.connect, 'settings.connectFailed')} />
+      )}
+      {configured && confirming && (
+        <DisconnectConfirmRow
+          blocked={isSaving || refreshing || isDisconnecting}
+          isDisconnecting={isDisconnecting}
+          onConfirm={handleDisconnect}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -210,15 +155,16 @@ export default function SharedRepoSection({ onDisconnected }) {
   const { connectShared, disconnectShared } = useApi();
   const queryClient = useQueryClient();
 
-  const { newUrl, setNewUrl, confirming, setConfirming, error, setError, accessFailure, setAccessFailure, savingRef, disconnectingRef, initializedRef } = useSharedRepoFields();
+  const fields = useSharedRepoFields();
+  const { newUrl, setNewUrl, setConfirming, setEditing, setError, setAccessFailure, savingRef, disconnectingRef, initializedRef } = fields;
 
   const sync = useSyncStatus();
-  const { status, isLoading, refetch: refetchStatus, configured, url: currentUrl } = sync;
+  const { refetch: refetchStatus, url: currentUrl } = sync;
   useLogStatusFailure(sync.error);
 
   useInitNewUrl({ currentUrl, setNewUrl, initializedRef });
 
-  const connectMutation = useMutation(buildConnectMutationConfig({ connectShared, setError, setAccessFailure, setNewUrl, refetchStatus, savingRef, queryClient }));
+  const connectMutation = useMutation(buildConnectMutationConfig({ connectShared, setError, setAccessFailure, setNewUrl, setEditing, refetchStatus, savingRef, queryClient }));
 
   const disconnectMutation = useMutation(buildDisconnectMutationConfig({
     disconnectShared, setError, setNewUrl, setConfirming, refetchStatus, disconnectingRef, queryClient, onDisconnected,
@@ -244,20 +190,9 @@ export default function SharedRepoSection({ onDisconnected }) {
         </span>
       </div>
 
-      <UrlStatusRow isLoading={isLoading} status={status} configured={configured} currentUrl={currentUrl} />
-      <UrlInputRow newUrl={newUrl} setNewUrl={setNewUrl} isSaving={isSaving} isDisconnecting={isDisconnecting} handleSave={handleSave} />
-      {accessFailure ? (
-        <div className="settings-row settings-row--last">
-          <AccessPanel failure={accessFailure} url={newUrl.trim()} onResolved={handleSave} onRetry={handleSave} />
-        </div>
-      ) : (
-        <ErrorRow error={error ?? connectSlotError(sync.connect, 'settings.connectFailed')} />
-      )}
-
-      <DisconnectRow
-        configured={configured} confirming={confirming} setConfirming={setConfirming}
-        isSaving={isSaving} isRefreshing={isSlotActive(sync.refresh)}
-        isDisconnecting={isDisconnecting} handleDisconnect={handleDisconnect}
+      <SharedRepoRows
+        fields={fields} sync={sync} isSaving={isSaving} isDisconnecting={isDisconnecting}
+        handleSave={handleSave} handleDisconnect={handleDisconnect}
       />
     </section>
   );

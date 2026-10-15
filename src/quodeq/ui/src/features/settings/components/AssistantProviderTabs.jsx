@@ -33,9 +33,27 @@ function AssistantCustomProviderSection({ clients, activeProvider, setActiveProv
   );
 }
 
+/** The toolbar switch that shows or hides the assistant. */
+export function AssistantEnableRow() {
+  const { enabled, setEnabled } = useAssistantProvider();
+  return (
+    <SettingsEnableRow
+      enabled={enabled}
+      setEnabled={setEnabled}
+      label={t('settings.assistantEnable')}
+      description={t('settings.assistantEnableDesc')}
+    />
+  );
+}
+
+/**
+ * Which model the assistant uses: the analysis one by default, or its own.
+ * Shown whether or not the assistant is switched on; the switch lives in the
+ * Toolbar section.
+ */
 export default function AssistantProviderTabs({ providerConfigs }) {
   const { clients, clientsError } = useAiClientList(providerConfigs);
-  const { enabled, setEnabled, mode, setMode, activeProvider, setActiveProvider, model, setModel } = useAssistantProvider();
+  const { mode, setMode, activeProvider, setActiveProvider, model, setModel } = useAssistantProvider();
 
   const active = clients.find((c) => c.id === activeProvider);
 
@@ -45,17 +63,8 @@ export default function AssistantProviderTabs({ providerConfigs }) {
         <SectionLabel marker="▶">{t('settings.assistantLabel')}</SectionLabel>
       </div>
       {clientsError && <div className="settings-row"><span className="settings-error" role="alert">{clientsError}</span></div>}
-
-      <SettingsEnableRow
-        enabled={enabled}
-        setEnabled={setEnabled}
-        label={t('settings.assistantEnable')}
-        description={t('settings.assistantEnableDesc')}
-      />
-
-      <AssistantModeRows enabled={enabled} mode={mode} setMode={setMode} active={active} activeProvider={activeProvider} model={model} />
-
-      {enabled && mode === ASSISTANT_MODE.CUSTOM && (
+      <AssistantModeRows mode={mode} setMode={setMode} />
+      {mode === ASSISTANT_MODE.CUSTOM && (
         <AssistantCustomProviderSection
           clients={clients} activeProvider={activeProvider} setActiveProvider={setActiveProvider}
           active={active} providerConfigs={providerConfigs} model={model} setModel={setModel}

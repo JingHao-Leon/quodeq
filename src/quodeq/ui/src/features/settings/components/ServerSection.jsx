@@ -24,8 +24,6 @@ function ServerDetails({ health }) {
       {t('settings.serverPortLabel')} <strong>{health.port}</strong>
       {' · '}
       {t('settings.serverPidLabel')} <strong>{health.pid}</strong>
-      {' · '}
-      {t('settings.serverVersion', { version: health.version })}
     </div>
   );
 }

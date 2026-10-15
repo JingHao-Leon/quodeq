@@ -1,5 +1,4 @@
 import { MIN_SUBAGENTS, MAX_SUBAGENTS, PROVIDER_SETTING_KEY } from '../../../constants.js';
-import { AdvancedAnalysisSettings } from './ProviderSettings.jsx';
 import { SUBAGENTS_HINT_OLLAMA } from './subagentsHints.jsx';
 import { clampSubagents } from './localApiSubagents.js';
 import { t } from '../../../strings/index.js';
@@ -7,8 +6,7 @@ import { SettingsRowLabel, SettingsAdvanced } from './settingsRowParts.jsx';
 
 /**
  * Advanced-settings panel for the local-API tabs (Omlx/LlamaCpp/Ollama):
- * max-parallel-agents input + auto-detect button + test result/error, plus
- * AdvancedAnalysisSettings. The subagents description and the auto-detect
+ * max-parallel-agents input + auto-detect button + test result/error. The subagents description and the auto-detect
  * button's disabled condition come from the tab.
  */
 export function LocalApiAdvancedPanel({
@@ -42,7 +40,6 @@ export function LocalApiAdvancedPanel({
         {testResult && <span className="settings-description">{t('settings.recommendedAgents', { count: testResult.recommended })}</span>}
         {testError && <span className="settings-error">{testError}</span>}
       </div>
-      <AdvancedAnalysisSettings state={state} update={update} />
     </SettingsAdvanced>
   );
 }

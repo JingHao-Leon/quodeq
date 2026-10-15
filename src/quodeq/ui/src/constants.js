@@ -72,7 +72,6 @@ export const PROVIDER_SETTING_KEY = Object.freeze({
   MODEL_THOROUGH: 'model-thorough',
   SUBAGENTS: 'subagents',
   TIME_LIMIT: 'time-limit',
-  VERIFY: 'verify',
   API_KEY: 'api-key',
   API_BASE: 'api-base',
   CMD_PATH: 'cmd-path',
@@ -130,7 +129,7 @@ export function notifyAssistantActionApplied(detail) {
 }
 
 // Fired (same-tab) after Settings kills every terminal session server-side,
-// so TerminalPane can reconcile its stale views. See TerminalSection.jsx
+// so TerminalPane can reconcile its stale views. See TerminalRows.jsx
 // (dispatcher) and TerminalPane.jsx (listener).
 export const TERMINAL_RESTART_EVENT = 'quodeq:terminal-restart';
 

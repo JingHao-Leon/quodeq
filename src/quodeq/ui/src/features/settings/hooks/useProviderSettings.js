@@ -6,14 +6,13 @@ import { useSidePane } from '../../side-pane/SidePaneContext.jsx';
 import { saveProviderKey } from '../../../api/providers.js';
 import { t } from '../../../strings/index.js';
 import { apiErrorKey, apiErrorMessage } from '../../../strings/apiErrors.js';
-import { STORED_TRUE } from '../../../adapters/storage.js';
 
 export { PROVIDER_CONFIGURED_MARKER };
 
 const SETTINGS = [
   PROVIDER_SETTING_KEY.MODEL, PROVIDER_SETTING_KEY.MODEL_ANALYSIS, PROVIDER_SETTING_KEY.MODEL_FAST,
   PROVIDER_SETTING_KEY.MODEL_BALANCED, PROVIDER_SETTING_KEY.MODEL_THOROUGH, PROVIDER_SETTING_KEY.SUBAGENTS,
-  PROVIDER_SETTING_KEY.TIME_LIMIT, PROVIDER_SETTING_KEY.VERIFY,
+  PROVIDER_SETTING_KEY.TIME_LIMIT,
   PROVIDER_SETTING_KEY.API_KEY, PROVIDER_SETTING_KEY.API_BASE, PROVIDER_SETTING_KEY.CMD_PATH,
 ];
 const DEFAULTS = {
@@ -24,7 +23,6 @@ const DEFAULTS = {
   [PROVIDER_SETTING_KEY.MODEL_THOROUGH]: '',
   [PROVIDER_SETTING_KEY.SUBAGENTS]: '1',
   [PROVIDER_SETTING_KEY.TIME_LIMIT]: '0',
-  [PROVIDER_SETTING_KEY.VERIFY]: STORED_TRUE,
   [PROVIDER_SETTING_KEY.API_KEY]: '',
   [PROVIDER_SETTING_KEY.API_BASE]: '',
   [PROVIDER_SETTING_KEY.CMD_PATH]: '',
@@ -138,22 +136,25 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
   }, [showToast]);
 
   const update = useCallback((key, value) => {
-    setState(prev => ({ ...prev, [key]: String(value) }));
+    // A raw API key never enters live state: it goes straight to the keychain.
+    if (key !== PROVIDER_SETTING_KEY.API_KEY) setState(prev => ({ ...prev, [key]: String(value) }));
     const onPersistError = () => showToast(t('settings.persistError'));
+    let saved;
     if (key === PROVIDER_SETTING_KEY.API_KEY) {
       // A coded backend refusal (e.g. KEYRING_UNAVAILABLE) says what to do;
       // anything else keeps the generic persist copy.
       const onKeyError = (err) => showToast(
         apiErrorKey(err?.code) ? apiErrorMessage(err, 'settings.persistError') : t('settings.persistError'));
-      // Fire and forget: saveProviderApiKey catches its own failures, reports
-      // them through onPersistError and resolves false, so there is nothing
-      // left here to reject.
-      void saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
+      // saveProviderApiKey catches its own failures, reports them through
+      // onPersistError and resolves false, so the returned promise never
+      // rejects; it resolves to whether the keychain write landed.
+      saved = saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
         // Clear the field rather than parking the sentinel in live state:
         // state['api-key'] is passed to providers as a real credential (see
         // OmlxTab), and the sentinel is not one. Storage still records it,
         // which is what survives a reload.
         if (ok) setState(prev => ({ ...prev, [key]: '' }));
+        return ok;
       });
     } else {
       saveProviderSetting(providerId, key, value, storage, { onPersistError });
@@ -161,6 +162,7 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
     // Let the assistant gate re-read: in Default mode it mirrors the analysis
     // model, so a model change here must update its display live.
     notifyProviderSettingsChanged();
+    return saved;
   }, [providerId, storage, showToast]);
 
   return { state, update };
