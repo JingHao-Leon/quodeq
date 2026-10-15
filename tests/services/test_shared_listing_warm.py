@@ -113,7 +113,12 @@ def test_listing_hides_a_cold_card_until_the_shared_warmup_has_it(tmp_path, monk
 
 def test_a_card_whose_warm_up_failed_is_listed_without_a_grade(tmp_path, monkeypatch, fresh_shared_warmup):
     """A failed warm never hides the card for good: it is listed as settled, with no grade."""
+    # Held until the first listing has run: a worker that failed instantly
+    # would otherwise settle the card before that listing filters it.
+    release = threading.Event()
+
     def fail(*_a, **_k):
+        release.wait(timeout=30)
         raise RuntimeError("corrupt run")
     monkeypatch.setattr(shared_listing, "warm_project", fail)
     _fake_hydration(monkeypatch, [], entries=[ProjectEntry(id="bad", name="bad", summary_pending=True)])
@@ -126,6 +131,7 @@ def test_a_card_whose_warm_up_failed_is_listed_without_a_grade(tmp_path, monkeyp
         )["projects"]
 
     assert listing() == []
+    release.set()
     assert _wait_until(lambda: fresh_shared_warmup.snapshot()["active"] is False)
     assert [(p["id"], p["summaryPending"]) for p in listing()] == [("bad", False)]
 
