@@ -3757,3 +3757,11 @@
 }
 /* the Violations tile's severity pills wrap inside the tile */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
+
+/* a principle's score per period, under its description */
+.score-spark { display: flex; align-items: center; gap: 12px; margin-top: 8px; max-width: 520px; }
+.score-spark__svg { flex: 1; height: 36px; overflow: visible; }
+.score-spark__line { stroke: var(--color-accent); stroke-width: 1.6; }
+.score-spark__dot { fill: var(--color-accent); opacity: .7; }
+.score-spark__dot--last { opacity: 1; }
+.score-spark__range { font-size: 10px; color: var(--color-text-muted); white-space: nowrap; }
