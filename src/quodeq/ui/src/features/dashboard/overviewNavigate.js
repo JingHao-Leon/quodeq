@@ -5,7 +5,6 @@
  * Each is undefined without an `onNavigate`.
  */
 import { SCOPE_KIND, openScope, cardFilter } from '../violations/scope/scopeModel.js';
-import { nameKey } from '../../utils/nameKey.js';
 
 /**
  * What opens a scoped Findings view from a row: the view of the scope

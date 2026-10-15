@@ -172,7 +172,7 @@ function GradeRing({ grade }) {
  */
 export default function FindingsHead({
   title, sub, description, grade, badge, metrics, filesHint, oneFile = false, showRisk = false, requirements = null, riskAreas = null, deltas, changes,
-  pastRun = null, actions, history = null, since = null,
+  pastRun = null, actions, history = null, since,
 }) {
   const headRef = useRef(null);
   const scrolledPast = useScrolledPast(headRef);
