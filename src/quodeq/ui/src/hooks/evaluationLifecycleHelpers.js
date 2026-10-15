@@ -40,14 +40,6 @@ export function readAnalysisPower(storage) {
 }
 
 /**
- * Persists the analysis power tier, swallowing storage failures — the setting
- * is a preference, not something worth failing a run over.
- */
-export function writeAnalysisPower(storage, level) {
-  try { storage.setItem(POWER_KEY, String(level)); } catch (e) { warnStorageUnavailable(e); }
-}
-
-/**
  * Ollama uses a single analysis model; CLI providers use tier-based selection.
  * Falls back to the orchestrator model if no analysis-specific model is set.
  */
