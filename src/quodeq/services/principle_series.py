@@ -17,10 +17,9 @@ from pathlib import Path
 from quodeq.core.run.state import RunState
 from quodeq.core.types.principle_counts import principles_with_counts
 from quodeq.core.types.principle_series import PrincipleSeries, PrincipleSeriesRun
-from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services.scoring import ProjectRows, max_history_runs, run_rows
 from quodeq.services.scoring_view import select_trend_runs
-from quodeq.services.wiring import RunInfo, load_visible_standard_ids
+from quodeq.services.wiring import RunInfo, load_project_standards
 from quodeq.shared.validation import validate_path_segment
 
 
@@ -48,7 +47,7 @@ def build_principle_series(reports_root: Path, project: str, dimension: str) -> 
     series = _series_rows(rows, dimension)
     if not series:
         raise UnknownDimension(dimension)
-    visible = load_visible_standard_ids(local_repo_root(reports_root, project))
+    visible = load_project_standards(reports_root, project).visible_ids
     return PrincipleSeries(dimension, series if dimension.lower() in visible else [])
 
 

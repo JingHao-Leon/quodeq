@@ -1,6 +1,6 @@
 """ToolContext carries the visible-standards selection; build_tool_context
 (the API construction site) resolves it from the project's
-``.quodeq/standards-visibility.json``.
+machine settings by project id.
 
 tests/assistant has no conftest.py, and the suite's convention is a small
 local ``_ctx``/fixture helper per file (see test_registry.py, test_tools_
@@ -16,8 +16,9 @@ from flask import Flask
 
 from quodeq.api._assistant_helpers import build_tool_context
 from quodeq.assistant.tools._context import ToolContext
+from pathlib import Path
 from quodeq.core.standards.visibility import DEFAULT_VISIBLE_STANDARDS
-from quodeq.data.fs.standards_prefs import save_visible_standard_ids
+from quodeq.data.fs.standards_prefs import save_enabled_ids
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
 from quodeq.services.shared_settings import SharedSettings
 
@@ -67,13 +68,12 @@ def test_api_helper_loads_defaults_for_a_repo_without_a_file(tmp_path):
 
 
 def test_api_helper_loads_the_saved_selection(tmp_path):
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    save_visible_standard_ids(repo_root, ["security", "clean-architecture"])
+    from quodeq.shared.env import get_evaluations_dir
+    save_enabled_ids(Path(get_evaluations_dir()), "proj-x", ["security"])
     app = _app(tmp_path)
     with app.app_context():
-        ctx = build_tool_context(app, _session(project_uuid=str(repo_root)))
-    assert ctx.visible_standard_ids == ("security", "clean-architecture")
+        ctx = build_tool_context(app, _session(project_id="proj-x"))
+    assert ctx.visible_standard_ids == ("security",)
 
 
 def test_api_helper_falls_back_to_defaults_when_no_repo_resolves(tmp_path):
@@ -91,9 +91,9 @@ def test_api_helper_resolves_repo_root_via_project_id_fallback(tmp_path, monkeyp
     # Overview-scoped sessions carry project_id with no project_uuid (the
     # reason build_tool_context grew the fallback); the selection must still
     # resolve for them, not just for run/repo-scoped sessions.
+    from quodeq.shared.env import get_evaluations_dir
     repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    save_visible_standard_ids(repo_root, ["performance"])
+    save_enabled_ids(Path(get_evaluations_dir()), "proj-x", ["performance"])
     resolver = lambda project_id: str(repo_root) if project_id == "proj-x" else None
     app = _app(tmp_path)
     with app.app_context():
@@ -206,18 +206,18 @@ def _mcp_namespace(tmp_path, **kw):
 
 
 def test_mcp_path_loads_saved_selection(tmp_path, monkeypatch):
-    """_build_registry_from_args loads standards-visibility.json onto ToolContext."""
+    """_build_registry_from_args loads the machine selection onto ToolContext."""
     from quodeq.assistant.mcp.server import _build_registry_from_args
 
-    repo_root = tmp_path / "repo"
-    repo_root.mkdir()
-    save_visible_standard_ids(repo_root, ["security", "clean-architecture"])
+    # The MCP server resolves the selection by project id from --reports-dir,
+    # not from the repo, so no clone has to exist for it to apply.
+    save_enabled_ids(tmp_path / "reports", "proj-x", ["security"])
 
     captured = _capture_ctx(monkeypatch)
-    ns = _mcp_namespace(tmp_path, repo_root=str(repo_root))
+    ns = _mcp_namespace(tmp_path, project_id="proj-x", reports_dir=str(tmp_path / "reports"))
     _build_registry_from_args(ns)
 
-    assert captured["ctx"].visible_standard_ids == ("security", "clean-architecture")
+    assert captured["ctx"].visible_standard_ids == ("security",)
 
 
 def test_mcp_path_no_repo_root_falls_back_to_defaults(tmp_path, monkeypatch):

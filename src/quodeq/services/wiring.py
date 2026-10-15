@@ -149,7 +149,7 @@ from quodeq.data.fs.standards_loader import (  # noqa: F401
 )
 
 # Per-project standards-visibility preferences.
-from quodeq.data.fs.standards_prefs import load_visible_standard_ids  # noqa: F401
+from quodeq.data.fs.standards_prefs import load_project_standards  # noqa: F401
 
 # Filesystem report parser: JSON/markdown eval-report parsing.
 from quodeq.data.fs.report_parser import OVERALL_PRINCIPLE, parse_eval_from_json, parse_eval_markdown  # noqa: F401

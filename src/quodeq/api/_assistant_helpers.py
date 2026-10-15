@@ -25,7 +25,7 @@ from flask import Flask, current_app
 
 from quodeq.assistant.tools import ToolContext, default_findings_repo_factory
 from quodeq.assistant import LOCAL_PROVIDERS as _LOCAL_PROVIDERS
-from quodeq.services.standards_prefs import load_visible_standard_ids
+from quodeq.services.standards_prefs import load_project_standards
 from quodeq.services.shared_repo import (
     RepoFormat,
     read_state,
@@ -120,7 +120,7 @@ def build_tool_context(
         reports_dir=reports_dir,
         read_only=(source == ProjectSource.SHARED),
         score_cache_path=score_cache_path,
-        visible_standard_ids=load_visible_standard_ids(repo_root),
+        visible_standard_ids=load_project_standards(reports_dir, session.get("project_id")).visible_ids,
         findings_repo_factory=default_findings_repo_factory,
     )
 
