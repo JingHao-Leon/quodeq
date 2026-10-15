@@ -29,11 +29,16 @@ beforeEach(() => {
 it('renders messages, markdown, tool marker, and action card', () => {
   render(<AssistantPane uiState={{ activeTab: 'overview' }} />);
   expect(screen.getByText('why grade C?')).toBeInTheDocument();
-  expect(screen.getByText(/used get_scores/i)).toBeInTheDocument();
+  // Settled tool calls fold into activity blocks; a click opens one.
+  const groups = screen.getAllByRole('button', { expanded: false });
+  expect(groups).toHaveLength(2);
+  fireEvent.click(groups[0]);
+  expect(screen.getByText('Reading dimension scores')).toBeInTheDocument();
   expect(screen.getByText('Security').tagName).toBe('STRONG'); // markdown rendered
   expect(screen.getByText('card:a1')).toBeInTheDocument();
   expect(screen.getByText('Commands').tagName).toBe('STRONG'); // local renders markdown
-  expect(screen.getByText(/get_report · \{"dimension":"security"\}/)).toBeInTheDocument();
+  fireEvent.click(groups[1]);
+  expect(screen.getByText('Reading the security report')).toBeInTheDocument();
 });
 
 it('renders the prompt input', () => {

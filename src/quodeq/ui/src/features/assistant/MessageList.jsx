@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ActionPreviewCard } from './ActionPreviewCard.jsx';
+import { ToolActivityGroup } from './ToolActivityGroup.jsx';
+import { groupToolMessages } from './toolActivity.js';
 import { QMarkIcon } from '../../components/QMarkIcon.jsx';
 import { t } from '../../strings/index.js';
 import { MESSAGE_ROLE } from './messageRole.js';
@@ -40,12 +42,6 @@ function MessageItem({ message }) {
           </div>
         </div>
       );
-    case MESSAGE_ROLE.TOOL:
-      return (
-        <div className="assistant-msg assistant-msg-tool">
-          {t('assistant.toolUsed', { name: message.name })}{message.argsSummary ? ` · ${message.argsSummary}` : ''}
-        </div>
-      );
     case MESSAGE_ROLE.LOCAL:
       return (
         <div className="assistant-msg assistant-msg-local assistant-md">
@@ -81,10 +77,13 @@ export function MessageList({ messages, streaming }) {
 
   return (
     <div className="assistant-messages" role="log" aria-live="polite" aria-relevant="additions">
-      {messages.map((message, index) => (
+      {groupToolMessages(messages).map((entry, index) => (
         // Stream messages have no stable id; index is fine since the list
-        // only ever grows/mutates its tail (see mergeMessages).
-        <MessageItem key={index} message={message} />
+        // only ever grows/mutates its tail (see mergeMessages). Consecutive
+        // tool calls render as one activity block.
+        entry.group
+          ? <ToolActivityGroup key={index} items={entry.items} />
+          : <MessageItem key={index} message={entry} />
       ))}
       {streaming && (
         <div className="assistant-streaming-indicator" role="status" aria-live="polite">

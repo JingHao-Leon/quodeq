@@ -21,6 +21,7 @@ from quodeq.core.run.state import RunState
 from quodeq.core.scoring.constants import Grade
 from quodeq.analysis.mcp.scope_gate_rules import ScopeGateRule
 from quodeq.assistant.frame_type import FrameType
+from quodeq.assistant.tool_activity import ToolKind, ToolStatus
 from quodeq.assistant.tools.actions import ACTIONS
 from quodeq.core.types.dashboard_view import DashboardView
 from quodeq.core.types.finding_type import FindingType
@@ -50,6 +51,8 @@ _MIRRORS = [
     ("vocab/projectSource.js", "PROJECT_SOURCE", ProjectSource),
     ("vocab/dashboardView.js", "DASHBOARD_VIEW", DashboardView),
     ("vocab/frameType.js", "FRAME_TYPE", FrameType),
+    ("vocab/toolKind.js", "TOOL_KIND", ToolKind),
+    ("vocab/toolStatus.js", "TOOL_STATUS", ToolStatus),
     ("vocab/sseEvent.js", "SSE_EVENT", SseEvent),
     ("vocab/scopeGateRule.js", "SCOPE_GATE_RULE", ScopeGateRule),
     ("vocab/rescoreState.js", "RESCORE_STATE", RescoreState),
