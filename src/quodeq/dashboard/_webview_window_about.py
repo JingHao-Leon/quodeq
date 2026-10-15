@@ -14,6 +14,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from quodeq.dashboard._webview_diag import diag_stream
+from quodeq.dashboard.dock_name import set_dock_display_name
 from quodeq.dashboard._webview_user_agent import (
     WEBVIEW_TOKEN_UA_PREFIX, WEBVIEW_UA_MARKER, quodeq_version, webview_user_agent,
 )
@@ -238,10 +239,9 @@ def set_macos_app_identity() -> None:
         from AppKit import NSApplication, NSBundle, NSImage  # type: ignore[import-untyped]
     except ImportError:
         return
-    # Patch the bundle name so the menu bar reads "quodeq" instead of "python3".
-    # Runtime mutation of the NSBundle info dict; works as long as NSApp
-    # hasn't cached the name (i.e. before webview.start draws the menu bar).
-    # Repeat calls are harmless.
+    # Bundle-dict patch renames the menu bar (before NSApp caches it); the Dock
+    # reads the LaunchServices name instead. Repeat calls are harmless.
+    set_dock_display_name(_APP_DISPLAY_NAME)
     try:
         info = NSBundle.mainBundle().infoDictionary()
         if info is not None:
