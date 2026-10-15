@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapRiskPanel from './MapRiskPanel.jsx';
 import { stubPackCanvas } from '../../../test-utils/packFixture.js';
@@ -29,7 +29,9 @@ const appPanel = () => screen.queryByRole('region', { name: t('map.riskPanelAria
 const issuesIn = (el) => within(el).getByText(t('map.riskIssues')).nextSibling.textContent;
 
 beforeEach(() => { stubPackCanvas(); ON_SETTLED.mockClear(); });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+// Unmount before the stubs go: an effect the test left pending (the galaxy
+// canvas observing its parent) must not mount after ResizeObserver is gone.
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('MapRiskPanel: one selection for today and the time-lapse', () => {
   it('an area chosen today stays selected on a past run, with that run\'s numbers and no View Details', async () => {
