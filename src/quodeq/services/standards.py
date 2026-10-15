@@ -8,7 +8,7 @@ from pathlib import Path
 from quodeq.core.types.standard import StandardDetail, StandardMeta
 from quodeq.services._standards_crud import (
     IMPORT_STATUS_CONFLICT,
-    create, delete, duplicate, import_from_file, update,
+    create, delete, duplicate, import_from_file, today_iso, update,
 )
 from quodeq.services._standards_io import default_read_json, default_write_json
 from quodeq.services._standards_queries import (
@@ -47,13 +47,15 @@ class StandardsService:
 
     def __init__(self, evaluators_dir: Path, compiled_dir: Path, dimensions_file: Path,
                  read_json: Callable[[Path], dict] | None = None,
-                 write_json: Callable[[Path, dict], None] | None = None) -> None:
+                 write_json: Callable[[Path, dict], None] | None = None,
+                 today: Callable[[], str] | None = None) -> None:
         self._evaluators_dir = evaluators_dir
         self._compiled_dir = compiled_dir
         self._dimensions_file = dimensions_file
         self._read_json = read_json or default_read_json
         self._write_json = write_json or default_write_json
         self._store = _FsStandardsStore(read=self._read_json, write=self._write_json)
+        self._today = today or today_iso
 
     def list_standards(self) -> list[StandardMeta]:
         """Return metadata for all available standards (built-in + custom)."""
@@ -67,11 +69,11 @@ class StandardsService:
 
     def create_standard(self, data: dict) -> StandardDetail:
         """Persist a new custom standard from the given data dict."""
-        return create(data, self._evaluators_dir, self._store)
+        return create(data, self._evaluators_dir, self._store, today=self._today)
 
     def update_standard(self, standard_id: str, data: dict) -> StandardDetail:
         """Update an existing custom standard with new data."""
-        return update(standard_id, data, self._evaluators_dir, self._store)
+        return update(standard_id, data, self._evaluators_dir, self._store, today=self._today)
 
     def delete_standard(self, standard_id: str) -> None:
         """Remove a custom standard; raises if *standard_id* is built-in."""
@@ -84,11 +86,11 @@ class StandardsService:
         return duplicate(new_id=new_id,
                          source_detail=self.get_standard(standard_id),
                          evaluators_dir=self._evaluators_dir,
-                         store=self._store)
+                         store=self._store, today=self._today)
 
     def import_from_file(self, data: dict, force: bool = False) -> dict:
         """Import a standard from a parsed JSON file payload."""
-        return import_from_file(data, force, self._evaluators_dir, self._store)
+        return import_from_file(data, force, self._evaluators_dir, self._store, today=self._today)
 
     def load_cwe_list(self) -> list[dict]:
         """Load the full CWE weakness catalogue from compiled data."""
