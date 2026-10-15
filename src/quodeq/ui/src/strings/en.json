@@ -1916,7 +1916,6 @@
   "compare.radarChartAria": "Radar chart of dimension scores",
   "overview.cardPass": "{pct}% pass",
   "overview.cardRead": "{pct}% read",
-  "overview.cardPartial": "partial",
   "overview.dimensionsRadialLabel": "dimensions_radial",
   "overview.dimensionsRadialAria": "Dimensions radial",
   "overview.per100Hint": "averaged over {count} dimensions",
