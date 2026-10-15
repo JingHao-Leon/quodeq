@@ -1,6 +1,7 @@
 """Everything ``core.scoring`` returns: the per-principle scores and their roll-up."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 
@@ -81,6 +82,10 @@ class PrincipleScore:
     observation: float = 0.0
     violation_mass: float = 0.0
     compliance_mass: float = 0.0
+    # Per-unit severity masses (core/scoring/mass.py unit_masses) and the worst
+    # open severity: what a client needs to rescore without the findings.
+    unit_masses: Mapping[str, float] | None = None
+    worst: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

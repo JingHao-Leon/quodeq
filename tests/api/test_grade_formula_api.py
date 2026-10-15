@@ -217,3 +217,13 @@ def test_post_rescore_runs_the_pass_again_with_the_saved_params(rescore_client, 
     assert rescorer.wait_idle(budget(5))
     landed = client.get("/api/grade-formula").get_json()["rescore"]
     assert (landed["state"], landed["appliedGeneration"], landed["done"]) == ("idle", 2, 3)
+
+
+def test_inputs_returns_every_projects_scoring_inputs(client, formula_path, monkeypatch):
+    from quodeq.services import grade_formula_inputs
+
+    fake = {"projects": [{"id": "p", "dimensions": []}]}
+    monkeypatch.setattr(grade_formula_inputs, "inputs_all", lambda root, **kw: fake)
+    resp = client.get("/api/grade-formula/inputs", headers=_ORIGIN)
+    assert resp.status_code == 200
+    assert resp.get_json() == fake

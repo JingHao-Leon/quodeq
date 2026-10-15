@@ -43,23 +43,23 @@ also the spec for a future automated capture script.
   its data.
 - Only then click `button[title="settings"]`, then the `open editor`
   button in the "Grade formula" section, to reach the editor.
-- After the editor loads, wait for the preview strip to debounce and
-  fetch (~2.5s) before taking the screenshot, otherwise it may still
-  show the loading/empty state.
+- After the editor loads, wait for `Reading your projects…` to
+  disappear before taking the screenshot, otherwise the What changes
+  panel may still show the loading state.
 
 ## grade-formula.{dark,light}.webp (retired 2026-09-27, recapture pending)
 
 The editor was rebuilt by scoring stage (FORMULA / TYPES / DIMENSIONS tabs)
 and the old shot no longer matches. It was removed from grade-formula.md and
-from the bundle; recapture with the notes below updated to the new layout
-(the FORMULA tab with its four stage rows) and wire it back through IMAGES
-in HelpMarkdown.jsx.
+from the bundle; recapture with the notes below (the impact-first editor)
+and wire it back through IMAGES in HelpMarkdown.jsx.
 
 - Route: Projects, select the quodeq self-scan project, then Settings,
   "Grade formula" section, "open editor".
-- Must show: the FORMULA tab active with its four stage rows (the
-  severity sliders in row 1), the preview strip populated with real
-  per-dimension gauges (OVERALL plus one per dimension, each with a
-  score and grade label), APPLY and RESET Q² buttons visible.
+- Must show: the FORMULA tab with the principle chart on top, the What a
+  finding costs and Where each grade starts groups below it, and the What
+  changes panel on the right listing the projects (move major to 3 first so
+  rows show old → new). Wait for `Reading your projects…` to disappear
+  before capturing.
 - Full page including sidebar (it is an orientation shot).
-- The status hint next to RESET may read "custom formula active" depending on local settings. Acceptable for this orientation shot. Never reset the user's formula just for a capture (RESET rescores all runs).
+- The toolbar may read "custom formula active" depending on local settings. Acceptable for this orientation shot. Never reset the user's formula just for a capture (RESET rescores all runs).

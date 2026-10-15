@@ -1,0 +1,6234 @@
+{
+ "cases": [
+  {
+   "expected": {
+    "proj0": {
+     "dimensions": {
+      "clean-architecture": 9.3,
+      "reliability": 6.1
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 8.3,
+      "clean-architecture/P3": 8.8,
+      "clean-architecture/P4": 6.9,
+      "clean-architecture/P5": 10.0,
+      "reliability/P0": 6.1
+     }
+    },
+    "proj1": {
+     "dimensions": {
+      "reliability": 8.2,
+      "security": 9.1
+     },
+     "overall": 8.6,
+     "principles": {
+      "reliability/P0": 9.4,
+      "reliability/P1": 8.0,
+      "reliability/P2": 9.1,
+      "reliability/P3": 10.0,
+      "reliability/P4": 6.9,
+      "reliability/P5": 7.1,
+      "security/P0": 10.0,
+      "security/P1": 8.2
+     }
+    },
+    "proj10": {
+     "dimensions": {
+      "clean-architecture": 7.5,
+      "maintainability": 6.9,
+      "reliability": 8.5,
+      "security": 8.0
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 6.4,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 10.0,
+      "clean-architecture/P3": 7.1,
+      "maintainability/P0": 5.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.7,
+      "maintainability/P3": 5.3,
+      "reliability/P0": 7.6,
+      "reliability/P1": 10.0,
+      "reliability/P2": 6.9,
+      "reliability/P3": 9.9,
+      "reliability/P4": 9.3,
+      "reliability/P5": 10.0,
+      "security/P0": 5.9,
+      "security/P1": 8.8,
+      "security/P2": 7.4,
+      "security/P3": 8.9
+     }
+    },
+    "proj11": {
+     "dimensions": {
+      "clean-architecture": 8.0
+     },
+     "overall": 8.0,
+     "principles": {
+      "clean-architecture/P0": 5.7,
+      "clean-architecture/P1": 9.3,
+      "clean-architecture/P2": 8.8,
+      "clean-architecture/P3": 6.0,
+      "clean-architecture/P4": 8.7
+     }
+    },
+    "proj2": {
+     "dimensions": {
+      "reliability": 8.7
+     },
+     "overall": 8.7,
+     "principles": {}
+    },
+    "proj3": {
+     "dimensions": {
+      "clean-architecture": 8.9,
+      "maintainability": 8.4,
+      "security": 7.1
+     },
+     "overall": 8.1,
+     "principles": {
+      "maintainability/P0": 7.2,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.1,
+      "maintainability/P3": 5.3,
+      "maintainability/P4": 10.0,
+      "security/P0": 7.1
+     }
+    },
+    "proj4": {
+     "dimensions": {
+      "reliability": 7.5
+     },
+     "overall": 7.5,
+     "principles": {
+      "reliability/P0": 9.5,
+      "reliability/P1": 6.4,
+      "reliability/P2": 6.8,
+      "reliability/P3": 7.8
+     }
+    },
+    "proj5": {
+     "dimensions": {
+      "security": 4.3
+     },
+     "overall": 4.3,
+     "principles": {}
+    },
+    "proj6": {
+     "dimensions": {
+      "clean-architecture": 8.3,
+      "maintainability": 8.5,
+      "reliability": 6.6,
+      "security": 5.7
+     },
+     "overall": 7.3,
+     "principles": {
+      "clean-architecture/P0": 9.2,
+      "clean-architecture/P1": 9.4,
+      "clean-architecture/P2": 7.3,
+      "clean-architecture/P3": 5.9,
+      "clean-architecture/P4": 6.0,
+      "clean-architecture/P5": 9.2,
+      "maintainability/P0": 7.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.5,
+      "reliability/P0": 6.6,
+      "security/P0": 5.7
+     }
+    },
+    "proj7": {
+     "dimensions": {
+      "clean-architecture": 10.0,
+      "security": 6.8
+     },
+     "overall": 8.4,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "security/P0": 8.8,
+      "security/P1": 5.5,
+      "security/P2": 5.7,
+      "security/P3": 7.9,
+      "security/P4": 7.1
+     }
+    },
+    "proj8": {
+     "dimensions": {
+      "clean-architecture": 8.2,
+      "maintainability": 8.0,
+      "reliability": 10.0,
+      "security": 8.6
+     },
+     "overall": 8.7,
+     "principles": {
+      "clean-architecture/P0": 8.3,
+      "clean-architecture/P1": 9.2,
+      "clean-architecture/P2": 9.8,
+      "clean-architecture/P3": 5.2,
+      "maintainability/P0": 8.1,
+      "maintainability/P1": 8.8,
+      "maintainability/P2": 10.0,
+      "maintainability/P3": 6.1,
+      "reliability/P0": 10.0,
+      "reliability/P1": 10.0,
+      "security/P0": 10.0,
+      "security/P1": 7.4,
+      "security/P2": 10.0,
+      "security/P3": 6.0,
+      "security/P4": 8.3,
+      "security/P5": 10.0
+     }
+    },
+    "proj9": {
+     "dimensions": {
+      "reliability": 8.1,
+      "security": 9.9
+     },
+     "overall": 9.0,
+     "principles": {
+      "reliability/P0": 8.9,
+      "reliability/P1": 7.0,
+      "security/P0": 10.0,
+      "security/P1": 8.5,
+      "security/P2": 10.0
+     }
+    }
+   },
+   "params": {
+    "baseK": 0.08,
+    "ceilScale": 0.5,
+    "dimensionWeights": {
+     "accessibility": 1.0,
+     "clean-architecture": 1.0,
+     "domain-driven-design": 1.0,
+     "flexibility": 1.0,
+     "maintainability": 1.0,
+     "performance": 1.0,
+     "reliability": 1.0,
+     "security": 1.0,
+     "usability": 1.0
+    },
+    "dimensionWeightsEnabled": true,
+    "floorMajor": 3.0,
+    "floorMinor": 5.0,
+    "gradeThresholds": [
+     [
+      9.0,
+      "Exemplary"
+     ],
+     [
+      7.0,
+      "Good"
+     ],
+     [
+      5.0,
+      "Adequate"
+     ],
+     [
+      3.0,
+      "Poor"
+     ]
+    ],
+    "liftCompress": 2.2,
+    "severityWeight": {
+     "critical": 4.0,
+     "major": 2.0,
+     "minor": 0.25
+    }
+   },
+   "projects": [
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.872332,
+         "id": "P0",
+         "massCritical": 1.220081,
+         "massMajor": 3.151027,
+         "massMinor": 4.225264,
+         "observation": 26.277956,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.918973,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 31.6936,
+         "worst": null
+        },
+        {
+         "complianceMass": 20.598975,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 36.29773,
+         "worst": null
+        },
+        {
+         "complianceMass": 19.751513,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 3.310653,
+         "massMinor": 0.613957,
+         "observation": 3.139348,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.430866,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.620218,
+         "massMinor": 3.908458,
+         "observation": 2.295755,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 19.37899,
+         "id": "P4",
+         "massCritical": 1.075293,
+         "massMajor": 2.551231,
+         "massMinor": 8.861524,
+         "observation": 26.577127,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.72478,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 28.996424,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj0"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 0.551142,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 37.819482,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.322113,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.493183,
+         "massMinor": 7.117793,
+         "observation": 39.772806,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.563288,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.586458,
+         "massMinor": 0.322587,
+         "observation": 39.533917,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 13.976802,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.478791,
+         "massMinor": 7.0014,
+         "observation": 0.940735,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.04869,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.235138,
+         "massMinor": 7.197164,
+         "observation": 10.144751,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 15.274544,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 16.080816,
+         "worst": null
+        },
+        {
+         "complianceMass": 17.271143,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 4.485844,
+         "massMinor": 8.703819,
+         "observation": 35.994918,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.877664,
+         "id": "P5",
+         "massCritical": 1.41853,
+         "massMajor": 2.531433,
+         "massMinor": 9.536557,
+         "observation": 32.210761,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj1"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": 8.7,
+       "principles": []
+      }
+     ],
+     "id": "proj2"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.79589,
+         "id": "P0",
+         "massCritical": 0.363826,
+         "massMajor": 3.000647,
+         "massMinor": 2.971933,
+         "observation": 35.087709,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": 8.9,
+       "principles": []
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.805781,
+         "id": "P0",
+         "massCritical": 1.125643,
+         "massMajor": 1.526389,
+         "massMinor": 3.120871,
+         "observation": 32.864918,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.513064,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 25.50931,
+         "worst": null
+        },
+        {
+         "complianceMass": 10.054617,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 9.931417,
+         "observation": 26.956902,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.295386,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.048549,
+         "massMinor": 9.048819,
+         "observation": 24.696244,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 1.611458,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 34.319349,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj3"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.71952,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.567941,
+         "observation": 22.95226,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.587492,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.65057,
+         "massMinor": 4.611566,
+         "observation": 31.78687,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.073555,
+         "id": "P2",
+         "massCritical": 1.348595,
+         "massMajor": 4.120212,
+         "massMinor": 1.19357,
+         "observation": 21.420728,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.089695,
+         "id": "P3",
+         "massCritical": 0.802819,
+         "massMajor": 0.339278,
+         "massMinor": 2.157246,
+         "observation": 2.873792,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj4"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": 4.3,
+       "principles": []
+      }
+     ],
+     "id": "proj5"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 5.08928,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.213982,
+         "massMinor": 5.654594,
+         "observation": 29.682373,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.847347,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.451518,
+         "massMinor": 3.048459,
+         "observation": 1.867726,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 6.286281,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.557418,
+         "massMinor": 8.470978,
+         "observation": 23.191313,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.772609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 3.142119,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.563832,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.52464,
+         "observation": 11.856753,
+         "worst": "minor"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.582893,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.786559,
+         "observation": 33.179623,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 27.712331,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 5.847306,
+         "observation": 7.793116,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 26.922375,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 4.803802,
+         "massMinor": 8.483389,
+         "observation": 9.529982,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.152835,
+         "id": "P3",
+         "massCritical": 0.655789,
+         "massMajor": 4.058627,
+         "massMinor": 4.809046,
+         "observation": 14.448928,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 12.125306,
+         "id": "P4",
+         "massCritical": 1.16359,
+         "massMajor": 3.968464,
+         "massMinor": 0.446524,
+         "observation": 4.16112,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.270376,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 8.129089,
+         "observation": 15.533269,
+         "worst": "minor"
+        }
+       ]
+      }
+     ],
+     "id": "proj6"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.393198,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 18.826977,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 18.559153,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.807252,
+         "massMinor": 2.095187,
+         "observation": 29.646291,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 5.769804,
+         "id": "P1",
+         "massCritical": 1.562193,
+         "massMajor": 2.44298,
+         "massMinor": 3.869561,
+         "observation": 19.157996,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 6.209456,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 5.050575,
+         "massMinor": 5.149764,
+         "observation": 38.900177,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.947361,
+         "id": "P3",
+         "massCritical": 0.031299,
+         "massMajor": 3.858928,
+         "massMinor": 1.737789,
+         "observation": 4.330645,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.048056,
+         "id": "P4",
+         "massCritical": 0.032499,
+         "massMajor": 5.391509,
+         "massMinor": 5.274857,
+         "observation": 5.974644,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj7"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 14.748954,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.777405,
+         "worst": null
+        },
+        {
+         "complianceMass": 24.133366,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 29.627407,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.182621,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 2.620765,
+         "massMinor": 9.878671,
+         "observation": 21.810988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 4.840226,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.436964,
+         "observation": 26.626529,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 12.939754,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 1.232317,
+         "observation": 15.402341,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 0.691398,
+         "id": "P3",
+         "massCritical": 0.924047,
+         "massMajor": 3.302638,
+         "massMinor": 5.974774,
+         "observation": 17.164942,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.526732,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 21.562901,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.93065,
+         "id": "P1",
+         "massCritical": 0.248599,
+         "massMajor": 4.364426,
+         "massMinor": 6.202601,
+         "observation": 8.405015,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 0.590506,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 39.233141,
+         "worst": null
+        },
+        {
+         "complianceMass": 18.386715,
+         "id": "P3",
+         "massCritical": 1.787852,
+         "massMajor": 3.025834,
+         "massMinor": 6.740761,
+         "observation": 32.881565,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 16.404465,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 2.48761,
+         "massMinor": 4.802982,
+         "observation": 27.646574,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 2.829995,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 8.906352,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 28.293,
+         "id": "P0",
+         "massCritical": 0.419989,
+         "massMajor": 3.520167,
+         "massMinor": 1.257333,
+         "observation": 32.546198,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 5.964454,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.953476,
+         "massMinor": 5.129176,
+         "observation": 1.192668,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 10.932026,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 22.011078,
+         "worst": null
+        },
+        {
+         "complianceMass": 15.173581,
+         "id": "P3",
+         "massCritical": 0.385306,
+         "massMajor": 5.482311,
+         "massMinor": 3.228801,
+         "observation": 26.109662,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj8"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.920832,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.821873,
+         "observation": 30.806156,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.314068,
+         "id": "P1",
+         "massCritical": 1.244391,
+         "massMajor": 2.579019,
+         "massMinor": 7.74257,
+         "observation": 21.662382,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 7.817059,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 13.098567,
+         "worst": null
+        },
+        {
+         "complianceMass": 26.864125,
+         "id": "P1",
+         "massCritical": 0.054041,
+         "massMajor": 2.534512,
+         "massMinor": 7.690741,
+         "observation": 1.592927,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.077428,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 17.810183,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj9"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 8.13986,
+         "id": "P0",
+         "massCritical": 0.219019,
+         "massMajor": 5.397072,
+         "massMinor": 0.577212,
+         "observation": 21.812774,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.120298,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 1.899802,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.251037,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 2.136511,
+         "observation": 30.456734,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 5.408361,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.482635,
+         "massMinor": 7.729012,
+         "observation": 39.078334,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.285187,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.536148,
+         "massMinor": 4.783449,
+         "observation": 24.189838,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.105362,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 0.680328,
+         "worst": null
+        },
+        {
+         "complianceMass": 28.124271,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 12.728328,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.337169,
+         "id": "P3",
+         "massCritical": 0.461344,
+         "massMajor": 4.798019,
+         "massMinor": 3.030968,
+         "observation": 23.481127,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.531486,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.3088,
+         "massMinor": 9.99466,
+         "observation": 11.820086,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 18.37536,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.048786,
+         "massMinor": 0.136412,
+         "observation": 29.512988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.834866,
+         "id": "P2",
+         "massCritical": 0.862066,
+         "massMajor": 3.184861,
+         "massMinor": 7.362332,
+         "observation": 36.532017,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 29.984108,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.042358,
+         "massMinor": 5.448463,
+         "observation": 21.312231,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 20.755245,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.332132,
+         "massMinor": 2.443494,
+         "observation": 20.55501,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.488505,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 7.773234,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.361171,
+         "id": "P2",
+         "massCritical": 0.645384,
+         "massMajor": 5.016964,
+         "massMinor": 6.905025,
+         "observation": 34.455343,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 27.318116,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.821868,
+         "observation": 31.430503,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 7.42843,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 6.272707,
+         "observation": 7.471239,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.713198,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.080906,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj10"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.204628,
+         "id": "P0",
+         "massCritical": 0.007396,
+         "massMajor": 4.447347,
+         "massMinor": 3.769401,
+         "observation": 5.980109,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.950609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.311655,
+         "observation": 33.418432,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 24.253311,
+         "id": "P2",
+         "massCritical": 0.837723,
+         "massMajor": 0.015086,
+         "massMinor": 3.885999,
+         "observation": 12.886108,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.748141,
+         "id": "P3",
+         "massCritical": 1.622983,
+         "massMajor": 3.526273,
+         "massMinor": 4.358754,
+         "observation": 34.361526,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 13.218936,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 1.525917,
+         "massMinor": 5.895382,
+         "observation": 33.85811,
+         "worst": "major"
+        }
+       ]
+      }
+     ],
+     "id": "proj11"
+    }
+   ]
+  },
+  {
+   "expected": {
+    "proj0": {
+     "dimensions": {
+      "clean-architecture": 8.9,
+      "reliability": 4.3
+     },
+     "overall": 6.6,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 7.0,
+      "clean-architecture/P3": 8.4,
+      "clean-architecture/P4": 5.0,
+      "clean-architecture/P5": 10.0,
+      "reliability/P0": 4.3
+     }
+    },
+    "proj1": {
+     "dimensions": {
+      "reliability": 7.1,
+      "security": 8.3
+     },
+     "overall": 7.7,
+     "principles": {
+      "reliability/P0": 9.2,
+      "reliability/P1": 6.2,
+      "reliability/P2": 8.3,
+      "reliability/P3": 10.0,
+      "reliability/P4": 4.9,
+      "reliability/P5": 5.2,
+      "security/P0": 10.0,
+      "security/P1": 6.6
+     }
+    },
+    "proj10": {
+     "dimensions": {
+      "clean-architecture": 6.1,
+      "maintainability": 5.7,
+      "reliability": 7.6,
+      "security": 6.8
+     },
+     "overall": 6.6,
+     "principles": {
+      "clean-architecture/P0": 4.5,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 10.0,
+      "clean-architecture/P3": 5.4,
+      "maintainability/P0": 4.1,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.5,
+      "maintainability/P3": 3.5,
+      "reliability/P0": 6.0,
+      "reliability/P1": 10.0,
+      "reliability/P2": 5.1,
+      "reliability/P3": 9.8,
+      "reliability/P4": 8.7,
+      "reliability/P5": 10.0,
+      "security/P0": 4.1,
+      "security/P1": 8.2,
+      "security/P2": 5.6,
+      "security/P3": 8.6
+     }
+    },
+    "proj11": {
+     "dimensions": {
+      "clean-architecture": 6.5
+     },
+     "overall": 6.5,
+     "principles": {
+      "clean-architecture/P0": 4.0,
+      "clean-architecture/P1": 8.0,
+      "clean-architecture/P2": 8.2,
+      "clean-architecture/P3": 4.2,
+      "clean-architecture/P4": 7.3
+     }
+    },
+    "proj2": {
+     "dimensions": {
+      "reliability": 8.7
+     },
+     "overall": 8.7,
+     "principles": {}
+    },
+    "proj3": {
+     "dimensions": {
+      "clean-architecture": 8.9,
+      "maintainability": 7.5,
+      "security": 5.3
+     },
+     "overall": 7.2,
+     "principles": {
+      "maintainability/P0": 5.5,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 8.1,
+      "maintainability/P3": 3.5,
+      "maintainability/P4": 10.0,
+      "security/P0": 5.3
+     }
+    },
+    "proj4": {
+     "dimensions": {
+      "reliability": 6.0
+     },
+     "overall": 6.0,
+     "principles": {
+      "reliability/P0": 8.8,
+      "reliability/P1": 4.6,
+      "reliability/P2": 5.1,
+      "reliability/P3": 6.2
+     }
+    },
+    "proj5": {
+     "dimensions": {
+      "security": 4.3
+     },
+     "overall": 4.3,
+     "principles": {}
+    },
+    "proj6": {
+     "dimensions": {
+      "clean-architecture": 7.5,
+      "maintainability": 7.4,
+      "reliability": 4.8,
+      "security": 4.1
+     },
+     "overall": 5.9,
+     "principles": {
+      "clean-architecture/P0": 8.9,
+      "clean-architecture/P1": 9.0,
+      "clean-architecture/P2": 5.5,
+      "clean-architecture/P3": 4.1,
+      "clean-architecture/P4": 4.3,
+      "clean-architecture/P5": 8.8,
+      "maintainability/P0": 6.0,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.3,
+      "reliability/P0": 4.8,
+      "security/P0": 4.1
+     }
+    },
+    "proj7": {
+     "dimensions": {
+      "clean-architecture": 10.0,
+      "security": 5.3
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "security/P0": 8.1,
+      "security/P1": 3.8,
+      "security/P2": 3.9,
+      "security/P3": 6.4,
+      "security/P4": 5.3
+     }
+    },
+    "proj8": {
+     "dimensions": {
+      "clean-architecture": 7.0,
+      "maintainability": 6.8,
+      "reliability": 10.0,
+      "security": 7.7
+     },
+     "overall": 7.9,
+     "principles": {
+      "clean-architecture/P0": 6.6,
+      "clean-architecture/P1": 8.1,
+      "clean-architecture/P2": 9.7,
+      "clean-architecture/P3": 3.5,
+      "maintainability/P0": 6.6,
+      "maintainability/P1": 7.3,
+      "maintainability/P2": 10.0,
+      "maintainability/P3": 4.3,
+      "reliability/P0": 10.0,
+      "reliability/P1": 10.0,
+      "security/P0": 10.0,
+      "security/P1": 5.6,
+      "security/P2": 10.0,
+      "security/P3": 4.2,
+      "security/P4": 6.8,
+      "security/P5": 10.0
+     }
+    },
+    "proj9": {
+     "dimensions": {
+      "reliability": 6.5,
+      "security": 9.9
+     },
+     "overall": 8.2,
+     "principles": {
+      "reliability/P0": 7.4,
+      "reliability/P1": 5.2,
+      "security/P0": 10.0,
+      "security/P1": 7.0,
+      "security/P2": 10.0
+     }
+    }
+   },
+   "params": {
+    "baseK": 0.1,
+    "ceilScale": 0.5,
+    "dimensionWeights": {
+     "accessibility": 1.0,
+     "clean-architecture": 1.0,
+     "domain-driven-design": 1.0,
+     "flexibility": 1.0,
+     "maintainability": 1.0,
+     "performance": 1.0,
+     "reliability": 1.0,
+     "security": 1.0,
+     "usability": 1.0
+    },
+    "dimensionWeightsEnabled": true,
+    "floorMajor": 3.0,
+    "floorMinor": 5.0,
+    "gradeThresholds": [
+     [
+      9.0,
+      "Exemplary"
+     ],
+     [
+      7.0,
+      "Good"
+     ],
+     [
+      5.0,
+      "Adequate"
+     ],
+     [
+      3.0,
+      "Poor"
+     ]
+    ],
+    "liftCompress": 2.2,
+    "severityWeight": {
+     "critical": 6.0,
+     "major": 3.0,
+     "minor": 0.5
+    }
+   },
+   "projects": [
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.872332,
+         "id": "P0",
+         "massCritical": 1.220081,
+         "massMajor": 3.151027,
+         "massMinor": 4.225264,
+         "observation": 26.277956,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.918973,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 31.6936,
+         "worst": null
+        },
+        {
+         "complianceMass": 20.598975,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 36.29773,
+         "worst": null
+        },
+        {
+         "complianceMass": 19.751513,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 3.310653,
+         "massMinor": 0.613957,
+         "observation": 3.139348,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.430866,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.620218,
+         "massMinor": 3.908458,
+         "observation": 2.295755,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 19.37899,
+         "id": "P4",
+         "massCritical": 1.075293,
+         "massMajor": 2.551231,
+         "massMinor": 8.861524,
+         "observation": 26.577127,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.72478,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 28.996424,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj0"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 0.551142,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 37.819482,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.322113,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.493183,
+         "massMinor": 7.117793,
+         "observation": 39.772806,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.563288,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.586458,
+         "massMinor": 0.322587,
+         "observation": 39.533917,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 13.976802,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.478791,
+         "massMinor": 7.0014,
+         "observation": 0.940735,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.04869,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.235138,
+         "massMinor": 7.197164,
+         "observation": 10.144751,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 15.274544,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 16.080816,
+         "worst": null
+        },
+        {
+         "complianceMass": 17.271143,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 4.485844,
+         "massMinor": 8.703819,
+         "observation": 35.994918,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.877664,
+         "id": "P5",
+         "massCritical": 1.41853,
+         "massMajor": 2.531433,
+         "massMinor": 9.536557,
+         "observation": 32.210761,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj1"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": 8.7,
+       "principles": []
+      }
+     ],
+     "id": "proj2"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.79589,
+         "id": "P0",
+         "massCritical": 0.363826,
+         "massMajor": 3.000647,
+         "massMinor": 2.971933,
+         "observation": 35.087709,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": 8.9,
+       "principles": []
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.805781,
+         "id": "P0",
+         "massCritical": 1.125643,
+         "massMajor": 1.526389,
+         "massMinor": 3.120871,
+         "observation": 32.864918,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.513064,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 25.50931,
+         "worst": null
+        },
+        {
+         "complianceMass": 10.054617,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 9.931417,
+         "observation": 26.956902,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.295386,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.048549,
+         "massMinor": 9.048819,
+         "observation": 24.696244,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 1.611458,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 34.319349,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj3"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.71952,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.567941,
+         "observation": 22.95226,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.587492,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.65057,
+         "massMinor": 4.611566,
+         "observation": 31.78687,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.073555,
+         "id": "P2",
+         "massCritical": 1.348595,
+         "massMajor": 4.120212,
+         "massMinor": 1.19357,
+         "observation": 21.420728,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.089695,
+         "id": "P3",
+         "massCritical": 0.802819,
+         "massMajor": 0.339278,
+         "massMinor": 2.157246,
+         "observation": 2.873792,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj4"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": 4.3,
+       "principles": []
+      }
+     ],
+     "id": "proj5"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 5.08928,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.213982,
+         "massMinor": 5.654594,
+         "observation": 29.682373,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.847347,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.451518,
+         "massMinor": 3.048459,
+         "observation": 1.867726,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 6.286281,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.557418,
+         "massMinor": 8.470978,
+         "observation": 23.191313,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.772609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 3.142119,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.563832,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.52464,
+         "observation": 11.856753,
+         "worst": "minor"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.582893,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.786559,
+         "observation": 33.179623,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 27.712331,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 5.847306,
+         "observation": 7.793116,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 26.922375,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 4.803802,
+         "massMinor": 8.483389,
+         "observation": 9.529982,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.152835,
+         "id": "P3",
+         "massCritical": 0.655789,
+         "massMajor": 4.058627,
+         "massMinor": 4.809046,
+         "observation": 14.448928,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 12.125306,
+         "id": "P4",
+         "massCritical": 1.16359,
+         "massMajor": 3.968464,
+         "massMinor": 0.446524,
+         "observation": 4.16112,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.270376,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 8.129089,
+         "observation": 15.533269,
+         "worst": "minor"
+        }
+       ]
+      }
+     ],
+     "id": "proj6"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.393198,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 18.826977,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 18.559153,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.807252,
+         "massMinor": 2.095187,
+         "observation": 29.646291,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 5.769804,
+         "id": "P1",
+         "massCritical": 1.562193,
+         "massMajor": 2.44298,
+         "massMinor": 3.869561,
+         "observation": 19.157996,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 6.209456,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 5.050575,
+         "massMinor": 5.149764,
+         "observation": 38.900177,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.947361,
+         "id": "P3",
+         "massCritical": 0.031299,
+         "massMajor": 3.858928,
+         "massMinor": 1.737789,
+         "observation": 4.330645,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.048056,
+         "id": "P4",
+         "massCritical": 0.032499,
+         "massMajor": 5.391509,
+         "massMinor": 5.274857,
+         "observation": 5.974644,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj7"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 14.748954,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.777405,
+         "worst": null
+        },
+        {
+         "complianceMass": 24.133366,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 29.627407,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.182621,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 2.620765,
+         "massMinor": 9.878671,
+         "observation": 21.810988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 4.840226,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.436964,
+         "observation": 26.626529,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 12.939754,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 1.232317,
+         "observation": 15.402341,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 0.691398,
+         "id": "P3",
+         "massCritical": 0.924047,
+         "massMajor": 3.302638,
+         "massMinor": 5.974774,
+         "observation": 17.164942,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.526732,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 21.562901,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.93065,
+         "id": "P1",
+         "massCritical": 0.248599,
+         "massMajor": 4.364426,
+         "massMinor": 6.202601,
+         "observation": 8.405015,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 0.590506,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 39.233141,
+         "worst": null
+        },
+        {
+         "complianceMass": 18.386715,
+         "id": "P3",
+         "massCritical": 1.787852,
+         "massMajor": 3.025834,
+         "massMinor": 6.740761,
+         "observation": 32.881565,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 16.404465,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 2.48761,
+         "massMinor": 4.802982,
+         "observation": 27.646574,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 2.829995,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 8.906352,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 28.293,
+         "id": "P0",
+         "massCritical": 0.419989,
+         "massMajor": 3.520167,
+         "massMinor": 1.257333,
+         "observation": 32.546198,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 5.964454,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.953476,
+         "massMinor": 5.129176,
+         "observation": 1.192668,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 10.932026,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 22.011078,
+         "worst": null
+        },
+        {
+         "complianceMass": 15.173581,
+         "id": "P3",
+         "massCritical": 0.385306,
+         "massMajor": 5.482311,
+         "massMinor": 3.228801,
+         "observation": 26.109662,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj8"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.920832,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.821873,
+         "observation": 30.806156,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.314068,
+         "id": "P1",
+         "massCritical": 1.244391,
+         "massMajor": 2.579019,
+         "massMinor": 7.74257,
+         "observation": 21.662382,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 7.817059,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 13.098567,
+         "worst": null
+        },
+        {
+         "complianceMass": 26.864125,
+         "id": "P1",
+         "massCritical": 0.054041,
+         "massMajor": 2.534512,
+         "massMinor": 7.690741,
+         "observation": 1.592927,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.077428,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 17.810183,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj9"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 8.13986,
+         "id": "P0",
+         "massCritical": 0.219019,
+         "massMajor": 5.397072,
+         "massMinor": 0.577212,
+         "observation": 21.812774,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.120298,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 1.899802,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.251037,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 2.136511,
+         "observation": 30.456734,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 5.408361,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.482635,
+         "massMinor": 7.729012,
+         "observation": 39.078334,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.285187,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.536148,
+         "massMinor": 4.783449,
+         "observation": 24.189838,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.105362,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 0.680328,
+         "worst": null
+        },
+        {
+         "complianceMass": 28.124271,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 12.728328,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.337169,
+         "id": "P3",
+         "massCritical": 0.461344,
+         "massMajor": 4.798019,
+         "massMinor": 3.030968,
+         "observation": 23.481127,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.531486,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.3088,
+         "massMinor": 9.99466,
+         "observation": 11.820086,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 18.37536,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.048786,
+         "massMinor": 0.136412,
+         "observation": 29.512988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.834866,
+         "id": "P2",
+         "massCritical": 0.862066,
+         "massMajor": 3.184861,
+         "massMinor": 7.362332,
+         "observation": 36.532017,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 29.984108,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.042358,
+         "massMinor": 5.448463,
+         "observation": 21.312231,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 20.755245,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.332132,
+         "massMinor": 2.443494,
+         "observation": 20.55501,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.488505,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 7.773234,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.361171,
+         "id": "P2",
+         "massCritical": 0.645384,
+         "massMajor": 5.016964,
+         "massMinor": 6.905025,
+         "observation": 34.455343,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 27.318116,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.821868,
+         "observation": 31.430503,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 7.42843,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 6.272707,
+         "observation": 7.471239,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.713198,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.080906,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj10"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.204628,
+         "id": "P0",
+         "massCritical": 0.007396,
+         "massMajor": 4.447347,
+         "massMinor": 3.769401,
+         "observation": 5.980109,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.950609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.311655,
+         "observation": 33.418432,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 24.253311,
+         "id": "P2",
+         "massCritical": 0.837723,
+         "massMajor": 0.015086,
+         "massMinor": 3.885999,
+         "observation": 12.886108,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.748141,
+         "id": "P3",
+         "massCritical": 1.622983,
+         "massMajor": 3.526273,
+         "massMinor": 4.358754,
+         "observation": 34.361526,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 13.218936,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 1.525917,
+         "massMinor": 5.895382,
+         "observation": 33.85811,
+         "worst": "major"
+        }
+       ]
+      }
+     ],
+     "id": "proj11"
+    }
+   ]
+  },
+  {
+   "expected": {
+    "proj0": {
+     "dimensions": {
+      "clean-architecture": 8.8,
+      "reliability": 4.8
+     },
+     "overall": 6.8,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 5.9,
+      "clean-architecture/P3": 6.7,
+      "clean-architecture/P4": 4.9,
+      "clean-architecture/P5": 10.0,
+      "reliability/P0": 4.8
+     }
+    },
+    "proj1": {
+     "dimensions": {
+      "reliability": 6.7,
+      "security": 7.6
+     },
+     "overall": 7.2,
+     "principles": {
+      "reliability/P0": 8.4,
+      "reliability/P1": 5.9,
+      "reliability/P2": 7.6,
+      "reliability/P3": 10.0,
+      "reliability/P4": 5.0,
+      "reliability/P5": 4.7,
+      "security/P0": 10.0,
+      "security/P1": 5.4
+     }
+    },
+    "proj10": {
+     "dimensions": {
+      "clean-architecture": 6.1,
+      "maintainability": 6.3,
+      "reliability": 7.2,
+      "security": 5.9
+     },
+     "overall": 6.4,
+     "principles": {
+      "clean-architecture/P0": 5.1,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 10.0,
+      "clean-architecture/P3": 4.8,
+      "maintainability/P0": 4.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.1,
+      "maintainability/P3": 4.7,
+      "reliability/P0": 5.3,
+      "reliability/P1": 10.0,
+      "reliability/P2": 4.5,
+      "reliability/P3": 9.6,
+      "reliability/P4": 8.1,
+      "reliability/P5": 10.0,
+      "security/P0": 5.3,
+      "security/P1": 6.7,
+      "security/P2": 4.9,
+      "security/P3": 7.0
+     }
+    },
+    "proj11": {
+     "dimensions": {
+      "clean-architecture": 6.2
+     },
+     "overall": 6.2,
+     "principles": {
+      "clean-architecture/P0": 5.2,
+      "clean-architecture/P1": 7.9,
+      "clean-architecture/P2": 6.6,
+      "clean-architecture/P3": 4.4,
+      "clean-architecture/P4": 6.5
+     }
+    },
+    "proj2": {
+     "dimensions": {
+      "reliability": 8.7
+     },
+     "overall": 8.7,
+     "principles": {}
+    },
+    "proj3": {
+     "dimensions": {
+      "clean-architecture": 8.9,
+      "maintainability": 7.6,
+      "security": 5.5
+     },
+     "overall": 7.3,
+     "principles": {
+      "maintainability/P0": 5.5,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 7.5,
+      "maintainability/P3": 4.8,
+      "maintainability/P4": 10.0,
+      "security/P0": 5.5
+     }
+    },
+    "proj4": {
+     "dimensions": {
+      "reliability": 6.2
+     },
+     "overall": 6.2,
+     "principles": {
+      "reliability/P0": 8.7,
+      "reliability/P1": 5.5,
+      "reliability/P2": 4.5,
+      "reliability/P3": 6.6
+     }
+    },
+    "proj5": {
+     "dimensions": {
+      "security": 4.3
+     },
+     "overall": 4.3,
+     "principles": {}
+    },
+    "proj6": {
+     "dimensions": {
+      "clean-architecture": 6.8,
+      "maintainability": 7.3,
+      "reliability": 5.6,
+      "security": 5.2
+     },
+     "overall": 6.2,
+     "principles": {
+      "clean-architecture/P0": 7.8,
+      "clean-architecture/P1": 8.2,
+      "clean-architecture/P2": 4.9,
+      "clean-architecture/P3": 4.8,
+      "clean-architecture/P4": 4.7,
+      "clean-architecture/P5": 7.8,
+      "maintainability/P0": 6.3,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 8.7,
+      "reliability/P0": 5.6,
+      "security/P0": 5.2
+     }
+    },
+    "proj7": {
+     "dimensions": {
+      "clean-architecture": 10.0,
+      "security": 5.4
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "security/P0": 6.7,
+      "security/P1": 4.8,
+      "security/P2": 4.9,
+      "security/P3": 5.5,
+      "security/P4": 4.8
+     }
+    },
+    "proj8": {
+     "dimensions": {
+      "clean-architecture": 6.9,
+      "maintainability": 6.4,
+      "reliability": 10.0,
+      "security": 7.6
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 5.6,
+      "clean-architecture/P1": 7.9,
+      "clean-architecture/P2": 9.5,
+      "clean-architecture/P3": 4.9,
+      "maintainability/P0": 5.3,
+      "maintainability/P1": 7.1,
+      "maintainability/P2": 10.0,
+      "maintainability/P3": 4.6,
+      "reliability/P0": 10.0,
+      "reliability/P1": 10.0,
+      "security/P0": 10.0,
+      "security/P1": 4.9,
+      "security/P2": 10.0,
+      "security/P3": 4.4,
+      "security/P4": 6.0,
+      "security/P5": 10.0
+     }
+    },
+    "proj9": {
+     "dimensions": {
+      "reliability": 6.6,
+      "security": 9.8
+     },
+     "overall": 8.2,
+     "principles": {
+      "reliability/P0": 7.8,
+      "reliability/P1": 4.8,
+      "security/P0": 10.0,
+      "security/P1": 5.7,
+      "security/P2": 10.0
+     }
+    }
+   },
+   "params": {
+    "baseK": 0.08,
+    "ceilScale": 1.4,
+    "dimensionWeights": {
+     "accessibility": 1.0,
+     "clean-architecture": 1.0,
+     "domain-driven-design": 1.0,
+     "flexibility": 1.0,
+     "maintainability": 1.0,
+     "performance": 1.0,
+     "reliability": 1.0,
+     "security": 1.0,
+     "usability": 1.0
+    },
+    "dimensionWeightsEnabled": true,
+    "floorMajor": 2.0,
+    "floorMinor": 6.0,
+    "gradeThresholds": [
+     [
+      9.0,
+      "Exemplary"
+     ],
+     [
+      7.0,
+      "Good"
+     ],
+     [
+      5.0,
+      "Adequate"
+     ],
+     [
+      3.0,
+      "Poor"
+     ]
+    ],
+    "liftCompress": 1.2,
+    "severityWeight": {
+     "critical": 4.0,
+     "major": 2.0,
+     "minor": 0.25
+    }
+   },
+   "projects": [
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.872332,
+         "id": "P0",
+         "massCritical": 1.220081,
+         "massMajor": 3.151027,
+         "massMinor": 4.225264,
+         "observation": 26.277956,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.918973,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 31.6936,
+         "worst": null
+        },
+        {
+         "complianceMass": 20.598975,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 36.29773,
+         "worst": null
+        },
+        {
+         "complianceMass": 19.751513,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 3.310653,
+         "massMinor": 0.613957,
+         "observation": 3.139348,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.430866,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.620218,
+         "massMinor": 3.908458,
+         "observation": 2.295755,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 19.37899,
+         "id": "P4",
+         "massCritical": 1.075293,
+         "massMajor": 2.551231,
+         "massMinor": 8.861524,
+         "observation": 26.577127,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.72478,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 28.996424,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj0"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 0.551142,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 37.819482,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.322113,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.493183,
+         "massMinor": 7.117793,
+         "observation": 39.772806,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.563288,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.586458,
+         "massMinor": 0.322587,
+         "observation": 39.533917,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 13.976802,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.478791,
+         "massMinor": 7.0014,
+         "observation": 0.940735,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.04869,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.235138,
+         "massMinor": 7.197164,
+         "observation": 10.144751,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 15.274544,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 16.080816,
+         "worst": null
+        },
+        {
+         "complianceMass": 17.271143,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 4.485844,
+         "massMinor": 8.703819,
+         "observation": 35.994918,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.877664,
+         "id": "P5",
+         "massCritical": 1.41853,
+         "massMajor": 2.531433,
+         "massMinor": 9.536557,
+         "observation": 32.210761,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj1"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": 8.7,
+       "principles": []
+      }
+     ],
+     "id": "proj2"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.79589,
+         "id": "P0",
+         "massCritical": 0.363826,
+         "massMajor": 3.000647,
+         "massMinor": 2.971933,
+         "observation": 35.087709,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": 8.9,
+       "principles": []
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.805781,
+         "id": "P0",
+         "massCritical": 1.125643,
+         "massMajor": 1.526389,
+         "massMinor": 3.120871,
+         "observation": 32.864918,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.513064,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 25.50931,
+         "worst": null
+        },
+        {
+         "complianceMass": 10.054617,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 9.931417,
+         "observation": 26.956902,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.295386,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.048549,
+         "massMinor": 9.048819,
+         "observation": 24.696244,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 1.611458,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 34.319349,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj3"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.71952,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.567941,
+         "observation": 22.95226,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.587492,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.65057,
+         "massMinor": 4.611566,
+         "observation": 31.78687,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.073555,
+         "id": "P2",
+         "massCritical": 1.348595,
+         "massMajor": 4.120212,
+         "massMinor": 1.19357,
+         "observation": 21.420728,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.089695,
+         "id": "P3",
+         "massCritical": 0.802819,
+         "massMajor": 0.339278,
+         "massMinor": 2.157246,
+         "observation": 2.873792,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj4"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": 4.3,
+       "principles": []
+      }
+     ],
+     "id": "proj5"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 5.08928,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.213982,
+         "massMinor": 5.654594,
+         "observation": 29.682373,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.847347,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.451518,
+         "massMinor": 3.048459,
+         "observation": 1.867726,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 6.286281,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.557418,
+         "massMinor": 8.470978,
+         "observation": 23.191313,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.772609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 3.142119,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.563832,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.52464,
+         "observation": 11.856753,
+         "worst": "minor"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.582893,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.786559,
+         "observation": 33.179623,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 27.712331,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 5.847306,
+         "observation": 7.793116,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 26.922375,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 4.803802,
+         "massMinor": 8.483389,
+         "observation": 9.529982,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.152835,
+         "id": "P3",
+         "massCritical": 0.655789,
+         "massMajor": 4.058627,
+         "massMinor": 4.809046,
+         "observation": 14.448928,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 12.125306,
+         "id": "P4",
+         "massCritical": 1.16359,
+         "massMajor": 3.968464,
+         "massMinor": 0.446524,
+         "observation": 4.16112,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.270376,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 8.129089,
+         "observation": 15.533269,
+         "worst": "minor"
+        }
+       ]
+      }
+     ],
+     "id": "proj6"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.393198,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 18.826977,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 18.559153,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.807252,
+         "massMinor": 2.095187,
+         "observation": 29.646291,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 5.769804,
+         "id": "P1",
+         "massCritical": 1.562193,
+         "massMajor": 2.44298,
+         "massMinor": 3.869561,
+         "observation": 19.157996,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 6.209456,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 5.050575,
+         "massMinor": 5.149764,
+         "observation": 38.900177,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.947361,
+         "id": "P3",
+         "massCritical": 0.031299,
+         "massMajor": 3.858928,
+         "massMinor": 1.737789,
+         "observation": 4.330645,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.048056,
+         "id": "P4",
+         "massCritical": 0.032499,
+         "massMajor": 5.391509,
+         "massMinor": 5.274857,
+         "observation": 5.974644,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj7"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 14.748954,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.777405,
+         "worst": null
+        },
+        {
+         "complianceMass": 24.133366,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 29.627407,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.182621,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 2.620765,
+         "massMinor": 9.878671,
+         "observation": 21.810988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 4.840226,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.436964,
+         "observation": 26.626529,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 12.939754,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 1.232317,
+         "observation": 15.402341,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 0.691398,
+         "id": "P3",
+         "massCritical": 0.924047,
+         "massMajor": 3.302638,
+         "massMinor": 5.974774,
+         "observation": 17.164942,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.526732,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 21.562901,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.93065,
+         "id": "P1",
+         "massCritical": 0.248599,
+         "massMajor": 4.364426,
+         "massMinor": 6.202601,
+         "observation": 8.405015,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 0.590506,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 39.233141,
+         "worst": null
+        },
+        {
+         "complianceMass": 18.386715,
+         "id": "P3",
+         "massCritical": 1.787852,
+         "massMajor": 3.025834,
+         "massMinor": 6.740761,
+         "observation": 32.881565,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 16.404465,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 2.48761,
+         "massMinor": 4.802982,
+         "observation": 27.646574,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 2.829995,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 8.906352,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 28.293,
+         "id": "P0",
+         "massCritical": 0.419989,
+         "massMajor": 3.520167,
+         "massMinor": 1.257333,
+         "observation": 32.546198,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 5.964454,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.953476,
+         "massMinor": 5.129176,
+         "observation": 1.192668,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 10.932026,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 22.011078,
+         "worst": null
+        },
+        {
+         "complianceMass": 15.173581,
+         "id": "P3",
+         "massCritical": 0.385306,
+         "massMajor": 5.482311,
+         "massMinor": 3.228801,
+         "observation": 26.109662,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj8"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.920832,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.821873,
+         "observation": 30.806156,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.314068,
+         "id": "P1",
+         "massCritical": 1.244391,
+         "massMajor": 2.579019,
+         "massMinor": 7.74257,
+         "observation": 21.662382,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 7.817059,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 13.098567,
+         "worst": null
+        },
+        {
+         "complianceMass": 26.864125,
+         "id": "P1",
+         "massCritical": 0.054041,
+         "massMajor": 2.534512,
+         "massMinor": 7.690741,
+         "observation": 1.592927,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.077428,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 17.810183,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj9"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 8.13986,
+         "id": "P0",
+         "massCritical": 0.219019,
+         "massMajor": 5.397072,
+         "massMinor": 0.577212,
+         "observation": 21.812774,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.120298,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 1.899802,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.251037,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 2.136511,
+         "observation": 30.456734,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 5.408361,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.482635,
+         "massMinor": 7.729012,
+         "observation": 39.078334,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.285187,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.536148,
+         "massMinor": 4.783449,
+         "observation": 24.189838,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.105362,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 0.680328,
+         "worst": null
+        },
+        {
+         "complianceMass": 28.124271,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 12.728328,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.337169,
+         "id": "P3",
+         "massCritical": 0.461344,
+         "massMajor": 4.798019,
+         "massMinor": 3.030968,
+         "observation": 23.481127,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.531486,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.3088,
+         "massMinor": 9.99466,
+         "observation": 11.820086,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 18.37536,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.048786,
+         "massMinor": 0.136412,
+         "observation": 29.512988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.834866,
+         "id": "P2",
+         "massCritical": 0.862066,
+         "massMajor": 3.184861,
+         "massMinor": 7.362332,
+         "observation": 36.532017,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 29.984108,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.042358,
+         "massMinor": 5.448463,
+         "observation": 21.312231,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 20.755245,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.332132,
+         "massMinor": 2.443494,
+         "observation": 20.55501,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.488505,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 7.773234,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.361171,
+         "id": "P2",
+         "massCritical": 0.645384,
+         "massMajor": 5.016964,
+         "massMinor": 6.905025,
+         "observation": 34.455343,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 27.318116,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.821868,
+         "observation": 31.430503,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 7.42843,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 6.272707,
+         "observation": 7.471239,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.713198,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.080906,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj10"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.204628,
+         "id": "P0",
+         "massCritical": 0.007396,
+         "massMajor": 4.447347,
+         "massMinor": 3.769401,
+         "observation": 5.980109,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.950609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.311655,
+         "observation": 33.418432,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 24.253311,
+         "id": "P2",
+         "massCritical": 0.837723,
+         "massMajor": 0.015086,
+         "massMinor": 3.885999,
+         "observation": 12.886108,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.748141,
+         "id": "P3",
+         "massCritical": 1.622983,
+         "massMajor": 3.526273,
+         "massMinor": 4.358754,
+         "observation": 34.361526,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 13.218936,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 1.525917,
+         "massMinor": 5.895382,
+         "observation": 33.85811,
+         "worst": "major"
+        }
+       ]
+      }
+     ],
+     "id": "proj11"
+    }
+   ]
+  },
+  {
+   "expected": {
+    "proj0": {
+     "dimensions": {
+      "clean-architecture": 9.3,
+      "reliability": 6.1
+     },
+     "overall": 8.4,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 8.3,
+      "clean-architecture/P3": 8.8,
+      "clean-architecture/P4": 6.9,
+      "clean-architecture/P5": 10.0,
+      "reliability/P0": 6.1
+     }
+    },
+    "proj1": {
+     "dimensions": {
+      "reliability": 8.2,
+      "security": 9.1
+     },
+     "overall": 9.0,
+     "principles": {
+      "reliability/P0": 9.4,
+      "reliability/P1": 8.0,
+      "reliability/P2": 9.1,
+      "reliability/P3": 10.0,
+      "reliability/P4": 6.9,
+      "reliability/P5": 7.1,
+      "security/P0": 10.0,
+      "security/P1": 8.2
+     }
+    },
+    "proj10": {
+     "dimensions": {
+      "clean-architecture": 7.5,
+      "maintainability": 6.9,
+      "reliability": 8.5,
+      "security": 8.0
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 6.4,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 10.0,
+      "clean-architecture/P3": 7.1,
+      "maintainability/P0": 5.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.7,
+      "maintainability/P3": 5.3,
+      "reliability/P0": 7.6,
+      "reliability/P1": 10.0,
+      "reliability/P2": 6.9,
+      "reliability/P3": 9.9,
+      "reliability/P4": 9.3,
+      "reliability/P5": 10.0,
+      "security/P0": 5.9,
+      "security/P1": 8.8,
+      "security/P2": 7.4,
+      "security/P3": 8.9
+     }
+    },
+    "proj11": {
+     "dimensions": {
+      "clean-architecture": 8.0
+     },
+     "overall": 8.0,
+     "principles": {
+      "clean-architecture/P0": 5.7,
+      "clean-architecture/P1": 9.3,
+      "clean-architecture/P2": 8.8,
+      "clean-architecture/P3": 6.0,
+      "clean-architecture/P4": 8.7
+     }
+    },
+    "proj2": {
+     "dimensions": {
+      "reliability": 8.7
+     },
+     "overall": 8.7,
+     "principles": {}
+    },
+    "proj3": {
+     "dimensions": {
+      "clean-architecture": 8.9,
+      "maintainability": 8.4,
+      "security": 7.1
+     },
+     "overall": 7.8,
+     "principles": {
+      "maintainability/P0": 7.2,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.1,
+      "maintainability/P3": 5.3,
+      "maintainability/P4": 10.0,
+      "security/P0": 7.1
+     }
+    },
+    "proj4": {
+     "dimensions": {
+      "reliability": 7.5
+     },
+     "overall": 7.5,
+     "principles": {
+      "reliability/P0": 9.5,
+      "reliability/P1": 6.4,
+      "reliability/P2": 6.8,
+      "reliability/P3": 7.8
+     }
+    },
+    "proj5": {
+     "dimensions": {
+      "security": 4.3
+     },
+     "overall": 4.3,
+     "principles": {}
+    },
+    "proj6": {
+     "dimensions": {
+      "clean-architecture": 8.3,
+      "maintainability": 8.5,
+      "reliability": 6.6,
+      "security": 5.7
+     },
+     "overall": 6.9,
+     "principles": {
+      "clean-architecture/P0": 9.2,
+      "clean-architecture/P1": 9.4,
+      "clean-architecture/P2": 7.3,
+      "clean-architecture/P3": 5.9,
+      "clean-architecture/P4": 6.0,
+      "clean-architecture/P5": 9.2,
+      "maintainability/P0": 7.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.5,
+      "reliability/P0": 6.6,
+      "security/P0": 5.7
+     }
+    },
+    "proj7": {
+     "dimensions": {
+      "clean-architecture": 10.0,
+      "security": 6.8
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "security/P0": 8.8,
+      "security/P1": 5.5,
+      "security/P2": 5.7,
+      "security/P3": 7.9,
+      "security/P4": 7.1
+     }
+    },
+    "proj8": {
+     "dimensions": {
+      "clean-architecture": 8.2,
+      "maintainability": 8.0,
+      "reliability": 10.0,
+      "security": 8.6
+     },
+     "overall": 8.5,
+     "principles": {
+      "clean-architecture/P0": 8.3,
+      "clean-architecture/P1": 9.2,
+      "clean-architecture/P2": 9.8,
+      "clean-architecture/P3": 5.2,
+      "maintainability/P0": 8.1,
+      "maintainability/P1": 8.8,
+      "maintainability/P2": 10.0,
+      "maintainability/P3": 6.1,
+      "reliability/P0": 10.0,
+      "reliability/P1": 10.0,
+      "security/P0": 10.0,
+      "security/P1": 7.4,
+      "security/P2": 10.0,
+      "security/P3": 6.0,
+      "security/P4": 8.3,
+      "security/P5": 10.0
+     }
+    },
+    "proj9": {
+     "dimensions": {
+      "reliability": 8.1,
+      "security": 9.9
+     },
+     "overall": 9.7,
+     "principles": {
+      "reliability/P0": 8.9,
+      "reliability/P1": 7.0,
+      "security/P0": 10.0,
+      "security/P1": 8.5,
+      "security/P2": 10.0
+     }
+    }
+   },
+   "params": {
+    "baseK": 0.08,
+    "ceilScale": 0.5,
+    "dimensionWeights": {
+     "accessibility": 1.0,
+     "clean-architecture": 1.0,
+     "domain-driven-design": 1.0,
+     "flexibility": 1.0,
+     "maintainability": 1.0,
+     "performance": 1.0,
+     "reliability": 0.4,
+     "security": 2.5,
+     "usability": 1.0
+    },
+    "dimensionWeightsEnabled": true,
+    "floorMajor": 3.0,
+    "floorMinor": 5.0,
+    "gradeThresholds": [
+     [
+      9.5,
+      "Exemplary"
+     ],
+     [
+      8.0,
+      "Good"
+     ],
+     [
+      5.0,
+      "Adequate"
+     ],
+     [
+      3.0,
+      "Poor"
+     ]
+    ],
+    "liftCompress": 2.2,
+    "severityWeight": {
+     "critical": 4.0,
+     "major": 2.0,
+     "minor": 0.25
+    }
+   },
+   "projects": [
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.872332,
+         "id": "P0",
+         "massCritical": 1.220081,
+         "massMajor": 3.151027,
+         "massMinor": 4.225264,
+         "observation": 26.277956,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.918973,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 31.6936,
+         "worst": null
+        },
+        {
+         "complianceMass": 20.598975,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 36.29773,
+         "worst": null
+        },
+        {
+         "complianceMass": 19.751513,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 3.310653,
+         "massMinor": 0.613957,
+         "observation": 3.139348,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.430866,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.620218,
+         "massMinor": 3.908458,
+         "observation": 2.295755,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 19.37899,
+         "id": "P4",
+         "massCritical": 1.075293,
+         "massMajor": 2.551231,
+         "massMinor": 8.861524,
+         "observation": 26.577127,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.72478,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 28.996424,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj0"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 0.551142,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 37.819482,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.322113,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.493183,
+         "massMinor": 7.117793,
+         "observation": 39.772806,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.563288,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.586458,
+         "massMinor": 0.322587,
+         "observation": 39.533917,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 13.976802,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.478791,
+         "massMinor": 7.0014,
+         "observation": 0.940735,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.04869,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.235138,
+         "massMinor": 7.197164,
+         "observation": 10.144751,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 15.274544,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 16.080816,
+         "worst": null
+        },
+        {
+         "complianceMass": 17.271143,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 4.485844,
+         "massMinor": 8.703819,
+         "observation": 35.994918,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.877664,
+         "id": "P5",
+         "massCritical": 1.41853,
+         "massMajor": 2.531433,
+         "massMinor": 9.536557,
+         "observation": 32.210761,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj1"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": 8.7,
+       "principles": []
+      }
+     ],
+     "id": "proj2"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.79589,
+         "id": "P0",
+         "massCritical": 0.363826,
+         "massMajor": 3.000647,
+         "massMinor": 2.971933,
+         "observation": 35.087709,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": 8.9,
+       "principles": []
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.805781,
+         "id": "P0",
+         "massCritical": 1.125643,
+         "massMajor": 1.526389,
+         "massMinor": 3.120871,
+         "observation": 32.864918,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.513064,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 25.50931,
+         "worst": null
+        },
+        {
+         "complianceMass": 10.054617,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 9.931417,
+         "observation": 26.956902,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.295386,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.048549,
+         "massMinor": 9.048819,
+         "observation": 24.696244,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 1.611458,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 34.319349,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj3"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.71952,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.567941,
+         "observation": 22.95226,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.587492,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.65057,
+         "massMinor": 4.611566,
+         "observation": 31.78687,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.073555,
+         "id": "P2",
+         "massCritical": 1.348595,
+         "massMajor": 4.120212,
+         "massMinor": 1.19357,
+         "observation": 21.420728,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.089695,
+         "id": "P3",
+         "massCritical": 0.802819,
+         "massMajor": 0.339278,
+         "massMinor": 2.157246,
+         "observation": 2.873792,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj4"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": 4.3,
+       "principles": []
+      }
+     ],
+     "id": "proj5"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 5.08928,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.213982,
+         "massMinor": 5.654594,
+         "observation": 29.682373,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.847347,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.451518,
+         "massMinor": 3.048459,
+         "observation": 1.867726,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 6.286281,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.557418,
+         "massMinor": 8.470978,
+         "observation": 23.191313,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.772609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 3.142119,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.563832,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.52464,
+         "observation": 11.856753,
+         "worst": "minor"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.582893,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.786559,
+         "observation": 33.179623,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 27.712331,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 5.847306,
+         "observation": 7.793116,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 26.922375,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 4.803802,
+         "massMinor": 8.483389,
+         "observation": 9.529982,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.152835,
+         "id": "P3",
+         "massCritical": 0.655789,
+         "massMajor": 4.058627,
+         "massMinor": 4.809046,
+         "observation": 14.448928,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 12.125306,
+         "id": "P4",
+         "massCritical": 1.16359,
+         "massMajor": 3.968464,
+         "massMinor": 0.446524,
+         "observation": 4.16112,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.270376,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 8.129089,
+         "observation": 15.533269,
+         "worst": "minor"
+        }
+       ]
+      }
+     ],
+     "id": "proj6"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.393198,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 18.826977,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 18.559153,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.807252,
+         "massMinor": 2.095187,
+         "observation": 29.646291,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 5.769804,
+         "id": "P1",
+         "massCritical": 1.562193,
+         "massMajor": 2.44298,
+         "massMinor": 3.869561,
+         "observation": 19.157996,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 6.209456,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 5.050575,
+         "massMinor": 5.149764,
+         "observation": 38.900177,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.947361,
+         "id": "P3",
+         "massCritical": 0.031299,
+         "massMajor": 3.858928,
+         "massMinor": 1.737789,
+         "observation": 4.330645,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.048056,
+         "id": "P4",
+         "massCritical": 0.032499,
+         "massMajor": 5.391509,
+         "massMinor": 5.274857,
+         "observation": 5.974644,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj7"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 14.748954,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.777405,
+         "worst": null
+        },
+        {
+         "complianceMass": 24.133366,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 29.627407,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.182621,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 2.620765,
+         "massMinor": 9.878671,
+         "observation": 21.810988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 4.840226,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.436964,
+         "observation": 26.626529,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 12.939754,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 1.232317,
+         "observation": 15.402341,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 0.691398,
+         "id": "P3",
+         "massCritical": 0.924047,
+         "massMajor": 3.302638,
+         "massMinor": 5.974774,
+         "observation": 17.164942,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.526732,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 21.562901,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.93065,
+         "id": "P1",
+         "massCritical": 0.248599,
+         "massMajor": 4.364426,
+         "massMinor": 6.202601,
+         "observation": 8.405015,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 0.590506,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 39.233141,
+         "worst": null
+        },
+        {
+         "complianceMass": 18.386715,
+         "id": "P3",
+         "massCritical": 1.787852,
+         "massMajor": 3.025834,
+         "massMinor": 6.740761,
+         "observation": 32.881565,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 16.404465,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 2.48761,
+         "massMinor": 4.802982,
+         "observation": 27.646574,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 2.829995,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 8.906352,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 28.293,
+         "id": "P0",
+         "massCritical": 0.419989,
+         "massMajor": 3.520167,
+         "massMinor": 1.257333,
+         "observation": 32.546198,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 5.964454,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.953476,
+         "massMinor": 5.129176,
+         "observation": 1.192668,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 10.932026,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 22.011078,
+         "worst": null
+        },
+        {
+         "complianceMass": 15.173581,
+         "id": "P3",
+         "massCritical": 0.385306,
+         "massMajor": 5.482311,
+         "massMinor": 3.228801,
+         "observation": 26.109662,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj8"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.920832,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.821873,
+         "observation": 30.806156,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.314068,
+         "id": "P1",
+         "massCritical": 1.244391,
+         "massMajor": 2.579019,
+         "massMinor": 7.74257,
+         "observation": 21.662382,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 7.817059,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 13.098567,
+         "worst": null
+        },
+        {
+         "complianceMass": 26.864125,
+         "id": "P1",
+         "massCritical": 0.054041,
+         "massMajor": 2.534512,
+         "massMinor": 7.690741,
+         "observation": 1.592927,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.077428,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 17.810183,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj9"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 8.13986,
+         "id": "P0",
+         "massCritical": 0.219019,
+         "massMajor": 5.397072,
+         "massMinor": 0.577212,
+         "observation": 21.812774,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.120298,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 1.899802,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.251037,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 2.136511,
+         "observation": 30.456734,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 5.408361,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.482635,
+         "massMinor": 7.729012,
+         "observation": 39.078334,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.285187,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.536148,
+         "massMinor": 4.783449,
+         "observation": 24.189838,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.105362,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 0.680328,
+         "worst": null
+        },
+        {
+         "complianceMass": 28.124271,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 12.728328,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.337169,
+         "id": "P3",
+         "massCritical": 0.461344,
+         "massMajor": 4.798019,
+         "massMinor": 3.030968,
+         "observation": 23.481127,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.531486,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.3088,
+         "massMinor": 9.99466,
+         "observation": 11.820086,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 18.37536,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.048786,
+         "massMinor": 0.136412,
+         "observation": 29.512988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.834866,
+         "id": "P2",
+         "massCritical": 0.862066,
+         "massMajor": 3.184861,
+         "massMinor": 7.362332,
+         "observation": 36.532017,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 29.984108,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.042358,
+         "massMinor": 5.448463,
+         "observation": 21.312231,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 20.755245,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.332132,
+         "massMinor": 2.443494,
+         "observation": 20.55501,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.488505,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 7.773234,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.361171,
+         "id": "P2",
+         "massCritical": 0.645384,
+         "massMajor": 5.016964,
+         "massMinor": 6.905025,
+         "observation": 34.455343,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 27.318116,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.821868,
+         "observation": 31.430503,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 7.42843,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 6.272707,
+         "observation": 7.471239,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.713198,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.080906,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj10"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.204628,
+         "id": "P0",
+         "massCritical": 0.007396,
+         "massMajor": 4.447347,
+         "massMinor": 3.769401,
+         "observation": 5.980109,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.950609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.311655,
+         "observation": 33.418432,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 24.253311,
+         "id": "P2",
+         "massCritical": 0.837723,
+         "massMajor": 0.015086,
+         "massMinor": 3.885999,
+         "observation": 12.886108,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.748141,
+         "id": "P3",
+         "massCritical": 1.622983,
+         "massMajor": 3.526273,
+         "massMinor": 4.358754,
+         "observation": 34.361526,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 13.218936,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 1.525917,
+         "massMinor": 5.895382,
+         "observation": 33.85811,
+         "worst": "major"
+        }
+       ]
+      }
+     ],
+     "id": "proj11"
+    }
+   ]
+  },
+  {
+   "expected": {
+    "proj0": {
+     "dimensions": {
+      "clean-architecture": 9.3,
+      "reliability": 6.1
+     },
+     "overall": 7.7,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 8.3,
+      "clean-architecture/P3": 9.3,
+      "clean-architecture/P4": 6.9,
+      "clean-architecture/P5": 10.0,
+      "reliability/P0": 6.1
+     }
+    },
+    "proj1": {
+     "dimensions": {
+      "reliability": 8.4,
+      "security": 9.1
+     },
+     "overall": 8.8,
+     "principles": {
+      "reliability/P0": 9.8,
+      "reliability/P1": 8.0,
+      "reliability/P2": 9.4,
+      "reliability/P3": 10.0,
+      "reliability/P4": 6.9,
+      "reliability/P5": 7.1,
+      "security/P0": 10.0,
+      "security/P1": 8.2
+     }
+    },
+    "proj10": {
+     "dimensions": {
+      "clean-architecture": 7.5,
+      "maintainability": 7.0,
+      "reliability": 8.6,
+      "security": 8.2
+     },
+     "overall": 7.8,
+     "principles": {
+      "clean-architecture/P0": 6.4,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 10.0,
+      "clean-architecture/P3": 7.1,
+      "maintainability/P0": 5.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 10.0,
+      "maintainability/P3": 5.3,
+      "reliability/P0": 7.6,
+      "reliability/P1": 10.0,
+      "reliability/P2": 6.9,
+      "reliability/P3": 10.0,
+      "reliability/P4": 9.6,
+      "reliability/P5": 10.0,
+      "security/P0": 5.9,
+      "security/P1": 9.1,
+      "security/P2": 7.4,
+      "security/P3": 9.5
+     }
+    },
+    "proj11": {
+     "dimensions": {
+      "clean-architecture": 8.0
+     },
+     "overall": 8.0,
+     "principles": {
+      "clean-architecture/P0": 5.7,
+      "clean-architecture/P1": 9.3,
+      "clean-architecture/P2": 9.2,
+      "clean-architecture/P3": 6.0,
+      "clean-architecture/P4": 8.7
+     }
+    },
+    "proj2": {
+     "dimensions": {
+      "reliability": 8.7
+     },
+     "overall": 8.7,
+     "principles": {}
+    },
+    "proj3": {
+     "dimensions": {
+      "clean-architecture": 8.9,
+      "maintainability": 8.4,
+      "security": 7.1
+     },
+     "overall": 8.1,
+     "principles": {
+      "maintainability/P0": 7.2,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.4,
+      "maintainability/P3": 5.3,
+      "maintainability/P4": 10.0,
+      "security/P0": 7.1
+     }
+    },
+    "proj4": {
+     "dimensions": {
+      "reliability": 7.5
+     },
+     "overall": 7.5,
+     "principles": {
+      "reliability/P0": 9.6,
+      "reliability/P1": 6.4,
+      "reliability/P2": 6.8,
+      "reliability/P3": 7.8
+     }
+    },
+    "proj5": {
+     "dimensions": {
+      "security": 4.3
+     },
+     "overall": 4.3,
+     "principles": {}
+    },
+    "proj6": {
+     "dimensions": {
+      "clean-architecture": 8.7,
+      "maintainability": 8.6,
+      "reliability": 6.6,
+      "security": 5.7
+     },
+     "overall": 7.4,
+     "principles": {
+      "clean-architecture/P0": 9.8,
+      "clean-architecture/P1": 9.9,
+      "clean-architecture/P2": 7.3,
+      "clean-architecture/P3": 5.9,
+      "clean-architecture/P4": 6.0,
+      "clean-architecture/P5": 9.7,
+      "maintainability/P0": 7.8,
+      "maintainability/P1": 10.0,
+      "maintainability/P2": 9.9,
+      "reliability/P0": 6.6,
+      "security/P0": 5.7
+     }
+    },
+    "proj7": {
+     "dimensions": {
+      "clean-architecture": 10.0,
+      "security": 6.9
+     },
+     "overall": 8.4,
+     "principles": {
+      "clean-architecture/P0": 10.0,
+      "security/P0": 9.1,
+      "security/P1": 5.5,
+      "security/P2": 5.7,
+      "security/P3": 7.9,
+      "security/P4": 7.1
+     }
+    },
+    "proj8": {
+     "dimensions": {
+      "clean-architecture": 8.3,
+      "maintainability": 8.0,
+      "reliability": 10.0,
+      "security": 8.6
+     },
+     "overall": 8.7,
+     "principles": {
+      "clean-architecture/P0": 8.3,
+      "clean-architecture/P1": 9.3,
+      "clean-architecture/P2": 10.0,
+      "clean-architecture/P3": 5.2,
+      "maintainability/P0": 8.1,
+      "maintainability/P1": 8.8,
+      "maintainability/P2": 10.0,
+      "maintainability/P3": 6.1,
+      "reliability/P0": 10.0,
+      "reliability/P1": 10.0,
+      "security/P0": 10.0,
+      "security/P1": 7.4,
+      "security/P2": 10.0,
+      "security/P3": 6.0,
+      "security/P4": 8.3,
+      "security/P5": 10.0
+     }
+    },
+    "proj9": {
+     "dimensions": {
+      "reliability": 8.1,
+      "security": 9.9
+     },
+     "overall": 9.0,
+     "principles": {
+      "reliability/P0": 8.9,
+      "reliability/P1": 7.0,
+      "security/P0": 10.0,
+      "security/P1": 8.5,
+      "security/P2": 10.0
+     }
+    }
+   },
+   "params": {
+    "baseK": 0.08,
+    "ceilScale": 0.0,
+    "dimensionWeights": {
+     "accessibility": 1.0,
+     "clean-architecture": 1.0,
+     "domain-driven-design": 1.0,
+     "flexibility": 1.0,
+     "maintainability": 1.0,
+     "performance": 1.0,
+     "reliability": 1.0,
+     "security": 1.0,
+     "usability": 1.0
+    },
+    "dimensionWeightsEnabled": false,
+    "floorMajor": 3.0,
+    "floorMinor": 5.0,
+    "gradeThresholds": [
+     [
+      9.0,
+      "Exemplary"
+     ],
+     [
+      7.0,
+      "Good"
+     ],
+     [
+      5.0,
+      "Adequate"
+     ],
+     [
+      3.0,
+      "Poor"
+     ]
+    ],
+    "liftCompress": 2.2,
+    "severityWeight": {
+     "critical": 4.0,
+     "major": 2.0,
+     "minor": 0.25
+    }
+   },
+   "projects": [
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.872332,
+         "id": "P0",
+         "massCritical": 1.220081,
+         "massMajor": 3.151027,
+         "massMinor": 4.225264,
+         "observation": 26.277956,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.918973,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 31.6936,
+         "worst": null
+        },
+        {
+         "complianceMass": 20.598975,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 36.29773,
+         "worst": null
+        },
+        {
+         "complianceMass": 19.751513,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 3.310653,
+         "massMinor": 0.613957,
+         "observation": 3.139348,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.430866,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.620218,
+         "massMinor": 3.908458,
+         "observation": 2.295755,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 19.37899,
+         "id": "P4",
+         "massCritical": 1.075293,
+         "massMajor": 2.551231,
+         "massMinor": 8.861524,
+         "observation": 26.577127,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.72478,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 28.996424,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj0"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 0.551142,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 37.819482,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.322113,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.493183,
+         "massMinor": 7.117793,
+         "observation": 39.772806,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.563288,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.586458,
+         "massMinor": 0.322587,
+         "observation": 39.533917,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 13.976802,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.478791,
+         "massMinor": 7.0014,
+         "observation": 0.940735,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.04869,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.235138,
+         "massMinor": 7.197164,
+         "observation": 10.144751,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 15.274544,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 16.080816,
+         "worst": null
+        },
+        {
+         "complianceMass": 17.271143,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 4.485844,
+         "massMinor": 8.703819,
+         "observation": 35.994918,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.877664,
+         "id": "P5",
+         "massCritical": 1.41853,
+         "massMajor": 2.531433,
+         "massMinor": 9.536557,
+         "observation": 32.210761,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj1"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": 8.7,
+       "principles": []
+      }
+     ],
+     "id": "proj2"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.79589,
+         "id": "P0",
+         "massCritical": 0.363826,
+         "massMajor": 3.000647,
+         "massMinor": 2.971933,
+         "observation": 35.087709,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": 8.9,
+       "principles": []
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.805781,
+         "id": "P0",
+         "massCritical": 1.125643,
+         "massMajor": 1.526389,
+         "massMinor": 3.120871,
+         "observation": 32.864918,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 1.513064,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 25.50931,
+         "worst": null
+        },
+        {
+         "complianceMass": 10.054617,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 9.931417,
+         "observation": 26.956902,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.295386,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.048549,
+         "massMinor": 9.048819,
+         "observation": 24.696244,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 1.611458,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 34.319349,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj3"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.71952,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.567941,
+         "observation": 22.95226,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 4.587492,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 3.65057,
+         "massMinor": 4.611566,
+         "observation": 31.78687,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.073555,
+         "id": "P2",
+         "massCritical": 1.348595,
+         "massMajor": 4.120212,
+         "massMinor": 1.19357,
+         "observation": 21.420728,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.089695,
+         "id": "P3",
+         "massCritical": 0.802819,
+         "massMajor": 0.339278,
+         "massMinor": 2.157246,
+         "observation": 2.873792,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj4"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "security",
+       "frozenScore": 4.3,
+       "principles": []
+      }
+     ],
+     "id": "proj5"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 5.08928,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.213982,
+         "massMinor": 5.654594,
+         "observation": 29.682373,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.847347,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.451518,
+         "massMinor": 3.048459,
+         "observation": 1.867726,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 6.286281,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.557418,
+         "massMinor": 8.470978,
+         "observation": 23.191313,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.772609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 3.142119,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.563832,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 3.52464,
+         "observation": 11.856753,
+         "worst": "minor"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.582893,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.786559,
+         "observation": 33.179623,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 27.712331,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 5.847306,
+         "observation": 7.793116,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 26.922375,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 4.803802,
+         "massMinor": 8.483389,
+         "observation": 9.529982,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 9.152835,
+         "id": "P3",
+         "massCritical": 0.655789,
+         "massMajor": 4.058627,
+         "massMinor": 4.809046,
+         "observation": 14.448928,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 12.125306,
+         "id": "P4",
+         "massCritical": 1.16359,
+         "massMajor": 3.968464,
+         "massMinor": 0.446524,
+         "observation": 4.16112,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.270376,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 8.129089,
+         "observation": 15.533269,
+         "worst": "minor"
+        }
+       ]
+      }
+     ],
+     "id": "proj6"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 27.393198,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 18.826977,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 18.559153,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 1.807252,
+         "massMinor": 2.095187,
+         "observation": 29.646291,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 5.769804,
+         "id": "P1",
+         "massCritical": 1.562193,
+         "massMajor": 2.44298,
+         "massMinor": 3.869561,
+         "observation": 19.157996,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 6.209456,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 5.050575,
+         "massMinor": 5.149764,
+         "observation": 38.900177,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.947361,
+         "id": "P3",
+         "massCritical": 0.031299,
+         "massMajor": 3.858928,
+         "massMinor": 1.737789,
+         "observation": 4.330645,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.048056,
+         "id": "P4",
+         "massCritical": 0.032499,
+         "massMajor": 5.391509,
+         "massMinor": 5.274857,
+         "observation": 5.974644,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj7"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 14.748954,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.777405,
+         "worst": null
+        },
+        {
+         "complianceMass": 24.133366,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 29.627407,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 24.182621,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 2.620765,
+         "massMinor": 9.878671,
+         "observation": 21.810988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 4.840226,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.436964,
+         "observation": 26.626529,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 12.939754,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 1.232317,
+         "observation": 15.402341,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 0.691398,
+         "id": "P3",
+         "massCritical": 0.924047,
+         "massMajor": 3.302638,
+         "massMinor": 5.974774,
+         "observation": 17.164942,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 11.526732,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 21.562901,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.93065,
+         "id": "P1",
+         "massCritical": 0.248599,
+         "massMajor": 4.364426,
+         "massMinor": 6.202601,
+         "observation": 8.405015,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 0.590506,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 39.233141,
+         "worst": null
+        },
+        {
+         "complianceMass": 18.386715,
+         "id": "P3",
+         "massCritical": 1.787852,
+         "massMajor": 3.025834,
+         "massMinor": 6.740761,
+         "observation": 32.881565,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 16.404465,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 2.48761,
+         "massMinor": 4.802982,
+         "observation": 27.646574,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 2.829995,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 8.906352,
+         "worst": null
+        }
+       ]
+      },
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 28.293,
+         "id": "P0",
+         "massCritical": 0.419989,
+         "massMajor": 3.520167,
+         "massMinor": 1.257333,
+         "observation": 32.546198,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 5.964454,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.953476,
+         "massMinor": 5.129176,
+         "observation": 1.192668,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 10.932026,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 22.011078,
+         "worst": null
+        },
+        {
+         "complianceMass": 15.173581,
+         "id": "P3",
+         "massCritical": 0.385306,
+         "massMajor": 5.482311,
+         "massMinor": 3.228801,
+         "observation": 26.109662,
+         "worst": "critical"
+        }
+       ]
+      }
+     ],
+     "id": "proj8"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 1.920832,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.821873,
+         "observation": 30.806156,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.314068,
+         "id": "P1",
+         "massCritical": 1.244391,
+         "massMajor": 2.579019,
+         "massMinor": 7.74257,
+         "observation": 21.662382,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 7.817059,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 13.098567,
+         "worst": null
+        },
+        {
+         "complianceMass": 26.864125,
+         "id": "P1",
+         "massCritical": 0.054041,
+         "massMajor": 2.534512,
+         "massMinor": 7.690741,
+         "observation": 1.592927,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.077428,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 17.810183,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj9"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "maintainability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 8.13986,
+         "id": "P0",
+         "massCritical": 0.219019,
+         "massMajor": 5.397072,
+         "massMinor": 0.577212,
+         "observation": 21.812774,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 25.120298,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 1.899802,
+         "worst": null
+        },
+        {
+         "complianceMass": 11.251037,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 2.136511,
+         "observation": 30.456734,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 5.408361,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 5.482635,
+         "massMinor": 7.729012,
+         "observation": 39.078334,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 9.285187,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.536148,
+         "massMinor": 4.783449,
+         "observation": 24.189838,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 25.105362,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 0.680328,
+         "worst": null
+        },
+        {
+         "complianceMass": 28.124271,
+         "id": "P2",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 12.728328,
+         "worst": null
+        },
+        {
+         "complianceMass": 25.337169,
+         "id": "P3",
+         "massCritical": 0.461344,
+         "massMajor": 4.798019,
+         "massMinor": 3.030968,
+         "observation": 23.481127,
+         "worst": "critical"
+        }
+       ]
+      },
+      {
+       "dimension": "security",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.531486,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 3.3088,
+         "massMinor": 9.99466,
+         "observation": 11.820086,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 18.37536,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 2.048786,
+         "massMinor": 0.136412,
+         "observation": 29.512988,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 27.834866,
+         "id": "P2",
+         "massCritical": 0.862066,
+         "massMajor": 3.184861,
+         "massMinor": 7.362332,
+         "observation": 36.532017,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 29.984108,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 1.042358,
+         "massMinor": 5.448463,
+         "observation": 21.312231,
+         "worst": "major"
+        }
+       ]
+      },
+      {
+       "dimension": "reliability",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 20.755245,
+         "id": "P0",
+         "massCritical": 0.0,
+         "massMajor": 4.332132,
+         "massMinor": 2.443494,
+         "observation": 20.55501,
+         "worst": "major"
+        },
+        {
+         "complianceMass": 20.488505,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 7.773234,
+         "worst": null
+        },
+        {
+         "complianceMass": 29.361171,
+         "id": "P2",
+         "massCritical": 0.645384,
+         "massMajor": 5.016964,
+         "massMinor": 6.905025,
+         "observation": 34.455343,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 27.318116,
+         "id": "P3",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.821868,
+         "observation": 31.430503,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 7.42843,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 6.272707,
+         "observation": 7.471239,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 23.713198,
+         "id": "P5",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 0.0,
+         "observation": 11.080906,
+         "worst": null
+        }
+       ]
+      }
+     ],
+     "id": "proj10"
+    },
+    {
+     "dimensions": [
+      {
+       "dimension": "clean-architecture",
+       "frozenScore": null,
+       "principles": [
+        {
+         "complianceMass": 2.204628,
+         "id": "P0",
+         "massCritical": 0.007396,
+         "massMajor": 4.447347,
+         "massMinor": 3.769401,
+         "observation": 5.980109,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 3.950609,
+         "id": "P1",
+         "massCritical": 0.0,
+         "massMajor": 0.0,
+         "massMinor": 7.311655,
+         "observation": 33.418432,
+         "worst": "minor"
+        },
+        {
+         "complianceMass": 24.253311,
+         "id": "P2",
+         "massCritical": 0.837723,
+         "massMajor": 0.015086,
+         "massMinor": 3.885999,
+         "observation": 12.886108,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 17.748141,
+         "id": "P3",
+         "massCritical": 1.622983,
+         "massMajor": 3.526273,
+         "massMinor": 4.358754,
+         "observation": 34.361526,
+         "worst": "critical"
+        },
+        {
+         "complianceMass": 13.218936,
+         "id": "P4",
+         "massCritical": 0.0,
+         "massMajor": 1.525917,
+         "massMinor": 5.895382,
+         "observation": 33.85811,
+         "worst": "major"
+        }
+       ]
+      }
+     ],
+     "id": "proj11"
+    }
+   ]
+  }
+ ],
+ "rounding": [
+  [
+   0.25,
+   0.2
+  ],
+  [
+   0.75,
+   0.8
+  ],
+  [
+   1.25,
+   1.2
+  ],
+  [
+   1.75,
+   1.8
+  ],
+  [
+   2.25,
+   2.2
+  ],
+  [
+   7.25,
+   7.2
+  ],
+  [
+   7.75,
+   7.8
+  ],
+  [
+   8.45,
+   8.4
+  ],
+  [
+   2.675,
+   2.7
+  ],
+  [
+   6.05,
+   6.0
+  ],
+  [
+   9.95,
+   9.9
+  ],
+  [
+   3.35,
+   3.4
+  ]
+ ]
+}

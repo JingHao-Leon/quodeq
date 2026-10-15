@@ -7,14 +7,17 @@
 // the user drags (each slider used to clamp itself inline; centralizing it
 // here means every caller of update() gets the same behaviour for free).
 
+const FLOOR_MINOR = 'floorMinor';
+const FLOOR_MAJOR = 'floorMajor';
+
 /**
  * Keep `floorMinor >= floorMajor` when a patch touches either floor.
  *
  * NO-OP on any patch that doesn't set `floorMinor` or `floorMajor` (e.g. a
  * `gradeThresholds` patch from the boundaries divider) -- returns the patch
- * unchanged. `draft` is the PRE-patch state; the other floor's current
- * value is what an incoming edit clamps against, matching the sliders'
- * previous inline behaviour.
+ * unchanged. `draft` is the PRE-patch state: an incoming floor clamps against
+ * the other floor's value in the patch when the patch carries both, else
+ * against its current value in the draft.
  *
  * @param {Object} draft - the pre-patch grade-formula draft state.
  * @param {Object} patch - the incoming patch to merge into the draft.
@@ -22,14 +25,41 @@
  */
 export function clampFloors(draft, patch) {
   if (!draft || !patch) return patch;
-  if (!('floorMinor' in patch) && !('floorMajor' in patch)) return patch;
+  const movesMinor = FLOOR_MINOR in patch;
+  const movesMajor = FLOOR_MAJOR in patch;
+  if (!movesMinor && !movesMajor) return patch;
 
+  // The other floor is the patch's own when it carries both (Undo all
+  // restores a whole saved formula), else the draft's.
+  const minor = movesMinor ? patch.floorMinor : draft.floorMinor;
+  const major = movesMajor ? patch.floorMajor : draft.floorMajor;
   const next = { ...patch };
-  if ('floorMinor' in next) {
-    next.floorMinor = Math.max(next.floorMinor, draft.floorMajor);
-  }
-  if ('floorMajor' in next) {
-    next.floorMajor = Math.min(next.floorMajor, draft.floorMinor);
-  }
+  if (movesMinor) next.floorMinor = Math.max(next.floorMinor, major);
+  if (movesMajor) next.floorMajor = Math.min(next.floorMajor, minor);
   return next;
+}
+
+const SEVERITY_STEP = 0.05;
+const CENTS = 100; // severity weights are shown and stored to two decimals
+const roundStep = (v) => Math.round(v * CENTS) / CENTS;
+
+/**
+ * Keep minor < major < critical (the server rejects anything else) when a
+ * patch moves a severity weight: the moved weight stops one step short of
+ * its neighbour. NO-OP on patches without `severityWeight`.
+ *
+ * @param {Object} draft - the pre-patch grade-formula draft state.
+ * @param {Object} patch - the incoming patch to merge into the draft.
+ * @returns {Object} the patch, clamped when it moves a severity weight.
+ */
+export function clampSeverity(draft, patch) {
+  if (!draft || !patch || !patch.severityWeight) return patch;
+  const prev = draft.severityWeight;
+  const next = { ...patch.severityWeight };
+  if (next.minor !== prev.minor) next.minor = roundStep(Math.min(next.minor, next.major - SEVERITY_STEP));
+  if (next.major !== prev.major) {
+    next.major = roundStep(Math.min(Math.max(next.major, next.minor + SEVERITY_STEP), next.critical - SEVERITY_STEP));
+  }
+  if (next.critical !== prev.critical) next.critical = roundStep(Math.max(next.critical, next.major + SEVERITY_STEP));
+  return { ...patch, severityWeight: next };
 }

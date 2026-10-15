@@ -171,3 +171,21 @@ def principle_mass(
         violations=tuple(violations),
         compliance=compliance,
     )
+
+
+def unit_masses(mass: PrincipleMass) -> dict[str, float]:
+    """The violation mass per unit of each severity weight.
+
+    A rule weighs ``minor·S≥minor + (major−minor)·S≥major + (critical−major)·S≥critical``
+    over its spreads at each level, which regroups as
+    ``minor·(S≥minor − S≥major) + major·(S≥major − S≥critical) + critical·S≥critical``.
+    Summed over the rules, these three factors let a client recompute the
+    violation mass for any weights without the findings.
+    """
+    units = {Severity.MINOR: 0.0, Severity.MAJOR: 0.0, Severity.CRITICAL: 0.0}
+    for row in mass.violations:
+        s = row.spread_at_least
+        units[Severity.MINOR] += s[Severity.MINOR] - s[Severity.MAJOR]
+        units[Severity.MAJOR] += s[Severity.MAJOR] - s[Severity.CRITICAL]
+        units[Severity.CRITICAL] += s[Severity.CRITICAL]
+    return {str(k): v for k, v in units.items()}

@@ -88,9 +88,6 @@ export const projectKeys = {
   mapHistory: (projectId, frames, source = DEFAULT_PROJECT_SOURCE, selectionKey = null) => (selectionKey
     ? projectScope(projectId, source, "mapHistory", frames, selectionKey)
     : projectScope(projectId, source, "mapHistory", frames)),
-  // The help page's worked example. Inside the project subtree so dismiss and
-  // formula invalidations reach it like every other per-run read.
-  gradeExplain: (projectId, run, dimension, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "gradeExplain", run || LATEST_RUN_ID, dimension),
   // The run diff (baseline counts per requirement, since-baseline lists).
   // In the project subtree so dismissals invalidate it with the rest.
   runDiff: (projectId, run, against = null, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runDiff", run || LATEST_RUN_ID, against),
@@ -212,7 +209,9 @@ export const sharedKeys = {
 // The grade-formula editor's rescore-progress poll. Outside the `project`
 // scope on purpose: when a pass lands the editor drops projectKeys.all(),
 // and that must not also refetch the poll that noticed it.
+const GRADE_FORMULA = "gradeFormula";
 export const gradeFormulaKeys = {
-  rescore: () => ["gradeFormula", "rescore"],
-  current: () => ["gradeFormula", "current"],
+  rescore: () => [GRADE_FORMULA, "rescore"],
+  current: () => [GRADE_FORMULA, "current"],
+  inputs: () => [GRADE_FORMULA, "inputs"],
 };

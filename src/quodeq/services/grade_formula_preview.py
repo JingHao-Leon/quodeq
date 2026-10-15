@@ -109,7 +109,8 @@ def _rescorable(run_dir: Path) -> bool:
     return has_event_log(run_dir) and has_evaluation_db(run_dir)
 
 
-def _touched(src: SourceDimension, keys: SuppressionKeys | None) -> bool:
+def is_touched(src: SourceDimension, keys: SuppressionKeys | None) -> bool:
+    """True when a dismissal, deletion or rule hides one of this dimension's violations: it then scores from evidence."""
     if keys is None or src.full is None:
         return False
     return len(filter_excluded_violations(src.full, keys)) != len(src.full.violations)
@@ -119,7 +120,7 @@ def _dimension_score(
     src: SourceDimension, keys: SuppressionKeys | None, params: ScoringParams,
     tables: dict[Path, list[dict]],
 ) -> float | None:
-    if _touched(src, keys):
+    if is_touched(src, keys):
         rescored = rescore_dimension(src.full, keys, params=params, run_dir=src.run_dir)
         return parse_numeric_score(rescored.overall_score)
     if src.saved_score is not None:
@@ -149,7 +150,8 @@ def score_project(sources: ProjectSources, params: ScoringParams) -> dict[str, A
     }
 
 
-def _local_projects(reports_root: Path) -> list[str]:
+def local_projects(reports_root: Path) -> list[str]:
+    """Every project directory under the reports root, sorted."""
     if not reports_root.is_dir():
         return []
     return sorted(p.name for p in reports_root.iterdir() if p.is_dir())
@@ -164,7 +166,7 @@ def preview_all(
     """Every local project before (saved formula) and after (*params*), plus the apply's run count."""
     saved_params = saved if saved is not None else load_params()
     projects = []
-    for project in _local_projects(reports_root):
+    for project in local_projects(reports_root):
         # One unreadable project (a locked or corrupt evaluation.db, a broken
         # report) costs only its own entry, as on the project list.
         entry = run_isolated(
