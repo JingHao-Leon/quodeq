@@ -7,7 +7,7 @@ import { SidePaneProvider } from '../../side-pane/index.js';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
 
-const deltas = vi.hoisted(() => ({ map: new Map(), args: null, previous: null, diffs: [], areas: [], riskArgs: null }));
+const deltas = vi.hoisted(() => ({ map: new Map(), args: null, previous: null, diffs: [], areas: [], riskArgs: null, seriesRows: [] }));
 
 vi.mock('../../../utils/pretext.js', async (importOriginal) => ({
   ...(await importOriginal()), measureWidth: () => 0, cssFontFromElement: () => '12px monospace',
@@ -16,6 +16,7 @@ vi.mock('../../explorer/hooks/useStandardDescriptions.js', () => ({ useStandardD
 vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({
   usePrinciplePeriodDeltas: (args) => { deltas.args = args; return { principles: deltas.map, previous: deltas.previous, beforeRunId: 'run-before' }; },
 }));
+vi.mock('../../../hooks/usePrincipleSeries.js', () => ({ usePrincipleSeries: () => ({ rows: deltas.seriesRows, loading: false, error: null }) }));
 vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: ['run-sec'], payloads: deltas.diffs }) }));
 vi.mock('../../map/hooks/useRiskAreas.js', () => ({
   default: (args) => { if (args.active) deltas.riskArgs = args; return { areas: deltas.areas, loading: false, failed: false, unavailable: false }; },
@@ -48,7 +49,7 @@ const kindButtons = () => within(screen.getByRole('group', { name: t('violations
 const railItem = (container, id) => [...container.querySelectorAll('.req-rail__item')].find((n) => n.querySelector('.req-rail__id')?.textContent.endsWith(id));
 
 describe('ScopedFindings, a principle', () => {
-  beforeEach(() => { deltas.map = new Map(); deltas.previous = null; deltas.diffs = []; deltas.areas = []; deltas.riskArgs = null; });
+  beforeEach(() => { deltas.map = new Map(); deltas.previous = null; deltas.diffs = []; deltas.areas = []; deltas.riskArgs = null; deltas.seriesRows = []; });
 
   it('heads with its requirements failing of checked, in place of the per-file tiles', () => {
     renderPrinciple();
@@ -104,6 +105,17 @@ describe('ScopedFindings, a principle', () => {
     deltas.diffs = [{ dimensions: { security: { ...security, new: [] } } }];
     renderPrinciple();
     expect(screen.getByRole('region', { name: 'since the previous week' })).toHaveTextContent('no new or fixed findings');
+  });
+
+  it('draws its score per period of the chart\'s grouping under its description, once its series has two', () => {
+    const { container, unmount } = renderPrinciple();
+    expect(container.querySelector('.findings-head .score-spark')).toBeNull();
+    unmount();
+    const row = (runId, dateISO, score) => ({ runId, dateISO, dateLabel: dateISO.slice(0, 10), principles: [{ principle: 'Input', score }] });
+    deltas.seriesRows = [row('b', '2026-10-13T10:00:00', 7.7), row('a', '2026-10-01T10:00:00', 6.5)];
+    renderPrinciple();
+    expect(screen.getByRole('img', { name: t('violations.sparkAria', { principle: 'Input' }) })).toBeInTheDocument();
+    expect(screen.getByText(t('violations.sparkRange', { count: 2, first: '2026-10-01', last: '2026-10-13' }))).toBeInTheDocument();
   });
 
   it('says it shows a past run in its header, with the way back', () => {

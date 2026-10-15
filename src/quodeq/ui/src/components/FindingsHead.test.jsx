@@ -44,6 +44,16 @@ describe('FindingsHead', () => {
     expect(screen.queryByRole('button', { name: t('evaluate.aboutTitle', { title: 'src/api' }) })).toBeNull();
   });
 
+  it('draws the score line under the description only when handed a history', () => {
+    const grade = { score: 7.7, insufficient: false, hint: null };
+    const { container, rerender } = head({ grade, description: 'What it means' });
+    expect(container.querySelector('.score-spark')).toBeNull();
+    const history = { points: [{ score: 6, dateLabel: '1 Oct' }, { score: 7.7, dateLabel: '2 Oct' }], label: 'Input: score per period' };
+    rerender(<FindingsHead title="src/api" sub="folder" filesHint="10 files checked" metrics={metrics()} grade={grade} description="What it means" history={history} />);
+    expect(container.querySelector('.findings-head__who .findings-head__descwrap + .score-spark')).not.toBeNull();
+    expect(screen.getByRole('img', { name: 'Input: score per period' })).toBeInTheDocument();
+  });
+
   it('an insufficient grade draws the dashed ring', () => {
     const { container } = head({ grade: { score: null, insufficient: true, hint: null } });
     expect(container.querySelector('.dim-gauge-card__gauge--insuf')).not.toBeNull();
