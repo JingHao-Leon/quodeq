@@ -2163,7 +2163,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  --page-flow-gap: var(--space-4);
+  gap: var(--page-flow-gap);
 }
 
 .violations-pill-nav {
@@ -2329,7 +2330,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  --page-flow-gap: var(--space-4);
+  gap: var(--page-flow-gap);
   width: 100%;
   /* The narrow layout (two-line rows, no column headers) follows the page's
      own width, so a narrow desktop window gets it too. */

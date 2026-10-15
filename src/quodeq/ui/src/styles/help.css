@@ -20,7 +20,6 @@
   gap: var(--space-8) 48px;
   align-items: start;
   max-width: 1240px;
-  margin-top: var(--space-5);
 }
 
 /* ── Section navigation ──────────────────────────────── */

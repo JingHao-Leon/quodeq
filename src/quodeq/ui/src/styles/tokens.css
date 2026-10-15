@@ -1490,6 +1490,11 @@ html[data-theme="deckard-light"]:root, [data-theme="deckard-light"] {
      reaches up into the main padding (.dashboard, --space-8) so the empty
      band above the first row stays thin. */
   --page-top-gap: calc(var(--space-3) - var(--space-8));
+  /* And the one distance between that first row and the content under
+     it, on every page. A page that lays its sections out with a flex
+     gap names that gap --page-flow-gap, and the toolbar takes it off its
+     own margin so the two never add up. */
+  --page-head-gap: var(--space-3);
 }
 
 /* ── 7. Border radius ─────────────────────────────────── */

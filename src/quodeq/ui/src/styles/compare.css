@@ -6,7 +6,8 @@
   flex-direction: column;
   /* The app's data face: Compare reads like Overview, History and Evaluate. */
   font-family: var(--term-font-mono);
-  gap: var(--term-space-3);
+  --page-flow-gap: var(--term-space-3);
+  gap: var(--page-flow-gap);
   /* One hover for every Compare table and list: a neutral ink tint over the
      panel (an accent tint turns pink in crimson themes, where red means a bad
      score) plus an accent bar on the row's leading edge. Mixed from tokens,
@@ -46,10 +47,6 @@
 .compare-skeleton__bar--row { width: 100%; height: 44px; }
 
 /* ── header ─────────────────────────────────────────────────────────── */
-
-/* Page top row: the shared .page-toolbar (terminal.css). The page's
-   column gap owns the spacing below it, so its own margin is dropped. */
-.compare-page__top { margin-bottom: 0; }
 
 .compare-dim-badges {
   display: inline-flex;

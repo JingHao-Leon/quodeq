@@ -13,7 +13,6 @@ export default function CompareDimensionHeader({ view, board, onOpenDimension })
   return (
     <PageToolbar
       title={view.label}
-      className="compare-page__top"
       facts={t('compare.dimSubtitle', {
         principles: view.principles.length,
         violations: nf(view.violations),

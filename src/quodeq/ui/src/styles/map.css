@@ -16,7 +16,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  --page-flow-gap: var(--space-4);
+  gap: var(--page-flow-gap);
   flex: 1;
   min-height: 0;
 }
