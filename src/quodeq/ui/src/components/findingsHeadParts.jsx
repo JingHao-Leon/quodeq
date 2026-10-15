@@ -55,7 +55,7 @@ export function PastRunNote({ pastRun }) {
     <p className="findings-head__past">
       <span className="findings-head__past-label">{t('violations.headPastLabel')}</span>
       <span className="findings-head__past-when">{pastRun.when}</span>
-      <button type="button" className="findings-head__back" onClick={pastRun.onBack}>{t('violations.headBackToLatest')}</button>
+      <button type="button" className="eval-pill-btn findings-head__back" onClick={pastRun.onBack}>{t('violations.headBackToLatest')}</button>
     </p>
   );
 }
