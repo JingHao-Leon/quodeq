@@ -1,5 +1,5 @@
-import { t } from '../../../strings/index.js';
-import { SEVERITY, SEVERITY_ORDER } from '../../../vocab/severity.js';
+import { t } from '../strings/index.js';
+import { SEVERITY, SEVERITY_ORDER } from '../vocab/severity.js';
 
 const ABBR_KEY = {
   [SEVERITY.CRITICAL]: 'history.sevCritical',

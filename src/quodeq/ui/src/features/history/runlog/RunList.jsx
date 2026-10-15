@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react';
 import { t } from '../../../strings/index.js';
 import RunLogPanel from './RunLogPanel.jsx';
 import { dayLabel, timeLabel, scoreText, PLUS, MINUS } from './runFormat.js';
-import { originLabel, scopeLabel } from './runLogModel.js';
+import { scopeLabel } from './runLogModel.js';
+import { originLabel } from '../../../models/runOrigin.js';
 
 const OTHER_MODEL = 'other-model';
 const PENDING_DOTS = '··';

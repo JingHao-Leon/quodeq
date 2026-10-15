@@ -1,7 +1,7 @@
 import { GridTable, GridRow, GridCell } from '../../../components/terminal/index.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { t } from '../../../strings/index.js';
-import { sevAbbr } from './RunSevText.jsx';
+import { sevAbbr } from '../../../components/RunSevText.jsx';
 
 const COLUMNS = 'minmax(0, 1fr) minmax(0, 240px)';
 

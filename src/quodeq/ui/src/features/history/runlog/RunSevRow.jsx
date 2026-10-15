@@ -1,7 +1,6 @@
 import { SevBadge } from '../../../components/terminal/index.js';
 import { SEVERITY, SEVERITY_ORDER } from '../../../vocab/severity.js';
 
-export const CRIT_MAJ = [SEVERITY.CRITICAL, SEVERITY.MAJOR];
 export const MAJOR_ONLY = [SEVERITY.MAJOR];
 
 /** The severity badges of a count set, each with its change against a baseline. */

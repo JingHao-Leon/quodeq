@@ -1,15 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { originLabel, originUrl, stripStart, scaleMax, countBy, summariseDiff, summariseThroughput, runsFromTrend } from './runLogModel.js';
-
-test('origin labels: nightly, PR, app, cli, none', () => {
-  assert.equal(originLabel({ kind: 'ci', workflow: 'Quodeq Nightly' }), 'nightly');
-  assert.equal(originLabel({ kind: 'ci', pr: 1402 }), 'PR #1402');
-  assert.equal(originLabel({ kind: 'app' }), 'app');
-  assert.equal(originLabel({ kind: 'cli' }), 'cli');
-  assert.equal(originLabel(null), null);
-  assert.equal(originUrl({ kind: 'ci', prUrl: 'https://p', runUrl: 'https://r' }), 'https://p');
-});
+import { stripStart, scaleMax, countBy, summariseThroughput, runsFromTrend } from './runLogModel.js';
 
 test('strip window centres the selection and stays in range', () => {
   const rows = Array.from({ length: 91 }, (_, i) => ({ runId: `r${i}` }));
@@ -28,26 +19,6 @@ test('scale: linear below the first >3x gap, outliers capped', () => {
 
 test('countBy sorts by count, skips empty values', () => {
   assert.deepEqual(countBy([{ m: 'a' }, { m: 'b' }, { m: 'a' }, { m: null }], 'm'), [['a', 2], ['b', 1]]);
-});
-
-test('summariseDiff folds dimensions, majors first', () => {
-  const s = summariseDiff({ dimensions: {
-    security: { counts: { new: 2, resolved: 1, notReevaluated: 3 }, new: [{ severity: 'minor', file: 'b' }, { severity: 'major', file: 'a' }], resolved: [{ severity: 'minor', file: 'c' }] },
-  } });
-  assert.deepEqual(s.new.map((f) => f.severity), ['major', 'minor']);
-  assert.equal(s.unchecked, 3);
-  assert.deepEqual(s.perDim.security, { new: 2, resolved: 1, unchecked: 3, newSev: {}, resolvedSev: {} });
-  assert.deepEqual(s.newSev, { major: 1, minor: 1 });
-});
-
-test('summariseDiff keeps each dimension\'s new and fixed severities', () => {
-  const s = summariseDiff({ dimensions: {
-    security: { counts: { new: 3, resolved: 1, newSev: { critical: 1, major: 2 }, resolvedSev: { major: 1 } } },
-    usability: { counts: { new: 0, resolved: 0 } },
-  } });
-  assert.deepEqual(s.perDim.security.newSev, { critical: 1, major: 2 });
-  assert.deepEqual(s.perDim.security.resolvedSev, { major: 1 });
-  assert.deepEqual(s.perDim.usability.newSev, {});
 });
 
 test('throughput: files per active minute, per dimension and in total', () => {

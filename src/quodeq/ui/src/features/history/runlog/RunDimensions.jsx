@@ -1,7 +1,5 @@
 import DimensionGaugeCard from '../../dashboard/components/DimensionGaugeCard.jsx';
-import { t } from '../../../strings/index.js';
-import RunSevText from './RunSevText.jsx';
-import { CRIT_MAJ } from './RunSevRow.jsx';
+import RunChangeFooter from '../../../components/RunChangeFooter.jsx';
 
 const ONE_DECIMAL = 1;
 
@@ -21,27 +19,6 @@ function cardItem(d) {
   };
 }
 
-/** One line of a card's footer: a count in its colour (muted at zero), then its criticals and majors. */
-function MoveLine({ count, cls, label, sev }) {
-  return (
-    <span className="rl-card-move">
-      <span className={count ? cls : 'rl-zero'}>{label}</span>
-      <RunSevText counts={sev} levels={CRIT_MAJ} />
-    </span>
-  );
-}
-
-/** What this run changed in the dimension: new and fixed findings (none when it was not compared). */
-function RunMoves({ change }) {
-  if (!change) return <span className="dim-gauge-card__pass">{t('history.cardNotCompared')}</span>;
-  return (
-    <span className="rl-card-moves">
-      <MoveLine count={change.new} cls="rl-new" label={t('history.cardNew', { count: change.new })} sev={change.newSev} />
-      <MoveLine count={change.resolved} cls="rl-fixed" label={t('history.cardFixed', { count: change.resolved })} sev={change.resolvedSev} />
-    </span>
-  );
-}
-
 /**
  * The run's dimensions as the app's compact cards (ring and score, grade
  * word, severity pills), each with what the run changed in it (new and
@@ -53,7 +30,7 @@ export default function RunDimensions({ run, diff, onOpen }) {
     <div className="qd-cards-row rl-cards">
       {dims.map((d) => (
         <DimensionGaugeCard key={d.dimension} item={cardItem(d)} compact showDate={false}
-          onDimensionClick={() => onOpen(d)} footer={<RunMoves change={diff?.perDim?.[d.dimension]} />} />
+          onDimensionClick={() => onOpen(d)} footer={<RunChangeFooter change={diff?.perDim?.[d.dimension]} />} />
       ))}
     </div>
   );

@@ -4,3 +4,5 @@ export const SEVERITY_ORDER = Object.freeze([SEVERITY.CRITICAL, SEVERITY.MAJOR, 
 // UI-only sentinel meaning "no severity filter applied". Not a Severity value
 // itself, but every severity-filter comparison already imports from this file.
 export const SEVERITY_FILTER_ALL = 'all';
+// The severities a run's changes name (its new and fixed criticals and majors).
+export const CRIT_MAJ = Object.freeze([SEVERITY.CRITICAL, SEVERITY.MAJOR]);
