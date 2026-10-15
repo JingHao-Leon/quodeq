@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
+import time
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.logging import log_info
 
 from quodeq.dashboard._build_hash import SYNC_ITEMS
+from quodeq.shared.quiet_run import run_quiet
 
 _UI_DIRNAME = "ui"  # bundled UI source directory name, both inside the package and in the repo
 
@@ -95,17 +96,23 @@ def run_npm_build(
     # uncached POST to the npm advisories endpoint, which is purely
     # informational here (it never fails the install) but can single-handedly
     # blow past the timeout on slow networks.
-    subprocess.run(
-        [npm, "ci", "--no-audit"], cwd=str(workdir), check=True,
+    started = time.monotonic()
+    run_quiet(
+        [npm, "ci", "--no-audit"], label="Gathering the building blocks", cwd=str(workdir),
         timeout=_npm_install_timeout_s(env),
     )
 
     log_info("Building web UI...")
-    build_env = {**resolve_env(env), "QUODEQ_BUILD_OUTDIR": str(static_dir)}
-    subprocess.run(
-        [npm, "run", "build"], cwd=str(workdir), check=True,
+    # QUODEQ_BUILD_QUIET skips Vite's gzip size report: nobody sees the
+    # captured table, so computing it is wasted time.
+    build_env = {
+        **resolve_env(env), "QUODEQ_BUILD_OUTDIR": str(static_dir), "QUODEQ_BUILD_QUIET": "1",
+    }
+    run_quiet(
+        [npm, "run", "build"], label="Building your dashboard to Quodeq standards", cwd=str(workdir),
         timeout=_npm_build_timeout_s(env), env=build_env,
     )
+    log_info(f"Dashboard ready in {time.monotonic() - started:.0f}s. It passed its own review.")
 
 
 def resolve_dev_source() -> Path:

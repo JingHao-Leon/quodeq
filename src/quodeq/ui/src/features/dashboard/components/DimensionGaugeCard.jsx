@@ -72,29 +72,36 @@ function describedByIds({ isInsufficient, summaryId, compact, footer, footerId }
   return ids.length ? ids.join(' ') : undefined;
 }
 
-/** The compact card's pass rate line; nothing without checks. */
-function PassLine({ passPct }) {
-  if (passPct == null) return null;
-  return <span className="dim-gauge-card__pass">{t('overview.cardPass', { pct: passPct })}</span>;
+const FULL_READ_PCT = 100;
+
+/** The share of its files a dimension read, when it read only part of them (rounding below 100%); else null. */
+function partialReadPct(coverage) {
+  const pct = coverage?.coveragePct;
+  return pct != null && pct < FULL_READ_PCT ? pct : null;
 }
 
 /**
- * The compact card's partial note: only when the dimension read part of its
- * files (or stopped early), the share it read, amber, with the full card's
- * tooltip saying how many files and why it stopped.
+ * The compact card's pass rate and, on the same line, how much a partial
+ * dimension read (amber, with the full card's tooltip); nothing without either.
  */
-function PartialLine({ coverage, tooltip }) {
-  if (!coverage?.isPartial) return null;
-  const text = coverage.coveragePct !== null ? t('overview.cardRead', { pct: coverage.coveragePct }) : t('overview.cardPartial');
-  return <span className="dim-gauge-card__partial" title={tooltip}>{text}</span>;
+function PassLine({ passPct, partial }) {
+  const readPct = partialReadPct(partial.coverage);
+  if (passPct == null && readPct == null) return null;
+  return (
+    <span className="dim-gauge-card__pass">
+      {passPct != null && t('overview.cardPass', { pct: passPct })}
+      {passPct != null && readPct != null && t('violations.wbDot')}
+      {readPct != null && <span className="dim-gauge-card__partial" title={partial.tooltip}>{t('overview.cardRead', { pct: readPct })}</span>}
+    </span>
+  );
 }
 
 /**
  * A compact card (the principle row of a dimension page): the name and its
  * trend (none under 0.05) across the top; below, the ring with the score
  * only, and beside it the grade word at text size in the ring's colour, the
- * severities as the app's pills, and the pass rate (or the caller's footer in its place),
- * then, on a dimension that read only part of its files, how much it read.
+ * severities as the app's pills, and the pass rate with, on a dimension that read only
+ * part of its files, how much it read (or the caller's footer in their place).
  */
 function CompactCardBody({ name, delta, ring, sev, passPct, partial, summaryId, isInsufficient, footer, footerId }) {
   return (
@@ -112,8 +119,7 @@ function CompactCardBody({ name, delta, ring, sev, passPct, partial, summaryId, 
             {isInsufficient ? t('overview.insufficientGrade') : ring.gradeWord}
           </span>
           <SevPills sev={sev} />
-          {footer ? <div id={footerId}>{footer}</div> : <PassLine passPct={passPct} />}
-          <PartialLine coverage={partial.coverage} tooltip={partial.tooltip} />
+          {footer ? <div id={footerId}>{footer}</div> : <PassLine passPct={passPct} partial={partial} />}
         </div>
       </div>
       {!isInsufficient && <span id={summaryId} className="sr-only">{t('overview.gaugeSummaryAria', { score: ring.scoreDisplay, grade: ring.gradeWord })}</span>}

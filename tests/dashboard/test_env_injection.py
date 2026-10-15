@@ -67,7 +67,7 @@ def test_run_npm_build_passes_the_injected_env_to_the_child(monkeypatch, tmp_pat
     calls: list[dict] = []
     monkeypatch.setattr(_build_npm.shutil, "which", lambda _name: "/usr/bin/npm")
     monkeypatch.setattr(
-        _build_npm.subprocess, "run",
+        _build_npm, "run_quiet",
         lambda cmd, **kwargs: calls.append(kwargs) or None,
     )
     monkeypatch.setenv("QUODEQ_FROM_PROCESS", "leaked")
@@ -81,14 +81,14 @@ def test_run_npm_build_passes_the_injected_env_to_the_child(monkeypatch, tmp_pat
 
     calls.clear()
     _build_npm.run_npm_build(tmp_path, static_dir, env={})
-    assert calls[-1]["env"] == {"QUODEQ_BUILD_OUTDIR": str(static_dir)}
+    assert calls[-1]["env"] == {"QUODEQ_BUILD_OUTDIR": str(static_dir), "QUODEQ_BUILD_QUIET": "1"}
 
 
 def test_run_npm_build_reads_its_timeouts_from_the_injected_env(monkeypatch, tmp_path: Path):
     calls: list[dict] = []
     monkeypatch.setattr(_build_npm.shutil, "which", lambda _name: "/usr/bin/npm")
     monkeypatch.setattr(
-        _build_npm.subprocess, "run",
+        _build_npm, "run_quiet",
         lambda cmd, **kwargs: calls.append(kwargs) or None,
     )
     monkeypatch.setenv("QUODEQ_NPM_INSTALL_TIMEOUT_S", "11")
