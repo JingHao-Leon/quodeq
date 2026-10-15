@@ -6,6 +6,7 @@ import { originLabel, scopeLabel } from './runLogModel.js';
 
 const OTHER_MODEL = 'other-model';
 const PENDING_DOTS = '··';
+const DIM_SEP = ', ';
 const SCROLL_PAD = 28;
 const SCROLL_TOP_ROOM = 36;
 const SCROLL_BOTTOM_ROOM = 8;
@@ -69,7 +70,7 @@ function RunRow({ run, selected, hovered, onSelect, onHover }) {
       <span className="rl-row__time">{timeLabel(run.startedAt)}</span>
       <span className="rl-row__what">
         {origin && <span className="rl-row__origin">{origin}</span>}
-        {run.partial && <span className="rl-row__scope rl-row__scope--partial">{scopeLabel(run, t)}</span>}
+        {run.partial && <span className="rl-row__scope rl-row__scope--partial" title={run.dims.join(DIM_SEP)}>{scopeLabel(run, t)}</span>}
       </span>
       <Moves run={run} />
       <span className="rl-row__score">{scoreText(run.score)}</span>

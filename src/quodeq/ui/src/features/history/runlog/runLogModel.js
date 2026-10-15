@@ -1,4 +1,4 @@
-import { abbrevDim } from '../utils/dimAbbrev.js';
+import { cancelledScopeLabel } from './cancelledRun.js';
 
 const ORIGIN_KIND = { CI: 'ci', APP: 'app', CLI: 'cli' };
 const SEV_ORDER = { critical: 0, major: 1, minor: 2 };
@@ -29,9 +29,9 @@ export function originUrl(origin) {
   return origin?.prUrl || origin?.runUrl || null;
 }
 
-/** `6 dims` for a full run, the dimension short names for a partial one. */
+/** `6 dims` for a full run; for a partial (cancelled) one, how far it got: `cancelled · 4 of 6`. */
 export function scopeLabel(run, t) {
-  return run.partial ? run.dims.map(abbrevDim).join(' · ') : t('history.scopeDims', { count: run.dims.length });
+  return run.partial ? cancelledScopeLabel(run) : t('history.scopeDims', { count: run.dims.length });
 }
 
 /** First row of the strip window: centred on the selection, kept in range. */
