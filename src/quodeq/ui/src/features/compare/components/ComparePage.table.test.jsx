@@ -103,7 +103,7 @@ describe('ComparePage', () => {
     await findTableName('alpha');
     // Once beta settles with no data it leaves the ranked rows for the
     // collapsed line (it may briefly render as a pending row before that).
-    expect(await screen.findByText(/1 projects without evaluations/)).toBeInTheDocument();
+    expect(await screen.findByText(/1 project without evaluations/)).toBeInTheDocument();
     await waitFor(() => expect([...container.querySelectorAll('.compare-fleettable__namebtn')].map((b) => b.textContent)).toEqual(['alpha']));
   });
 
