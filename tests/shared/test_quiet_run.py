@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from quodeq.shared.quiet_run import run_quiet
+from quodeq.shared.quiet_run import Spinner, run_quiet
 
 
 class _Tty(io.StringIO):
@@ -45,3 +45,19 @@ def test_terminal_shows_a_spinner_and_clears_it(tmp_path):
     written = stream.getvalue()
     assert "Building web UI" in written
     assert written.endswith("\r\x1b[K")
+
+
+def test_spinner_off_a_terminal_writes_nothing():
+    stream = io.StringIO()
+    with Spinner("Starting", stream) as spinner:
+        spinner.sleep(0.05)
+    assert not spinner.animating
+    assert stream.getvalue() == ""
+
+
+def test_spinner_sleep_keeps_drawing_through_a_long_wait():
+    stream = _Tty()
+    with Spinner("Starting the Action API", stream) as spinner:
+        spinner.sleep(0.35)
+    assert stream.getvalue().count("Starting the Action API") >= 3
+    assert stream.getvalue().endswith("\r\x1b[K")

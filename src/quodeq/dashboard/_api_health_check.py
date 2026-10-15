@@ -9,6 +9,7 @@ import urllib.request
 from http import HTTPStatus
 
 from quodeq.shared.logging import log_info
+from quodeq.shared.quiet_run import Spinner
 
 _HEALTH_CHECK_TIMEOUT_S = 0.5
 _HEALTH_POLL_INTERVAL_S = 0.2
@@ -34,20 +35,26 @@ def action_api_healthy(base_url: str) -> bool:
 
 
 def wait_for_action_api(base_url: str, timeout_s: float = _DEFAULT_WAIT_TIMEOUT_S) -> None:
-    """Block until the action API becomes healthy, or raise TimeoutError."""
-    log_info(f"Waiting for Action API at {base_url}...")
-    start = time.monotonic()
-    attempts = 0
-    delay = _HEALTH_POLL_INTERVAL_S
-    max_delay = _MAX_JITTER_DELAY_S
-    while time.monotonic() - start < timeout_s and attempts < _MAX_HEALTH_POLL_ATTEMPTS:
-        if action_api_healthy(base_url):
-            return None
-        attempts += 1
-        if attempts % _LOG_CADENCE == 0:
-            elapsed = round(time.monotonic() - start, 1)
-            log_info(f"Still waiting for Action API ({elapsed:.0f}s elapsed)...")
-        jitter = random.uniform(0, delay * _JITTER_RATIO)
-        time.sleep(delay + jitter)
-        delay = min(delay * _BACKOFF_MULTIPLIER, max_delay)
+    """Block until the action API becomes healthy, or raise TimeoutError.
+
+    On a terminal a spinner shows the wait; elsewhere (logs, pipes) it is
+    plain log lines.
+    """
+    with Spinner("Starting the Action API") as spinner:
+        if not spinner.animating:
+            log_info(f"Waiting for Action API at {base_url}...")
+        start = time.monotonic()
+        attempts = 0
+        delay = _HEALTH_POLL_INTERVAL_S
+        max_delay = _MAX_JITTER_DELAY_S
+        while time.monotonic() - start < timeout_s and attempts < _MAX_HEALTH_POLL_ATTEMPTS:
+            if action_api_healthy(base_url):
+                return None
+            attempts += 1
+            if attempts % _LOG_CADENCE == 0 and not spinner.animating:
+                elapsed = round(time.monotonic() - start, 1)
+                log_info(f"Still waiting for Action API ({elapsed:.0f}s elapsed)...")
+            jitter = random.uniform(0, delay * _JITTER_RATIO)
+            spinner.sleep(delay + jitter)
+            delay = min(delay * _BACKOFF_MULTIPLIER, max_delay)
     raise TimeoutError(f"Action API did not become ready within {timeout_s} seconds.")
