@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { t } from '../../../strings/index.js';
-import { SettingsRowLabel } from './settingsRowParts.jsx';
 
 export function SignOutRow({ onSignOut, busy }) {
   const [confirming, setConfirming] = useState(false);
