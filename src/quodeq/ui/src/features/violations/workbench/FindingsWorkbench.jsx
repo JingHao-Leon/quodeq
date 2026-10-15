@@ -14,6 +14,7 @@ import FindingList from './FindingList.jsx';
 import FindingDetail from './FindingDetail.jsx';
 import DismissedBulk from './DismissedBulk.jsx';
 import { useSplitWidth } from '../hooks/useSplitWidth.js';
+import { useFillHeight } from '../hooks/useFillHeight.js';
 import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 
@@ -79,6 +80,7 @@ export default function FindingsWorkbench({ dims, dismissed, dismissedLoading = 
   const lineOnly = state.group === FINDING_GROUP.FILE || folders;
   // The dismissed list's first fetch: bars, not a "nothing matches" that reads as "nothing dismissed".
   const waiting = dismissedLoading && state.status === FINDING_STATUS.DISMISSED && !all.some((f) => f.status === FINDING_STATUS.DISMISSED);
+  useFillHeight(split.rootRef, !waiting);
   const canOpen = canOpenFile(selected, actions);
   // A pending selection reaches the nav entry before the file page is pushed over it.
   const openFile = (f) => { wb.flush(); actions.onOpenFile(f); };

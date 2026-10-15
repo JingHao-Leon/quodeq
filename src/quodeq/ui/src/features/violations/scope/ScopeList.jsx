@@ -3,6 +3,7 @@ import { severityLabel } from '../../../strings/labels.js';
 import { t } from '../../../strings/index.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { useSplitWidth } from '../hooks/useSplitWidth.js';
+import { useFillHeight } from '../hooks/useFillHeight.js';
 import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 import { LIST_CAP } from '../workbench/FindingList.jsx';
 import { FindingCard, CompliantDetail, SEP, CHECK_MARK, principleOf, whereOf } from './ScopeCards.jsx';
@@ -63,6 +64,7 @@ export function ScopeList({ rows, within, onDismiss, readOnly }) {
   const sel = useListSelection(findings.length);
   const current = findings[sel.at];
   const split = useSplitWidth();
+  useFillHeight(split.rootRef);
   return (
     <div ref={split.rootRef} className="wb wb-split findings-scope__split" style={splitColumns(split)}>
       <section className="qd-cards-panel wb-panel">

@@ -3615,6 +3615,8 @@
 /* The Findings header (scoped views, the dimension page) and the scoped views' list and cards. */
 .findings-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); padding: 12px 18px; margin-bottom: var(--space-3); }
 .findings-head .term-header { margin-bottom: 0; }
+/* the Overview's sub line wraps between its parts, never inside one (a part wider than the line still wraps) */
+.overview-sub__part { display: inline-block; max-width: 100%; }
 /* The header panel opens the page on the line every page's first row shares (the tool pages' toolbar too). */
 .findings-head.qd-cards-panel { margin-top: var(--page-top-gap); }
 .findings-head__ring { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
