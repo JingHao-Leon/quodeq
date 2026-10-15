@@ -6,6 +6,7 @@ import { RISK_ZONE } from '../vocab/riskZone.js';
 import { RISK_SMALL } from '../models/findingMetrics.js';
 import { t } from '../strings/index.js';
 import { useScrolledPast } from '../hooks/useScrolledPast.js';
+import { useRowStarts } from '../hooks/useRowStarts.js';
 import { TileChange, Description, PastRunNote, SlimBar } from './findingsHeadParts.jsx';
 import ScoreSparkline from './ScoreSparkline.jsx';
 
@@ -174,6 +175,7 @@ export default function FindingsHead({
 }) {
   const headRef = useRef(null);
   const scrolledPast = useScrolledPast(headRef);
+  useRowStarts(headRef, '.findings-head__stats');
   return (
     <>
       <SlimBar title={title} grade={grade} metrics={metrics} shown={scrolledPast} />
