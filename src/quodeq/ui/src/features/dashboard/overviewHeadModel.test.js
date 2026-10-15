@@ -51,10 +51,12 @@ test('overviewPastRun: an older run names its day and goes back to the latest fi
 });
 
 test('overviewPastRun: a run with its date reads when it ran, in words, never its id', () => {
-  const runs = [{ runId: 'r2', status: 'done' }, { runId: 'r1', status: 'done', dateISO: '2026-10-13T04:55:00' }];
-  const note = overviewPastRun({ runId: 'r1', day: null }, runs, () => {});
+  const runs = [{ runId: 'r2', status: 'done' }, { runId: 'r1', status: 'done', dateLabel: '13 Oct 2026' }];
+  const trend = [{ runId: 'r1', dateISO: '2026-10-13T04:55:00' }];
+  const note = overviewPastRun({ runId: 'r1', day: null }, runs, () => {}, trend);
   assert.equal(note.when, formatRunWhen('2026-10-13T04:55:00'));
   assert.notEqual(note.when, 'r1');
+  assert.equal(overviewPastRun({ runId: 'r1', day: null }, runs, () => {}).when, '13 Oct 2026');
 });
 
 test('modelOfRun: the run\'s own model, else the newest finished run\'s', () => {
