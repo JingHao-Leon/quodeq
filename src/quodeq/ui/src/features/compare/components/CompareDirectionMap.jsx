@@ -88,7 +88,8 @@ function Frame({ m, box, fleetScore }) {
       <text className="compare-dirmap__refLabel" x={m.zeroX + REF_LABEL_GAP} y={box.top - REF_LABEL_GAP}>{t('compare.mapZero')}</text>
       <line className="compare-dirmap__ref" x1={box.left} x2={right} y1={m.fleetY} y2={m.fleetY} />
       <text className="compare-dirmap__refLabel" x={right} y={m.fleetY - REF_LABEL_GAP} textAnchor="end">{t('compare.mapFleetLine', { score: score1(fleetScore) })}</text>
-      <text className="compare-dirmap__axisLabel" x={box.left - TICK_LABEL_GAP} y={box.top - REF_LABEL_GAP} textAnchor="end">{t('compare.mapScoreAxis')}</text>
+      {/* From the chart's left edge: wider than the tick column, it would run off the edge if it ended at the axis. */}
+      <text className="compare-dirmap__axisLabel" x={0} y={box.top - REF_LABEL_GAP}>{t('compare.mapScoreAxis')}</text>
       <text className="compare-dirmap__axisLabel" x={right} y={bottom + MOVE_CAPTION_DY} textAnchor="end">{t('compare.mapMoveAxis')}</text>
     </g>
   );
