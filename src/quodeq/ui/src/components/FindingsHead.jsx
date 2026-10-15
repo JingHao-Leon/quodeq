@@ -59,6 +59,20 @@ function RiskStat({ risk }) {
   );
 }
 
+/**
+ * The Risk tile of a principle: how many of the Map's areas, measured over
+ * its findings, are in fix first and watch ("none" when neither), opening
+ * the Map's Risk tab on the principle.
+ */
+function RiskAreasStat({ riskAreas }) {
+  const { fixFirst, watch, onOpen, today = false } = riskAreas;
+  const value = fixFirst || watch ? t('violations.scopeStatRiskAreasValue', { fixFirst, watch }) : t('violations.scopeStatRiskAreasNone');
+  return (
+    <HeadStat label={t('violations.scopeStatRisk')} value={<span className="findings-head__areas">{value}</span>}
+      sub={t(today ? 'violations.scopeStatRiskAreasToday' : 'violations.scopeStatRiskAreasHint')} onClick={onOpen} ariaLabel={t('violations.scopeStatRiskAreasAria')} />
+  );
+}
+
 /** Violations and pass rate: the two tiles every header has, each opening its findings when an action is given. */
 function CountStats({ m, deltas, changes, actions }) {
   return (
@@ -99,13 +113,15 @@ function RequirementsStat({ requirements }) {
  * project), or, for a principle, its requirements failing; then, with
  * `showRisk` (a folder or an area), the Risk zone the weighted issues per
  * file put it in (the Map's measure: it compares areas, so a dimension or
- * principle spread over every file read has none worth showing).
+ * principle spread over every file read has none worth showing), or, with
+ * `riskAreas` (a principle), how many areas its findings put in each zone.
  */
-function HeadStats({ m, filesHint, oneFile, showRisk, requirements, deltas, changes = {}, actions = {} }) {
+function HeadStats({ m, filesHint, oneFile, showRisk, requirements, riskAreas, deltas, changes = {}, actions = {} }) {
   return (
     <div className="findings-head__stats">
       <CountStats m={m} deltas={deltas} changes={changes} actions={actions} />
       {requirements && <RequirementsStat requirements={requirements} />}
+      {riskAreas && <RiskAreasStat riskAreas={riskAreas} />}
       {!oneFile && !requirements && <RateStats m={m} filesHint={filesHint} changes={changes} />}
       {showRisk && m.risk && <RiskStat risk={m.risk} />}
     </div>
@@ -144,13 +160,15 @@ function GradeRing({ grade }) {
  * @param {boolean} [props.oneFile] a file scope: no per-100 or critical per 1,000
  * @param {boolean} [props.showRisk] show the Risk zone (folder and area scopes)
  * @param {?{failing: number, total: number}} [props.requirements] a principle's requirements, in place of the per-file tiles
+ * @param {?{fixFirst: number, watch: number, onOpen?: Function}} [props.riskAreas] a principle's areas in the Map's fix first and watch zones
  * @param {object} [props.deltas] the severities' change, by severity
  * @param {{passPct?: ?number, per100?: ?number, criticalPerK?: ?number}} [props.changes] the tiles' change since the previous period (tileChanges)
  * @param {?{when: string, onBack: Function}} [props.pastRun] a past run on show, and the way back to the latest
  * @param {{onViolations?: Function, onCompliance?: Function, onSeverity?: Function}} [props.actions]
  */
 export default function FindingsHead({
-  title, sub, description, grade, badge, metrics, filesHint, oneFile = false, showRisk = false, requirements = null, deltas, changes, pastRun = null, actions,
+  title, sub, description, grade, badge, metrics, filesHint, oneFile = false, showRisk = false, requirements = null, riskAreas = null, deltas, changes,
+  pastRun = null, actions,
 }) {
   const headRef = useRef(null);
   const scrolledPast = useScrolledPast(headRef);
@@ -165,7 +183,7 @@ export default function FindingsHead({
           {grade && description && <Description text={description} />}
           {grade?.hint && <p className="findings-head__hint">{grade.hint}</p>}
         </div>
-        <HeadStats m={metrics} filesHint={filesHint} oneFile={oneFile} showRisk={showRisk} requirements={requirements}
+        <HeadStats m={metrics} filesHint={filesHint} oneFile={oneFile} showRisk={showRisk} requirements={requirements} riskAreas={riskAreas}
           deltas={deltas} changes={changes} actions={actions} />
       </section>
     </>

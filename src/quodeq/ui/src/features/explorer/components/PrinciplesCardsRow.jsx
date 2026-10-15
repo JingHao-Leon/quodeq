@@ -1,6 +1,7 @@
 import DimensionGaugeCard from '../../dashboard/components/DimensionGaugeCard.jsx';
 import { GRADE } from '../../../vocab/grade.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
+import { weakestFirst } from '../../../models/scoreOrder.js';
 
 /**
  * Renders one DimensionGaugeCard per principle. Adapts a principleGrade-style
@@ -28,12 +29,8 @@ const TWO_ROWS = 2;
 /** How many columns `n` cards take on a wide screen: all on one row up to ONE_ROW_MAX, else two even rows. */
 export const columnsFor = (n) => (n <= ONE_ROW_MAX ? Math.max(1, n) : Math.ceil(n / TWO_ROWS));
 
-const scoreOf = (p) => { const n = parseFloat(p.score); return Number.isNaN(n) ? Infinity : n; };
-
 /** Weakest first, so the principle to open leads the row; ungraded ones last, ties by name. */
-export function weakestFirst(a, b) {
-  return (scoreOf(a) - scoreOf(b)) || String(a.principle).localeCompare(String(b.principle));
-}
+const weakestPrincipleFirst = weakestFirst((p) => p.score, (p) => p.principle);
 
 /**
  * The principle cards, compact, weakest first. `highlighted` lights one
@@ -47,7 +44,7 @@ export default function PrinciplesCardsRow({ principles = [], onPrincipleClick, 
       className="qd-cards-row"
       style={{ '--qd-cards-count': Math.max(1, principles.length), '--qd-cards-cols': columnsFor(principles.length) }}
     >
-      {[...principles].sort(weakestFirst).map((p) => {
+      {[...principles].sort(weakestPrincipleFirst).map((p) => {
         const isInsufficient = (p.grade || '').toLowerCase() === GRADE.INSUFFICIENT.toLowerCase();
         const item = principleToItem(p);
         return (

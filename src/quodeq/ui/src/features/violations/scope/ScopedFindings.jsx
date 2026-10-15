@@ -10,17 +10,15 @@ import { useFileDetailFiltering, dismissKey } from '../../explorer/components/us
 import { useDashboardScrollElement } from '../../explorer/components/VirtualList.jsx';
 import { useFindingsPaneSpecs, renderFileDetailRow } from '../../explorer/components/fileDetailRows.jsx';
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
-import { scopeFindings, principleGradeOf, SCOPE_KIND } from './scopeModel.js';
+import { scopeFindings, scopeQualifier, SCOPE_KIND } from './scopeModel.js';
 import FindingsHead from '../../../components/FindingsHead.jsx';
+import SinceStrip from '../../../components/SinceStrip.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { scoreChangeShows } from '../../../utils/trendUtils.js';
-import { usePrinciplePeriodDeltas } from '../../../hooks/usePrinciplePeriodDeltas.js';
+import { usePrincipleHead, severityDeltas } from './usePrincipleHead.jsx';
 import ReqRail from './ReqRail.jsx';
 import { requirementRail, requirementCounts, rowsOfRequirement, reqKindCounts } from './requirementRail.js';
-import { scopeMetrics, filesChecked, areaRisk } from '../../../models/findingMetrics.js';
-import { useStandardDescriptions } from '../../explorer/hooks/useStandardDescriptions.js';
-import { GRADE } from '../../../vocab/grade.js';
-import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
+import { scopeMetrics, filesChecked, areaRisk, tileChanges } from '../../../models/findingMetrics.js';
 import { FINDING_TYPE } from '../../../vocab/findingType.js';
 import { t } from '../../../strings/index.js';
 
@@ -109,52 +107,6 @@ function filesBase(file, dims, within) {
   return { files: checked, hint: t('violations.scopeStatFilesHint', { count: checked }) };
 }
 
-/** A principle's grade for its header ring: its score, whether the evidence grades it at all, and what the evidence says. */
-function gradeOf(row) {
-  if (!row) return null;
-  const insufficient = row.grade === GRADE.INSUFFICIENT;
-  const hint = insufficient ? t('explorer.notEnoughEvidence')
-    : row.confidence === EVIDENCE_CONFIDENCE.LOW ? t('explorer.thinEvidenceHint') : null;
-  return { score: row.score, insufficient, hint };
-}
-
-/** The principle's change as its header's badge, as its card shows it. */
-function changeBadge(change) {
-  return scoreChangeShows(change) ? <TrendBadge delta={change} /> : null;
-}
-
-/**
- * What the period hook needs for a principle scope: the project (none for
- * any other scope, so nothing is fetched), the history and its grouping, and
- * the run on show (the past day's, else the dimension's own).
- */
-function periodArgs({ scope, dims, history, principles }) {
-  const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;
-  const fromRunId = isPrinciple ? dims.find((d) => d.dimension === scope.dimension)?.fromRunId : null;
-  return {
-    project: isPrinciple ? history?.project : null, selectedSource: history?.selectedSource, trend: history?.trend,
-    dimension: scope.dimension, granularity: history?.granularity, activeRunId: history?.runId || fromRunId, principles,
-  };
-}
-
-/**
- * What a principle scope adds to its header: the standard's description of
- * it, its score, and its change since the previous day, week or month (as
- * its card on the dimension page shows it), read from `history`.
- * @param {object} scope
- * @param {object[]} dims
- * @param {?{project: string, selectedSource: string, trend: object[], granularity: string, runId: ?string}} history
- */
-function usePrincipleHead(scope, dims, history) {
-  const isPrinciple = scope.kind === SCOPE_KIND.PRINCIPLE;
-  const { principleDescriptions } = useStandardDescriptions(isPrinciple ? scope.dimension : null);
-  const row = isPrinciple ? principleGradeOf(scope, dims) : null;
-  const principles = useMemo(() => (row ? [{ principle: scope.principle, score: row.score }] : []), [row, scope.principle]);
-  const { principles: changes } = usePrinciplePeriodDeltas(periodArgs({ scope, dims, history, principles }));
-  if (!isPrinciple) return {};
-  return { description: principleDescriptions?.[scope.principle] || '', grade: gradeOf(row), badge: changeBadge(changes.get(scope.principle)) };
-}
-
 /**
  * The Findings page scoped to a file, folder, dimension, principle,
  * requirement, the project or an area: its header and numbers, then every
@@ -166,18 +118,22 @@ function usePrincipleHead(scope, dims, history) {
  * `readOnly` (a past day) leaves out the fix plans too, which act on today.
  * A principle reads its requirements down the side, as a filter on its
  * findings, and its change since the previous period from `history` (the
- * project, its score history and grouping, the run on show).
+ * project, its score history and grouping, the run on show), its tiles'
+ * and severities' changes and its since line. A past run on show says so in
+ * the header (`history.pastRun`: which, and the way back to today). A
+ * principle's Risk tile opens the Map through `onOpenMap` (its nav params).
  */
-export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false, history = null }) {
+export default function ScopedFindings({ scope, dims, projectName, dateLabel, onDismissFinding, readOnly = false, history = null, onOpenMap }) {
   const file = useMemo(() => scopeFindings(scope, dims, projectName), [scope, dims, projectName]);
-  const head = usePrincipleHead(scope, dims, history);
+  const head = usePrincipleHead(scope, dims, history, onOpenMap);
   const within = useMemo(() => withinOf(scope), [scope]);
   // A new scope starts the page over (filter, order, view); an area's key carries its paths, so it is built once per scope.
   const scopeKey = useMemo(() => JSON.stringify(scope), [scope]);
   if (!file) return <div className="wb-empty">{t('violations.scopeEmpty')}</div>;
-  const sub = [t(`violations.scopeKind_${scope.kind}`), scope.kind === SCOPE_KIND.PRINCIPLE ? scope.dimension : null, dateLabel]
+  const sub = [t(`violations.scopeKind_${scope.kind}`), scopeQualifier(scope), dateLabel || head.when]
     .filter(Boolean).join(t('violations.wbDot'));
-  return <ScopedFile key={scopeKey} file={file} within={within} dims={dims} sub={sub} head={head} initialFilter={scope.filter}
+  const shown = { ...head, sub, pastRun: history?.pastRun || null, granularity: history?.granularity };
+  return <ScopedFile key={scopeKey} file={file} within={within} dims={dims} head={shown} initialFilter={scope.filter}
     onDismissFinding={onDismissFinding} readOnly={readOnly} />;
 }
 
@@ -217,7 +173,12 @@ function useRequirementFilter({ file, within, filtering }) {
   return { req, setReq, rail, counts, kindCounts };
 }
 
-function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFinding, readOnly }) {
+/**
+ * The scoped page itself. `head` is what its header reads beyond the
+ * numbers: the sub line, a principle's description, grade, change, previous
+ * counts, since line and Risk, the past run on show and the chart's grouping.
+ */
+function ScopedFile({ file, within, dims, head, initialFilter, onDismissFinding, readOnly }) {
   const [activeFilter, setActiveFilter] = useState(initialFilter || null);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
   const [sort, setSort] = useState(SCOPE_SORT.SEVERITY);
@@ -235,8 +196,11 @@ function ScopedFile({ file, within, dims, sub, head, initialFilter, onDismissFin
   const dismiss = onDismiss ? handleDismiss : undefined;
   return (
     <div className="findings-scope">
-      <FindingsHead title={file.file} sub={sub} description={head.description} grade={head.grade} badge={head.badge}
-        oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} metrics={metrics} filesHint={filesHint} />
+      <FindingsHead title={within.inPrinciple ? String(file.file).toLowerCase() : file.file} sub={head.sub} description={head.description} grade={head.grade}
+        badge={scoreChangeShows(head.change) ? <TrendBadge delta={head.change} /> : null} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} metrics={metrics} filesHint={filesHint}
+        changes={head.previous ? tileChanges(metrics, scopeMetrics({ ...head.previous, files: metrics.files })) : undefined}
+        deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={head.pastRun} />
+      {head.since && <SinceStrip summary={head.since} granularity={head.granularity} />}
       <div className={rail ? 'findings-scope__work' : undefined}>
         {rail && <ReqRail rail={rail} total={filtering.liveTotal} selected={req} onSelect={setReq} />}
         <div className="findings-scope__main">

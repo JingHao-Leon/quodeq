@@ -4,6 +4,7 @@ import { FINDING_TYPE } from '../../../vocab/findingType.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
 import { t } from '../../../strings/index.js';
+import { nameKey } from '../../../utils/nameKey.js';
 
 /** What a scoped Findings view is about. */
 export const SCOPE_KIND = Object.freeze({
@@ -20,6 +21,17 @@ const textList = (x) => (Array.isArray(x) ? x.filter(isText) : []);
 /** The filter a findings number opens its scope on: every violation (no filter), a severity, or the compliant checks. */
 export const cardFilter = (kind) => (kind === HERO_CARD_KIND.VIOLATIONS ? null : kind);
 
+/**
+ * An area's finding selection, when the Map's Risk sky it was opened from
+ * was filtered: its dimensions, narrowed to one principle when it names one
+ * (and keeps exactly one dimension); nothing when it was not filtered.
+ */
+function areaSelection(p) {
+  const dimensions = textList(p.dimensions);
+  if (!dimensions.length) return {};
+  return isText(p.principle) && dimensions.length === 1 ? { dimensions, principle: p.principle } : { dimensions };
+}
+
 /** The fields each kind needs, read from a navigation param. */
 const READERS = {
   [SCOPE_KIND.FILE]: (p) => (isText(p.path) ? { path: p.path } : null),
@@ -28,7 +40,7 @@ const READERS = {
   [SCOPE_KIND.REQUIREMENT]: (p) => (isText(p.dimension) && isText(p.req) ? { dimension: p.dimension, req: p.req, text: isText(p.text) ? p.text : '' } : null),
   [SCOPE_KIND.PROJECT]: () => ({}),
   [SCOPE_KIND.PRINCIPLE]: (p) => (isText(p.dimension) && isText(p.principle) ? { dimension: p.dimension, principle: p.principle } : null),
-  [SCOPE_KIND.AREA]: (p) => (isText(p.name) && textList(p.paths).length ? { name: p.name, paths: textList(p.paths), small: p.small === true } : null),
+  [SCOPE_KIND.AREA]: (p) => (isText(p.name) && textList(p.paths).length ? { name: p.name, paths: textList(p.paths), small: p.small === true, ...areaSelection(p) } : null),
 };
 
 /**
@@ -49,6 +61,13 @@ function underAny(paths) {
   return (file) => files.has(file) || folders.some((p) => (file || '').startsWith(p));
 }
 
+/** An area's selection as a test on a finding of a dimension: its dimensions, its principle; every finding without one. */
+function selectionKeeps({ dimensions, principle }) {
+  if (!dimensions) return () => true;
+  const dims = new Set(dimensions.map(nameKey));
+  return (item, dim) => dims.has(nameKey(dim.dimension)) && (!principle || nameKey(item.principle) === nameKey(principle));
+}
+
 /** What each kind keeps of a dimension's findings (`item`, of dimension `dim`). */
 const KEEPS = {
   [SCOPE_KIND.FILE]: (s) => (item) => item.file === s.path,
@@ -57,7 +76,11 @@ const KEEPS = {
   [SCOPE_KIND.REQUIREMENT]: (s) => (item, dim) => dim.dimension === s.dimension && item.req === s.req,
   [SCOPE_KIND.PROJECT]: () => () => true,
   [SCOPE_KIND.PRINCIPLE]: (s) => (item, dim) => dim.dimension === s.dimension && item.principle === s.principle,
-  [SCOPE_KIND.AREA]: (s) => { const inArea = underAny(s.paths); return (item) => inArea(item.file); },
+  [SCOPE_KIND.AREA]: (s) => {
+    const inArea = underAny(s.paths);
+    const inSelection = selectionKeeps(s);
+    return (item, dim) => inArea(item.file) && inSelection(item, dim);
+  },
 };
 
 /** The scope's title: the file or folder path, the dimension, the principle, the requirement and its text, the project, the area. */
@@ -66,6 +89,18 @@ function titleOf(scope, projectName) {
   if (scope.kind === SCOPE_KIND.REQUIREMENT) return scope.text ? `${scope.req} · ${scope.text}` : scope.req;
   if (scope.kind === SCOPE_KIND.PROJECT) return projectName || SCOPE_KIND.PROJECT;
   return scope.principle || scope.path || scope.dimension || scope.name;
+}
+
+/**
+ * What the scope's sub line names after its kind: a principle's dimension,
+ * a filtered area's dimensions (and principle); null for the others.
+ * @param {object} scope readScope output
+ * @returns {?string}
+ */
+export function scopeQualifier(scope) {
+  if (scope.kind === SCOPE_KIND.PRINCIPLE) return scope.dimension;
+  if (scope.kind !== SCOPE_KIND.AREA || !scope.dimensions) return null;
+  return [scope.dimensions.join(t('violations.scopeListSep')), scope.principle].filter(Boolean).join(t('violations.wbDot'));
 }
 
 /** A principle scope's score, grade and evidence confidence, from its dimension's principle rows; null for other kinds. */

@@ -101,10 +101,10 @@ src/quodeq/ui/src/features/compare/compareModel.views.test.js:14
 src/quodeq/ui/src/features/compare/components/ComparePage.remote.test.jsx:23
 src/quodeq/ui/src/features/compare/components/ComparePage.table.test.jsx:23
 src/quodeq/ui/src/features/compare/components/_comparePage.fixtures.jsx:10
-src/quodeq/ui/src/features/dashboard/components/DashboardPage.fadeOnceIdentity.test.jsx:9
+src/quodeq/ui/src/features/dashboard/components/DashboardPage.fadeOnceIdentity.test.jsx:11
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.fadeOnceReArm.test.jsx:12
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.loadingAndErrors.test.jsx:5
-src/quodeq/ui/src/features/dashboard/components/DashboardPage.noRunsTransition.test.jsx:9
+src/quodeq/ui/src/features/dashboard/components/DashboardPage.noRunsTransition.test.jsx:11
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.runModeAndTeammate.test.jsx:12
 src/quodeq/ui/src/features/dashboard/components/DashboardPage.selectorAndStartup.test.jsx:5
 src/quodeq/ui/src/features/dashboard/components/ProjectsPage.badgesAndFilters.test.jsx:40

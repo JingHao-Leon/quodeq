@@ -3651,6 +3651,8 @@
 .findings-head__value { font-size: 20px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--color-text); }
 .findings-head__value .risk-zone-chip { font-size: 12px; padding: 2px 8px; vertical-align: middle; }
 .findings-head__small { font-size: 13px; color: var(--color-text-muted); }
+/* a principle's Risk tile: its areas per zone, a number line at text size */
+.findings-head__areas { font-size: 14px; white-space: nowrap; }
 .findings-head__value--alarm { color: var(--color-sev-critical-text); }
 .findings-head__sub { display: flex; gap: 4px; flex-wrap: nowrap; white-space: nowrap; font-size: 11px; color: var(--color-text-muted); }
 .risk-zone-chip--healthy { color: var(--color-grade-top-text); border-color: color-mix(in srgb, var(--color-grade-top-text) 48%, transparent); background: var(--color-grade-top-bg); }

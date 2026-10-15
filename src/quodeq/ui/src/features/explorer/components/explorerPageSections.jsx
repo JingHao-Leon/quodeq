@@ -4,11 +4,13 @@
  * run), the principle cards, and the bottom (Fix first beside where the
  * findings are).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FindingsHead from '../../../components/FindingsHead.jsx';
+import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
 import { scopeMetrics, runDimensionMetrics, tileChanges } from '../../../models/findingMetrics.js';
@@ -18,11 +20,12 @@ import { t } from '../../../strings/index.js';
 import PrinciplesCardsRow from './PrinciplesCardsRow.jsx';
 
 /**
- * The header's sub line: where the standard comes from (its family and
- * edition, its version, what it is based on), then the run's date.
+ * The header's sub line, as every findings page's: what it is (a
+ * dimension), where its standard comes from (its family and edition, its
+ * version, what it is based on), then the run's date.
  */
 export function headSub(standardInfo, when) {
-  return [...standardOriginParts(standardInfo), when].filter(Boolean).join(t('violations.wbDot')) || null;
+  return [t('violations.scopeKind_dimension'), ...standardOriginParts(standardInfo), when].filter(Boolean).join(t('violations.wbDot'));
 }
 
 /**
@@ -64,37 +67,25 @@ export function PrinciplesPanel({ radialPrinciples, enrichedPrinciples, onPrinci
   );
 }
 
-/** What the "Where" panel shows: the folders or the files (the Map's areas wait for Risk by dimension). */
-export const WHERE = Object.freeze({ FOLDERS: 'folders', FILES: 'files' });
-const WHERE_VIEWS = [WHERE.FOLDERS, WHERE.FILES];
-
-/** Where this dimension's findings are, one level at a time: a switch over the one panel it shows. */
-function WherePanel({ view, onView, children }) {
-  return (
-    <section className="explorer-where" aria-label={t('explorer.whereAria')}>
-      <div className="term-seg explorer-where__switch" role="group" aria-label={t('explorer.whereAria')}>
-        {WHERE_VIEWS.map((v) => (
-          <button key={v} type="button" className={`term-btn${v === view ? ' term-btn--on' : ''}`} aria-pressed={v === view} onClick={() => onView(v)}>
-            {t(`explorer.where_${v}`)}
-          </button>
-        ))}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 /**
  * The page's bottom, what to fix beside where it is: Fix first on the left
- * (a lit principle lights its rows), and on the right the folders or the
- * files this dimension's findings are in (folders first).
+ * (a lit principle lights its rows), and on the right the Map's areas
+ * measured over this dimension (first), the folders or the files its
+ * findings are in. The Map measures today's findings, so on a past run
+ * (`areasOfToday`) the areas say they are today's.
  */
-export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple }) {
-  const [where, setWhere] = useState(WHERE.FOLDERS);
+export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple, project, selectedSource, areasOfToday = false }) {
+  const [where, setWhere] = useState(WHERE.AREAS);
+  const dimensions = useMemo(() => [d.evalData.dimension], [d.evalData.dimension]);
   return (
     <div className="explorer-bottom">
       <FixFirstPanel dimensions={fixFirstDims} oneDimension litPrinciple={litPrinciple} onRequirementClick={findingsNav.onRequirementClick} />
       <WherePanel view={where} onView={setWhere}>
+        {where === WHERE.AREAS && areasOfToday && <p className="explorer-where__note">{t('explorer.areasOfToday')}</p>}
+        {where === WHERE.AREAS && (
+          <RiskAreasPanel project={project} source={selectedSource} dimensions={dimensions}
+            onAreaClick={findingsNav.onAreaClick} onOpenRisk={findingsNav.onOpenRisk} />
+        )}
         {where === WHERE.FOLDERS && <FindingsByFolderPanel dimensions={fixFirstDims} onFolderClick={findingsNav.onFolderClick} />}
         {where === WHERE.FILES && <OffendingFilesSection topFiles={d.topFiles} onFileClick={findingsNav.onFileClick} />}
       </WherePanel>

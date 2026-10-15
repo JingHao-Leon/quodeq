@@ -82,6 +82,18 @@ describe('MapPage: the Risk tab', () => {
     expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'area', name: 'checkout', paths: ['src/'], small: false }, asOf: null });
   });
 
+  it('View Details on a filtered sky opens the area\'s findings of the kept dimension and principle only', async () => {
+    const onNavigate = vi.fn();
+    const twoDims = baseData({ accumulated: { dimensions: [...DIMS, { ...DIMS[0], dimension: 'reliability' }] } });
+    render(<MapPage data={twoDims} callbacks={{ onNavigate }} nav={{ vizStyle: 'risk', dimensions: ['security'], principle: 'P1' }} />,
+      { wrapper: withStableQueryApi(riskApi()) });
+    fireEvent.click(await screen.findByRole('button', { name: /checkout/ }));
+    fireEvent.click(await screen.findByRole('button', { name: t('map.viewDetails') }));
+    expect(onNavigate).toHaveBeenCalledWith('violations', {
+      scope: { kind: 'area', name: 'checkout', paths: ['src/'], small: false, dimensions: ['security'], principle: 'P1' }, asOf: null,
+    });
+  });
+
   it('opens with an area selected when asked to (an area from the Overview)', async () => {
     renderRisk({}, { area: 'checkout' });
     expect(await screen.findByRole('region', { name: t('map.riskPanelAria', { name: 'checkout' }) })).toBeInTheDocument();

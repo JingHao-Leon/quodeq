@@ -2,6 +2,7 @@ import { NAV_TAB } from '../../../vocab/navTab.js';
 import { SEVERITY_FILTER_ALL } from '../../../vocab/severity.js';
 import { SCOPE_KIND, openScope, cardFilter } from '../../violations/scope/scopeModel.js';
 import { runAsOf } from '../../violations/asOf.js';
+import { riskMapParams } from '../../map/model/riskLinks.js';
 
 // A path chip ending in '/' is a folder: everything under it.
 const FOLDER_SUFFIX = '/';
@@ -32,6 +33,9 @@ function scopedNav({ dimension, scoped, onNavigate, activeRunId, trend }) {
     toRequirement: onNavigate && ((row) => openScope(onNavigate, { kind: SCOPE_KIND.REQUIREMENT, dimension: row.dimension, req: row.req, text: row.text }, asOf)),
     // A folder opens the findings list on that folder and this dimension.
     toFolder: onNavigate && ((row) => onNavigate(NAV_TAB.VIOLATIONS, { wb: { paths: [`${row.dir}${FOLDER_SUFFIX}`], dimension, selectedId: null }, asOf })),
+    // The Map's Risk tab filtered to this dimension: with an area selected, or the whole sky.
+    toArea: onNavigate && ((area) => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension], area: area.name }))),
+    toRisk: onNavigate && (() => onNavigate(NAV_TAB.MAP, riskMapParams({ dimensions: [dimension] }))),
   };
 }
 
@@ -41,9 +45,11 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
     toCard: (kind) => onNavigate?.(NAV_TAB.FILE, { file: dimFile, severityFilter: cardFilter(kind) || SEVERITY_FILTER_ALL, ...at }),
     toFile: (f) => onNavigate?.(NAV_TAB.FILE, { file: f, ...at }),
     toPrinciple: (name) => onNavigate?.(NAV_TAB.EVAL_PRINCIPLE, { evalPrincipal: buildEvalPrincipal?.(name), sourceTab }),
-    // The Violations tab reads the selected project only: another project's requirements and folders open nothing.
+    // The Violations tab and the Map read the selected project only: another project's requirements, folders and areas open nothing.
     toRequirement: undefined,
     toFolder: undefined,
+    toArea: undefined,
+    toRisk: undefined,
   };
 }
 
@@ -53,19 +59,23 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
  * the header's tiles and severity badges the dimension on their filter, a
  * row of the files table the file, a principle (card or radial) the
  * principle, a Fix first row its requirement, a folder the findings list on
- * that folder and the dimension. A cross-project explorer (Compare) keeps the File page with
- * the snapshot it is handed, and the principle page, and its requirements
- * and folders open nothing, as the Violations tab only reads the selected project.
+ * that folder and the dimension, an area the Map's Risk tab filtered to the
+ * dimension with that area selected (the panel's foot the whole filtered
+ * sky). A cross-project explorer (Compare) keeps the File page with the
+ * snapshot it is handed, and the principle page, and its requirements,
+ * folders and areas open nothing, as the Violations tab and the Map only
+ * read the selected project.
  * @param {{dimension: string, scoped: ({latestRunId: (string|null)}|null), dimFile: object, onNavigate?: Function,
  *   project: string, activeRunId: (string|null), activeDateLabel: (string|null), sourceTab?: string, trend?: object[],
  *   buildEvalPrincipal?: (name: string) => object}} args
  * @returns {{handleCardNavigate: Function, onSeverityBadge: Function, onFileClick: Function, onPrincipleClick: Function,
- *   onRequirementClick: (Function|undefined), onFolderClick: (Function|undefined)}}
+ *   onRequirementClick: (Function|undefined), onFolderClick: (Function|undefined), onAreaClick: (Function|undefined),
+ *   onOpenRisk: (Function|undefined)}}
  */
 export function buildExplorerFindingsNav(args) {
-  const { toCard, toFile, toPrinciple, toRequirement, toFolder } = args.scoped ? scopedNav(args) : filePageNav(args);
+  const { toCard, toFile, toPrinciple, toRequirement, toFolder, toArea, toRisk } = args.scoped ? scopedNav(args) : filePageNav(args);
   return {
     handleCardNavigate: toCard, onSeverityBadge: (level) => () => toCard(level), onFileClick: toFile, onPrincipleClick: toPrinciple,
-    onRequirementClick: toRequirement, onFolderClick: toFolder,
+    onRequirementClick: toRequirement, onFolderClick: toFolder, onAreaClick: toArea, onOpenRisk: toRisk,
   };
 }

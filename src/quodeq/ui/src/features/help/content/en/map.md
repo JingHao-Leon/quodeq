@@ -17,7 +17,7 @@ The **Map** tab draws your codebase as shapes you can scan at a glance: three la
 
 ### Filter by dimension
 
-The **Dimensions** pill in the map controls narrows every layout to the dimensions you tick. A dot on the pill reminds you a filter is active.
+The **Dimensions** pill in the map controls narrows every layout to the dimensions you tick. A dot on the pill reminds you a filter is active. On the Risk sky the areas are measured again over the dimensions you keep (or over one principle, when the Map was opened from a principle's page), and **View details** then opens the area's findings of those dimensions, and that principle, only: the findings page names them under the area's name.
 
 ### Time-lapse
 

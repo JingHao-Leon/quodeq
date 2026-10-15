@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SCOPE_KIND, openScope, readScope, scopeFindings, scopeLabel, principleGradeOf, cardFilter } from './scopeModel.js';
+import { SCOPE_KIND, openScope, readScope, scopeFindings, scopeLabel, principleGradeOf, cardFilter, scopeQualifier } from './scopeModel.js';
 
 const v = (over) => ({ title: 'T', severity: 'major', file: 'src/a/x.py', line: 10, req: 'R-1', principle: 'P', ...over });
 const c = (over) => ({ file: 'src/a/x.py', line: 4, req: 'R-1', principle: 'P', ...over });
@@ -128,4 +128,27 @@ test('cardFilter: the violations number opens unfiltered, a severity or the comp
   assert.equal(cardFilter('violations'), null);
   assert.equal(cardFilter('critical'), 'critical');
   assert.equal(cardFilter('compliance'), 'compliance');
+});
+
+test('readScope keeps an area\'s selection from a filtered Risk sky, a principle only with one dimension', () => {
+  const area = (over) => readScope({ kind: 'area', name: 'api', paths: ['src/'], ...over });
+  assert.deepEqual(area({ dimensions: ['security'], principle: 'P' }), { kind: 'area', name: 'api', paths: ['src/'], small: false, dimensions: ['security'], principle: 'P', filter: null });
+  assert.deepEqual(area({ dimensions: ['security', 'reliability'], principle: 'P' }).dimensions, ['security', 'reliability']);
+  assert.equal(area({ dimensions: ['security', 'reliability'], principle: 'P' }).principle, undefined);
+  assert.equal(area({ dimensions: [] }).dimensions, undefined);
+});
+
+test('scopeFindings narrows a filtered area to its dimensions and principle, whatever their case', () => {
+  const byDimension = scopeFindings(readScope({ kind: 'area', name: 'a', paths: ['src/a/'], dimensions: ['Security'] }), dims());
+  assert.deepEqual(byDimension.dimensions, ['security']);
+  const byPrinciple = scopeFindings(readScope({ kind: 'area', name: 'a', paths: ['src/'], dimensions: ['reliability'], principle: 'p' }), dims());
+  assert.equal(files(byPrinciple).length, 5);
+  assert.equal(scopeFindings(readScope({ kind: 'area', name: 'a', paths: ['src/'], dimensions: ['reliability'], principle: 'Other' }), dims()), null);
+});
+
+test('scopeQualifier names a principle\'s dimension and a filtered area\'s selection', () => {
+  assert.equal(scopeQualifier(readScope({ kind: 'principle', dimension: 'security', principle: 'P' })), 'security');
+  assert.equal(scopeQualifier(readScope({ kind: 'area', name: 'a', paths: ['x/'], dimensions: ['security'], principle: 'P' })), 'security · P');
+  assert.equal(scopeQualifier(readScope({ kind: 'area', name: 'a', paths: ['x/'], dimensions: ['security', 'reliability'] })), 'security, reliability');
+  assert.equal(scopeQualifier(readScope({ kind: 'area', name: 'a', paths: ['x/'] })), null);
 });

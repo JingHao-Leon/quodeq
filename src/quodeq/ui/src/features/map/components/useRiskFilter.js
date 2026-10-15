@@ -31,13 +31,14 @@ export function useRiskFilter({ nav, dimensionState }) {
 
 /**
  * The Risk tab's filter (useRiskFilter) and the areas it measures, fetched
- * while the tab is on screen (`active`).
+ * while the tab is on screen (`active`), with the selection they were
+ * measured over (the filter's, once a burst of changes settles).
  * @param {{nav?: object, dimensionState: object, project: string, source: string, active: boolean}} args
- * @returns {{riskFilter: object, areaState: object}}
+ * @returns {{riskFilter: object, areaState: object, selection: object|null}}
  */
 export default function useRiskState({ nav, dimensionState, project, source, active }) {
   const riskFilter = useRiskFilter({ nav, dimensionState });
   const selection = useSettledValue(riskFilter.selection, SELECTION_SETTLE_MS);
   const areaState = useMapAreas(project, source, active, selection);
-  return { riskFilter, areaState };
+  return { riskFilter, areaState, selection };
 }

@@ -14,9 +14,9 @@
  */
 import { polar, hoverProps } from './radialGeometry.js';
 import RadialLabels from './RadialLabels.jsx';
-import { t } from '../../../strings/index.js';
-import { KEY } from '../../../vocab/keyboard.js';
-import { SCORE_SCALE_MAX } from '../../../constants.js';
+import { t } from '../../strings/index.js';
+import { KEY } from '../../vocab/keyboard.js';
+import { SCORE_SCALE_MAX } from '../../constants.js';
 // Ring levels, as a fraction of the outer radius (fifths).
 const RING_LEVEL_1 = 0.2;
 const RING_LEVEL_2 = 0.4;
@@ -197,6 +197,7 @@ export default function PrinciplesRadial({
   onPrincipleClick,
   highlighted = null,
   onHover,
+  ariaLabel = null,
 }) {
   const angles = axisAngles(principles.length);
   const { plotted, points, polylineFill, isClosed, showPolyline, viewBox } =
@@ -210,7 +211,7 @@ export default function PrinciplesRadial({
       preserveAspectRatio="xMidYMid meet"
       width="100%"
       role="img"
-      aria-label={t('explorer.principlesRadial')}
+      aria-label={ariaLabel || t('explorer.principlesRadial')}
     >
       <RadialRings angles={angles} outerRadius={outerRadius} />
       <RadialAxes angles={angles} outerRadius={outerRadius} />

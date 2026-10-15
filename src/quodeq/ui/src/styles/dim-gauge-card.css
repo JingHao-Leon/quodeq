@@ -177,3 +177,10 @@
 .dim-gauge-card__gradeword { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; line-height: 1; }
 .dim-gauge-card__pills { display: flex; flex-wrap: wrap; gap: 4px; }
 .dim-gauge-card__pass { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
+/* the ring and its numbers sit in the middle of a wide card */
+.dim-gauge-card__row { justify-content: center; }
+/* the compact not-evaluated card (the Overview's): a button that reads as the other cards */
+.dim-gauge-card--compact.dim-gauge-card--not-evaluated { text-align: left; font: inherit; color: inherit; }
+.dim-gauge-card--not-evaluated .dim-gauge-card__mini svg { width: 56px; height: 56px; }
+.dim-gauge-card__gradeword--muted { color: var(--color-text-muted); }
+.dim-gauge-card__mini { display: block; }

@@ -24,4 +24,15 @@ describe('useRiskActions', () => {
       scope: { kind: 'area', name: 'api', paths: ['src/api/a.py'], small: true }, asOf: { runId: 'r1', day: '2026-10-01' },
     });
   });
+
+  it('on a filtered sky both carry the selection the areas were measured over', () => {
+    const onNavigate = vi.fn();
+    const selection = { dimensions: ['security'], principle: 'Authenticity' };
+    const { result } = renderHook(() => useRiskActions({ areaState, selection, onNavigate }));
+    result.current.onViewDetails(area(AREA_KIND.HOTSPOT));
+    result.current.onViewPastDetails(area(AREA_KIND.HOTSPOT), { runId: 'r1', day: '2026-10-01' });
+    expect(onNavigate.mock.calls.map(([, p]) => [p.scope.dimensions, p.scope.principle])).toEqual([
+      [['security'], 'Authenticity'], [['security'], 'Authenticity'],
+    ]);
+  });
 });

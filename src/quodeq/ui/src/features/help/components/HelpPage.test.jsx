@@ -164,10 +164,10 @@ describe('HelpPage grade formula parameters', () => {
   });
 });
 
-describe('HelpPage overview header stats', () => {
-  it('describes the badges, the ratio and the density, and no since-baseline panel', () => {
+describe('HelpPage overview header', () => {
+  it('describes the header like a dimension page\'s: the ring, the sub line and the four tiles, and no since-baseline panel', () => {
     render(<HelpPage initialSection="overview" />);
-    for (const name of ['MAJ badges', 'Density']) {
+    for (const name of ['Pass rate', 'Per 100 files', 'Critical per 1k', 'by which model']) {
       expect(screen.getAllByText(name, { exact: false }).length).toBeGreaterThan(0);
     }
     expect(screen.queryAllByText('Since baseline', { exact: false })).toHaveLength(0);
@@ -193,12 +193,13 @@ describe('HelpPage overview: the dimension page', () => {
   });
 });
 
-describe('HelpPage overview: the four tiles', () => {
-  it('documents the chips\' arrows, the ratio reading and density in the tile, and no strip', () => {
+describe('HelpPage overview: the tiles and the since line', () => {
+  it('documents the tiles\' changes, the since line and the areas first, and no strip', () => {
     const { container } = render(<HelpPage initialSection="overview" />);
     expect(screen.queryByRole('heading', { level: 3, name: /The strip/ })).not.toBeInTheDocument();
-    expect(container.textContent).toMatch(/change since the baseline run/);
-    expect(container.textContent).toMatch(/violations to compliance/);
+    expect(screen.getByRole('heading', { level: 3, name: /Since the previous period/ })).toBeInTheDocument();
+    expect(container.textContent).toMatch(/change since the previous period/);
+    expect(container.textContent).toMatch(/no new or fixed findings/);
     expect(container.textContent).toMatch(/per 100 files read/);
     expect(container.textContent).not.toMatch(/Open types|see findings/);
   });

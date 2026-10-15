@@ -119,7 +119,7 @@ function MapVizContainer({ vizState, treeState, dimensions, callbacks, display, 
   const { fullTree, currentPath, onPathChange } = treeState;
   const { onDrillDown, onFileClick, onPastDetails, onNavigate, onBreadcrumbNav } = callbacks;
   const { showLabels, darkMode, breadcrumb, resetKey, projectName, standardTypes } = display;
-  const riskActions = useRiskActions({ areaState: risk.areaState, onNavigate });
+  const riskActions = useRiskActions({ areaState: risk.areaState, selection: risk.selection, onNavigate });
   return (
     <div className={`map-viz-container${dock.shown ? ' has-dock' : ''}${dock.legend.on ? '' : ' hide-legends'}`} {...(darkMode && !appIsDark ? { [DATA_THEME_ATTR]: getDarkThemeAttr() } : {})}>
       {hasBreadcrumb(vizStyle) && <MapBreadcrumb path={breadcrumb} onNavigate={onBreadcrumbNav} projectName={projectName} />}
@@ -221,7 +221,7 @@ export default function MapPage(props) {
   const state = useMapPageState({ ...props, deferTree: !ready });
   const { vizStyle } = state.viewState;
   const { pack, activityUnavailable } = useMapPackData(selectedProject, selectedSource, vizStyle === VIZ_STYLE.ZOOMPACK);
-  const { riskFilter, areaState } = useRiskState({
+  const { riskFilter, areaState, selection: measuredOver } = useRiskState({
     nav: props.nav, dimensionState: state.dimensionState, project: selectedProject, source: selectedSource, active: vizStyle === VIZ_STYLE.RISK,
   });
   const [timelapseOn, setTimelapseOn] = useMapTimelapsePref();
@@ -255,7 +255,7 @@ export default function MapPage(props) {
         />
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} riskFilter={riskFilter} activityUnavailable={activityUnavailable} />
       </div>
-      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, initialArea: initialAreaOf(props.nav) }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
+      <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, selection: measuredOver, initialArea: initialAreaOf(props.nav) }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
     </div>
   );
 }

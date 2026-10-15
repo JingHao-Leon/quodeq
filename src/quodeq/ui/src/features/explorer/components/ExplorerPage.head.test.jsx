@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { t } from '../../../strings/index.js';
 
-const data = vi.hoisted(() => ({ d: null, previous: null, info: null }));
+const data = vi.hoisted(() => ({ d: null, previous: null, info: null, diffs: [] }));
 
 // The page's own-trend query needs a QueryClient; these render it bare.
 vi.mock('./useExplorerTrend.js', () => ({ useExplorerTrend: (_p, _s, trend) => trend ?? [] }));
@@ -15,9 +15,20 @@ vi.mock('../hooks/useStandardDescriptions.js', () => ({
   useStandardDescriptions: () => ({ standardDescription: 'Keeps the core clean', standardInfo: data.info }),
 }));
 vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: data.previous }) }));
+// The since line's run comparisons read through react-query too.
+vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: data.diffs }) }));
+// The Map's areas read through react-query as well.
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({
+  default: ({ dimensions, onAreaClick, onOpenRisk }) => (
+    <>
+      <button type="button" onClick={() => onAreaClick({ name: 'api' })}>area row {dimensions.join(',')}</button>
+      <button type="button" onClick={onOpenRisk}>risk in map</button>
+    </>
+  ),
+}));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
 vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => <div data-testid="history" /> }));
-vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => <div data-testid="radial" /> }));
+vi.mock('../../../components/radial/RadialPanel.jsx', () => ({ default: () => <div data-testid="radial" /> }));
 vi.mock('./PrinciplesCardsRow.jsx', () => ({
   default: ({ onPrincipleClick }) => <button type="button" onClick={() => onPrincipleClick('Dependency Rule')}>principle card</button>,
 }));
@@ -45,6 +56,7 @@ describe('ExplorerPage header', () => {
       topFiles: [{ file: 'src/a.py', total: 2 }], severityCounts: { critical: 1, major: 1 }, totalCompliant: 8,
     };
     data.previous = null;
+    data.diffs = [];
     data.info = null;
   });
 
@@ -99,10 +111,19 @@ describe('ExplorerPage header', () => {
     expect(onNavigate).toHaveBeenLastCalledWith(...scope({ kind: 'file', path: 'src/a.py' }));
   });
 
-  it('the sub line says where the standard comes from, its sources by name, then the date', () => {
+  it('the sub line says what it is, where the standard comes from, its sources by name, then the date', () => {
     data.info = { type: 'iso', subtype: '25010', version: '2023.11', source: 'iso25010, cisq, asvs' };
     const { container } = page({ dateLabel: 'Oct 14' });
-    expect(container.querySelector('.findings-head .term-header')).toHaveTextContent('iso-25010 · v2023.11 · based on ISO 25010, CISQ, ASVS · Oct 14');
+    expect(container.querySelector('.findings-head .term-header__sub')).toHaveTextContent('dimension · iso-25010 · v2023.11 · based on ISO 25010, CISQ, ASVS · Oct 14');
+  });
+
+  it('reads the since line for this dimension only, in the chart\'s period', () => {
+    const counts = (added, fixed) => ({ counts: { new: added, resolved: fixed }, types: { opened: [], closed: [] } });
+    data.diffs = [{ dimensions: { security: counts(4, 2), reliability: counts(9, 9) } }];
+    page({ granularity: 'week' });
+    const since = screen.getByRole('region', { name: 'since the previous week' });
+    expect(since).toHaveTextContent('4 new');
+    expect(since).toHaveTextContent('2 fixed');
   });
 
   it('the tiles read their change since the previous period: the pass rate in points, the rates as rates', () => {
@@ -132,17 +153,27 @@ describe('ExplorerPage header', () => {
     page({ onNavigate });
     fireEvent.click(await screen.findByText('Validate input'));
     expect(onNavigate).toHaveBeenLastCalledWith(...scope({ kind: 'requirement', dimension: 'security', req: 'SEC-1', text: 'Validate input' }));
+    fireEvent.click(screen.getByRole('button', { name: t('explorer.where_folders') }));
     fireEvent.click(screen.getByTitle('src/api'));
     expect(onNavigate).toHaveBeenLastCalledWith('violations', { wb: { paths: ['src/api/'], dimension: 'security', selectedId: null }, asOf: null });
   });
 
-  it('where the findings are: folders first, files one switch away', () => {
+  it('where the findings are: the areas first, folders and files one switch away', () => {
     const { container } = page();
     const pressed = () => [...container.querySelectorAll('.explorer-where__switch .term-btn')].map((b) => b.getAttribute('aria-pressed'));
-    expect(pressed()).toEqual(['true', 'false']);
-    expect(screen.queryByRole('button', { name: 'file row' })).toBeNull();
+    expect(pressed()).toEqual(['true', 'false', 'false']);
+    expect(screen.getByRole('button', { name: 'area row security' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: t('explorer.where_files') }));
-    expect(pressed()).toEqual(['false', 'true']);
+    expect(pressed()).toEqual(['false', 'false', 'true']);
     expect(screen.getByRole('button', { name: 'file row' })).toBeInTheDocument();
+  });
+
+  it('an area opens the Map\'s Risk tab filtered to this dimension with that area selected; the foot, the filtered sky', () => {
+    const onNavigate = vi.fn();
+    page({ onNavigate });
+    fireEvent.click(screen.getByRole('button', { name: 'area row security' }));
+    expect(onNavigate).toHaveBeenLastCalledWith('map', { vizStyle: 'risk', dimensions: ['security'], area: 'api' });
+    fireEvent.click(screen.getByRole('button', { name: 'risk in map' }));
+    expect(onNavigate).toHaveBeenLastCalledWith('map', { vizStyle: 'risk', dimensions: ['security'] });
   });
 });

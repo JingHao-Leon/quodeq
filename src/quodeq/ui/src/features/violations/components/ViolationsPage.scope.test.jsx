@@ -44,10 +44,14 @@ describe('ViolationsPage with a scope', () => {
     expect(onDismissFinding).toHaveBeenCalledWith(expect.objectContaining({ title: 'Today finding' }), 'run-1');
   });
 
-  it('as of a past day it reads that day, under the banner, read-only', async () => {
-    renderPage({ asOf: { runId: 'run-7', day: '2026-08-07' }, callbacks: { onDismissFinding: vi.fn(), onBackToToday: vi.fn() } });
+  it('as of a past day it reads that day, read-only, its header saying so with the way back', async () => {
+    const onBackToToday = vi.fn();
+    renderPage({ asOf: { runId: 'run-7', day: '2026-08-07' }, callbacks: { onDismissFinding: vi.fn(), onBackToToday } });
     expect(await screen.findByRole('option', { name: /Past finding/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: t('violations.asOfBack') })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: t('violations.asOfBack') })).toBeNull();
+    expect(document.querySelector('.findings-head__past')).toHaveTextContent(t('violations.headPast', { when: '2026-08-07' }));
+    fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
+    expect(onBackToToday).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /dismiss/i })).toBeNull();
   });
 });
