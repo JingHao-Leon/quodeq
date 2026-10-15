@@ -24,7 +24,7 @@ def remote(tmp_path, monkeypatch):
 def _evaluator(evaluators, sid, **extra):
     evaluators.mkdir(parents=True, exist_ok=True)
     data = {"id": sid, "name": sid, "type": "custom", "managed": False,
-            "principles": [{"name": "P", "requirements": [{"id": "P1-R1", "text": "t"}]}],
+            "principles": [{"id": "P1", "name": "P", "requirements": [{"id": "P1-R1", "text": "t"}]}],
             "createdAt": "2026-10-01", "updatedAt": "2026-10-01", "version": "2026.10.01", **extra}
     (evaluators / f"{sid}.json").write_text(json.dumps(data), encoding="utf-8")
     return data

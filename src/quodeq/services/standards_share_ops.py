@@ -13,8 +13,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from quodeq.services import shared_publish
+from quodeq.services.standards_share_content import with_share_extras
 from quodeq.services._publish_git import prepare_clone, push_with_rebase_fallback
-from quodeq.services.import_validator import scan_injection, validate_import
+from quodeq.services.import_validator import scan_injection, scan_text, validate_import
 from quodeq.services.standards_sharing import SHARED_HASH_KEY, share_hash, shareable_payload
 from quodeq.services.wiring import (
     RepoFormat, bootstrap_repo_layout, clone_lock, read_standard_payload,
@@ -60,6 +61,24 @@ def _local(evaluators_dir: Path, standard_id: str) -> dict | None:
         raise ShareError("invalid", f"The standard file for {standard_id} is not valid JSON.") from exc
 
 
+def _no_builtin(standard_id: str, is_builtin: Callable[[str], bool]) -> None:
+    if is_builtin(standard_id):
+        raise ShareError("builtin", f"{standard_id} is a built-in standard and cannot be installed "
+                                    "from the shared repository.")
+
+
+def _never_builtin(_standard_id: str) -> bool:
+    return False
+
+
+def _write_local(evaluators_dir: Path, standard_id: str, payload: dict) -> None:
+    try:
+        write_standard_payload(_local_path(evaluators_dir, standard_id), payload)
+    except OSError as exc:
+        raise ShareError("invalid", f"Could not write the standard file for {standard_id} "
+                                    "on this machine.") from exc
+
+
 def _git_error(exc: Exception) -> ShareError:
     return ShareError("git", str(exc))
 
@@ -74,7 +93,8 @@ def _prepared(url: str, env: dict | None) -> Path:
         try:
             bootstrap_repo_layout(repo)
         except (OSError, ValueError) as exc:
-            raise ShareError("git", f"Could not lay out the shared repository: {exc}") from exc
+            shared_publish.logger.warning("Could not lay out the shared clone %s: %s", repo, exc)
+            raise ShareError("git", "Could not lay out the shared repository.") from exc
     return repo
 
 
@@ -86,8 +106,10 @@ def _commit_and_push_standards(repo: Path, standard_ids: list[str], message: str
                                env: dict | None) -> None:
     """Stage the standard files, commit them when anything changed, and push.
 
-    Pushes even when nothing new was staged: an earlier call may have
-    committed and then failed to push.
+    Pushes even when nothing new was staged. A commit whose push failed
+    stays local only until the next ``_prepared``: its refresh hard-resets
+    the clone to the remote whenever the fetch succeeds, so the share must
+    be repeated (the local file has no new ``shared_hash`` in that case).
     """
     ok, out = stage_standard_paths(repo, standard_ids)
     if not ok:
@@ -104,8 +126,14 @@ def _commit_and_push_standards(repo: Path, standard_ids: list[str], message: str
 
 
 def share_standard(standard_id: str, *, url: str, evaluators_dir: Path,
-                   now: Callable[[], str] = now_utc_iso, env: dict | None = None) -> dict:
-    """Push this machine's copy of *standard_id* to ``standards/<id>.json`` (yours wins)."""
+                   now: Callable[[], str] = now_utc_iso, env: dict | None = None,
+                   is_builtin: Callable[[str], bool] = _never_builtin) -> dict:
+    """Push this machine's copy of *standard_id* to ``standards/<id>.json`` (yours wins).
+
+    The base recorded afterwards is the hash of what was pushed, written onto
+    the file as it is now: an edit made during the push reads as ``changed``.
+    """
+    _no_builtin(standard_id, is_builtin)
     local = _local(evaluators_dir, standard_id)
     if local is None:
         raise ShareError("not_found", f"No custom standard named {standard_id} on this machine.")
@@ -118,8 +146,8 @@ def share_standard(standard_id: str, *, url: str, evaluators_dir: Path,
         except (OSError, ValueError) as exc:
             raise ShareError("invalid", f"Could not write {standard_id} into the shared repository.") from exc
         _commit_and_push_standards(repo, [standard_id], f"standards: publish {standard_id}", env)
-    write_standard_payload(_local_path(evaluators_dir, standard_id),
-                           {**local, SHARED_HASH_KEY: share_hash(local)})
+    fresh = _local(evaluators_dir, standard_id) or local
+    _write_local(evaluators_dir, standard_id, {**fresh, SHARED_HASH_KEY: share_hash(local)})
     return {"id": standard_id, "publishedAt": published_at}
 
 
@@ -130,39 +158,59 @@ def _remote(url: str, env: dict | None, standard_id: str) -> dict:
     return remote
 
 
-def install_standard(standard_id: str, *, url: str, evaluators_dir: Path, env: dict | None = None) -> dict:
-    """Copy ``standards/<id>.json`` from the clone into this machine's library (left off)."""
-    local = _local(evaluators_dir, standard_id)
-    remote = _remote(url, env, standard_id)
-    theirs = share_hash(remote)
-    if local is not None and local.get(SHARED_HASH_KEY) != theirs and share_hash(local) != theirs:
-        raise ShareError("conflict", f"A different standard named {standard_id} already exists here. "
-                                     "Duplicate it to keep both, then install again.")
-    return _write_from_remote(standard_id, remote, evaluators_dir)
+def install_standard(standard_id: str, *, url: str, evaluators_dir: Path, env: dict | None = None,
+                     is_builtin: Callable[[str], bool] = _never_builtin) -> dict:
+    """Copy ``standards/<id>.json`` from the clone into this machine's library (left off).
+
+    An existing local file is replaced only when its content already equals
+    the shared copy; anything else is a conflict (duplicate to keep both).
+    """
+    _no_builtin(standard_id, is_builtin)
+    with clone_lock(url, env):
+        local = _local(evaluators_dir, standard_id)
+        remote = _remote(url, env, standard_id)
+        if local is not None and share_hash(local) != share_hash(remote):
+            raise ShareError("conflict", f"A different standard named {standard_id} already exists here. "
+                                         "Duplicate it to keep both, then install again.")
+        return _write_from_remote(standard_id, remote, evaluators_dir)
 
 
-def update_from_shared(standard_id: str, *, url: str, evaluators_dir: Path, env: dict | None = None) -> dict:
+def update_from_shared(standard_id: str, *, url: str, evaluators_dir: Path, env: dict | None = None,
+                       is_builtin: Callable[[str], bool] = _never_builtin) -> dict:
     """Replace this machine's copy with the shared one (theirs wins)."""
-    if _local(evaluators_dir, standard_id) is None:
-        raise ShareError("not_found", f"No custom standard named {standard_id} on this machine.")
-    return _write_from_remote(standard_id, _remote(url, env, standard_id), evaluators_dir)
+    _no_builtin(standard_id, is_builtin)
+    with clone_lock(url, env):
+        if _local(evaluators_dir, standard_id) is None:
+            raise ShareError("not_found", f"No custom standard named {standard_id} on this machine.")
+        return _write_from_remote(standard_id, _remote(url, env, standard_id), evaluators_dir)
 
 
 def _write_from_remote(standard_id: str, remote: dict, evaluators_dir: Path) -> dict:
     """Validate and scan *remote*, then write it as this machine's copy with its hash as the base.
 
-    Refuses a file the import validator rejects, and one the injection scan
-    flags: nothing is written in either case.
+    ``validate_import`` is the structural gate; what is written is its
+    sanitized data plus the well-typed extras a duplicated built-in carries
+    (``with_share_extras``). Refuses a file the validator rejects, and one the
+    injection scan flags: nothing is written in either case. The base is the
+    hash of what was written.
     """
     validation = validate_import(remote)
     if not validation["valid"]:
         raise ShareError("invalid", f"The shared copy of {standard_id} is not a valid standard: "
                                     + "; ".join(validation["errors"]))
-    warnings = scan_injection(validation["data"])
+    content = with_share_extras(validation["data"], shareable_payload(remote))
+    warnings = scan_injection(content) + _param_label_warnings(content)
     if warnings:
         raise ShareError("unsafe", "This standard contains text that looks like instructions to the "
                                    f"model: {'; '.join(warnings)}. It was not installed.")
     dates = {k: remote[k] for k in _REMOTE_DATED_KEYS if remote.get(k) is not None}
-    payload = {**validation["data"], **dates, **_INSTALLED_DEFAULTS, SHARED_HASH_KEY: share_hash(remote)}
-    write_standard_payload(_local_path(evaluators_dir, standard_id), payload)
+    payload = {**content, **dates, **_INSTALLED_DEFAULTS}
+    _write_local(evaluators_dir, standard_id, {**payload, SHARED_HASH_KEY: share_hash(payload)})
     return {"id": standard_id, "warnings": []}
+
+
+def _param_label_warnings(content: dict) -> list[str]:
+    """Injection warnings for requirement parameter labels, which ``scan_injection`` does not read."""
+    labels = [spec["label"] for p in content.get("principles", [])
+              for r in p.get("requirements", []) for spec in r.get("params", {}).values()]
+    return [f"Suspicious text in a parameter label: {w}" for label in labels for w in scan_text(label)]
