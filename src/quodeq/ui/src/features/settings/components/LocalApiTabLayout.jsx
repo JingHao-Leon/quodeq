@@ -5,14 +5,24 @@
  * the provider-specific labels differ, so those are passed in.
  */
 import { useId } from 'react';
-import ServerStatusPill from '../../../components/ServerStatusPill.jsx';
+import ServerStatusRow, { SERVER_ROW_STATUS } from '../../../components/ServerStatusRow.jsx';
 import { SettingsRowLabel } from './settingsRowParts.jsx';
 import { t } from '../../../strings/index.js';
 import { TimeLimitSetting } from './ProviderSettings.jsx';
 import { LocalApiAdvancedPanel } from './LocalApiAdvancedPanel.jsx';
-import { SERVER_STATUS } from '../settingsVocab.js';
+
 import { PROVIDER_CLASSIFICATION } from './providerUtils.js';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
+
+/**
+ * The row state for a polled server status: null until the first poll answers,
+ * which reads as checking, not as a server that is down.
+ * @param {{status?: string}|null|undefined} serverStatus
+ * @returns {'online'|'offline'|'checking'}
+ */
+export function rowStatus(serverStatus) {
+  return serverStatus?.status ?? SERVER_ROW_STATUS.CHECKING;
+}
 
 /**
  * @param {object} props
@@ -37,8 +47,9 @@ export function LocalApiTabLayout({
 }) {
   return (
     <>
-      <ServerStatusPill
-        status={serverStatus?.status ?? SERVER_STATUS.OFFLINE}
+      <ServerStatusRow
+        title={t('settings.providerServerLabel')}
+        status={rowStatus(serverStatus)}
         address={serverStatus?.address}
         offlineMessage={offlineMessage}
         onToggleConsole={onToggleConsole}
