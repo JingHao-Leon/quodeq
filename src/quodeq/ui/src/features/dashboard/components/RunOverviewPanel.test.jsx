@@ -59,8 +59,8 @@ const cardNames = (container) => [...container.querySelectorAll('.dim-gauge-card
 describe('RunOverviewPanel header', () => {
   it('names the run by when it ran, and where it came from, the model, commit, duration and files', async () => {
     const { container } = renderRun();
-    expect(screen.getByText(`run · ${formatRunWhen(RUN_ISO)}`)).toBeInTheDocument();
-    await waitFor(() => expect(head(container)).toHaveTextContent(/nightly · qwen · abc1234 · took .+ · 346 files/));
+    expect(head(container).querySelector('.term-header__name').textContent.replace(/\u00a0/g, ' ')).toBe(`run · ${formatRunWhen(RUN_ISO)}`);
+    await waitFor(() => expect(head(container)).toHaveTextContent(/nightly · qwen · abc1234 · took\s.+ · 346\sfiles/));
   });
 
   it('shows its tiles with their change since the previous run', async () => {

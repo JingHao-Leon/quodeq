@@ -6,21 +6,24 @@ import {
 } from './runPageModel.js';
 
 const ISO = '2026-10-08T08:23:00';
+// The title and sub line hold each part together: their spaces, but the ones around a dot, do not break.
+const held = (text) => text.replace(/(?<!·) (?!·)/g, '\u00a0');
 const dim = (dimension, score, sev = {}, extra = {}) => ({
   dimension, overallScore: `${score}/10`, filesRead: 100,
   totals: { severity: sev, violationCount: Object.values(sev).reduce((a, b) => a + b, 0), complianceCount: 50 }, ...extra,
 });
 
 test('the title says when the run ran, the day label when its time is unknown', () => {
-  assert.equal(runTitle({ dateISO: ISO, dateLabel: '8 Oct 2026' }), `run · ${formatRunWhen(ISO)}`);
-  assert.equal(runTitle({ dateLabel: '8 Oct 2026' }, ISO), `run · ${formatRunWhen(ISO)}`);
-  assert.equal(runTitle({ dateLabel: '8 Oct 2026' }), 'run · 8 Oct 2026');
+  assert.equal(runTitle({ dateISO: ISO, dateLabel: '8 Oct 2026' }), `run · ${held(formatRunWhen(ISO))}`);
+  assert.equal(runTitle({ dateLabel: '8 Oct 2026' }, ISO), `run · ${held(formatRunWhen(ISO))}`);
+  assert.equal(runTitle({ dateLabel: '8 Oct 2026' }), `run · ${held('8 Oct 2026')}`);
+  assert.match(runTitle({ dateISO: ISO }), / · .+\u00a0.+ · /);
 });
 
 test('the sub line reads origin, model, commit, duration and files, leaving out what is unknown', () => {
   const run = { origin: { kind: 'ci', workflow: 'Quodeq Nightly' }, model: 'qwen', commit: '3e044f3', activeSeconds: 4961, filesAnalysed: 1346 };
   const sub = runSub({ run, selectedRun: {} });
-  assert.match(sub, /^nightly · qwen · 3e044f3 · took .+ · 1,346 files$/);
+  assert.match(sub, /^nightly · qwen · 3e044f3 · took\u00a0.+ · 1,346\u00a0files$/);
   assert.equal(runSub({ run: null, selectedRun: { commitSha: '3e044f3fca8a45e0' } }), '3e044f3');
   assert.equal(runSub({ run: null, selectedRun: null }), null);
 });

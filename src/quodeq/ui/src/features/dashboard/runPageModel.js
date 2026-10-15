@@ -17,6 +17,11 @@ import { dimensionsMetrics } from './overviewHeadModel.js';
 
 // A commit as the run log shows it: its first seven characters.
 const SHORT_SHA = 7;
+// A narrow header wraps its title and sub line at their dots, never inside a
+// part ("Sun 4 Oct", "took 2h 46m", "668 files"): every other space holds.
+const SPACE_INSIDE_A_PART = /(?<!·) (?!·)/g;
+const NO_BREAK_SPACE = '\u00a0';
+const keepTogether = (text) => text.replace(SPACE_INSIDE_A_PART, NO_BREAK_SPACE);
 const NO_DIMENSIONS = [];
 
 const scoreOf = (d) => parseFloat(d?.overallScore);
@@ -24,13 +29,13 @@ const graded = (n) => !Number.isNaN(n);
 
 /**
  * The page's title: "run · Thu 8 Oct · 08:23", when it ran as a person
- * reads it (the run's day label when its time is unknown).
+ * reads it (the run's day label when its time is unknown), wrapping only at its dots.
  * @param {?{dateISO?: string, dateLabel?: string}} selectedRun the dashboard's
  * @param {?string} startedAt the run log's start, when the dashboard has no time
  */
 export function runTitle(selectedRun, startedAt = null) {
   const when = formatRunWhen(selectedRun?.dateISO || startedAt, selectedRun?.dateLabel || '');
-  return t('overview.runTitle', { when });
+  return t('overview.runTitle', { when: keepTogether(when) });
 }
 
 /** "took 1h 23m", or null without a duration. */
@@ -57,7 +62,7 @@ function commitText(run, selectedRun) {
  */
 export function runSub({ run, selectedRun }) {
   return [originLabel(run?.origin), run?.model, commitText(run, selectedRun), tookText(run), filesText(run)]
-    .filter(Boolean).join(t('violations.wbDot')) || null;
+    .filter(Boolean).map(keepTogether).join(t('violations.wbDot')) || null;
 }
 
 /**
