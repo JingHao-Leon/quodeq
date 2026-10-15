@@ -14,3 +14,11 @@ it('shows only when the server migrated, and stays dismissed per project', () =>
   rerender(<SettingsMovedNote projectId="p2" migratedFrom="/repo/b" />);
   expect(screen.getByRole('status')).toBeTruthy();
 });
+
+it('names the two legacy files, never the whole .quodeq folder', () => {
+  render(<SettingsMovedNote projectId="p3" migratedFrom="/repo/c" />);
+  const text = screen.getByRole('status').textContent;
+  expect(text).toContain('.quodeq/standards-visibility.json');
+  expect(text).toContain('.quodeq/standards-overrides.json');
+  expect(text).not.toContain('.quodeq folder');
+});
