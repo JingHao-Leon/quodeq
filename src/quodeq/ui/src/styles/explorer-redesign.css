@@ -92,7 +92,7 @@
 /* The since line, a slim row above the header panel (Overview, run page, dimension page, principle page):
    new and fixed findings since the previous period. It takes the page's first row (a button tall, as the
    tool pages' toolbar), and the panel follows it at the toolbar's distance. */
-.overview-since { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; min-height: 28px; margin: var(--page-top-gap) 0 var(--space-3); font-size: 12px; }
+.overview-since { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; min-height: 28px; margin: var(--page-top-gap) 0 var(--page-head-gap); font-size: 12px; }
 .overview-since + .findings-head.qd-cards-panel { margin-top: 0; }
 .overview-since__label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
 .overview-since__num { font-family: var(--font-mono); color: var(--color-text); }
