@@ -27,10 +27,15 @@ describe('DimensionGaugeCard, compact', () => {
     expect(container.querySelector('.dim-gauge-card__pass')).toHaveTextContent(t('overview.cardPass', { pct: 75 }));
   });
 
-  it('says how much a partial dimension read, and nothing when it read every file', () => {
-    const { container, rerender } = card({ item: { ...item, filesRead: 86, sourceFileCount: 100 } });
-    expect(container.querySelector('.dim-gauge-card__partial')).toHaveTextContent(t('overview.cardRead', { pct: 86 }));
-    rerender(<DimensionGaugeCard item={{ ...item, filesRead: 100, sourceFileCount: 100 }} onDimensionClick={vi.fn()} compact showDate={false} />);
+  it('says on the pass line how much a partial dimension read', () => {
+    const { container } = card({ item: { ...item, filesRead: 86, sourceFileCount: 100 } });
+    expect(container.querySelector('.dim-gauge-card__pass')).toHaveTextContent(`${t('overview.cardPass', { pct: 75 })} · ${t('overview.cardRead', { pct: 86 })}`);
+  });
+
+  it('says nothing about reading when every file was read, or it rounds to all of them', () => {
+    const { container, rerender } = card({ item: { ...item, filesRead: 100, sourceFileCount: 100 } });
+    expect(container.querySelector('.dim-gauge-card__partial')).toBeNull();
+    rerender(<DimensionGaugeCard item={{ ...item, filesRead: 3998, sourceFileCount: 4000, exitReason: 'time_limit' }} onDimensionClick={vi.fn()} compact showDate={false} />);
     expect(container.querySelector('.dim-gauge-card__partial')).toBeNull();
   });
 
