@@ -89,7 +89,7 @@ export default function HelpPage({ initialSection }) {
 
   return (
     <div className="help-page help-page--terminal" ref={pageRef}>
-      <PageToolbar className="help-header" facts={t('help.termSub')}>
+      <PageToolbar title={t('help.termName')} className="help-header" facts={t('help.termSub')}>
         <BrandCarousel />
       </PageToolbar>
       <div className="help-layout">

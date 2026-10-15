@@ -89,7 +89,7 @@ export default function StandardsPage({ onRescan }) {
 
   return (
     <div className="standards-page standards-page--terminal">
-      <PageToolbar facts={t('standards.activeCount', { count: activeCount })}>
+      <PageToolbar title={t('standards.termName')} facts={t('standards.activeCount', { count: activeCount })}>
         <span className="standards-page-header-actions">
           <button type="button" className="btn-secondary" onClick={() => setShowImport(true)}>{t('standards.importBtn')}</button>
           <button type="button" className="btn-primary" onClick={handleNewStandard}>{t('standards.newStandardBtn')}</button>

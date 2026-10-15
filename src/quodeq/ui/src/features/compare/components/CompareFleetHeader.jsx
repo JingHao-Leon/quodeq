@@ -13,7 +13,7 @@ export default function CompareFleetHeader({
   picker, totalFiles, scoredRows, openDuelPair, openDuel, board, openDimension,
 }) {
   return (
-    <PageToolbar className="compare-page__top" facts={t('compare.subtitle', { count: picker.scopeCount, files: nf(totalFiles) })}>
+    <PageToolbar title={t('compare.title')} className="compare-page__top" facts={t('compare.subtitle', { count: picker.scopeCount, files: nf(totalFiles) })}>
       {openDuelPair && scoredRows.length >= 2 && (
         <DuelTrigger targets={scoredRows} onStart={openDuelPair} openDirect={openDuel} />
       )}

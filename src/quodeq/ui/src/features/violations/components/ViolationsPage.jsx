@@ -34,7 +34,7 @@ function summaryLine(summary, dismissedCount) {
 
 function ViolationsHeader({ summary, selectedSource, dismissedCount }) {
   return (
-    <PageToolbar facts={summaryLine(summary, dismissedCount)}
+    <PageToolbar title={t('violations.termName')} facts={summaryLine(summary, dismissedCount)}
       badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null} />
   );
 }

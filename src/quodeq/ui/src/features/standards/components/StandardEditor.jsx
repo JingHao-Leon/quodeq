@@ -90,11 +90,11 @@ function EditorToolbar({ meta, dirty, editable, overridesDirty, customizedCount,
   const showSave = editable || overridesDirty;
   const saveDirty = dirty || overridesDirty;
   return (
-    <PageToolbar className="standard-editor-toolbar" subject={title} facts={sub}>
+    <PageToolbar title={t('standards.termName')} className="standard-editor-toolbar" subject={title} facts={sub}>
       {customizedCount > 0 && (
         <span className="standards-customized-badge">{t('standards.thresholdsCustomized', { count: customizedCount })}</span>
       )}
-      <button type="button" className="settings-pill" onClick={onBack}>← {t('standards.back')}</button>
+      <button type="button" className="settings-pill" onClick={onBack}><span aria-hidden="true">←</span> {t('standards.back')}</button>
       {showSave && (
         <button
           type="button"

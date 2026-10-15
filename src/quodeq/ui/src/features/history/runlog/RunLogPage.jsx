@@ -78,7 +78,7 @@ function NoRunsYet({ loading, error, onRetry }) {
 function RunLogFrame({ runs, shared, refreshing, filters, pageRef, children }) {
   return (
     <div ref={pageRef} className={`history-page history-page--terminal rl${refreshing ? ' section-pending' : ''}`}>
-      <PageToolbar className="rl-top" facts={headerSub(runs)} badge={shared ? <SharedReadOnlyBadge /> : null}>{filters}</PageToolbar>
+      <PageToolbar title={t('history.termName')} className="rl-top" facts={headerSub(runs)} badge={shared ? <SharedReadOnlyBadge /> : null}>{filters}</PageToolbar>
       {children}
     </div>
   );

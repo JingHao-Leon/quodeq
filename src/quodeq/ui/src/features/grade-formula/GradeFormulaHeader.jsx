@@ -25,7 +25,7 @@ export default function GradeFormulaHeader({
   scope, dimension, setDimension, principleId, setPrincipleId, principles, runLabel,
 }) {
   return (
-    <PageToolbar facts={headerSub(scope, runLabel)}>
+    <PageToolbar title={t('gradeFormula.headerName')} facts={headerSub(scope, runLabel)}>
       {scope.runId && (
         <span className="gf-pickers">
           <Picker label={t('gradeFormula.pickDimension')} value={dimension} options={scope.dimensions} onChange={setDimension} />

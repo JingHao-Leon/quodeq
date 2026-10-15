@@ -58,7 +58,7 @@ function MoreMenu({ configured, onConnectEvaluations, onImportProject }) {
 export function ProjectsPageHeader({ counts, configured, onConnectEvaluations, onImportProject, onAddProject, isEvaluating }) {
   const showMore = Boolean(onConnectEvaluations || onImportProject);
   return (
-    <PageToolbar facts={headerSub({ ...counts, configured })}>
+    <PageToolbar title={t('projects.termName')} facts={headerSub({ ...counts, configured })}>
       <div className="projects-page__header-actions">
         {showMore && (
           <MoreMenu configured={configured} onConnectEvaluations={onConnectEvaluations} onImportProject={onImportProject} />

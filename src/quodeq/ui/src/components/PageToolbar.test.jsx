@@ -6,11 +6,16 @@ import PageToolbar from './PageToolbar.jsx';
 describe('PageToolbar', () => {
   it('puts the facts on the left and the controls on the right, with no title', () => {
     const { container } = render(
-      <PageToolbar facts="3 open · 1 crit"><button type="button">import</button></PageToolbar>,
+      <PageToolbar title="violations" facts="3 open · 1 crit"><button type="button">import</button></PageToolbar>,
     );
     expect(container.querySelector('.page-toolbar__facts')).toHaveTextContent('3 open · 1 crit');
     expect(container.querySelector('.page-toolbar__controls')).toContainElement(screen.getByRole('button', { name: 'import' }));
     expect(container.querySelector('.term-header')).toBeNull();
+  });
+
+  it('keeps the page name as a heading for screen readers only', () => {
+    render(<PageToolbar title="history" facts="2 runs" />);
+    expect(screen.getByRole('heading', { level: 1, name: 'history' })).toHaveClass('sr-only');
   });
 
   it('leaves the controls slot out when the page has no controls', () => {

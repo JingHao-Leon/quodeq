@@ -133,7 +133,7 @@ function useTypesTab(scope, draft) {
 function LoadingPage({ error }) {
   return (
     <div className="settings-page settings-page--terminal">
-      <PageToolbar facts={t('gradeFormula.headerLoading')} />
+      <PageToolbar title={t('gradeFormula.headerName')} facts={t('gradeFormula.headerLoading')} />
       {error ? <p className="settings-description">{error}</p> : null}
     </div>
   );

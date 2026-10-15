@@ -82,7 +82,7 @@ export default function CompareDuelView({ duel, onOpenProject }) {
     <>
       {/* No local back button: the app breadcrumb already walks back,
           same as the dimension screen. */}
-      <PageToolbar className="compare-page__top" facts={t('compare.duelSubtitle', { a: a.name, b: b.name, count: duel.sharedCount })} />
+      <PageToolbar title={t('compare.duelTitle')} className="compare-page__top" facts={t('compare.duelSubtitle', { a: a.name, b: b.name, count: duel.sharedCount })} />
       {duel.ready ? <DuelBody duel={duel} onOpenProject={onOpenProject} /> : (
         <section className="compare-panel" aria-label={t('compare.duelAria')}>
           <p className="compare-panel__fallback">{t('compare.duelNeedsBoth')}</p>

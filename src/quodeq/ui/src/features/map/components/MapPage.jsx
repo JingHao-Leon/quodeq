@@ -247,7 +247,7 @@ export default function MapPage(props) {
 
   return (
     <div className={`map-page map-page--terminal${isRefreshing ? ' section-pending' : ''}`}>
-      <PageToolbar facts={sub} badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null}>
+      <PageToolbar title={t('map.termName')} facts={sub} badge={selectedSource === PROJECT_SOURCE.SHARED ? <SharedReadOnlyBadge /> : null}>
         <MapControls viewState={state.viewState} galaxyState={state.galaxyState} dimensionState={state.dimensionState} riskFilter={riskFilter} activityUnavailable={activityUnavailable} />
       </PageToolbar>
       <MapBody ready={ready} state={state} pack={pack} risk={{ areaState, selection: measuredOver, initialArea: initialAreaOf(props.nav) }} timelapse={timelapse} timelapseToggle={timelapseToggle} legendToggle={{ on: legendOn, onChange: setLegendOn }} />
