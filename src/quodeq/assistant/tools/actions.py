@@ -17,6 +17,12 @@ from quodeq.services.import_validator import validate_import
 from quodeq.shared.validation import validate_path_segment
 
 
+# Fewest requirements a drafted principle may carry. One or two checks per
+# principle is the shallow draft the interview exists to prevent; a narrow
+# standard gets fewer principles, not thinner ones.
+MIN_REQUIREMENTS_PER_PRINCIPLE = 3
+
+
 class ActionConflict(Exception):
     """Apply-time domain conflict; the endpoint maps it to HTTP 409."""
 
@@ -38,8 +44,9 @@ def _hollow_content_errors(canonical: dict) -> list[str]:
     The import validator accepts an empty requirements list and requirements
     without id or text (the manual import route tolerates skeletons the
     editor fills in later). A drafted standard is different: the user reviews
-    it on a card and applies it as-is, so every principle needs at least one
-    requirement and every requirement needs an id and a checkable text. The
+    it on a card and applies it as-is, so every principle needs at least
+    MIN_REQUIREMENTS_PER_PRINCIPLE requirements and every requirement needs an
+    id and a checkable text. The
     complaints go back to the model in-loop, which rewrites the payload
     instead of handing the user an empty card.
     """
@@ -49,6 +56,9 @@ def _hollow_content_errors(canonical: dict) -> list[str]:
         requirements = principle.get("requirements") or []
         if not requirements:
             errors.append(f"{label} has no requirements")
+        elif len(requirements) < MIN_REQUIREMENTS_PER_PRINCIPLE:
+            errors.append(f"{label} has {len(requirements)} requirements, "
+                          f"needs at least {MIN_REQUIREMENTS_PER_PRINCIPLE}")
         for req_index, req in enumerate(requirements):
             if not str(req.get("id") or "").strip():
                 errors.append(f"{label} requirement {req_index} is missing an id")
@@ -63,8 +73,9 @@ def _validate_create_standard(payload: dict, _ctx: ToolContext) -> dict:
         raise ToolError("invalid standard payload: " + "; ".join(verdict["errors"]))
     hollow = _hollow_content_errors(verdict["data"])
     if hollow:
-        raise ToolError("incomplete standard, every principle needs requirements "
-                        "with an id and a checkable text: " + "; ".join(hollow))
+        raise ToolError(f"incomplete standard, every principle needs at least "
+                        f"{MIN_REQUIREMENTS_PER_PRINCIPLE} requirements, each with an id "
+                        "and a checkable text: " + "; ".join(hollow))
     return verdict["data"]
 
 

@@ -131,3 +131,15 @@ def test_create_standard_skill_keeps_labels_out_of_requirement_text():
     body = load_skills()["create-standard"].instructions
     assert "Never prefix the text with a label" in body
     assert "must" in body and "should" in body
+
+
+def test_create_standard_skill_sizes_by_scope():
+    """An Android best-practices standard came back as 4 principles of 3
+    requirements: the old '2-5 principles, 2-6 requirements' range invited the
+    low end. Broad standards cover the source in full, every requirement is
+    checkable in code."""
+    body = load_skills()["create-standard"].instructions
+    assert "2-5 principles" not in body
+    assert "6-10 principles with 5-10 requirements" in body
+    assert "at least 3 requirements" in body
+    assert "checkable by reading the repository" in body

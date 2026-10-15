@@ -123,14 +123,14 @@ def test_ui_log_stream_status_has_expected_members():
 
 
 def test_ui_action_type_mirrors_a_subset_of_the_backend_action_types():
-    """ACTION_TYPE names only the two action types the UI branches on by name
-    (assistantAppBridge.js, verifiedFindingsContext.jsx, ActionPreviewCard.jsx);
-    create_standard has no such UI-side effect, so it's absent by design. Not a
-    full mirror (and ACTIONS is dict keys, not a StrEnum), so not in _MIRRORS --
+    """ACTION_TYPE names the action types the UI branches on by name
+    (assistantAppBridge.js, verifiedFindingsContext.jsx, ActionPreviewCard.jsx,
+    StandardsPage.jsx). Not a full mirror (and ACTIONS is dict keys, not a StrEnum), so not in _MIRRORS --
     but every value present must still match a real assistant/tools/actions.py
     ACTIONS key exactly."""
     ui = _js_object(_UI_SRC / "vocab" / "actionType.js", "ACTION_TYPE")
-    assert ui == {"DISMISS_FINDING": "dismiss_finding", "VERIFY_FINDING": "verify_finding"}
+    assert ui == {"CREATE_STANDARD": "create_standard", "DISMISS_FINDING": "dismiss_finding",
+                  "VERIFY_FINDING": "verify_finding"}
     assert set(ui.values()) <= set(ACTIONS)
 
 

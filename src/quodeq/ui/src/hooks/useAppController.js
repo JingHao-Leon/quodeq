@@ -1,6 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { applyMutationDelta } from '../api/applyMutationDelta.js';
 import { recordDismissedEntry } from '../api/dismissedListCache.js';
+import { standardsKeys } from '../api/queryKeys.js';
+import { STANDARDS_CHANGED_REASON, notifyStandardsChanged } from '../constants.js';
 import { PROJECT_SOURCE } from '../vocab/projectSource.js';
 import {
   computeIsEvaluating, useAppBootExtras, useAppWizardBounce, useAppDerived,
@@ -30,9 +32,16 @@ export function useAppDismissBridge(state) {
   // A dismiss is local-only, so the entry always lands in the local list.
   const recordDismissed = (project, entry) =>
     recordDismissedEntry(queryClient, project, PROJECT_SOURCE.LOCAL, entry);
+  // An assistant-created standard refreshes the same two lists a manual
+  // create does: the standards query and the Evaluate picker's own list.
+  const onStandardCreated = () => {
+    notifyStandardsChanged(STANDARDS_CHANGED_REASON.LIST);
+    queryClient.invalidateQueries({ queryKey: standardsKeys.list() });
+  };
   useAssistantActionAppliedEffect({
     applyDelta,
     recordDismissed,
+    onStandardCreated,
     scheduleReconcileForApply: state.scheduleDashboardReconcile,
     selectedProject: state.selectedProject,
   });
