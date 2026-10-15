@@ -54,6 +54,10 @@ def _run_recency_key(run_dir: Path) -> tuple[int, str | float]:
     return (0, run_dir.stat().st_mtime)
 
 
+def has_event_log(run_dir: Path) -> bool:
+    """True when *run_dir* has the events.jsonl an apply rescores from."""
+    return (run_dir / "events.jsonl").is_file()
+
 def _event_log_runs(project_dir: Path) -> list[Path]:
     """Run dirs under *project_dir* that have an events.jsonl, newest-first.
 
@@ -66,8 +70,7 @@ def _event_log_runs(project_dir: Path) -> list[Path]:
     genuinely newer ones.
     """
     return sorted(
-        (r for r in project_dir.iterdir()
-         if r.is_dir() and (r / "events.jsonl").is_file()),
+        (r for r in project_dir.iterdir() if r.is_dir() and has_event_log(r)),
         key=_run_recency_key, reverse=True,
     )
 

@@ -1,7 +1,13 @@
 """The grade-formula preview over what the app shows.
 
 Every local project's accumulated score (the project card and the Overview
-headline) under the saved formula and under a draft. Read-only.
+headline) under the saved formula and under a draft.
+
+Writes nothing a draft could leave behind. Finding the sources walks the
+project's rows under the SAVED formula, exactly as the project list does, so
+that walk may fill the same score-cache rows the list would; a run with no
+grade database is never opened (it keeps its saved score, see
+``SourceDimension``).
 
 Each visible dimension is taken from the run the accumulated view sources it
 from (``ProjectRows.latest_rows`` -> ``from_run_id``) and re-scored there:
@@ -25,11 +31,12 @@ from quodeq.core.scoring.params import ScoringParams
 from quodeq.core.scoring.projector_scoring import compute_run_score
 from quodeq.core.scoring.report_grades import parse_numeric_score
 from quodeq.core.types import DimensionResult
+from quodeq.data.sqlite.connection import EVALUATION_DB_FILENAME
 from quodeq.services._accumulated_data import read_run_data
 from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
-from quodeq.services.grade_formula import count_rescorable_runs, load_params
+from quodeq.services.grade_formula import count_rescorable_runs, has_event_log, load_params
 from quodeq.services.rescore import filter_excluded_violations, rescore_dimension
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
@@ -45,10 +52,14 @@ class SourceDimension:
 
     ``full`` is the run's full dimension (with findings), read only when the
     project has suppressions, since only then can the evidence rescore apply.
+    ``saved_score`` is set when an apply cannot rescore the run (no event log
+    or no grade database): the dimension then keeps that score under any
+    formula, and the run is never opened.
     """
     name: str
     run_dir: Path
     full: DimensionResult | None
+    saved_score: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,8 +99,15 @@ def project_sources(reports_root: Path, project: str) -> ProjectSources | None:
         if lower not in visible or not row.from_run_id:
             continue
         full = _full_dimension(reports_root, project, row.from_run_id, lower, by_run) if keys else None
-        dims.append(SourceDimension(lower, reports_root / project / row.from_run_id, full))
+        run_dir = reports_root / project / row.from_run_id
+        frozen = None if _rescorable(run_dir) else parse_numeric_score(row.overall_score)
+        dims.append(SourceDimension(lower, run_dir, full, frozen))
     return ProjectSources(project, tuple(dims), keys) if dims else None
+
+
+def _rescorable(run_dir: Path) -> bool:
+    """An apply rewrites this run's grades: it has an event log and a grade database."""
+    return has_event_log(run_dir) and (run_dir / EVALUATION_DB_FILENAME).is_file()
 
 
 def _touched(src: SourceDimension, keys: SuppressionKeys | None) -> bool:
@@ -105,6 +123,8 @@ def _dimension_score(
     if _touched(src, keys):
         rescored = rescore_dimension(src.full, keys, params=params, run_dir=src.run_dir)
         return parse_numeric_score(rescored.overall_score)
+    if src.saved_score is not None:
+        return src.saved_score
     if src.run_dir not in tables:
         tables[src.run_dir] = compute_run_grades(src.run_dir, params)[1]
     return next(

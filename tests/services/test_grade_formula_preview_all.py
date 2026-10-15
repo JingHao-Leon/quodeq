@@ -142,6 +142,8 @@ class _FakeRows:
 
 
 def test_sources_take_each_dimension_from_its_source_run(tmp_path, monkeypatch):
+    _make_run(tmp_path / "proj" / "r_new", "security")
+    _make_run(tmp_path / "proj" / "r_old", "reliability")
     latest = {
         "Security": DimensionResult(dimension="Security", overall_score="3.5/10", from_run_id="r_new"),
         "Reliability": DimensionResult(dimension="Reliability", overall_score="6.3/10", from_run_id="r_old"),
@@ -190,3 +192,30 @@ def test_preview_all_skips_a_project_that_fails_and_keeps_the_others(tmp_path, f
     out = gfp.preview_all(tmp_path, _STRICT, sources_for=sources_for)
 
     assert [p["id"] for p in out["projects"]] == ["good"]
+
+
+def test_a_run_without_a_database_keeps_its_saved_score_and_stays_untouched(tmp_path):
+    legacy = tmp_path / "proj" / "r_legacy"
+    legacy.mkdir(parents=True)
+    src = gfp.SourceDimension("security", legacy, None, saved_score=6.3)
+    sources = gfp.ProjectSources("proj", (src,), None)
+
+    assert gfp.score_project(sources, _STRICT)["overall"]["score"] == 6.3
+    assert gfp.score_project(sources, DEFAULT_PARAMS)["overall"]["score"] == 6.3
+    assert list(legacy.iterdir()) == []
+
+
+def test_sources_carry_the_saved_score_of_runs_an_apply_cannot_rescore(tmp_path, monkeypatch):
+    (tmp_path / "proj" / "r_legacy").mkdir(parents=True)
+    _make_run(tmp_path / "proj" / "r_new", "reliability")
+    latest = {
+        "security": DimensionResult(dimension="security", overall_score="6.3/10", from_run_id="r_legacy"),
+        "reliability": DimensionResult(dimension="reliability", overall_score="8.0/10", from_run_id="r_new"),
+    }
+    monkeypatch.setattr(gfp.ProjectRows, "load", classmethod(lambda cls, root, p: _FakeRows(["run"], latest)))
+    monkeypatch.setattr(gfp, "load_visible_standard_ids", lambda repo_root: ["security", "reliability"])
+
+    by_name = {d.name: d for d in gfp.project_sources(tmp_path, "proj").dims}
+
+    assert by_name["security"].saved_score == 6.3
+    assert by_name["reliability"].saved_score is None
