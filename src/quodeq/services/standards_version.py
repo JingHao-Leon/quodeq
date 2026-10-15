@@ -6,8 +6,13 @@ an edited or added standard changes the rows ``run_scalars`` would hold. The
 version hashes in ``score_cache`` fold this fingerprint in; without it an
 edit applied only on the next full rescore.
 
-Stat-based on purpose: a request computes it once per project, and the nine
-compiled files and the custom evaluators are only ``stat``-ed, never read;
+Only the standards a run of the project analysed count (``scored_dimensions``):
+creating or installing a standard no run has scored rebuilds nothing, while
+editing or deleting one rebuilds only the projects that scored it.
+
+Stat-based on purpose: a request computes it once per project; the run folders
+are only listed, and the matching compiled files and custom evaluators are
+only ``stat``-ed, never read;
 the project's overrides are one small JSON read, hashed by content. A reinstall that
 rewrites mtimes makes every run stale once, which recomputes identical rows.
 """
@@ -19,9 +24,39 @@ from pathlib import Path
 
 from quodeq.services.evidence_rescore import standard_dirs
 from quodeq.services.wiring import load_project_standards, settings_reports_root
+from quodeq.shared.constants import JSON_SUFFIX
 from quodeq.shared.utils import TEXT_ENCODING
 
 _UNSET = object()
+_EVIDENCE_SUFFIX = "_evidence.jsonl"
+
+
+def _listing(directory: Path) -> list[Path]:
+    try:
+        return list(directory.iterdir())
+    except OSError:
+        return []
+
+
+def scored_dimensions(project_dir: Path) -> frozenset[str]:
+    """Lowercase ids of the dimensions any run of *project_dir* analysed.
+
+    Directory listings only (no file reads): a finished run leaves
+    ``<run>/evaluation/<dim>.json``; a run still in progress has at least
+    ``<run>/evidence/<dim>_evidence.jsonl``. Anything that is not a run
+    folder contributes nothing.
+    """
+    dims: set[str] = set()
+    for run in _listing(project_dir):
+        if run.name.startswith(".") or not run.is_dir():
+            continue
+        for path in _listing(run / "evaluation"):
+            if path.suffix == JSON_SUFFIX:
+                dims.add(path.stem.lower())
+        for path in _listing(run / "evidence"):
+            if path.name.endswith(_EVIDENCE_SUFFIX):
+                dims.add(path.name[: -len(_EVIDENCE_SUFFIX)].lower())
+    return frozenset(dims)
 
 
 def _stat_entry(path: Path) -> list[int] | None:
@@ -32,11 +67,16 @@ def _stat_entry(path: Path) -> list[int] | None:
     return [stat.st_size, stat.st_mtime_ns]
 
 
-def _stat_dir(directory: object) -> dict[str, list[int]]:
-    """``{file name: stat entry}`` for the ``*.json`` files of *directory*; ``{}`` when it is not a directory."""
+def _stat_dir(directory: object, scored: frozenset[str]) -> dict[str, list[int]]:
+    """``{file name: stat entry}`` for the ``*.json`` files of *directory* whose stem a run scored.
+
+    ``{}`` when *directory* is not a directory.
+    """
     entries: dict[str, list[int]] = {}
     if isinstance(directory, Path) and directory.is_dir():
         for path in sorted(directory.glob("*.json")):
+            if path.stem.lower() not in scored:
+                continue
             entry = _stat_entry(path)
             if entry is not None:
                 entries[path.name] = entry
@@ -44,7 +84,7 @@ def _stat_dir(directory: object) -> dict[str, list[int]]:
 
 
 def standards_fingerprint(project_dir: Path, *, compiled_dir: Path | None | object = _UNSET) -> str:
-    """Hash of the compiled and custom standards and *project_dir*'s overrides.
+    """Hash of the standards *project_dir*'s runs scored, and its overrides.
 
     *project_dir* is ``<reports root>/<project>``; its overrides live in the
     machine settings file (owner resolved under the local evaluations root),
@@ -57,8 +97,9 @@ def standards_fingerprint(project_dir: Path, *, compiled_dir: Path | None | obje
     default_compiled, evaluators_dir = standard_dirs()
     if compiled_dir is _UNSET:
         compiled_dir = default_compiled
-    compiled = _stat_dir(compiled_dir)
-    evaluators = _stat_dir(evaluators_dir)
+    scored = scored_dimensions(project_dir)
+    compiled = _stat_dir(compiled_dir, scored)
+    evaluators = _stat_dir(evaluators_dir, scored)
     settings = load_project_standards(settings_reports_root(), project_dir.name)
     overrides = dict(settings.overrides) or None
     payload = json.dumps({"compiled": compiled, "evaluators": evaluators, "overrides": overrides}, sort_keys=True)
