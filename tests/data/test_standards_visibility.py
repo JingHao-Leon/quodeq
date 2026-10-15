@@ -9,7 +9,7 @@ from quodeq.core.standards.visibility import (
     partition_visible,
     validate_visible_ids,
 )
-from quodeq.data.fs.project_standards import legacy_repo_visibility
+from quodeq.data.fs.legacy_standards_files import legacy_repo_visibility
 
 
 def test_defaults_are_the_six_iso_dimensions():

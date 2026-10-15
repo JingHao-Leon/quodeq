@@ -10,7 +10,7 @@ from quodeq.core.standards.overrides import (
     resolve_requirement_text,
     validate_overrides,
 )
-from quodeq.data.fs.project_standards import legacy_repo_overrides
+from quodeq.data.fs.legacy_standards_files import legacy_repo_overrides
 from quodeq.data.fs.standards_prefs import collect_declared_params
 
 REQ = {
