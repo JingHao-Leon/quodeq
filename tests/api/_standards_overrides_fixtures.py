@@ -7,9 +7,15 @@ from pathlib import Path
 import pytest
 
 from quodeq.api.app import create_app
+from quodeq.shared.env_paths import get_quodeq_dir
 
 
 OVERRIDES_URL = "/api/projects/proj-1/standards-overrides"
+
+
+def machine_settings(project_id: str = "proj-1") -> Path:
+    """Where the machine-local settings for *project_id* live (QUODEQ_DIR is sandboxed per test)."""
+    return get_quodeq_dir() / "projects" / project_id / "standards.json"
 
 
 def _write_compiled_dim(compiled_dir: Path) -> None:
@@ -48,33 +54,6 @@ def client(tmp_path: Path, project_root: Path, monkeypatch: pytest.MonkeyPatch):
         "STANDARDS_COMPILED_DIR": str(compiled_dir),
         "STANDARDS_DIMENSIONS_FILE": str(dims),
     })
-
-    import quodeq.api.standards_project as _guard
-    monkeypatch.setattr(_guard, "resolve_repo_root", lambda pid: str(project_root) if pid == "proj-1" else None)
-
-    with app.test_client() as c:
-        yield c
-
-
-@pytest.fixture()
-def client_without_repo_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    compiled_dir = tmp_path / "compiled"
-    compiled_dir.mkdir()
-
-    dims = tmp_path / "dimensions.json"
-    dims.write_text(json.dumps({"applies": []}))
-    evaluators = tmp_path / "evaluators"
-    evaluators.mkdir()
-
-    app = create_app(test_config={
-        "TESTING": True,
-        "STANDARDS_EVALUATORS_DIR": str(evaluators),
-        "STANDARDS_COMPILED_DIR": str(compiled_dir),
-        "STANDARDS_DIMENSIONS_FILE": str(dims),
-    })
-
-    import quodeq.api.standards_project as _guard
-    monkeypatch.setattr(_guard, "resolve_repo_root", lambda pid: None)
 
     with app.test_client() as c:
         yield c
@@ -117,9 +96,6 @@ def client_with_custom(tmp_path: Path, project_root: Path, monkeypatch: pytest.M
         "STANDARDS_COMPILED_DIR": str(compiled_dir),
         "STANDARDS_DIMENSIONS_FILE": str(dims),
     })
-
-    import quodeq.api.standards_project as _guard
-    monkeypatch.setattr(_guard, "resolve_repo_root", lambda pid: str(project_root) if pid == "proj-1" else None)
 
     with app.test_client() as c:
         yield c

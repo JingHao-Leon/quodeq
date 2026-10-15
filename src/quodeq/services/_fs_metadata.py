@@ -20,12 +20,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from quodeq.core.scoring.report_grades import summarize_dimensions
-from quodeq.services.wiring import RunInfo, load_visible_standard_ids
-from quodeq.services._fs_project_primitives import local_repo_root
+from quodeq.services.wiring import RunInfo, load_project_standards, settings_reports_root
 from quodeq.services._fs_project_primitives import (  # noqa: F401 — re-export
     check_path_exists,
     checked_out_branch_for,
     extract_project_metadata,
+    local_repo_root,
     read_repo_info,
 )
 from quodeq.services._fs_discipline import (  # noqa: F401 — re-export
@@ -113,7 +113,7 @@ def _summary_version(
     from quodeq.services.score_cache import accumulated_cache_version, per_run_versions  # noqa: PLC0415
 
     project_dir = reports_root / entry_name
-    visible = load_visible_standard_ids(local_repo_root(reports_root, entry_name))
+    visible = load_project_standards(settings_reports_root(), entry_name).visible_ids
     visible_set = set(visible)
     run_versions = per_run_versions(
         project_dir, entry_name, params, [(r.run_id, r.status) for r in runs])

@@ -65,6 +65,10 @@ class AnalysisConfig:
     # back to ``run_config``'s owner, then the module-level default.
     drop_counter: DropStatsCounter | None = None
     mcp_registry: "CliMcpRegistry | None" = None
+    # The run project's machine standards settings file, carried directly
+    # for the same reason: the API runner reads requirement overrides from
+    # it even on the single-agent path, which leaves ``run_config`` unset.
+    standards_settings: Path | None = None
 
 
 @dataclass(frozen=True)

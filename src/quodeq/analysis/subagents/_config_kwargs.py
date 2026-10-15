@@ -27,4 +27,5 @@ def shared_analysis_config_kwargs(config: "RunConfig") -> dict[str, Any]:
         "cache_root": config.options.cache_root,
         "drop_counter": config.drop_counter,
         "mcp_registry": config.mcp_registry,
+        "standards_settings": config.standards_settings,
     }

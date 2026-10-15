@@ -7,6 +7,7 @@ from pathlib import Path
 from quodeq.core.events.models import Judgment
 from quodeq.core.scoring.params import DEFAULT_PARAMS
 from quodeq.core.types import DimensionResult
+from quodeq.data.fs.standards_prefs import ProjectStandards
 from quodeq.data.projection.grade_projector import compute_run_grades, recompute_grades
 from quodeq.data.sqlite.state_store import SQLiteStateStore
 from quodeq.services import grade_formula_preview as gfp
@@ -40,6 +41,11 @@ def _make_run(run_dir: Path, dimension: str = "security", majors: int = 6) -> Pa
 def _tables_score(run_dir: Path, dimension: str, params) -> float:
     _, dims = compute_run_grades(run_dir, params)
     return next(d["score"] for d in dims if d["dimension"].lower() == dimension)
+
+
+def _visible(monkeypatch, ids: list[str]) -> None:
+    """Pin the project's enabled standards without touching the settings store."""
+    monkeypatch.setattr(gfp, "load_project_standards", lambda root, project: ProjectStandards(enabled=tuple(ids)))
 
 
 def test_untouched_dimension_is_scored_from_its_run_tables(tmp_path):
@@ -149,7 +155,7 @@ def test_sources_take_each_dimension_from_its_source_run(tmp_path, monkeypatch):
         "Reliability": DimensionResult(dimension="Reliability", overall_score="6.3/10", from_run_id="r_old"),
     }
     monkeypatch.setattr(gfp.ProjectRows, "load", classmethod(lambda cls, root, p: _FakeRows(["run"], latest)))
-    monkeypatch.setattr(gfp, "load_visible_standard_ids", lambda repo_root: ["security", "reliability"])
+    _visible(monkeypatch, ["security", "reliability"])
 
     sources = gfp.project_sources(tmp_path, "proj")
 
@@ -166,7 +172,7 @@ def test_sources_skip_hidden_dimensions(tmp_path, monkeypatch):
         "usability": DimensionResult(dimension="usability", overall_score="2/10", from_run_id="r1"),
     }
     monkeypatch.setattr(gfp.ProjectRows, "load", classmethod(lambda cls, root, p: _FakeRows(["run"], latest)))
-    monkeypatch.setattr(gfp, "load_visible_standard_ids", lambda repo_root: ["security"])
+    _visible(monkeypatch, ["security"])
 
     sources = gfp.project_sources(tmp_path, "proj")
 
@@ -213,7 +219,7 @@ def test_sources_carry_the_saved_score_of_runs_an_apply_cannot_rescore(tmp_path,
         "reliability": DimensionResult(dimension="reliability", overall_score="8.0/10", from_run_id="r_new"),
     }
     monkeypatch.setattr(gfp.ProjectRows, "load", classmethod(lambda cls, root, p: _FakeRows(["run"], latest)))
-    monkeypatch.setattr(gfp, "load_visible_standard_ids", lambda repo_root: ["security", "reliability"])
+    _visible(monkeypatch, ["security", "reliability"])
 
     by_name = {d.name: d for d in gfp.project_sources(tmp_path, "proj").dims}
 

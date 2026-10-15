@@ -7,8 +7,8 @@ version hashes in ``score_cache`` fold this fingerprint in; without it an
 edit applied only on the next full rescore.
 
 Stat-based on purpose: a request computes it once per project, and the nine
-compiled files, the custom evaluators and the project's overrides are only ``stat``-ed,
-never read, so it costs no I/O the perf budgets count. A reinstall that
+compiled files and the custom evaluators are only ``stat``-ed, never read;
+the project's overrides are one small JSON read, hashed by content. A reinstall that
 rewrites mtimes makes every run stale once, which recomputes identical rows.
 """
 from __future__ import annotations
@@ -17,9 +17,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from quodeq.core.standards.overrides import OVERRIDES_RELPATH
-from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services.evidence_rescore import standard_dirs
+from quodeq.services.wiring import load_project_standards, settings_reports_root
 from quodeq.shared.utils import TEXT_ENCODING
 
 _UNSET = object()
@@ -47,9 +46,11 @@ def _stat_dir(directory: object) -> dict[str, list[int]]:
 def standards_fingerprint(project_dir: Path, *, compiled_dir: Path | None | object = _UNSET) -> str:
     """Hash of the compiled and custom standards and *project_dir*'s overrides.
 
-    *project_dir* is ``<reports root>/<project>``; the overrides file lives in
-    the project's local clone (``repository_info.json`` ``path``), and a
-    project without one contributes no overrides. *compiled_dir* defaults to
+    *project_dir* is ``<reports root>/<project>``; its overrides live in the
+    machine settings file (owner resolved under the local evaluations root),
+    hashed by their parsed content so a visibility toggle (which shares that
+    file) never changes the fingerprint. The first read may migrate legacy
+    repo files into that file. *compiled_dir* defaults to
     the directory a rescore resolves. Custom evaluators count too: their
     suggested severities reach the prompt.
     """
@@ -58,7 +59,7 @@ def standards_fingerprint(project_dir: Path, *, compiled_dir: Path | None | obje
         compiled_dir = default_compiled
     compiled = _stat_dir(compiled_dir)
     evaluators = _stat_dir(evaluators_dir)
-    repo_root = local_repo_root(project_dir.parent, project_dir.name)
-    overrides = _stat_entry(repo_root / OVERRIDES_RELPATH) if repo_root else None
+    settings = load_project_standards(settings_reports_root(), project_dir.name)
+    overrides = dict(settings.overrides) or None
     payload = json.dumps({"compiled": compiled, "evaluators": evaluators, "overrides": overrides}, sort_keys=True)
     return hashlib.sha256(payload.encode(TEXT_ENCODING)).hexdigest()

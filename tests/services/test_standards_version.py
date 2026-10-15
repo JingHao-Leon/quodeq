@@ -5,7 +5,10 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 from quodeq.core.scoring.params import DEFAULT_PARAMS
+from quodeq.data.fs.standards_prefs import save_enabled_ids, save_overrides
 from quodeq.services.score_cache import (
     VersionInputs,
     run_scoped_version,
@@ -29,6 +32,11 @@ def _project(tmp_path: Path, repo: Path | None = None) -> Path:
         (project_dir / "repository_info.json").write_text(
             json.dumps({"path": str(repo)}), encoding="utf-8")
     return project_dir
+
+
+@pytest.fixture()
+def project_dir(tmp_path):
+    return _project(tmp_path)
 
 
 def _compiled(tmp_path: Path) -> Path:
@@ -64,24 +72,22 @@ class TestStandardsFingerprint:
 
     def test_project_overrides_change_it(self, tmp_path):
         compiled = _compiled(tmp_path)
-        repo = tmp_path / "repo"
-        project_dir = _project(tmp_path, repo)
+        project_dir = _project(tmp_path)
         before = standards_fingerprint(project_dir, compiled_dir=compiled)
-        (repo / ".quodeq").mkdir()
-        (repo / ".quodeq" / "standards-overrides.json").write_text(
-            json.dumps({"overrides": {"R1": {"max": 3}}}), encoding="utf-8")
+        save_overrides(project_dir.parent, project_dir.name, {"R1": {"max": 3}})
         assert standards_fingerprint(project_dir, compiled_dir=compiled) != before
 
-    def test_editing_the_overrides_file_changes_it(self, tmp_path):
-        compiled = _compiled(tmp_path)
-        repo = tmp_path / "repo"
-        project_dir = _project(tmp_path, repo)
-        (repo / ".quodeq").mkdir()
-        overrides = repo / ".quodeq" / "standards-overrides.json"
-        overrides.write_text(json.dumps({"overrides": {"S-AUT-3": {"severity": "minor"}}}), encoding="utf-8")
-        before = standards_fingerprint(project_dir, compiled_dir=compiled)
-        overrides.write_text(json.dumps({"overrides": {"S-AUT-3": {"severity": "critical"}}}), encoding="utf-8")
-        assert standards_fingerprint(project_dir, compiled_dir=compiled) != before
+    def test_toggle_keeps_fingerprint_override_edit_changes_it(self, tmp_path, project_dir):
+        """A visibility toggle must never rebuild the score cache (Victor, 2026-10-15)."""
+        reports, pid = project_dir.parent, project_dir.name
+        save_overrides(reports, pid, {"R": {"n": 1}})
+        a = standards_fingerprint(project_dir, compiled_dir=None)
+        save_enabled_ids(reports, pid, ["security"])
+        b = standards_fingerprint(project_dir, compiled_dir=None)
+        save_overrides(reports, pid, {"R": {"n": 2}})
+        c = standards_fingerprint(project_dir, compiled_dir=None)
+        assert a == b
+        assert a != c
 
     def test_added_custom_evaluator_changes_it(self, tmp_path, monkeypatch):
         compiled = _compiled(tmp_path)
@@ -96,11 +102,9 @@ class TestStandardsFingerprint:
 
     def test_other_projects_overrides_do_not_change_it(self, tmp_path):
         compiled = _compiled(tmp_path)
-        project_dir = _project(tmp_path, tmp_path / "repo")
-        other = tmp_path / "other"
-        (other / ".quodeq").mkdir(parents=True)
+        project_dir = _project(tmp_path)
         before = standards_fingerprint(project_dir, compiled_dir=compiled)
-        (other / ".quodeq" / "standards-overrides.json").write_text("{}", encoding="utf-8")
+        save_overrides(project_dir.parent, "other", {"R1": {"max": 3}})
         assert standards_fingerprint(project_dir, compiled_dir=compiled) == before
 
     def test_missing_compiled_dir_is_tolerated(self, tmp_path):

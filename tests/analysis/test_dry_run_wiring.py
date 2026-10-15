@@ -59,7 +59,7 @@ class TestCliWiring:
              patch("quodeq.cli_evaluation.subagent_model", return_value=None):
             mock_paths.return_value.standards_dir = tmp_path / "standards"
             mock_paths.return_value.evaluators_dir = tmp_path / "evaluators"
-            config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path / "evidence")
+            config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path / "evidence")
 
         assert config.options.dry_run is True
 
@@ -91,7 +91,7 @@ class TestCliWiring:
              patch("quodeq.cli_evaluation.subagent_model", return_value=None):
             mock_paths.return_value.standards_dir = tmp_path / "standards"
             mock_paths.return_value.evaluators_dir = tmp_path / "evaluators"
-            config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path / "evidence")
+            config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path / "evidence")
 
         assert config.options.dry_run is False
 
@@ -124,6 +124,6 @@ class TestCliWiring:
              patch("quodeq.cli_evaluation.subagent_model", return_value=None):
             mock_paths.return_value.standards_dir = tmp_path / "standards"
             mock_paths.return_value.evaluators_dir = tmp_path / "evaluators"
-            config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path / "evidence")
+            config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path / "evidence")
 
         assert config.options.dry_run is False

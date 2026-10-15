@@ -9,10 +9,7 @@ from quodeq.core.standards.visibility import (
     partition_visible,
     validate_visible_ids,
 )
-from quodeq.data.fs.standards_prefs import (
-    load_visible_standard_ids,
-    save_visible_standard_ids,
-)
+from quodeq.data.fs.legacy_standards_files import legacy_repo_visibility
 
 
 def test_defaults_are_the_six_iso_dimensions():
@@ -22,64 +19,49 @@ def test_defaults_are_the_six_iso_dimensions():
     )
 
 
-def test_absent_file_yields_defaults(tmp_path):
-    assert load_visible_standard_ids(tmp_path) == DEFAULT_VISIBLE_STANDARDS
+def _write(root, body):
+    path = root / VISIBILITY_RELPATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
 
 
-def test_none_root_yields_defaults():
-    assert load_visible_standard_ids(None) == DEFAULT_VISIBLE_STANDARDS
+def test_legacy_reader_absent_file_or_root_is_none(tmp_path):
+    assert legacy_repo_visibility(tmp_path) is None
+    assert legacy_repo_visibility(None) is None
 
 
-def test_saved_selection_round_trips(tmp_path):
-    save_visible_standard_ids(tmp_path, ["security", "clean-architecture"])
-    assert load_visible_standard_ids(tmp_path) == ("security", "clean-architecture")
-
-
-def test_saved_file_shape_is_versioned(tmp_path):
-    save_visible_standard_ids(tmp_path, ["security"])
-    data = json.loads((tmp_path / VISIBILITY_RELPATH).read_text(encoding="utf-8"))
-    assert data == {"version": 1, "visibleStandardIds": ["security"]}
-
-
-def test_empty_selection_round_trips_as_empty(tmp_path):
-    # An explicit "hide everything" is a real state and must NOT read back as
-    # the defaults -- otherwise the user cannot deselect the last standard.
-    save_visible_standard_ids(tmp_path, [])
-    assert load_visible_standard_ids(tmp_path) == ()
-
-
-def test_ids_are_normalized_to_lowercase(tmp_path):
-    save_visible_standard_ids(tmp_path, ["Security", "CLEAN-Architecture"])
-    assert load_visible_standard_ids(tmp_path) == ("security", "clean-architecture")
+def test_legacy_reader_reads_selection_and_empty_list(tmp_path):
+    _write(tmp_path, json.dumps({"version": 1, "visibleStandardIds": ["Security", "x"]}))
+    assert legacy_repo_visibility(tmp_path) == ("security", "x")
+    _write(tmp_path, json.dumps({"version": 1, "visibleStandardIds": []}))
+    assert legacy_repo_visibility(tmp_path) == ()
 
 
 @pytest.mark.parametrize("body", ["not json{", '{"version": 1}', '{"visibleStandardIds": "x"}', "[]"])
-def test_malformed_file_degrades_to_defaults(tmp_path, body):
-    path = tmp_path / VISIBILITY_RELPATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(body, encoding="utf-8")
-    assert load_visible_standard_ids(tmp_path) == DEFAULT_VISIBLE_STANDARDS
+def test_legacy_reader_malformed_is_none(tmp_path, body):
+    _write(tmp_path, body)
+    assert legacy_repo_visibility(tmp_path) is None
 
 
-def test_non_string_entries_are_dropped(tmp_path):
-    path = tmp_path / VISIBILITY_RELPATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"version": 1, "visibleStandardIds": ["security", 3, None]}),
-                    encoding="utf-8")
-    assert load_visible_standard_ids(tmp_path) == ("security",)
+def test_legacy_reader_drops_non_string_entries(tmp_path):
+    _write(tmp_path, json.dumps({"version": 1, "visibleStandardIds": ["security", 3, None]}))
+    assert legacy_repo_visibility(tmp_path) == ("security",)
 
 
-def test_an_unnamed_read_failure_propagates(tmp_path, monkeypatch):
-    """The catch narrows to (OSError, ValueError, RecursionError); a bug
-    that raises anything else must not be silently absorbed as 'defaults'."""
-    save_visible_standard_ids(tmp_path, ["security"])
+def test_legacy_reader_deeply_nested_is_none(tmp_path, deeply_nested_json):
+    _write(tmp_path, deeply_nested_json)
+    assert legacy_repo_visibility(tmp_path) is None
+
+
+def test_legacy_reader_unnamed_read_failure_propagates(tmp_path, monkeypatch):
+    _write(tmp_path, json.dumps({"visibleStandardIds": ["security"]}))
 
     def _boom(self, *a, **kw):
         raise RuntimeError("unexpected read failure")
 
     monkeypatch.setattr(Path, "read_text", _boom)
     with pytest.raises(RuntimeError, match="unexpected read failure"):
-        load_visible_standard_ids(tmp_path)
+        legacy_repo_visibility(tmp_path)
 
 
 def test_validate_accepts_known_ids():
@@ -127,30 +109,3 @@ def test_partition_with_empty_tuple_hides_everything():
     visible, hidden = partition_visible(["security", "reliability"], ())
     assert visible == []
     assert hidden == ["security", "reliability"]
-
-
-def test_saved_file_is_pretty_printed_with_trailing_newline(tmp_path):
-    """The literal on-disk text, not just the parsed value.
-
-    The file is committed to the user's repository, so its formatting is part
-    of the contract: 2-space indent and a trailing newline keep diffs clean.
-    """
-    save_visible_standard_ids(tmp_path, ["security"])
-    text = (tmp_path / VISIBILITY_RELPATH).read_text(encoding="utf-8")
-    assert text == '{\n  "version": 1,\n  "visibleStandardIds": [\n    "security"\n  ]\n}\n'
-
-
-def test_deeply_nested_file_degrades_to_defaults(tmp_path, deeply_nested_json):
-    """The documented contract holds for *any* parse failure, not a chosen trio.
-
-    Bracket nesting deep enough to overflow the C JSON decoder raises
-    RecursionError, a RuntimeError subclass that the narrow
-    (OSError, ValueError, UnicodeDecodeError) catch did not cover. It escaped
-    and failed the scan instead of degrading, which is what this file's own
-    docstring ("a malformed file never fails a read") promises it will not do.
-    """
-    path = tmp_path / VISIBILITY_RELPATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(deeply_nested_json, encoding="utf-8")
-
-    assert load_visible_standard_ids(tmp_path) == DEFAULT_VISIBLE_STANDARDS

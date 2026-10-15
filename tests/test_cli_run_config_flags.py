@@ -30,7 +30,7 @@ def test_clean_scan_flag_parsed_and_inverts_strategy(mock_model, mock_paths, tmp
         "evaluate", str(tmp_path), "-d", "security", "--clean-scan",
     ])
     inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-    config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path)
+    config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path)
     assert config.options.incremental is False, "--clean-scan must set AnalysisOptions.incremental=False"
 
 
@@ -52,7 +52,7 @@ def test_no_flag_means_incremental_default(mock_model, mock_paths, tmp_path):
         "evaluate", str(tmp_path), "-d", "security",
     ])
     inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-    config = build_run_config(args, inputs=inputs, evidence_dir=tmp_path)
+    config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path)
     assert config.options.incremental is True
 
 
@@ -92,7 +92,7 @@ def test_legacy_incremental_flag_still_yields_incremental_true(
     mock_paths.return_value = mock_paths_obj
 
     inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-    config = build_run_config(_legacy_incremental_args, inputs=inputs, evidence_dir=tmp_path)
+    config = build_run_config(_legacy_incremental_args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path)
     assert config.options.incremental is True, (
         "--incremental (legacy) must not change incremental=True default; "
         "a boolean-translation regression would break this."
@@ -171,5 +171,5 @@ def test_diff_from_forces_clean_scan_internally(tmp_path):
         manifest=SourceManifest(),
         dims_data={"applies": []},
     )
-    config = build_run_config(args, inputs=inputs, evidence_dir=repo / "evi")
+    config = build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=repo / "evi")
     assert config.options.incremental is False

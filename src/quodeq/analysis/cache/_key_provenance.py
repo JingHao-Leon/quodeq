@@ -47,7 +47,7 @@ _PROV_LABELS = {
 def current_provenance(config: RunConfig, dimension: str) -> dict:
     """The provenance the current run would stamp on a fresh entry."""
     standards_hash = (
-        hash_standards(config.standards_dir, dimension, config.src)
+        hash_standards(config.standards_dir, dimension, config.standards_settings)
         if config.standards_dir else ""
     ) or ""
     return {
@@ -171,7 +171,7 @@ def build_cache_key_struct(config: RunConfig, file_path: str, dimension: str) ->
     its fields.
     """
     content_hash = _content_hash(config, file_path)
-    params_hash, _ = dimension_params_state(config.standards_dir, dimension, config.src)
+    params_hash, _ = dimension_params_state(config.standards_dir, dimension, config.standards_settings)
     return CacheKey(
         schema_version=SCHEMA_VERSION,
         file_content_hash=content_hash,

@@ -119,5 +119,5 @@ def test_estimates_build_the_manifest_without_the_line_count(tmp_path: Path, mon
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     (project_dir / "repository_info.json").write_text(json.dumps({"path": str(src)}), encoding="utf-8")
-    estimates.project_estimates_payload(project_dir, None, False)
+    estimates.project_estimates_payload(project_dir, None, False, standards_settings=None)
     assert seen == [False]

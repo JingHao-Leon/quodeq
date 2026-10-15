@@ -67,14 +67,14 @@ class TestReadAccumulatedSummary:
         the accumulated payload by the same selection)."""
         from quodeq.core.types import DimensionResult
         from quodeq.data.fs.report_parser.runs import RunInfo
-        from quodeq.data.fs.standards_prefs import save_visible_standard_ids
+        from quodeq.data.fs.standards_prefs import save_enabled_ids
 
         reports_root = tmp_path / "evaluations"
         project = "proj"
         (reports_root / project / "run-new").mkdir(parents=True)
         repo = tmp_path / "repo"
         repo.mkdir()
-        save_visible_standard_ids(repo, ["security"])
+        save_enabled_ids(reports_root, project, ["security"])
         (reports_root / project / "repository_info.json").write_text(
             json.dumps({"name": project, "path": str(repo), "location": "local"}),
             encoding="utf-8",
@@ -126,12 +126,12 @@ class TestReadAccumulatedSummary:
     def test_card_summary_recomputes_when_visibility_changes(
         self, tmp_path, monkeypatch,
     ):
-        """The selection is folded into the cache version: editing
-        standards-visibility.json must invalidate the persisted card summary,
+        """The selection is folded into the cache version: changing
+        the machine selection must invalidate the persisted card summary,
         not serve the grade computed under the previous selection."""
         from quodeq.core.types import DimensionResult
         from quodeq.data.fs.report_parser.runs import RunInfo
-        from quodeq.data.fs.standards_prefs import save_visible_standard_ids
+        from quodeq.data.fs.standards_prefs import save_enabled_ids
 
         monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "sc.db"))
         reports_root = tmp_path / "evaluations"
@@ -152,15 +152,45 @@ class TestReadAccumulatedSummary:
         stub_row_fetcher(monkeypatch, lambda root, proj, rid: rows)
         runs = [RunInfo(run_id="run-new", date_iso="2026-01-02", date_label="Jan 02")]
 
-        save_visible_standard_ids(repo, ["security", "reliability"])
+        save_enabled_ids(reports_root, project, ["security", "reliability"])
         _, score_both, _, _ = read_accumulated_summary(
             reports_root, project, runs, compute_on_miss=True)
-        save_visible_standard_ids(repo, ["security"])
+        save_enabled_ids(reports_root, project, ["security"])
         _, score_one, _, _ = read_accumulated_summary(
             reports_root, project, runs, compute_on_miss=True)
 
         assert score_both == 7.0
         assert score_one == 9.0
+
+    @patch("quodeq.services._fs_metadata.summarize_dimensions")
+    def test_online_project_honours_its_machine_selection(
+        self, mock_summarize, tmp_path, monkeypatch,
+    ):
+        """A project whose path is a URL has no local clone; its selection
+        lives on this machine all the same."""
+        from quodeq.core.types import DimensionResult
+        from quodeq.data.fs.report_parser.runs import RunInfo
+        from quodeq.data.fs.standards_prefs import save_enabled_ids
+
+        reports_root = tmp_path / "evaluations"
+        project = "online-proj"
+        (reports_root / project / "run-new").mkdir(parents=True)
+        (reports_root / project / "repository_info.json").write_text(
+            json.dumps({"name": project, "path": "https://example.invalid/x.git", "location": "online"}),
+            encoding="utf-8",
+        )
+        save_enabled_ids(reports_root, project, ["security"])
+        rows = [
+            DimensionResult(dimension="security", overall_score="8.0"),
+            DimensionResult(dimension="usability", overall_score="7.0"),
+        ]
+        stub_row_fetcher(monkeypatch, lambda root, proj, rid: rows)
+        mock_summarize.return_value = type(
+            "S", (), {"overall_grade": "A", "numeric_average": 8.0},
+        )()
+        runs = [RunInfo(run_id="run-new", date_iso="2026-01-02", date_label="Jan 02")]
+        read_accumulated_summary(reports_root, project, runs, cache_enabled=False)
+        assert {d.dimension for d in mock_summarize.call_args[0][0]} == {"security"}
 
     def test_project_card_reflects_overlaid_sql_grades_and_loaded_params(
         self, tmp_path, monkeypatch,

@@ -1,7 +1,8 @@
 """GET/PUT per-project standards threshold overrides.
 
-The override file lives inside the analyzed repository
-(``<repo>/.quodeq/standards-overrides.json``) so the whole team shares it.
+The overrides are kept on this machine, keyed by project id
+(``~/.quodeq/projects/<id>/standards.json``), never inside the analyzed
+repository.
 """
 from __future__ import annotations
 
@@ -12,16 +13,15 @@ from flask import Flask, Response, jsonify, request
 
 from quodeq.api._constants import QUERY_FLAG_TRUTHY
 from quodeq.api.helpers import json_object_or_error
-from quodeq.api.standards_project import invalid_body, invalid_payload, project_root_or_error
+from quodeq.api.standards_project import invalid_body, invalid_payload, project_id_or_error
 from quodeq.api.routes_common import standards_compiled_dir
 from quodeq.core.standards.overrides import validate_overrides
 from quodeq.services.standards_overrides import changed_dimensions, override_counts_by_dimension
 from quodeq.services.standards_prefs import (
-    clear_project_overrides,
     collect_declared_params,
     collect_requirement_ids,
-    load_project_overrides,
-    save_project_overrides,
+    load_project_standards,
+    save_overrides,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,27 +46,26 @@ def _known_requirements(app: Flask) -> frozenset[str]:
     return collect_requirement_ids(evaluators_dir) | collect_requirement_ids(compiled_dir)
 
 
-def _persist_overrides(root: Path, project_id: str, clean: dict) -> None:
-    """Save *clean* to the project, or clear the file when nothing is left."""
+def _persist_overrides(reports_root: Path, project_id: str, clean: dict) -> None:
+    """Save *clean* for the project; an empty map clears its overrides."""
+    save_overrides(reports_root, project_id, clean)
     if not clean:
-        clear_project_overrides(root)
         logger.info("standards.overrides cleared project=%s", project_id)
         return
-    save_project_overrides(root, clean)
     logger.info("standards.overrides saved project=%s reqs=%d", project_id, len(clean))
 
 
 def _get_standards_overrides(app: Flask, project_id: str) -> Response:
-    root, err = project_root_or_error(project_id)
+    reports_root, err = project_id_or_error(project_id)
     if err is not None:
         return err
     compiled_dir = standards_compiled_dir(app)
-    overrides = load_project_overrides(root)
+    overrides = dict(load_project_standards(reports_root, project_id).overrides)
     return jsonify({"overrides": overrides, "counts": override_counts_by_dimension(overrides, compiled_dir)})
 
 
 def _put_standards_overrides(app: Flask, project_id: str) -> Response:
-    root, err = project_root_or_error(project_id)
+    reports_root, err = project_id_or_error(project_id)
     if err is not None:
         return err
     payload = json_object_or_error()
@@ -80,10 +79,11 @@ def _put_standards_overrides(app: Flask, project_id: str) -> Response:
     if errors:
         return invalid_payload("Invalid overrides", "invalid_overrides", errors)
     compiled_dir = standards_compiled_dir(app)
-    changed = changed_dimensions(compiled_dir, load_project_overrides(root), clean)
+    changed = changed_dimensions(
+        compiled_dir, dict(load_project_standards(reports_root, project_id).overrides), clean)
     dry_run = request.args.get("dryRun", "").lower() in QUERY_FLAG_TRUTHY
     if not dry_run:
-        _persist_overrides(root, project_id, clean)
+        _persist_overrides(reports_root, project_id, clean)
     return jsonify({"overrides": clean, "changedDimensions": changed})
 
 

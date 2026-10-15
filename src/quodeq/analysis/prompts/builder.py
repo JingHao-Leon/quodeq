@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from quodeq.analysis.prompts import _context as ctx
-from quodeq.data.fs.standards_prefs import load_project_overrides
+from quodeq.data.fs.standards_prefs import load_overrides_file
 from quodeq.analysis.prompts._renderers import (
     load_dimension_data,
     render_compiled_standards,
@@ -103,8 +103,8 @@ def _resolve_standards_checklist(context: ctx.PromptContext) -> str:
         return ctx.NO_STANDARDS
     compiled_dir = context.standards_dir / "compiled"
     eval_dir = context.evaluators_dir
-    load_overrides = context.overrides_loader if context.overrides_loader is not None else load_project_overrides
-    overrides = load_overrides(context.project_root)
+    load_overrides = context.overrides_loader if context.overrides_loader is not None else load_overrides_file
+    overrides = load_overrides(context.standards_settings)
     if not (compiled_dir.exists() or (eval_dir and eval_dir.is_dir())):
         return ctx.NO_STANDARDS
     if not context.work_dir:
@@ -167,7 +167,7 @@ def prompt_context(
         target=config.target,
         work_dir=config.work_dir or config.src,
         previous_findings=previous_findings or [],
-        project_root=config.src,
+        standards_settings=config.standards_settings,
     )
 
 

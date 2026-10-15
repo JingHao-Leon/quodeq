@@ -5,7 +5,6 @@ series is read through the same rescored rows the Overview's grades come from.
 """
 from __future__ import annotations
 
-import json
 from dataclasses import replace
 from http import HTTPStatus
 
@@ -85,10 +84,6 @@ def test_an_unknown_dimension_or_project_is_a_written_404(project):
 
 def test_a_hidden_standard_answers_no_rows(project, tmp_path):
     project_dir, client = project
-    repo = tmp_path / "repo"
-    (repo / ".quodeq").mkdir(parents=True)
-    (repo / ".quodeq" / "standards-visibility.json").write_text(
-        json.dumps({"version": 1, "visibleStandardIds": ["reliability"]}), encoding="utf-8")
-    info = json.loads((project_dir / "repository_info.json").read_text(encoding="utf-8"))
-    (project_dir / "repository_info.json").write_text(json.dumps({**info, "path": str(repo)}), encoding="utf-8")
+    from quodeq.data.fs.standards_prefs import save_enabled_ids
+    save_enabled_ids(project_dir.parent, project_dir.name, ["reliability"])
     assert client.get(_SERIES).get_json() == {"dimension": DIMENSION, "rows": []}

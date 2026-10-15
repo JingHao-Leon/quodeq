@@ -10,10 +10,8 @@ from quodeq.core.standards.overrides import (
     resolve_requirement_text,
     validate_overrides,
 )
-from quodeq.data.fs.standards_prefs import (
-    collect_declared_params,
-    load_project_overrides,
-)
+from quodeq.data.fs.legacy_standards_files import legacy_repo_overrides
+from quodeq.data.fs.standards_prefs import collect_declared_params
 
 REQ = {
     "id": "M-ANA-2",
@@ -71,29 +69,29 @@ def test_effective_params_merges_override_and_default():
     assert values == {"max_lines": 50, "max_depth": 6}
 
 
-def test_load_project_overrides_missing_file_returns_empty(tmp_path):
-    assert load_project_overrides(tmp_path) == {}
-    assert load_project_overrides(None) == {}
+def test_legacy_repo_overrides_missing_file_returns_empty(tmp_path):
+    assert legacy_repo_overrides(tmp_path) == {}
+    assert legacy_repo_overrides(None) == {}
 
 
-def test_load_project_overrides_reads_file(tmp_path):
+def test_legacy_repo_overrides_reads_file(tmp_path):
     _write_overrides(tmp_path, {"M-ANA-2": {"max_lines": 60}})
-    assert load_project_overrides(tmp_path) == {"M-ANA-2": {"max_lines": 60}}
+    assert legacy_repo_overrides(tmp_path) == {"M-ANA-2": {"max_lines": 60}}
 
 
-def test_load_project_overrides_malformed_returns_empty(tmp_path):
+def test_legacy_repo_overrides_malformed_returns_empty(tmp_path):
     path = tmp_path / OVERRIDES_RELPATH
     path.parent.mkdir(parents=True)
     path.write_text("{not json")
-    assert load_project_overrides(tmp_path) == {}
+    assert legacy_repo_overrides(tmp_path) == {}
 
 
-def test_load_project_overrides_drops_non_dict_entries(tmp_path):
+def test_legacy_repo_overrides_drops_non_dict_entries(tmp_path):
     _write_overrides(tmp_path, {"M-ANA-2": {"max_lines": 60}, "M-MOD-4": 12})
-    assert load_project_overrides(tmp_path) == {"M-ANA-2": {"max_lines": 60}}
+    assert legacy_repo_overrides(tmp_path) == {"M-ANA-2": {"max_lines": 60}}
 
 
-def test_load_project_overrides_unnamed_read_failure_propagates(tmp_path, monkeypatch):
+def test_legacy_repo_overrides_unnamed_read_failure_propagates(tmp_path, monkeypatch):
     """The catch narrows to (OSError, ValueError, RecursionError); a bug
     that raises anything else must not be silently absorbed as '{}'."""
     _write_overrides(tmp_path, {"M-ANA-2": {"max_lines": 60}})
@@ -103,7 +101,7 @@ def test_load_project_overrides_unnamed_read_failure_propagates(tmp_path, monkey
 
     monkeypatch.setattr(Path, "read_text", _boom)
     with pytest.raises(RuntimeError, match="unexpected read failure"):
-        load_project_overrides(tmp_path)
+        legacy_repo_overrides(tmp_path)
 
 
 def test_collect_declared_params(tmp_path):
@@ -221,7 +219,7 @@ def test_deeply_nested_overrides_file_degrades(tmp_path, deeply_nested_json):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(deeply_nested_json, encoding="utf-8")
 
-    assert load_project_overrides(tmp_path) == {}
+    assert legacy_repo_overrides(tmp_path) == {}
 
 
 def test_deeply_nested_declared_params_file_is_skipped(tmp_path, deeply_nested_json):

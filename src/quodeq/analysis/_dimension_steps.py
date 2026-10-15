@@ -57,6 +57,7 @@ def run_dimension_analysis(
         # on the run_config-gated per-file API cache writer.
         drop_counter=config.drop_counter,
         mcp_registry=config.mcp_registry,
+        standards_settings=config.standards_settings,
     )
     # Left out rather than passed as None so AnalysisConfig's own defaults win
     # for every budget the run did not set.

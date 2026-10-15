@@ -47,6 +47,7 @@ def _build_estimate_config(
     scope_path: str | None,
     requested: list[str] | None,
     clean_scan: bool,
+    standards_settings: Path | None = None,
 ) -> RunConfig | None:
     """Build the RunConfig used to compute estimates, mirroring run start.
 
@@ -80,6 +81,9 @@ def _build_estimate_config(
         dimensions_data=dims_data,
         evaluators_dir=paths.evaluators_dir,
         prompts_dir=paths.prompts_dir,
+        # Overrides fold into params_hash: without the project's settings
+        # file every overridden dimension's cached entries would read as misses.
+        standards_settings=standards_settings,
         options=AnalysisOptions(dimensions=requested, incremental=not clean_scan),
         dispatch=default_dispatch_policy(),
     )
@@ -108,7 +112,8 @@ def _aggregate_project_totals(estimates: dict) -> dict:
 
 
 def project_estimates_payload(
-    project_dir: Path, requested: list[str] | None, clean_scan: bool,
+    project_dir: Path, requested: list[str] | None, clean_scan: bool, *,
+    standards_settings: Path | None,
 ) -> dict:
     """Compute read-only pre-run estimates for a project.
 
@@ -116,14 +121,16 @@ def project_estimates_payload(
     dimension resolution via ``load_analysis_context``) without creating a
     run or writing anything to disk. Any resolution failure degrades to the
     zeros payload instead of an error: a project that was never scanned
-    simply has nothing to estimate.
+    simply has nothing to estimate. *standards_settings* is the project's
+    settings file as the caller resolved it (read-only, never migrated); its
+    overrides key the cache lookups exactly as a run's do.
     """
     resolved = _resolve_repo_source(project_dir)
     if resolved is None:
         return dict(EMPTY_ESTIMATES_PAYLOAD)
     src, scope_path = resolved
 
-    config = _build_estimate_config(src, scope_path, requested, clean_scan)
+    config = _build_estimate_config(src, scope_path, requested, clean_scan, standards_settings)
     if config is None:
         return dict(EMPTY_ESTIMATES_PAYLOAD)
 

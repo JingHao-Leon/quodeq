@@ -71,7 +71,7 @@ def test_diff_from_populates_file_filter_and_skip_scoring(tmp_path: Path) -> Non
     repo = _make_repo_with_diff(tmp_path)
     args = _args(repo, diff_from="main")
     args._diff_files = {"changed.py"}  # normally set by run_evaluate
-    config = build_run_config(args, inputs=_inputs(repo), evidence_dir=repo / "evi")
+    config = build_run_config(args, inputs=_inputs(repo), reports_root=tmp_path, evidence_dir=repo / "evi")
     assert config.options.diff_from == "main"
     assert config.options.skip_scoring is True
     assert config.options.incremental_file_filter == {"changed.py"}
@@ -80,7 +80,7 @@ def test_diff_from_populates_file_filter_and_skip_scoring(tmp_path: Path) -> Non
 def test_no_diff_from_leaves_file_filter_unset(tmp_path: Path) -> None:
     repo = _make_repo_with_diff(tmp_path)
     args = _args(repo, diff_from=None)
-    config = build_run_config(args, inputs=_inputs(repo), evidence_dir=repo / "evi")
+    config = build_run_config(args, inputs=_inputs(repo), reports_root=tmp_path, evidence_dir=repo / "evi")
     assert config.options.diff_from is None
     assert config.options.skip_scoring is False
     assert config.options.incremental_file_filter is None
