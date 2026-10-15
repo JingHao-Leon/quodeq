@@ -57,7 +57,7 @@ describe('OverviewHead', () => {
   it('on an older run, says which and goes back to the latest', () => {
     const onBack = vi.fn();
     renderHead({ pastRun: { when: '2026-10-01', onBack } });
-    expect(screen.getByText(/Viewing 2026-10-01/)).toBeInTheDocument();
+    expect(screen.getByText('2026-10-01')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /back to latest/i }));
     expect(onBack).toHaveBeenCalled();
   });

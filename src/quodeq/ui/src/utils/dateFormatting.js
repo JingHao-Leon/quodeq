@@ -129,6 +129,8 @@ export function formatPeriodLabel(entry, granularity = GRANULARITY.DAY) {
 // throwing, which is what the run rows have always shown.
 const DAY_LONG_MONTH_YEAR_OPTS = { day: 'numeric', month: 'long', year: 'numeric' };
 const HOUR_MINUTE_OPTS = { hour: '2-digit', minute: '2-digit' };
+const WEEKDAY_DAY_MONTH_OPTS = { weekday: 'short', day: 'numeric', month: 'short' };
+const WHEN_SEP = ' · ';
 
 /**
  * A run's date as "12 February 2026".
@@ -166,6 +168,26 @@ export function formatRunDateTime(dateISO, fallback = '', where = DEFAULT_CALLER
   try {
     const d = new Date(dateISO);
     return `${d.toLocaleDateString(LOCALE, DAY_LONG_MONTH_YEAR_OPTS)} ${d.toLocaleTimeString(LOCALE, HOUR_MINUTE_OPTS)}`;
+  } catch (err) {
+    console.warn(`[${where}] date format failed:`, err);
+    return fallback;
+  }
+}
+
+/**
+ * When a run ran, as a person says it: "Tue 13 Oct · 04:55" (a past run's
+ * note). Same fallback contract as formatRunDateTime.
+ *
+ * @param {string|null|undefined} dateISO
+ * @param {string} [fallback='']
+ * @param {string} [where='dateFormatting']
+ * @returns {string}
+ */
+export function formatRunWhen(dateISO, fallback = '', where = DEFAULT_CALLER_NAME) {
+  if (!dateISO) return fallback;
+  try {
+    const d = new Date(dateISO);
+    return `${d.toLocaleDateString(LOCALE, WEEKDAY_DAY_MONTH_OPTS)}${WHEN_SEP}${d.toLocaleTimeString(LOCALE, HOUR_MINUTE_OPTS)}`;
   } catch (err) {
     console.warn(`[${where}] date format failed:`, err);
     return fallback;

@@ -121,7 +121,8 @@ describe('ScopedFindings, a principle', () => {
   it('says it shows a past run in its header, with the way back', () => {
     const onBack = vi.fn();
     const { container } = renderPrinciple({ ...HISTORY, runId: 'run-old', pastRun: { when: '2026-10-01', onBack } });
-    expect(container.querySelector('.findings-head__past')).toHaveTextContent('Viewing 2026-10-01');
+    expect(container.querySelector('.findings-head__past')).toHaveTextContent(t('violations.headPastLabel'));
+    expect(container.querySelector('.findings-head__past-when')).toHaveTextContent('2026-10-01');
     fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
     expect(onBack).toHaveBeenCalled();
   });

@@ -4,6 +4,7 @@
  * period's numbers for the tiles' changes, the dimensions weakest
  * first and as radial points, and the note on a past run.
  */
+import { formatRunWhen } from '../../utils/dateFormatting.js';
 import { buildHeadline } from './headlineStats.js';
 import { computeCoverageInfo } from './components/dimensionGaugeMath.js';
 import { scopeMetrics } from '../../models/findingMetrics.js';
@@ -60,10 +61,14 @@ export function dimensionPoints(dimensions) {
  * @param {{runId: string, status?: string}[]} availableRuns newest first
  * @param {?(runId: string) => void} onRunClick
  */
-export function overviewPastRun(asOf, availableRuns, onRunClick) {
+export function overviewPastRun(asOf, availableRuns, onRunClick, trend = []) {
   const latest = (availableRuns || []).find((r) => r.status !== RUN_STATE.RUNNING)?.runId;
   if (!asOf || !latest || !onRunClick) return null;
-  return { when: asOf.day || asOf.runId, onBack: () => onRunClick(latest) };
+  // When it ran, as a person reads it ("Tue 13 Oct · 04:55"), never the run's id: the score history holds the
+  // run's time; the run list only its day.
+  const dateISO = (trend || []).find((r) => r.runId === asOf.runId)?.dateISO;
+  const dayLabel = (availableRuns || []).find((r) => r.runId === asOf.runId)?.dateLabel || asOf.day || '';
+  return { when: formatRunWhen(dateISO, dayLabel), onBack: () => onRunClick(latest) };
 }
 
 /**

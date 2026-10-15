@@ -49,7 +49,8 @@ describe('ViolationsPage with a scope', () => {
     renderPage({ asOf: { runId: 'run-7', day: '2026-08-07' }, callbacks: { onDismissFinding: vi.fn(), onBackToToday } });
     expect(await screen.findByRole('option', { name: /Past finding/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: t('violations.asOfBack') })).toBeNull();
-    expect(document.querySelector('.findings-head__past')).toHaveTextContent(t('violations.headPast', { when: '2026-08-07' }));
+    expect(document.querySelector('.findings-head__past-when')).not.toHaveTextContent('run-7');
+    expect(document.querySelector('.findings-head__past')).toHaveTextContent(t('violations.headPastLabel'));
     fireEvent.click(screen.getByRole('button', { name: t('violations.headBackToLatest') }));
     expect(onBackToToday).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /dismiss/i })).toBeNull();

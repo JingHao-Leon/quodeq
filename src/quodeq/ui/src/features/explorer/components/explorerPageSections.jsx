@@ -4,6 +4,7 @@
  * run), the principle cards, and the bottom (Fix first beside where the
  * findings are).
  */
+import { formatRunWhen } from '../../../utils/dateFormatting.js';
 import { useMemo, useState } from 'react';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
@@ -100,8 +101,10 @@ export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinc
  */
 export function pastRunNote({ latestRunId, activeRunId, activeDateLabel, trend, setActiveRunId, setActiveDateLabel }) {
   if (!latestRunId || !activeRunId || activeRunId === latestRunId) return null;
+  const run = (trend || []).find((e) => e.runId === activeRunId);
   return {
-    when: activeDateLabel || activeRunId,
+    // When it ran, as a person reads it ("Tue 13 Oct · 04:55"), never the run's id.
+    when: formatRunWhen(run?.dateISO, activeDateLabel || ''),
     onBack: () => {
       setActiveRunId(latestRunId);
       setActiveDateLabel((trend || []).find((e) => e.runId === latestRunId)?.dateLabel || null);
