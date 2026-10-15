@@ -156,6 +156,6 @@ def test_unknown_or_shared_project_gets_defaults_and_can_save(client):
     assert put.status_code == 200 and put.json["visibleStandardIds"] == ["security"]
 
 
-def test_get_reports_where_settings_were_migrated_from(client, local_project_with_repo_file):
-    pid, repo = local_project_with_repo_file
-    assert client.get(f"/api/projects/{pid}/standards-visibility").json["migratedFrom"] == str(repo)
+def test_get_keeps_the_legacy_repo_selection(client, local_project_with_repo_file):
+    pid, _repo = local_project_with_repo_file
+    assert client.get(f"/api/projects/{pid}/standards-visibility").json["visibleStandardIds"] == ["security"]

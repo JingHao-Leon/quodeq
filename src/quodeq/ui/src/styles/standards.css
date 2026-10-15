@@ -1515,16 +1515,3 @@
   content: ' •';
   color: var(--color-accent);
 }
-
-.settings-moved-note {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  background: var(--color-surface-alt);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  color: var(--color-text-muted);
-}

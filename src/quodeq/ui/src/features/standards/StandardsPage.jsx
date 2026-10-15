@@ -8,8 +8,6 @@ import ImportModal from './components/ImportModal.jsx';
 import PageToolbar from '../../components/PageToolbar.jsx';
 import { useAppState } from '../../hooks/useAppState.js';
 import { t } from '../../strings/index.js';
-import { getVisibilityState } from '../../utils/visibleStandards.js';
-import { SettingsMovedNote } from './components/SettingsMovedNote.jsx';
 import { ACTION_TYPE } from '../../vocab/actionType.js';
 import { ASSISTANT_ACTION_APPLIED_EVENT } from '../../constants.js';
 
@@ -78,26 +76,11 @@ function StandardsListView({ grouped, loading, error, actions, customizedCounts 
   );
 }
 
-// Where the server moved this project's legacy repo settings from, if it just did.
-function useMigratedFrom(projectId) {
-  const [migratedFrom, setMigratedFrom] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    setMigratedFrom(null);
-    getVisibilityState(projectId, { isStale: () => cancelled })
-      .then((state) => { if (!cancelled) setMigratedFrom(state.migratedFrom); })
-      .catch((err) => console.warn('[StandardsPage] could not read the migration note:', err));
-    return () => { cancelled = true; };
-  }, [projectId]);
-  return migratedFrom;
-}
-
 export default function StandardsPage({ onRescan }) {
   const { selectedProject } = useAppState();
   // Every project, shared ones included, keeps its toggles in the server's
   // per-project settings file; the browser set is only the read cache.
   const { isVisible, toggle, add: addVisible, remove: removeVisible } = useVisibleStandards({ projectId: selectedProject });
-  const migratedFrom = useMigratedFrom(selectedProject);
   // A new standard only reaches the Evaluate picker once it is visible for
   // this project. Create does that in handleSaved; duplicate and import
   // land here and in handleImported.
@@ -131,7 +114,6 @@ export default function StandardsPage({ onRescan }) {
           <button type="button" className="btn-primary" onClick={handleNewStandard}>{t('standards.newStandardBtn')}</button>
         </span>
       </PageToolbar>
-      <SettingsMovedNote projectId={selectedProject} migratedFrom={migratedFrom} />
       <StandardsListView grouped={grouped} loading={loading} error={error} actions={{ onEdit: handleEdit, onDelete: handleDeleteWithCleanup, onDuplicate: handleDuplicate, isVisible, onToggleVisibility: toggle }} customizedCounts={customizedCounts} />
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={handleImported} />}
     </div>

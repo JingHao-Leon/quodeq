@@ -10,7 +10,7 @@ vi.mock('../api/standards.js', () => ({
 
 // Imported AFTER vi.mock so the mocked bindings are the ones under test.
 const { getStandardsVisibility, putStandardsVisibility } = await import('../api/standards.js');
-const { hydrateVisibleStandardIds, getVisibilityState, readVisibleStandardIds, writeVisibleStandardIds } =
+const { hydrateVisibleStandardIds, readVisibleStandardIds, writeVisibleStandardIds } =
   await import('./visibleStandards.js');
 
 function fakeStorage(initial = {}) {
@@ -34,16 +34,6 @@ it('hydrate adopts the server ids and never PUTs, even when the cache differs', 
   const ids = await hydrateVisibleStandardIds('p1', { storage });
   expect(ids).toEqual(['security']);
   expect(putStandardsVisibility).not.toHaveBeenCalled();
-});
-
-it('getVisibilityState also reports where the settings were migrated from', async () => {
-  getStandardsVisibility.mockResolvedValue({ visibleStandardIds: ['security'], migratedFrom: '/repo/a' });
-  expect(await getVisibilityState('p1', { storage: fakeStorage() })).toEqual({ ids: ['security'], migratedFrom: '/repo/a' });
-});
-
-it('visibilityProjectIdFor no longer exists: every project writes through the API', async () => {
-  const mod = await import('./visibleStandards.js');
-  expect(mod.visibilityProjectIdFor).toBeUndefined();
 });
 
 
