@@ -70,3 +70,36 @@ def test_duplicate_and_import_start_fresh(svc):
                               "createdAt": "2020-01-01", "version": "1999"})
     assert _dates(_file(ev, "a-copy")) == ("2026-10-21", "2026-10-21", "2026.10.21")
     assert _dates(_file(ev, "imp")) == ("2026-10-21", "2026-10-21", "2026.10.21")
+
+
+def _roundtrip(service, sid):
+    """What the editor PUTs back: the GET detail, camelCased, unchanged."""
+    from quodeq.shared.serialization import to_camel_dict
+    return to_camel_dict(service.get_standard(sid))
+
+
+def test_editor_round_trip_without_change_keeps_dates(svc):
+    service, ev, clock = svc
+    service.create_standard({"id": "a", "name": "A", "principles": _PRINCIPLES})
+    clock["today"] = "2026-10-20"
+    service.update_standard("a", _roundtrip(service, "a"))
+    assert _dates(_file(ev, "a")) == ("2026-10-15", "2026-10-15", "2026.10.15")
+
+
+def test_new_form_body_shape_without_change_keeps_dates(svc):
+    service, ev, clock = svc
+    service.create_standard({"id": "a", "name": "A", "principles": _PRINCIPLES})
+    clock["today"] = "2026-10-20"
+    service.update_standard("a", {**_roundtrip(service, "a"), "originHash": None, "origin": None})
+    assert _dates(_file(ev, "a")) == ("2026-10-15", "2026-10-15", "2026.10.15")
+
+
+def test_unchanged_save_of_a_legacy_standard_keeps_its_file_date(svc):
+    service, ev, _ = svc
+    ev.mkdir()
+    path = ev / "old.json"
+    path.write_text(json.dumps({"id": "old", "name": "Old", "principles": _PRINCIPLES}), encoding="utf-8")
+    ts = datetime(2026, 9, 1, 12, 0).timestamp()
+    os.utime(path, (ts, ts))
+    service.update_standard("old", _roundtrip(service, "old"))
+    assert _dates(_file(ev, "old")) == ("2026-09-01", "2026-09-01", "2026.09.01")

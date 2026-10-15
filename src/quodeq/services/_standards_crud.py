@@ -23,9 +23,6 @@ from quodeq.services.import_validator import (
 
 _CUSTOM_DEFAULTS = {"type": TYPE_CUSTOM, "managed": False, "origin": None, "origin_hash": None}
 
-# Keys the CRUD layer sets itself; a content comparison ignores them.
-_MANAGED_KEYS = frozenset({"createdAt", "updatedAt", "version", "id", "type", "managed", "origin", "origin_hash"})
-
 
 def today_iso() -> str:
     """Today as an ISO date: the default clock for the save stamps."""
@@ -38,13 +35,22 @@ def _fresh(payload: dict, today: str) -> dict:
 
 
 def _content(payload: dict) -> dict:
-    return {k: v for k, v in payload.items() if k not in _MANAGED_KEYS}
+    """What makes a standard itself, with defaults applied: the editor sends back the
+    GET detail (extra default fields, dropped empty ones), and an unchanged save must
+    compare equal to the stored file."""
+    return {
+        "name": payload.get("name") or payload.get("id"),
+        "description": payload.get("description") or "",
+        "weight": payload.get("weight", 1.0),
+        "source": payload.get("source") or "",
+        "principles": payload.get("principles") or [],
+    }
 
 
 def _edited(payload: dict, existing: dict, created_fallback: str | None, today: str) -> dict:
     """*payload* as an edit of *existing*: updated and version move only when the content changed."""
     created = iso_date(existing.get("createdAt")) or created_fallback or today
-    previous = iso_date(existing.get("updatedAt"))
+    previous = iso_date(existing.get("updatedAt")) or created_fallback
     if previous and _content(payload) == _content(existing):
         updated, version = previous, existing.get("version") or dotted_version(previous)
     else:
