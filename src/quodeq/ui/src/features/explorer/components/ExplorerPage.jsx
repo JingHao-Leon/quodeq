@@ -2,8 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { buildProjectRootFile } from '../../../utils/explorerUtils.js';
 import { useExplorerData, buildEvalPrincipalFn } from './explorerDataHooks.js';
 import { useStandardDescriptions } from '../hooks/useStandardDescriptions.js';
-import { TermHeader } from '../../../components/terminal/index.js';
-import LoadingScreen from '../../../components/LoadingScreen.jsx';
+import OverviewSkeleton from '../../dashboard/components/OverviewSkeleton.jsx';
 import DeferredMount from '../../../components/DeferredMount.jsx';
 import CardListSkeleton from '../../../components/CardListSkeleton.jsx';
 import DimensionScoreHistoryPanel from './DimensionScoreHistoryPanel.jsx';
@@ -23,15 +22,15 @@ import { dimensionPeriodDeltas } from '../dimensionPeriodDeltas.js';
 import { buildExplorerFindingsNav } from './explorerFindingsNav.js';
 
 /** Empty/loading/error states, checked in order — extracted so the main
- * render stays a single happy-path return. The loading state keeps the
- * page frame (header with the dimension name) and puts the loader inline,
- * so the navigation paints as this page, not as a blank screen. */
+ * render stays a single happy-path return. The loading state is the page's
+ * own footprint (the Overview's skeleton under the dimension's name: header,
+ * since strip, principle cards, history, Fix first), so the navigation paints
+ * as this page in its final shape, not as a bare title over a loader. */
 function explorerPageStatus(d, dimension) {
   if (d.loading) {
     return (
       <div className="explorer-page">
-        <TermHeader name={String(dimension || '').toLowerCase()} />
-        <LoadingScreen variant="inline" />
+        <OverviewSkeleton title={String(dimension || '').toLowerCase()} cardsLabel={t('explorer.principlesLabel')} />
       </div>
     );
   }
