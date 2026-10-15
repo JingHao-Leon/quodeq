@@ -63,11 +63,11 @@ describe('#249 ServerSection uses getHealth() not raw fetch', () => {
   });
 
   it('shows server details when getHealth resolves with ok data', async () => {
-    getHealth.mockResolvedValue({ ok: true, port: 7863, pid: 1234, version: '1.0.6', address: '127.0.0.1' });
+    getHealth.mockResolvedValue({ ok: true, port: 7863, pid: 1234, version: '1.0.6', address: 'localhost:7863' });
     const Wrapper = makeWrapper();
     render(<Wrapper><ServerSection /></Wrapper>);
     await waitFor(() => {
-      expect(screen.getByText('7863')).toBeTruthy();
+      expect(screen.getByText('localhost:7863')).toBeTruthy();
       expect(screen.getByText('1234')).toBeTruthy();
     });
   });
@@ -77,7 +77,7 @@ describe('#249 ServerSection uses getHealth() not raw fetch', () => {
     const Wrapper = makeWrapper();
     render(<Wrapper><ServerSection /></Wrapper>);
     await waitFor(() => {
-      expect(screen.getAllByText(/Restart/).length).toBeGreaterThan(0);
+      expect(screen.getByRole('status')).toHaveTextContent('Not reachable');
     });
   });
 });

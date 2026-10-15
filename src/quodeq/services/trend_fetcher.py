@@ -112,11 +112,11 @@ def _make_version_for(
         run_scoped_version, store_run_keys,
     )
 
-    state_fp = inputs.fingerprint
     keys_cache: dict[str, tuple] = {}
 
     def version_for(run_id: str) -> str:
         cacheable = cacheable_run_ids is None or run_id in cacheable_run_ids
+        state_fp, standards = inputs.run_state(run_id)
         if cacheable:
             memoized = memoized_run_version(project_dir, run_id, state_fp)
             if memoized is not None:
@@ -136,7 +136,7 @@ def _make_version_for(
         keys_cache[run_id] = keys
         version = run_scoped_version(
             inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted,
-            standards=inputs.standards)
+            standards=standards)
         if cacheable:
             remember_run_version(project_dir, run_id, state_fp, version)
         return version
