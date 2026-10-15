@@ -73,11 +73,16 @@ export function useMapDimensionFilter({ allDimensions, selectedProject, cachedSe
     });
   };
 
+  // Keeps exactly one dimension; null (or the only one there is) shows every dimension again.
+  const handleShowOnlyDimension = (dim) => {
+    setSelectedDimensions(dim == null || dimensionNames.length <= 1 ? new Set() : new Set([dim]));
+  };
+
   // Filter dimensions by selection
   const filteredDimensions = useMemo(
     () => visibleDimensions.filter((d) => effectiveSelected.has(d.dimension)),
     [visibleDimensions, effectiveSelected]
   );
 
-  return { dimensionNames, effectiveSelected, handleToggleDimension, filteredDimensions };
+  return { dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, filteredDimensions };
 }

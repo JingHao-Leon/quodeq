@@ -126,6 +126,65 @@
   cursor: pointer;
 }
 
+.map-filter-item input[type="checkbox"]:disabled {
+  cursor: default;
+}
+
+/* The name keeps only its dimension; "only" appears on hover/focus so the
+   difference from the checkbox is discoverable without permanent chrome. */
+.map-filter-only,
+.map-filter-all {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-filter-only__name {
+  flex: 1;
+}
+
+.map-filter-only__hint {
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.map-filter-item:hover .map-filter-only__hint,
+.map-filter-only:focus-visible .map-filter-only__hint {
+  opacity: 1;
+}
+
+.map-filter-all {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition: background 100ms ease;
+}
+
+.map-filter-all:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.map-filter-all.is-on {
+  color: var(--color-accent);
+}
+
+.map-filter-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--color-border);
+}
+
 .map-breadcrumb-back {
   display: flex;
   align-items: center;

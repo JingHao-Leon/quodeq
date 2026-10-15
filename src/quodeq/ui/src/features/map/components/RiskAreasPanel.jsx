@@ -17,7 +17,7 @@ import { t, LOCALE } from '../../../strings/index.js';
 import useRiskAreas from '../hooks/useRiskAreas.js';
 import { reworkSummary } from '../model/rankedAreas.js';
 import { SKY_ZONE, AREA_KIND } from '../mapVocab.js';
-import { SeverityAndFilesCells } from '../../../components/SeverityBadges.jsx';
+import { SeverityAndFilesCells, PLACE_COLUMNS } from '../../../components/SeverityBadges.jsx';
 import { ICON_MAP } from '../../../constants/navigation.jsx';
 import { areaFindingsScope } from '../model/detailScopes.js';
 
@@ -25,9 +25,8 @@ import { areaFindingsScope } from '../model/detailScopes.js';
 export const AREAS_SHOWN = 5;
 const DENSITY_DECIMALS = 2;
 const LIFT_DECIMALS = 1;
-/** Name, zone chip, density, severities, files; then the map icon when the panel can open the Map. */
-const AREA_COLUMNS = 'minmax(0, 1fr) auto 64px auto 48px';
-const AREA_COLUMNS_WITH_MAP = `${AREA_COLUMNS} 28px`;
+/** The place tables' columns (the zone and density ride under the name); then the map icon when the panel can open the Map. */
+const AREA_COLUMNS_WITH_MAP = `${PLACE_COLUMNS} 28px`;
 const ZONE_KEY = {
   [SKY_ZONE.FIX_FIRST]: 'overview.riskZoneFixFirst', [SKY_ZONE.WATCH]: 'overview.riskZoneWatch', [SKY_ZONE.HEALTHY]: 'overview.riskZoneHealthy',
 };
@@ -38,16 +37,15 @@ const ROW_ICON_SIZE = 14;
 const MAP_ICON = cloneElement(ICON_MAP, { width: ROW_ICON_SIZE, height: ROW_ICON_SIZE });
 
 /**
- * The line under an area's name: its kind when it has a ring on the sky and
- * its files; over a selection its lift leads instead of the files (the last
- * column counts them), so the figure is never the part cut off.
+ * The words after the zone chip under an area's name: its density, its lift
+ * over a selection, its kind when it has a ring on the sky. The files are
+ * the last column's, never repeated here.
  */
 function areaSub(area) {
+  const density = t('overview.riskDensity', { density: area.density.toFixed(DENSITY_DECIMALS) });
+  const lift = area.lift != null ? t('overview.riskLift', { lift: area.lift.toFixed(LIFT_DECIMALS) }) : null;
   const kind = KIND_KEY[area.kind] ? t(KIND_KEY[area.kind]) : null;
-  if (area.lift != null) {
-    return [t('overview.riskLift', { lift: area.lift.toFixed(LIFT_DECIMALS) }), kind].filter(Boolean).join(t('violations.wbDot'));
-  }
-  return kind ? t('overview.riskAreaSubKind', { kind, files: area.files }) : t('overview.riskAreaSub', { files: area.files });
+  return [density, lift, kind].filter(Boolean).join(t('violations.wbDot'));
 }
 
 /** The row's end: the area in the Risk map, raised above the row's open button. */
@@ -71,7 +69,10 @@ function AreaNameCell({ area, onOpen }) {
   const name = (
     <div className="offending-file-cell">
       <span className="offending-file-name">{area.name}</span>
-      <span className="offending-file-path">{areaSub(area)}</span>
+      <span className="offending-file-path risk-areas-panel__sub">
+        <span className={`risk-zone-chip risk-zone-chip--${area.zone}`}>{t(ZONE_KEY[area.zone])}</span>
+        {areaSub(area)}
+      </span>
     </div>
   );
   if (!onOpen) return <GridCell>{name}</GridCell>;
@@ -85,13 +86,23 @@ function AreaNameCell({ area, onOpen }) {
   );
 }
 
+/** The column names, an empty one over the map icons. */
+function AreaHeader({ withMap }) {
+  return (
+    <GridRow header>
+      <GridCell>{t('overview.areaCol')}</GridCell>
+      <GridCell>{t('overview.sevCol')}</GridCell>
+      <GridCell align="right">{t('overview.filesCol')}</GridCell>
+      {withMap && <GridCell />}
+    </GridRow>
+  );
+}
+
 function AreaRow({ area, onOpen, onShowInMap }) {
   return (
     <GridRow>
       <AreaNameCell area={area} onOpen={onOpen} />
-      <GridCell><span className={`risk-zone-chip risk-zone-chip--${area.zone}`}>{t(ZONE_KEY[area.zone])}</span></GridCell>
-      <GridCell numeric>{t('overview.riskDensity', { density: area.density.toFixed(DENSITY_DECIMALS) })}</GridCell>
-      <SeverityAndFilesCells sev={area.severities} fileCount={area.files} />
+      <SeverityAndFilesCells sev={area.severities} fileCount={area.files} bare />
       {onShowInMap && <AreaMapButton area={area} onClick={onShowInMap} />}
     </GridRow>
   );
@@ -124,7 +135,8 @@ export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENS
         <span className="run-history-panel__stats">{t('overview.riskAreasNote')}</span>
       </div>
       {rows.length ? (
-        <GridTable columns={onAreaInMap ? AREA_COLUMNS_WITH_MAP : AREA_COLUMNS} dense>
+        <GridTable columns={onAreaInMap ? AREA_COLUMNS_WITH_MAP : PLACE_COLUMNS} dense>
+          <AreaHeader withMap={Boolean(onAreaInMap)} />
           {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onOpen={openArea} onShowInMap={onAreaInMap} />)}
         </GridTable>
       ) : <div className="risk-areas-panel__none">{t('overview.riskAreasNone')}</div>}

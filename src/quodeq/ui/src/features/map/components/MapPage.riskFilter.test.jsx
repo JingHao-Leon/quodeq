@@ -38,7 +38,7 @@ function page(nav) {
 
 async function uncheck(dimension) {
   fireEvent.click(await screen.findByRole('button', { name: t('map.dimensions') }));
-  fireEvent.click(screen.getByRole('checkbox', { name: dimension }));
+  fireEvent.click(screen.getByRole('checkbox', { name: t('map.dimensionToggleAria', { name: dimension }) }));
 }
 
 describe('MapPage: the Dimensions filter on the Risk tab', () => {
@@ -59,6 +59,13 @@ describe('MapPage: the Dimensions filter on the Risk tab', () => {
   it('re-measures the sky over the dimensions left', async () => {
     const fake = page();
     await uncheck('reliability');
+    await vi.waitFor(() => expect(fake.getMapHistory).toHaveBeenCalledWith('p1', 'latest', SECURITY));
+  });
+
+  it('narrows the sky to the one dimension whose name is clicked', async () => {
+    const fake = page();
+    fireEvent.click(await screen.findByRole('button', { name: t('map.dimensions') }));
+    fireEvent.click(screen.getByRole('button', { name: t('map.dimensionOnlyAria', { name: 'security' }) }));
     await vi.waitFor(() => expect(fake.getMapHistory).toHaveBeenCalledWith('p1', 'latest', SECURITY));
   });
 

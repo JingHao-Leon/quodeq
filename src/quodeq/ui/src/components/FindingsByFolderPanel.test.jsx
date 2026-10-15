@@ -3,6 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import FindingsByFolderPanel from './FindingsByFolderPanel.jsx';
 
+// The rows under the column header.
+const bodyRows = () => screen.getAllByRole('row').slice(1);
+
 const v = (file, severity = 'minor') => ({ file, severity, req: 'X-1', title: 't' });
 
 describe('FindingsByFolderPanel', () => {
@@ -10,7 +13,7 @@ describe('FindingsByFolderPanel', () => {
     const dims = [{ dimension: 'a', violations: [v('src/main/app/Views/A.swift', 'major'), v('src/main/lib/Views/B.swift')] }];
     render(<FindingsByFolderPanel dimensions={dims} />);
     expect(screen.getByText('IN src/main/ · CLICK TO OPEN')).toBeInTheDocument();
-    const rows = screen.getAllByRole('row');
+    const rows = bodyRows();
     expect(rows[0]).toHaveTextContent('app/Views/');
     expect(rows[1]).toHaveTextContent('lib/Views/');
   });
@@ -18,7 +21,7 @@ describe('FindingsByFolderPanel', () => {
   it('keeps two folders with the same last names apart', () => {
     const dims = [{ dimension: 'a', violations: [v('x/one/Article/Views/A.swift'), v('y/two/Article/Views/B.swift')] }];
     render(<FindingsByFolderPanel dimensions={dims} />);
-    expect(screen.getAllByRole('row')).toHaveLength(2);
+    expect(bodyRows()).toHaveLength(2);
     expect(screen.getByText('2 folders · 2 files with findings')).toBeInTheDocument();
   });
 
@@ -26,7 +29,7 @@ describe('FindingsByFolderPanel', () => {
     const onFolderClick = vi.fn();
     const dims = [{ dimension: 'a', violations: [v('src/x/a.py'), v('src/y/b.py')] }];
     render(<FindingsByFolderPanel dimensions={dims} onFolderClick={onFolderClick} />);
-    fireEvent.click(screen.getAllByRole('row')[0]);
+    fireEvent.click(bodyRows()[0]);
     expect(onFolderClick.mock.calls[0][0].dir.startsWith('src/')).toBe(true);
   });
 });
@@ -37,7 +40,7 @@ describe('FindingsByFolderPanel, beyond the top folders', () => {
   it('shows the top five and hands the rest to the Map', () => {
     const onOpenMap = vi.fn();
     render(<FindingsByFolderPanel dimensions={many} onOpenMap={onOpenMap} />);
-    expect(screen.getAllByRole('row')).toHaveLength(5);
+    expect(bodyRows()).toHaveLength(5);
     fireEvent.click(screen.getByRole('button', { name: /all folders in Map/ }));
     expect(onOpenMap).toHaveBeenCalled();
   });

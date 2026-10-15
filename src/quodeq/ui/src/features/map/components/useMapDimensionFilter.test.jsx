@@ -89,6 +89,20 @@ describe('useMapDimensionFilter', () => {
     expect(spy).toHaveBeenCalledWith('map', 'p1', { selectedDimensionsArr: ['Maintainability', 'Performance'] });
   });
 
+  it('show-only keeps exactly the one dimension', () => {
+    const { result } = setup();
+    act(() => { result.current.handleShowOnlyDimension('Security'); });
+    expect(result.current.effectiveSelected).toEqual(new Set(['Security']));
+    expect(result.current.filteredDimensions.map((d) => d.dimension)).toEqual(['Security']);
+  });
+
+  it('show-only with no dimension clears the filter', () => {
+    const { result } = setup({ cachedSelectedArr: ['Security'] });
+    act(() => { result.current.handleShowOnlyDimension(null); });
+    expect(result.current.effectiveSelected).toEqual(new Set(['Maintainability', 'Performance', 'Security']));
+    expect(readCachedState('map', 'p1').selectedDimensionsArr).toEqual([]);
+  });
+
   // The visibility memo must key on the visible ids, not on allDimensions:
   // hiding a standard elsewhere has to reach the map even though the same
   // dimensions array comes back in.

@@ -63,7 +63,7 @@ export default function CompareFleetView({
   return (
     <>
       <CompareFleetHeader
-        picker={picker} totalFiles={fleet.totalFiles} scoredRows={scoredRows}
+        picker={picker} totalFiles={fleet.totalFiles} scoredRows={scoredRows} unevaluated={unevaluated.length}
         openDuelPair={openDuelPair} openDuel={openDuel} board={board} openDimension={openDimension}
       />
       {scoredRows.length > 0 && <CompareFleetKpis rows={scoredRows} fleet={fleet} />}

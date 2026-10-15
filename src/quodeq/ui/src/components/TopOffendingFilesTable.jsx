@@ -1,11 +1,12 @@
 // Props: { files, onFileClick }
 // Terminal-styled tabular list of top offending files by violation count.
-// Mirrors the TopFindings grid layout: column headers + dense rows.
+// Reads like the folder and area tables: name, severity badges, then the count.
 // onFileClick is called with the file object when a row is clicked.
 
 import { memo } from 'react';
 import { GridTable, GridRow, GridCell, SevBadge, SectionLabel } from './terminal/index.js';
 import { t } from '../strings/index.js';
+import { PLACE_COLUMNS } from './SeverityBadges.jsx';
 
 /** Basename and directory from a single lastIndexOf, computed once per row. */
 function splitPath(filepath) {
@@ -31,11 +32,11 @@ export default memo(function TopOffendingFilesTable({ files, onFileClick }) {
   if (list.length === 0) return null;
 
   return (
-    <GridTable columns="minmax(0, 1fr) 64px 180px" dense>
+    <GridTable columns={PLACE_COLUMNS} dense>
       <GridRow header>
         <GridCell>{t('overview.fileCol')}</GridCell>
-        <GridCell align="right">{t('overview.countCol')}</GridCell>
         <GridCell>{t('overview.sevCol')}</GridCell>
+        <GridCell align="right">{t('overview.countCol')}</GridCell>
       </GridRow>
 
       {list.map((f, idx) => {
@@ -51,7 +52,6 @@ export default memo(function TopOffendingFilesTable({ files, onFileClick }) {
                 {dir && <span className="offending-file-path">{dir}</span>}
               </div>
             </GridCell>
-            <GridCell numeric>{f.total}</GridCell>
             <GridCell>
               <span className="offending-file-tags">
                 {f.critical > 0 && <SevBadge level="critical" count={f.critical} format="count-abbr" />}
@@ -59,6 +59,7 @@ export default memo(function TopOffendingFilesTable({ files, onFileClick }) {
                 {f.minor    > 0 && <SevBadge level="minor"    count={f.minor}    format="count-abbr" />}
               </span>
             </GridCell>
+            <GridCell numeric>{f.total}</GridCell>
           </GridRow>
         );
       })}

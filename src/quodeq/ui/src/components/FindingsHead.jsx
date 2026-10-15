@@ -176,22 +176,24 @@ export default function FindingsHead({
 }) {
   const headRef = useRef(null);
   const scrolledPast = useScrolledPast(headRef);
-  useRowStarts(headRef, '.findings-head__stats');
+  useRowStarts(headRef, '.findings-head__body, .findings-head__stats');
   return (
     <>
       <SlimBar title={title} grade={grade} metrics={metrics} shown={scrolledPast} />
       {since}
       <section ref={headRef} className="findings-head qd-cards-panel">
         {grade && <GradeRing grade={grade} />}
-        <div className="findings-head__who">
-          <TermHeader name={title} description={grade ? null : description} sub={sub} badge={badge} />
-          {pastRun && <PastRunNote pastRun={pastRun} />}
-          {grade && description && <Description text={description} />}
-          {grade?.hint && <p className="findings-head__hint">{grade.hint}</p>}
-          {history && <ScoreSparkline points={history.points} label={history.label} />}
+        <div className="findings-head__body">
+          <div className="findings-head__who">
+            <TermHeader name={title} description={grade ? null : description} sub={sub} badge={badge} />
+            {pastRun && <PastRunNote pastRun={pastRun} />}
+            {grade && description && <Description text={description} />}
+            {grade?.hint && <p className="findings-head__hint">{grade.hint}</p>}
+            {history && <ScoreSparkline points={history.points} label={history.label} />}
+          </div>
+          <HeadStats m={metrics} filesHint={filesHint} oneFile={oneFile} showRisk={showRisk} requirements={requirements} riskAreas={riskAreas}
+            deltas={deltas} changes={changes} actions={actions} />
         </div>
-        <HeadStats m={metrics} filesHint={filesHint} oneFile={oneFile} showRisk={showRisk} requirements={requirements} riskAreas={riskAreas}
-          deltas={deltas} changes={changes} actions={actions} />
       </section>
     </>
   );

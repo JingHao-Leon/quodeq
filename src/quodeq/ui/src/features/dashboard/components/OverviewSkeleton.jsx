@@ -90,11 +90,13 @@ function SkeletonHead({ title, projectName, lastKnown }) {
   return (
     <section className="findings-head qd-cards-panel">
       <SkeletonRing lastKnown={lastKnown} />
-      <div className="findings-head__who">
-        <TermHeader name={title} sub={skeletonSub(projectName, lastKnown)} />
-      </div>
-      <div className="findings-head__stats" aria-hidden="true">
-        {placeholders(HEAD_TILE_COUNT).map((index) => <SkeletonTile key={index} index={index} />)}
+      <div className="findings-head__body">
+        <div className="findings-head__who">
+          <TermHeader name={title} sub={skeletonSub(projectName, lastKnown)} />
+        </div>
+        <div className="findings-head__stats" aria-hidden="true">
+          {placeholders(HEAD_TILE_COUNT).map((index) => <SkeletonTile key={index} index={index} />)}
+        </div>
       </div>
     </section>
   );

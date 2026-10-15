@@ -89,7 +89,6 @@ src/quodeq/ui/src/api/shared.reads.test.jsx:5
 src/quodeq/ui/src/components/TopBarProviderPill.jsx:5
 src/quodeq/ui/src/features/assistant/AssistantDrawerProvider.panels.test.jsx:5
 src/quodeq/ui/src/features/assistant/AssistantDrawerProvider.session.test.jsx:5
-src/quodeq/ui/src/features/assistant/hooks/useSessionActions.js:8
 src/quodeq/ui/src/features/assistant/hooks/useSessionLifecycle.js:11
 src/quodeq/ui/src/features/assistant/hooks/useWorkspaceDiff.js:64
 src/quodeq/ui/src/features/compare/_compareModel.fixtures.js:4

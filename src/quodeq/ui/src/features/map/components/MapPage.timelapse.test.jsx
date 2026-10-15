@@ -132,7 +132,7 @@ describe('MapPage: the time-lapse', () => {
     page();
     await screen.findByRole('group', { name: t('map.timelapseAria') });
     fireEvent.click(screen.getByRole('button', { name: t('map.dimensions') }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'performance' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: t('map.dimensionToggleAria', { name: 'performance' }) }));
     expect(screen.getByText(t('map.timelapseFiltered'))).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: t('map.timelapseAria') })).toBeNull();
   });
