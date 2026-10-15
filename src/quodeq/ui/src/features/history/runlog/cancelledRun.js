@@ -11,13 +11,6 @@ const DIM_LIST = new Intl.ListFormat(LOCALE, { style: 'long', type: 'conjunction
 const SENTENCE_GAP = ' ';
 const ONE = 1;
 
-// The first sentence, by what is known: how long it ran, why it stopped.
-const STOPPED_KEY = {
-  timeReason: 'history.cancelledAfterBecause',
-  time: 'history.cancelledAfter',
-  reason: 'history.cancelledBecause',
-  none: 'history.cancelledOnly',
-};
 
 /**
  * The dimensions a cancelled run planned but did not finish, and how many it
@@ -46,11 +39,16 @@ function stopReason(code) {
   return info && !isPlainCancelExit(code) ? info.label : null;
 }
 
+/** The first sentence's wording, by what is known: how long the run ran, why it stopped. */
+function stoppedKey(hasDuration, hasReason) {
+  if (hasDuration) return hasReason ? 'history.cancelledAfterBecause' : 'history.cancelledAfter';
+  return hasReason ? 'history.cancelledBecause' : 'history.cancelledOnly';
+}
+
 function stoppedSentence(run) {
   const duration = run.activeSeconds > 0 ? formatDurationCoarse(run.activeSeconds) : null;
   const reason = stopReason(run.exitReason);
-  const which = duration && reason ? 'timeReason' : duration ? 'time' : reason ? 'reason' : 'none';
-  return t(STOPPED_KEY[which], { duration, reason });
+  return t(stoppedKey(Boolean(duration), Boolean(reason)), { duration, reason });
 }
 
 function finishedSentence(run) {

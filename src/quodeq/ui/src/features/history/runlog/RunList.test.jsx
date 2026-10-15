@@ -36,14 +36,16 @@ describe('RunList', () => {
   it('a cancelled run reads how far it got, its dimensions in the tooltip; a full run shows no scope', () => {
     const cancelled = { ...rows[0], partial: true, dims: ['reliability', 'security'], plannedDims: ['performance', 'reliability', 'security'] };
     render(<RunList rows={[cancelled, rows[1]]} selectedId="a" onSelect={vi.fn()} hoverId={null} onHover={vi.fn()} />);
-    expect(screen.getByText('cancelled · 2 of 3')).toHaveAttribute('title', 'reliability, security');
+    const scope = screen.getByText(/cancelled · 2 of 3/);
+    expect(scope).toHaveAttribute('title', 'reliability, security');
+    expect(scope.querySelector('.sr-only')).toHaveTextContent('reliability, security');
     expect(screen.getAllByText(/cancelled/)).toHaveLength(1);
   });
 
   it('a cancelled run that recorded no plan counts its dimensions', () => {
     const cancelled = { ...rows[0], partial: true, dims: ['reliability', 'security'] };
     render(<RunList rows={[cancelled]} selectedId="a" onSelect={vi.fn()} hoverId={null} onHover={vi.fn()} />);
-    expect(screen.getByText('cancelled · 2 dims')).toBeInTheDocument();
+    expect(screen.getByText(/cancelled · 2 dims/)).toBeInTheDocument();
   });
 
   it('focus follows the selection while it is in the list', () => {
