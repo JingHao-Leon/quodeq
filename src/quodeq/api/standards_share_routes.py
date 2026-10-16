@@ -67,7 +67,7 @@ def register_share_routes(app: Flask, get_service) -> None:
             return jsonify(out), HTTPStatus.OK
         app.add_url_rule(f"/api/standards/<standard_id>/{name}", f"standards_{name}", view, methods=["POST"])
 
-    # Lambdas resolve the op at call time so tests can patch it in this module.
+    # The ops are looked up when a request arrives, so a test can swap them.
     bind("share", lambda *a, **kw: share_standard(*a, **kw))
     bind("install", lambda *a, **kw: install_standard(*a, **kw))
     bind("update", lambda *a, **kw: update_from_shared(*a, **kw))
