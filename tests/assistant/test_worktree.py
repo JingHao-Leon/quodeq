@@ -2,7 +2,7 @@ import pytest
 
 from quodeq.assistant.worktree import (
     PrResultReason, WorktreeError, WorktreeManager, run_git, diff_stats, diff_text)
-from quodeq.assistant.worktree import ensure_session_worktree, gc_stale_worktrees
+from quodeq.assistant.worktree import ensure_session_worktree, gc_stale_worktrees, pr_url_from_gh_output
 from quodeq.data.ports.assistant import SessionScope
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
 import shutil as _shutil
@@ -170,6 +170,17 @@ def test_create_pr_fail_soft_without_gh(manager, monkeypatch):
     assert result.pr_url is None
     assert result.branch == manager.branch
     assert result.reason is PrResultReason.PUSH_FAILED
+
+
+@pytest.mark.parametrize(("out", "expected"), [
+    ("Creating pull request\nhttps://github.com/o/r/pull/7\n", "https://github.com/o/r/pull/7"),
+    ("", None),
+    ("javascript:alert(1)", None),
+    ("Warning: 2 uncommitted changes", None),
+    ("http://github.com/o/r/pull/7", None),
+])
+def test_pr_url_from_gh_output_accepts_only_https_urls(out, expected):
+    assert pr_url_from_gh_output(out) == expected
 
 
 def test_create_pr_push_failure_restores_worktree_changes(manager, repo):

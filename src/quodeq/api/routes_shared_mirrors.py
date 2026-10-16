@@ -141,10 +141,10 @@ def _pending_response(eval_root: Path, url: str, project: str) -> tuple[Response
 @with_shared_root
 def shared_dashboard(project: str, eval_root: Path, url: str):
     """Return one run's dashboard payload from the shared clone. ``?run=`` defaults to latest."""
-    early = validate_segment(project) or _pending_response(eval_root, url, project)
+    run = request.args.get("run", LATEST_RUN)
+    early = validate_segment(project, run) or _pending_response(eval_root, url, project)
     if early:
         return early
-    run = request.args.get("run", LATEST_RUN)
     try:
         payload = fs_reports.get_dashboard(str(eval_root), project, run, log=SHARED_LOG)
     except FileNotFoundError:

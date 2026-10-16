@@ -119,6 +119,11 @@ def test_shared_dashboard_invalid_segment(client, shared_clone_fixture):
     assert resp.status_code == 400
 
 
+def test_shared_dashboard_invalid_run_segment(client, shared_clone_fixture):
+    resp = client.get("/api/shared/projects/proj-a/dashboard?run=..%2fescape")
+    assert resp.status_code == 400
+
+
 # --- GET /api/shared/projects/<project>/accumulated ---------------------------
 
 def test_shared_accumulated(client, shared_clone_fixture):
