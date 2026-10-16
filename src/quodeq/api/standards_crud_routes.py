@@ -7,7 +7,7 @@ from http import HTTPStatus
 from flask import Flask, Response, jsonify
 
 from quodeq.api._constants import ERROR_CODE_BAD_REQUEST, ERROR_CODE_FORBIDDEN, ERROR_CODE_NOT_FOUND
-from quodeq.api.helpers import error_response, json_object_or_error
+from quodeq.api.helpers import error_response, json_object_or_error, sanitize_for_log
 from quodeq.services.ports import StandardNotFoundError, StandardProtectedError
 from quodeq.shared.serialization import to_camel_dict
 
@@ -28,7 +28,7 @@ def _handle_create(get_service, app: Flask) -> tuple[Response, int]:
         return error_response(
             "id must be a non-empty string", HTTPStatus.BAD_REQUEST, ERROR_CODE_BAD_REQUEST,
         )
-    logger.info("standards.create id=%s", standard_id)
+    logger.info("standards.create id=%s", sanitize_for_log(standard_id))
     try:
         detail = svc.create_standard(payload)
     except ValueError as exc:
@@ -63,7 +63,7 @@ def _handle_update(get_service, app: Flask, standard_id: str) -> Response:
     payload = json_object_or_error(ERROR_CODE_BAD_REQUEST)
     if not isinstance(payload, dict):
         return payload
-    logger.info("standards.update id=%s", standard_id)
+    logger.info("standards.update id=%s", sanitize_for_log(standard_id))
     try:
         detail = svc.update_standard(standard_id, payload)
     except (StandardNotFoundError, StandardProtectedError) as exc:
@@ -76,7 +76,7 @@ def _handle_update(get_service, app: Flask, standard_id: str) -> Response:
 def _handle_delete(get_service, app: Flask, standard_id: str) -> tuple[str, int]:
     """Handle DELETE /api/standards/<id> -- delete a standard."""
     svc = get_service(app)
-    logger.info("standards.delete id=%s", standard_id)
+    logger.info("standards.delete id=%s", sanitize_for_log(standard_id))
     try:
         svc.delete_standard(standard_id)
     except (StandardNotFoundError, StandardProtectedError) as exc:
@@ -95,7 +95,9 @@ def _handle_duplicate(get_service, app: Flask, standard_id: str) -> tuple[Respon
     new_id = payload.get("newId") or payload.get("new_id")
     if not isinstance(new_id, str) or not new_id:
         return error_response("newId must be a non-empty string", HTTPStatus.BAD_REQUEST, ERROR_CODE_BAD_REQUEST)
-    logger.info("standards.duplicate id=%s new_id=%s", standard_id, new_id)
+    logger.info(
+        "standards.duplicate id=%s new_id=%s", sanitize_for_log(standard_id), sanitize_for_log(new_id),
+    )
     try:
         detail = svc.duplicate_standard(standard_id, new_id)
     except (FileNotFoundError, ValueError) as exc:
