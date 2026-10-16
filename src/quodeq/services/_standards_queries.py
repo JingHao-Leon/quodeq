@@ -88,7 +88,7 @@ def list_custom_with_payloads(evaluators_dir: Path, read_json: Callable,
         try:
             data = _with_dates(read_json(path), path, modified_date)
             out.append((build_custom_meta(data, *count_principles_and_requirements(data)), data))
-        except (OSError, ValueError, KeyError) as exc:
+        except (OSError, *_MALFORMED) as exc:
             logger.warning("Skipping invalid evaluator %s: %s", path.name, exc)
     return out
 

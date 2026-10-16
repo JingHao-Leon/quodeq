@@ -68,3 +68,10 @@ def test_local_with_malformed_shared_copy_still_lists(tmp_path):
     svc, ev = _svc(tmp_path, {"a": {"id": "a", "principles": "oops"}})
     _write(ev, "a")
     assert _meta(svc)["a"].id == "a"
+
+
+def test_an_evaluator_file_that_is_a_json_list_is_skipped(tmp_path):
+    svc, ev = _svc(tmp_path, {})
+    (ev / "broken.json").write_text("[1, 2]", encoding="utf-8")
+    _write(ev, "ok")
+    assert sorted(_meta(svc)) == ["ok"]
