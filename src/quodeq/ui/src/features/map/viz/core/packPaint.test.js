@@ -136,12 +136,13 @@ test('the project circle is surface-alt in both themes: in dark mode one step ab
   assert.notEqual(root(true), rgbCss(PALETTE.bg));
 });
 
-test('files carry the colour of their worst finding, in both themes', () => {
+test('files: better than average take the better hue (clean ones at full strength), the rest their worst severity', () => {
   for (const dark of [true, false]) {
     const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, dark);
     assert.deepEqual(at('src/bad/a.py').hue, PALETTE.sevCritical);
-    assert.deepEqual(at('src/good/d.py').hue, PALETTE.sevMinor);
-    assert.deepEqual(at('src/good/c.py').hue, PALETTE.neutral);
+    assert.deepEqual(at('src/good/d.py').hue, PALETTE.better);
+    assert.deepEqual(at('src/good/c.py').hue, PALETTE.better);
     assert.notEqual(at('src/good/d.py').fill, at('src/good/c.py').fill);
   }
+  assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, true).at('src/good/c.py').fill, 'rgb(0, 212, 255)');
 });
