@@ -80,6 +80,14 @@ def test_get_returns_defaults_and_is_custom_false(client, formula_path):
     assert body["defaults"] == params_to_dict(DEFAULT_PARAMS)
 
 
+def test_get_says_when_an_older_custom_formula_was_set_aside(client, formula_path):
+    import json
+    assert client.get("/api/grade-formula").get_json()["retiredCustom"] is False
+    formula_path.write_text(json.dumps(params_to_dict(DEFAULT_PARAMS) | {"gradeAlgoVersion": 1}))
+    body = client.get("/api/grade-formula").get_json()
+    assert body["retiredCustom"] is True and body["isCustom"] is False
+
+
 def test_get_carries_an_idle_rescore_on_a_fresh_app(client, formula_path):
     body = client.get("/api/grade-formula").get_json()
     assert body["rescore"] == {

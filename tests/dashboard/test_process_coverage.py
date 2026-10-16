@@ -53,8 +53,7 @@ class TestKillStaleActionApi:
         pid_file.write_text(pid_file_body, encoding="utf-8")
         with patch("quodeq.dashboard._process._get_pid_file", return_value=pid_file), \
              patch("quodeq.dashboard._process.action_api_healthy", return_value=healthy) as health, \
-             patch("quodeq.dashboard._process.port_is_open", return_value=False), \
-             patch("quodeq.dashboard._process.process_has_arg", return_value=is_api), \
+             patch("quodeq.dashboard._process.port_is_open", return_value=False), patch("quodeq.dashboard._process.process_has_arg", return_value=is_api), \
              patch("quodeq.dashboard._process._terminate_pid") as kill:
             from quodeq.dashboard._process import kill_stale_action_api
             kill_stale_action_api("127.0.0.1", request_port)
@@ -97,13 +96,6 @@ class TestKillStaleActionApi:
         kill, _health, _pid_file = self._run(tmp_path, "4242", healthy=False)
         kill.assert_called_once_with(4242)
 
-    def test_a_reused_pid_is_never_killed(self, tmp_path):
-        kill, _health, pid_file = self._run(
-            tmp_path, json.dumps({"pid": 4242, "host": "127.0.0.1", "port": 7863}), healthy=False, is_api=False,
-        )
-        kill.assert_not_called()
-        assert not pid_file.exists()
-
     @pytest.mark.parametrize("body", ["", "   ", "not-a-pid", '{"host": "127.0.0.1"}', "[1, 2]"])
     def test_unusable_record_kills_nothing(self, tmp_path, body):
         kill, _health, pid_file = self._run(tmp_path, body, healthy=False)
@@ -124,3 +116,11 @@ class TestWaitForProcess:
         proc.poll.side_effect = [None, 0]
         proc.wait.side_effect = [subprocess.TimeoutExpired("cmd", 5), 0]
         wait_for_process(proc)
+
+
+def test_a_stale_record_naming_a_reused_pid_is_never_killed(tmp_path):
+    kill, _health, pid_file = TestKillStaleActionApi._run(
+        tmp_path, json.dumps({"pid": 4242, "host": "127.0.0.1", "port": 7863}), healthy=False, is_api=False,
+    )
+    kill.assert_not_called()
+    assert not pid_file.exists()

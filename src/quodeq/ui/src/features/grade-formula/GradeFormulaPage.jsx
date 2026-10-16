@@ -146,7 +146,8 @@ function LoadingPage({ error }) {
 }
 
 function headerFacts(editor, projectCount) {
-  const state = t(editor.isCustom ? 'gradeFormula.customActive' : 'gradeFormula.defaultsActive');
+  const defaultsKey = editor.retiredCustom ? 'gradeFormula.defaultsActiveRetired' : 'gradeFormula.defaultsActive';
+  const state = t(editor.isCustom ? 'gradeFormula.customActive' : defaultsKey);
   return t(pluralKey(projectCount, 'gradeFormula.headerFactsOne', 'gradeFormula.headerFacts'), { count: projectCount, state });
 }
 
