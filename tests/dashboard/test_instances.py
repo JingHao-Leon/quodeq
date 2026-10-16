@@ -136,7 +136,7 @@ def test_status_lists_window_api_and_evaluations(tmp_path, procs, capsys) -> Non
     (run_dir / API_PID_FILE).write_text(json.dumps({"pid": api.pid, "host": "127.0.0.1", "port": 1}), encoding="utf-8")
     _run(evaluations, "p1", "live", state="running", pid=evaluation.pid)
 
-    dashboard_status(run_dir, evaluations)
+    assert dashboard_status(run_dir, evaluations) == 0
 
     out = capsys.readouterr().out
     assert f"open (pid {window.pid})" in out
@@ -145,6 +145,6 @@ def test_status_lists_window_api_and_evaluations(tmp_path, procs, capsys) -> Non
 
 
 def test_status_when_nothing_runs(tmp_path, capsys) -> None:
-    dashboard_status(tmp_path, tmp_path)
+    assert dashboard_status(tmp_path, tmp_path) == 3  # LSB "program is not running", for scripts
     out = capsys.readouterr().out
     assert "Quodeq isn't running." in out and "none running" in out
