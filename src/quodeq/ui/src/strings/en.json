@@ -2046,7 +2046,7 @@
   "map.legendConcentrationTitle": "Issues compared with this project's average",
   "map.legendBetter": "better",
   "map.legendWorse": "worse",
-  "map.legendCapped": "capped by worst severity",
+  "map.legendCapped": "files take their worst finding's colour",
   "map.legendSize": "size = checks run",
   "map.legendActivityTitle": "Files changed",
   "map.legendActivityLow": "unchanged",

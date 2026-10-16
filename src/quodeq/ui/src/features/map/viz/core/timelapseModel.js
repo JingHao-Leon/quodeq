@@ -17,6 +17,19 @@ function largestFirst(a, b) {
   return a.data.name < b.data.name ? -1 : 1;
 }
 
+/** Each node's position among all nodes sorted by path: the layout's tie-break, as numbers the worker can take. */
+function pathRanks(nodes) {
+  const order = nodes.map((n, i) => i).sort((a, b) => {
+    const pa = nodes[a].data.path;
+    const pb = nodes[b].data.path;
+    if (pa === pb) return 0;
+    return pa < pb ? -1 : 1;
+  });
+  const rank = new Int32Array(nodes.length);
+  order.forEach((node, position) => { rank[node] = position; });
+  return rank;
+}
+
 /**
  * The whole-history tree of a decoded history: every file ever seen, folders
  * collapsed like the Map's tree, nodes breadth-first with siblings largest
@@ -41,5 +54,6 @@ export function buildTimelapseModel(data) {
     sizes: data.checks.map((c) => Float32Array.from(fileOf, (f) => (f === NO_FILE ? 0 : c[f]))),
     maxSize: Float32Array.from(fileOf, (f) => (f === NO_FILE ? 0 : Math.max(1, maxChecks[f]))),
     pathIndex: new Map(nodes.map((n, i) => [n.data.path, i])),
+    pathRank: pathRanks(nodes),
   };
 }

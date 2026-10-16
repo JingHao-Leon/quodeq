@@ -26,12 +26,27 @@ export function checksRun(node) {
   return Math.max(1, (node.violations || 0) + (node.compliance || 0));
 }
 
+/**
+ * Pack order: largest first, equal sizes by path. Without the path the order
+ * of equal siblings is whatever the data arrived in, and the time-lapse (which
+ * breaks ties the same way, see timelapseLayout.packToday) would place them
+ * differently from this view.
+ */
+export function packOrder(a, b) {
+  const bySize = (b.value || 0) - (a.value || 0);
+  if (bySize) return bySize;
+  const pa = a.data.path ?? '';
+  const pb = b.data.path ?? '';
+  if (pa === pb) return 0;
+  return pa < pb ? -1 : 1;
+}
+
 /** The d3 hierarchy for a file-tree node: leaf value = checks run (spec 2.3,
- * "size = checks run"), children sorted largest first. */
+ * "size = checks run"), children in pack order. */
 export function buildPackRoot(node) {
   return hierarchy(node, (d) => d.children || [])
     .sum((d) => (isPackFolder(d) ? 0 : checksRun(d)))
-    .sort((a, b) => (b.value || 0) - (a.value || 0));
+    .sort(packOrder);
 }
 
 /** Run the proportional pack on a hierarchy in place. */
