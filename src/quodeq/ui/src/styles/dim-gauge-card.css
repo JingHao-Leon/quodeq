@@ -98,9 +98,6 @@
 }
 
 .dim-gauge-card__grade--small { font-size: 0.45rem; }
-.dim-gauge-card--not-evaluated { font-size: inherit; text-align: inherit; width: 100%; }
-.dim-gauge-card--not-evaluated .dim-gauge-card__insuf-line { display: block; }
-.dim-gauge-card--not-evaluated .dim-gauge-card__name { color: var(--color-text-muted); }
 
 /* meta + severity */
 .dim-gauge-card__meta {
@@ -181,13 +178,8 @@
 .dim-gauge-card__partial { color: var(--color-warning-text); }
 /* the ring and its numbers sit in the middle of a wide card */
 .dim-gauge-card__row { justify-content: center; }
-/* the compact not-evaluated card (the Overview's): a button that reads as the other cards */
-.dim-gauge-card--compact.dim-gauge-card--not-evaluated { text-align: left; font: inherit; color: inherit; }
-.dim-gauge-card--not-evaluated .dim-gauge-card__mini svg { width: 56px; height: 56px; }
 .dim-gauge-card__gradeword--muted { color: var(--color-text-muted); }
 .dim-gauge-card__mini { display: block; }
-/* the not-evaluated dash already sits at the ring's centre: no nudge (the score's nudge makes room for a grade word) */
-.dim-gauge-card--not-evaluated .dim-gauge-card__mini .dim-gauge-card__score { transform: none; }
 /* Two fixed columns, so every card's ring and text start at the same place whatever the text's width:
    the ring at the right edge of the first, the grade, pills and pass rate from the start of the second. */
 .dim-gauge-card__row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); justify-content: stretch; }

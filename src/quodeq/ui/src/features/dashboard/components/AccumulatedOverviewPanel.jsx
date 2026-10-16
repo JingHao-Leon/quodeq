@@ -1,5 +1,6 @@
 import { useMemo, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
+import NotEvaluatedLine from './NotEvaluatedLine.jsx';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import OverviewHead from './OverviewHead.jsx';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
@@ -66,12 +67,11 @@ function AccumulatedDimensionsSection({ sortedDimensions, onDimensionClick, sele
           onDimensionClick={onDimensionClick}
           selectedDayDimNames={selectedDayDimNames}
           dimTrends={dimTrends}
-          notEvaluated={notEvaluated}
-          onEvaluate={onEvaluate}
           compact
           lit={lit}
         />
       </div>
+      <NotEvaluatedLine ids={notEvaluated} onEvaluate={onEvaluate} />
     </section>
   );
 }
@@ -183,7 +183,7 @@ function AccumulatedOverviewSections({
 export default function AccumulatedOverviewPanel({ data, callbacks }) {
   const { onNavigate } = callbacks;
   const { currentOverviewRun, selectedDayDimNames, filteredPeriodTrend, filteredDimensions, filteredAccumulated, filteredStats, chartMountable, dimTrends, visibleSet } = useAccumulatedComputations(data);
-  // Standards switched on but never evaluated: shown as empty cards.
+  // Standards switched on but never evaluated: one quiet line under the cards.
   const notEvaluated = useMemo(() => {
     const evaluated = new Set((data.accumulatedDimensions || []).map((d) => (d.dimension || '').toLowerCase()));
     return [...(visibleSet || [])].filter((id) => !evaluated.has(id));
