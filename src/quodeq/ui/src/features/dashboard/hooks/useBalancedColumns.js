@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * Columns that spread `count` cards evenly over the rows they need: 9 cards
@@ -13,13 +13,14 @@ export function balancedColumns(count, width, minCard, gap) {
 
 /**
  * A ref for the grid and the inline style that sets its balanced column
- * count, kept current as the grid resizes. No style until measured, so the
- * stylesheet's auto-fit layout shows meanwhile.
+ * count, kept current as the grid resizes. Measured in a layout effect, before
+ * the first paint, so the cards never show the stylesheet's auto-fit layout
+ * for a frame and then re-flow into the balanced one (the jump on a project switch).
  */
 export function useBalancedColumns(count, minCard, gap) {
   const ref = useRef(null);
   const [cols, setCols] = useState(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
     const measure = () => setCols(balancedColumns(count, el.clientWidth, minCard, gap));

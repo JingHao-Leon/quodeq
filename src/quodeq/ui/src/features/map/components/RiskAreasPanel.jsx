@@ -134,15 +134,51 @@ function ZoneStrip({ fixFirst, watch, total }) {
 }
 
 /** The panel's frame: its head, then the body. */
-function PanelFrame({ children }) {
+function PanelFrame({ children, busy = false }) {
   return (
-    <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')}>
+    <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')} aria-busy={busy || undefined}>
       <div className="qd-cards-panel__head">
         <SectionLabel>{t('overview.riskAreasLabel')}</SectionLabel>
         <span className="run-history-panel__stats">{t('overview.riskAreasNote')}</span>
       </div>
       {children}
     </section>
+  );
+}
+
+/** One dimmed row shaped like an area row (name, zone line, severities, files), so loading keeps the panel's height. */
+function PlaceholderRow({ withMap }) {
+  return (
+    <GridRow>
+      <GridCell>
+        <div className="offending-file-cell risk-areas-panel__placeholder-row" aria-hidden="true">
+          <span className="offending-file-name"><span className="overview-skeleton__bar overview-skeleton__bar--name" /></span>
+          <span className="offending-file-path risk-areas-panel__sub"><span className="risk-zone-chip">{'\u00a0'}</span></span>
+        </div>
+      </GridCell>
+      <GridCell><span className="overview-skeleton__bar overview-skeleton__bar--since-num" aria-hidden="true" /></GridCell>
+      <GridCell align="right"><span className="overview-skeleton__bar overview-skeleton__bar--gradeword" aria-hidden="true" /></GridCell>
+      {withMap && <GridCell />}
+    </GridRow>
+  );
+}
+
+/** While the areas load: the loaded panel's rows, strip and foot, dimmed, so nothing below moves when they arrive. */
+function LoadingAreas({ withMap }) {
+  return (
+    <PanelFrame busy>
+      <GridTable columns={withMap ? AREA_COLUMNS_WITH_MAP : PLACE_COLUMNS} dense>
+        <AreaHeader withMap={withMap} />
+        {Array.from({ length: AREAS_SHOWN }, (_, i) => <PlaceholderRow key={i} withMap={withMap} />)}
+      </GridTable>
+      <div className="risk-zone-strip risk-zone-strip--placeholder" aria-hidden="true">
+        <div className="risk-zone-strip__bar" />
+        <div className="risk-zone-strip__legend">
+          {STRIP_ZONES.map((z) => <span key={z} className="risk-zone-strip__item"><span className={`risk-zone-chip risk-zone-chip--${z}`}>{t(ZONE_KEY[z])}</span></span>)}
+        </div>
+      </div>
+      <div className="panel-foot"><span>{t('map.riskLoading')}</span></div>
+    </PanelFrame>
   );
 }
 
@@ -171,7 +207,8 @@ export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENS
   const { fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
   // Every area judged, zones first (fix first, watch, healthy), then by lift; too small to judge left out.
   const rows = useMemo(() => areas.filter((a) => a.zone), [areas]);
-  if (loading || !rows.length) {
+  if (loading) return <LoadingAreas withMap={Boolean(onAreaInMap)} />;
+  if (!rows.length) {
     return <PanelFrame><div className="risk-areas-panel__none">{t(statusKey({ loading, failed }))}</div></PanelFrame>;
   }
   return (

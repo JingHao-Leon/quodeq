@@ -1,5 +1,6 @@
 import IncompleteSetupCard from './IncompleteSetupCard.jsx';
 import OverviewSkeleton from './OverviewSkeleton.jsx';
+import { recallShape } from '../overviewShape.js';
 import { t } from '../../../strings/index.js';
 import DashboardContent from './DashboardContent.jsx';
 import { dashboardPageClassName } from './dashboardGate.jsx';
@@ -67,7 +68,7 @@ export function renderDashboardBody(ctx) {
       <div className={dashboardPageClassName({ appearClass: dashboardAppearClass })}>
         <IncompleteSetupCard projectInfo={projectInfo} onComplete={onSetupComplete} />
         {error && <p className="inline-error">{t('overview.loadFailed')}</p>}
-        {showOverviewSkeleton && <OverviewSkeleton projectName={projectName} lastKnown={data.lastKnown} />}
+        {showOverviewSkeleton && <OverviewSkeleton projectName={projectName} lastKnown={data.lastKnown} shape={recallShape(data.selectedProject)} />}
         {showRunSkeleton && <OverviewSkeleton run projectName={projectName} />}
         {/* No runMode equivalent of the Overview's grace-fallback loader: in
             runMode contentReady is `!!dashboard`, so the instant dashboard lands

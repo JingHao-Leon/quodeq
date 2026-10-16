@@ -97,6 +97,17 @@ describe('RiskAreasPanel', () => {
     expect(screen.getByRole('region', { name: t('overview.riskAreasAria') })).toHaveTextContent(t('map.riskLoading'));
   });
 
+  it('holds the loaded panel\'s height while loading: a row per area shown, the strip and the foot', () => {
+    areaSet = { areas: [] };
+    status = { loading: true, failed: false };
+    const { container } = render(<RiskAreasPanel project="p" source="local" />);
+    const panel = screen.getByRole('region', { name: t('overview.riskAreasAria') });
+    expect(panel).toHaveAttribute('aria-busy', 'true');
+    expect(container.querySelectorAll('.risk-areas-panel__placeholder-row')).toHaveLength(AREAS_SHOWN);
+    expect(container.querySelector('.risk-zone-strip--placeholder')).not.toBeNull();
+    expect(container.querySelector('.panel-foot')).not.toBeNull();
+  });
+
   it('says the areas failed to load instead of vanishing', () => {
     areaSet = { areas: [] };
     status = { loading: false, failed: true };
