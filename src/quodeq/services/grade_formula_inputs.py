@@ -129,7 +129,7 @@ def inputs_all(
     for project in local_projects(reports_root):
         entry = run_isolated(
             lambda p=project: _project(reports_root, p, saved_params, sources_for),
-            label=f"grade-formula inputs for {project!r}", log=log, on_error=lambda _exc: None,
+            label=f"grade-formula inputs for {project!r}", log=log,
         )
         if entry is not None:
             projects.append(entry)
