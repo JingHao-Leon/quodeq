@@ -8,21 +8,22 @@
  * within a zone and never moves one into another). A row opens the area's
  * findings (a scoped Findings view, as the Map's View details does, over the
  * same dimensions); the map icon at its end opens the Risk tab with that
- * area selected. The foot counts both zones and links to the whole sky.
+ * area selected. A strip splits every area into the three zones, and the
+ * foot counts them and links to the whole sky.
  * With nothing to list it says so in one line.
  */
-import { cloneElement, useMemo } from 'react';
+import { useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
 import useRiskAreas from '../hooks/useRiskAreas.js';
 import { reworkSummary } from '../model/rankedAreas.js';
 import { SKY_ZONE, AREA_KIND } from '../mapVocab.js';
 import { SeverityAndFilesCells, PLACE_COLUMNS } from '../../../components/SeverityBadges.jsx';
-import { ICON_MAP } from '../../../constants/navigation.jsx';
+import { ROW_MAP_ICON } from '../../../components/rowMapIcon.jsx';
 import { areaFindingsScope } from '../model/detailScopes.js';
 
-// Two-line rows, as many as the folders panel shows.
-export const AREAS_SHOWN = 5;
+// Two-line rows, as many as the Fix first panel beside it shows.
+export const AREAS_SHOWN = 8;
 const DENSITY_DECIMALS = 2;
 const LIFT_DECIMALS = 1;
 /** The place tables' columns (the zone and density ride under the name); then the map icon when the panel can open the Map. */
@@ -32,9 +33,6 @@ const ZONE_KEY = {
 };
 const KIND_KEY = { [AREA_KIND.HOTSPOT]: 'map.riskKindHotspot', [AREA_KIND.DORMANT]: 'map.riskKindDormant' };
 const NO_DIMENSIONS = [];
-// The sidebar's map glyph, a step smaller to sit in a row of text.
-const ROW_ICON_SIZE = 14;
-const MAP_ICON = cloneElement(ICON_MAP, { width: ROW_ICON_SIZE, height: ROW_ICON_SIZE });
 
 /**
  * The words after the zone chip under an area's name: its density, its lift
@@ -54,7 +52,7 @@ function AreaMapButton({ area, onClick }) {
     <GridCell align="right">
       <button type="button" className="risk-areas-panel__map" aria-label={t('overview.riskAreaInMapAria', { name: area.name })}
         title={t('overview.riskAreaInMap')} onClick={() => onClick(area)}>
-        {MAP_ICON}
+        {ROW_MAP_ICON}
       </button>
     </GridCell>
   );
@@ -108,6 +106,33 @@ function AreaRow({ area, onOpen, onShowInMap }) {
   );
 }
 
+const STRIP_ZONES = [SKY_ZONE.FIX_FIRST, SKY_ZONE.WATCH, SKY_ZONE.HEALTHY];
+
+/**
+ * Every area judged, split into the three zones on one strip: the share
+ * that needs rework against the whole project, not only the top rows.
+ */
+function ZoneStrip({ fixFirst, watch, total }) {
+  const counts = { [SKY_ZONE.FIX_FIRST]: fixFirst, [SKY_ZONE.WATCH]: watch, [SKY_ZONE.HEALTHY]: Math.max(0, total - fixFirst - watch) };
+  return (
+    <div className="risk-zone-strip" role="img"
+      aria-label={t('overview.riskStripAria', { fixFirst, watch, healthy: counts[SKY_ZONE.HEALTHY] })}>
+      <div className="risk-zone-strip__bar" aria-hidden="true">
+        {STRIP_ZONES.filter((z) => counts[z] > 0).map((z) => (
+          <span key={z} className={`risk-zone-strip__seg risk-zone-strip__seg--${z}`} style={{ flex: counts[z] }} />
+        ))}
+      </div>
+      <div className="risk-zone-strip__legend" aria-hidden="true">
+        {STRIP_ZONES.map((z) => (
+          <span key={z} className="risk-zone-strip__item">
+            <span className={`risk-zone-chip risk-zone-chip--${z}`}>{t(ZONE_KEY[z])}</span> {counts[z].toLocaleString(LOCALE)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
  * @param {object} props
  * @param {string} props.project
@@ -140,8 +165,9 @@ export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENS
           {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onOpen={openArea} onShowInMap={onAreaInMap} />)}
         </GridTable>
       ) : <div className="risk-areas-panel__none">{t('overview.riskAreasNone')}</div>}
+      <ZoneStrip fixFirst={fixFirst} watch={watch} total={total} />
       <div className="panel-foot">
-        <span>{t('overview.riskAreasFoot', { areas: total.toLocaleString(LOCALE), fixFirst, watch })}</span>
+        <span>{t('overview.riskAreasFootTotal', { areas: total.toLocaleString(LOCALE) })}</span>
         {onOpenRisk && <button type="button" className="panel-foot__link" onClick={onOpenRisk}>{t('overview.riskAreasOpen')}</button>}
       </div>
     </section>

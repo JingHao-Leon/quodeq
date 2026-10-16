@@ -5,12 +5,13 @@
  * findings are).
  */
 import { formatRunWhen } from '../../../utils/dateFormatting.js';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
 import FixFirstPanel from '../../../components/FixFirstPanel.jsx';
 import FindingsByFolderPanel from '../../../components/FindingsByFolderPanel.jsx';
 import FindingsHead from '../../../components/FindingsHead.jsx';
-import WherePanel, { WHERE } from '../../../components/WherePanel.jsx';
+import WherePanel, { WHERE, WHERE_VIEWS, WHERE_PAGE } from '../../../components/WherePanel.jsx';
+import { useWhereView } from '../../../components/useWhereView.js';
 import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import TrendBadge from '../../../components/TrendBadge.jsx';
 import { SectionLabel } from '../../../components/terminal/index.js';
@@ -76,7 +77,7 @@ export function PrinciplesPanel({ radialPrinciples, enrichedPrinciples, onPrinci
  * (`areasOfToday`) the areas say they are today's.
  */
 export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinciple, project, selectedSource, areasOfToday = false }) {
-  const [where, setWhere] = useState(WHERE.AREAS);
+  const [where, setWhere] = useWhereView(WHERE_PAGE.DIMENSION, WHERE.AREAS, WHERE_VIEWS);
   const dimensions = useMemo(() => [d.evalData.dimension], [d.evalData.dimension]);
   return (
     <div className="explorer-bottom">
@@ -87,7 +88,9 @@ export function DimensionFindingsPanels({ d, fixFirstDims, findingsNav, litPrinc
           <RiskAreasPanel project={project} source={selectedSource} dimensions={dimensions}
             onAreaFindings={findingsNav.onAreaFindings} onAreaInMap={findingsNav.onAreaInMap} onOpenRisk={findingsNav.onOpenRisk} />
         )}
-        {where === WHERE.FOLDERS && <FindingsByFolderPanel dimensions={fixFirstDims} onFolderClick={findingsNav.onFolderClick} />}
+        {where === WHERE.FOLDERS && (
+          <FindingsByFolderPanel dimensions={fixFirstDims} onFolderClick={findingsNav.onFolderClick} onFolderInMap={findingsNav.onFolderInMap} />
+        )}
         {where === WHERE.FILES && <OffendingFilesSection topFiles={d.topFiles} onFileClick={findingsNav.onFileClick} />}
       </WherePanel>
     </div>

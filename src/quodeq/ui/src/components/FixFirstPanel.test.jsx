@@ -26,6 +26,14 @@ describe('FixFirstPanel', () => {
     expect(screen.getByRole('button', { name: /show fewer/i })).toBeInTheDocument();
   });
 
+  it('marks the panel open while the whole list shows, so the panel beside it stops matching its height', () => {
+    const { container } = render(<FixFirstPanel dimensions={dims(FIX_FIRST_SHOWN + 3)} />);
+    const panel = container.querySelector('.fix-first-panel');
+    expect(panel).not.toHaveClass('fix-first-panel--open');
+    fireEvent.click(screen.getByRole('button', { name: /show all 12 requirements/i }));
+    expect(panel).toHaveClass('fix-first-panel--open');
+  });
+
   it('opens a requirement with its dimension and code', () => {
     const onRequirementClick = vi.fn();
     render(<FixFirstPanel dimensions={dims(1)} onRequirementClick={onRequirementClick} />);

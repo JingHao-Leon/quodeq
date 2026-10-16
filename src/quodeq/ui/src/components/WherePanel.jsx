@@ -4,6 +4,8 @@ import { t } from '../strings/index.js';
 export const WHERE = Object.freeze({ AREAS: 'areas', FOLDERS: 'folders', FILES: 'files' });
 /** The views in switch order: areas first, as the Map measures them, then folders and files. */
 export const WHERE_VIEWS = Object.freeze([WHERE.AREAS, WHERE.FOLDERS, WHERE.FILES]);
+/** The pages with a Where panel, each remembering its own view for the session (useWhereView). */
+export const WHERE_PAGE = Object.freeze({ OVERVIEW: 'overview', DIMENSION: 'dimension', RUN: 'run' });
 
 /**
  * Where the findings are, one level at a time: a switch over the one panel
