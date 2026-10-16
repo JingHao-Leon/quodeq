@@ -1689,6 +1689,7 @@
   "standards.and": "and",
   "standards.back": "back",
   "standards.bandPull": "pull",
+  "standards.bandPullFailed": "Could not pull the shared repository. Try again.",
   "standards.bandPulling": "pulling",
   "standards.bandRepository": "shared repository",
   "standards.bandSynced": "synced {time}",

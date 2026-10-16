@@ -76,4 +76,26 @@ describe('StandardsPage sharing', () => {
     renderPage({ startRefresh: vi.fn() });
     expect(screen.getByRole('button', { name: t('standards.bandPulling') })).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('a pull that cannot start shows an inline error', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    state.connection = { configured: true, host: 'h' };
+    renderPage({ startRefresh: vi.fn(async () => { throw new Error('offline'); }) });
+    fireEvent.click(screen.getByRole('button', { name: t('standards.bandPull') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('standards.bandPullFailed'));
+  });
+
+  it('two fast clicks start one refresh, and the button reads pulling meanwhile', async () => {
+    state.connection = { configured: true, host: 'h' };
+    let release;
+    const startRefresh = vi.fn(() => new Promise((resolve) => { release = resolve; }));
+    renderPage({ startRefresh });
+    const btn = screen.getByRole('button', { name: t('standards.bandPull') });
+    fireEvent.click(btn);
+    fireEvent.click(btn);
+    expect(startRefresh).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole('button', { name: t('standards.bandPulling') })).toBeInTheDocument();
+    release({ started: true });
+    expect(await screen.findByRole('button', { name: t('standards.bandPull') })).toBeInTheDocument();
+  });
 });

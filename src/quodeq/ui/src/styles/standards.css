@@ -1456,6 +1456,7 @@
 }
 .standards-band__name { color: var(--color-text); overflow-wrap: anywhere; }
 .standards-band__spacer { flex: 1; }
+.standards-band__error { color: var(--color-sev-critical-text); }
 
 /* Narrow windows with the sync column: principles and version step aside. */
 @media (max-width: 1100px) {

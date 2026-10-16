@@ -30,4 +30,11 @@ describe('StandardsSharedBand', () => {
     fireEvent.click(btn);
     expect(onPull).not.toHaveBeenCalled();
   });
+
+  it('a failed pull says so, and not while a pull is running', () => {
+    const { rerender } = render(<StandardsSharedBand host="h" lastSynced={SYNCED} refreshing={false} pullFailed onPull={vi.fn()} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(t('standards.bandPullFailed'));
+    rerender(<StandardsSharedBand host="h" lastSynced={SYNCED} refreshing pullFailed onPull={vi.fn()} />);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

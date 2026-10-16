@@ -6,7 +6,7 @@ import { t } from '../../../strings/index.js';
  * connected: which repository, when it last synced, and a pull that starts
  * a refresh of the clone (the list re-reads once that job is done).
  */
-export default function StandardsSharedBand({ host, lastSynced, refreshing, onPull }) {
+export default function StandardsSharedBand({ host, lastSynced, refreshing, pullFailed, onPull }) {
   const synced = relativeTimeFine(lastSynced);
   return (
     <div className="standards-band">
@@ -14,6 +14,7 @@ export default function StandardsSharedBand({ host, lastSynced, refreshing, onPu
       {host && <span className="standards-band__name">{host}</span>}
       {synced && <span>· {t('standards.bandSynced', { time: synced })}</span>}
       <span className="standards-band__spacer" />
+      {pullFailed && !refreshing && <span role="alert" className="standards-band__error">{t('standards.bandPullFailed')}</span>}
       <button
         type="button"
         className="standards-sync-btn"
