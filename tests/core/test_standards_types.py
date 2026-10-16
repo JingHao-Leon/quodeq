@@ -34,6 +34,7 @@ def test_standard_reference_no_url():
     assert ref.url is None
 
 
-def test_config_paths_has_evaluators_dir(tmp_path):
+def test_config_paths_has_evaluators_dir(tmp_path, monkeypatch):
+    monkeypatch.delenv("QUODEQ_EVALUATORS_DIR", raising=False)  # the suite sandboxes it
     cp = ConfigPaths(root=tmp_path / "fake")
     assert cp.evaluators_dir == Path.home() / ".quodeq" / "evaluators"

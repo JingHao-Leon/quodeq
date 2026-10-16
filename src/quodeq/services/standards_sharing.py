@@ -2,12 +2,13 @@
 
 What travels (``shareable_payload``), what makes two copies the same
 standard (``share_hash``), and how a local copy compares with the shared one
-(``sync_state``). See docs spec 2026-10-15-standards-sharing-design.md.
+(``sync_state``), plus the ``publishedAt`` clock. See docs spec 2026-10-15-standards-sharing-design.md.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from quodeq.services.standards_share_content import normalized_for_share
@@ -27,6 +28,11 @@ class SyncState(StrEnum):
     DIVERGED = "diverged"
     REMOTE_ONLY = "remote_only"
     REMOVED_REMOTELY = "removed_remotely"
+
+
+def now_utc_iso() -> str:
+    """Now, as the ISO-8601 UTC timestamp a share records as ``publishedAt``."""
+    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def shareable_payload(data: dict) -> dict:

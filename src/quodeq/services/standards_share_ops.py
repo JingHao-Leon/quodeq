@@ -9,14 +9,13 @@ tests that patch ``shared_publish.run_git`` intercept these calls too.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import UTC, datetime
 from pathlib import Path
 
 from quodeq.services import shared_publish
 from quodeq.services.standards_share_content import extra_texts, normalized_for_share
 from quodeq.services._publish_git import prepare_clone, push_with_rebase_fallback
 from quodeq.services.import_validator import scan_injection, scan_text, validate_import
-from quodeq.services.standards_sharing import SHARED_HASH_KEY, share_hash, shareable_payload
+from quodeq.services.standards_sharing import SHARED_HASH_KEY, now_utc_iso, share_hash, shareable_payload
 from quodeq.services.wiring import (
     RepoFormat, bootstrap_repo_layout, clone_lock, read_standard_payload,
     resolve_jailed_standard_path, write_standard_payload,
@@ -41,11 +40,6 @@ class ShareError(Exception):
         super().__init__(message)
         self.code = code
         self.message = message
-
-
-def now_utc_iso() -> str:
-    """Now, as the ISO-8601 UTC timestamp a share records as ``publishedAt``."""
-    return datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 def _local_path(evaluators_dir: Path, standard_id: str) -> Path:
