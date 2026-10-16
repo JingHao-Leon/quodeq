@@ -4,7 +4,7 @@ A real shell inside the dashboard: your login shell, on your machine, with your 
 
 ### Turning it on
 
-On by default; turn it off under **Settings → Enable terminal**. Toggle it with `` Shift+Ctrl+` `` (`` Shift+Cmd+` `` on macOS). It shares the bottom drawer with the assistant; switch between them with the drawer tabs.
+On by default; turn it off with **Enable terminal** in the *Toolbar* section of **Settings → App**. Toggle it with `` Shift+Ctrl+` `` (`` Shift+Cmd+` `` on macOS). It shares the bottom drawer with the assistant; switch between them with the drawer tabs.
 
 ### How the session behaves
 

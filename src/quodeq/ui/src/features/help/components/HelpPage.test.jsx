@@ -31,7 +31,7 @@ describe('HelpPage why this grade section', () => {
     render(<HelpPage />);
     fireEvent.click(screen.getByRole('button', { name: 'Why This Grade' }));
     expect(screen.getByRole('heading', { level: 2, name: 'Why This Grade' })).toBeInTheDocument();
-    expect(screen.getByText(/shows these stages on your own run/)).toBeInTheDocument();
+    expect(screen.getByText(/shows these stages on your own projects/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Principle')).not.toBeInTheDocument();
     expect(screen.queryByText(/Open a project with a finished run/)).not.toBeInTheDocument();
   });
@@ -159,7 +159,7 @@ describe('HelpPage grade formula parameters', () => {
   it('documents every on-the-fly parameter', () => {
     render(<HelpPage initialSection="grade-formula" />);
     for (const name of ['Severity weights', 'Strictness K', 'Lift compress', 'Ceiling scale', 'Severity floors', 'Grade thresholds', 'Dimension weights']) {
-      expect(screen.getByText(name)).toBeInTheDocument();
+      expect(screen.getAllByText(name).length).toBeGreaterThan(0);
     }
   });
 });

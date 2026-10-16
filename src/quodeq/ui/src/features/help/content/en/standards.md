@@ -2,9 +2,27 @@
 
 The **Standards** tab is where you decide what quality means for your project. Browse, edit, import, and create the rules quodeq evaluates against.
 
+### The standards table
+
+Every standard is one row. The header counts how many are active.
+
+| Key | Value |
+| --- | --- |
+| Name | The standard's name, with a source line under it: the bodies a built-in is based on (for example *ISO 25010, CISQ*), or a custom standard's own source. |
+| Type | `iso`, `wcag` and `quodeq` for the standards quodeq ships, `custom` for yours. |
+| Principles and Requirements | How many of each the standard holds. |
+| Version | For a built-in, the version quodeq ships. For a custom standard, the date of its last change as YYYY.MM.DD; hover it to see when it was created and last updated. |
+| Enabled | A star: filled when the standard is on for this project, outlined when it is off. Click the star, or anywhere on the row, to turn it on or off. |
+
+At the end of each row sit **View** (or **Edit** for a custom standard), **Duplicate**, **Download**, and for a custom standard **Delete**, which asks you to type the name before it removes a standard that has content.
+
 ### Built-in standards
 
-quodeq ships with managed standards for the six ISO 25010 dimensions plus Clean Architecture, DDD Design and WCAG 2.2 Accessibility. Their structure is **read-only** and marked as *Managed*, but their numeric thresholds are editable (see below). To turn one off, hide it with the `icon:eye` visibility toggle.
+quodeq ships with managed standards for the six ISO 25010 dimensions plus Clean Architecture, DDD Design and WCAG 2.2 Accessibility. Their structure is **read-only** and marked as *Managed*, but their numeric thresholds are editable (see below). To turn one off for a project, click its star.
+
+### Where your choices are kept
+
+Which standards are on, and any threshold overrides, are kept per project on this machine, in `~/.quodeq/projects/<id>/standards.json`. quodeq never writes them into the repository it evaluates. A sub-project evaluated with **Scope** shares its parent's settings. Projects set up by an older quodeq kept them in `.quodeq/standards-visibility.json` and `.quodeq/standards-overrides.json` inside the repository; those files are copied once, the first time the project is used, and are then left as they are.
 
 ### Customizing thresholds
 
@@ -12,7 +30,7 @@ Many requirements carry a number: max function lines, max parameters, and so on.
 
 The tree marks customized requirements with a dot and shows the value in effect in each label. Standards with overrides get an *N thresholds customized* badge. Evaluations judge against your values, not the shipped ones.
 
-Overrides are saved to `.quodeq/standards-overrides.json` in the project root. Commit the file and the whole team scans with the same numbers. If it is missing or malformed, the defaults apply; a scan never fails because of it.
+Overrides live with the project's other standards settings on this machine (see above). If they are missing or malformed, the defaults apply; a scan never fails because of them.
 
 Changing a threshold rewrites the rule for that dimension, so previously analyzed files show as pending until the next scan re-evaluates them. Restoring the previous value brings the earlier results back without a re-scan. Other dimensions are unaffected.
 
@@ -29,6 +47,22 @@ Changing a threshold rewrites the rule for that dimension, so previously analyze
 5. Save. The next evaluation picks it up automatically.
 
 Custom standards are fully editable and can be duplicated, exported, or deleted at any time.
+
+### Sharing standards
+
+When an evaluations repository is connected (see *Shared Repository*), custom standards can travel through it too. A band above the table names the shared repository and when it last synced; **pull** fetches it again. The table gains a **Sync** column and the header also counts the standards that exist only in the shared repository.
+
+| Key | Value |
+| --- | --- |
+| published | Your copy and the shared copy are the same, with when it was published. |
+| changed | You edited the standard since it was published. **publish** sends your version. |
+| update available | The shared copy is newer than yours. **update** replaces your copy with it. |
+| changed · update available | Both sides changed. **publish** and **update** are both offered, and each asks before it overwrites the other side: publishing replaces the shared copy, updating discards your changes. |
+| remote | The standard exists only in the shared repository. Its row is plain, says *remote only* with when it was published, and offers **install**. |
+
+A custom standard that was never shared has an empty Sync cell and a **share** button. Built-in standards show *built-in* and have no sync actions, because everyone already has them. Only one sync runs at a time; if one fails, the row says why.
+
+An installed standard arrives turned off, so it never changes what your projects evaluate until you click its star. Turning standards on or off is never shared: each machine keeps its own choice per project. When you publish a project, the custom standards its runs were scored with are published with it. A standard whose shared copy is newer than yours is skipped, and a notice names the skipped ones so you can update them here.
 
 ### Importing
 
