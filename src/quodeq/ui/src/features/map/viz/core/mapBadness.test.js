@@ -46,7 +46,7 @@ test('a critical blocks the good pull', () => {
 
 test('weights follow the grade formula', () => {
   const node = { severity: { critical: 1, major: 2, minor: 4 } };
-  assert.ok(Math.abs(nodeWeight(node, DEFAULT_SEVERITY_WEIGHTS) - 9) < EPS);
+  assert.ok(Math.abs(nodeWeight(node, DEFAULT_SEVERITY_WEIGHTS) - 12.1) < EPS);
   assert.ok(Math.abs(nodeWeight(node, { critical: 1, major: 1, minor: 1 }) - 7) < EPS);
 });
 

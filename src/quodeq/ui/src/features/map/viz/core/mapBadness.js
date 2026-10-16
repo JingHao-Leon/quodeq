@@ -2,7 +2,7 @@
 import { NODE_KIND } from '../../mapVocab.js';
 import { SEVERITY_WEIGHTS } from '../../../../models/riskRules.js';
 
-/** The grade formula's default severity weights (critical 4, major 2, minor 0.25), shared with the Findings headers. */
+/** The grade formula's default severity weights, shared with the Findings headers (models/riskRules.js). */
 export const DEFAULT_SEVERITY_WEIGHTS = SEVERITY_WEIGHTS;
 
 const REL_LOG_SPAN = 1.6;          // log2(lift) / 1.6: about 3x the average reads as full strength
