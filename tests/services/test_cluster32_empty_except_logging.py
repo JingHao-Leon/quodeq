@@ -1,8 +1,6 @@
 """services best-effort handlers log through the injected LogSink."""
 from __future__ import annotations
 
-import sqlite3
-from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -20,6 +18,7 @@ from quodeq.services import (
 from quodeq.services._evaluations_index import EvaluationsIndex
 from quodeq.services._job_model import InMemoryJobStore
 from quodeq.services.shared_settings import SharedSettings
+from quodeq.services.wiring import ScoreCacheError
 
 
 def test_enrich_with_coverage_logs_corrupt_scan_json(tmp_path, recording_log) -> None:
@@ -81,43 +80,14 @@ def test_rollback_and_report_runs_the_callable() -> None:
 def test_cached_project_summary_logs_recheck_read_failure(monkeypatch, recording_log) -> None:
     reads = {"n": 0}
 
-    def _read(_conn, _project, _version):
+    def _read(_project, _version):
         reads["n"] += 1
         if reads["n"] == 1:
             return None  # first look: miss, so we enter the single-flight block
-        raise sqlite3.Error("locked")  # re-check inside single-flight: fails
+        raise ScoreCacheError("locked")  # re-check inside single-flight: fails
 
-    @contextmanager
-    def _fake_cache():
-        yield object()
-
-    monkeypatch.setattr(_score_cache_fetch, "read_cached_project_summary", _read)
-    monkeypatch.setattr(_score_cache_fetch, "open_score_cache", _fake_cache)
-    monkeypatch.setattr(_score_cache_fetch, "write_cached_project_summary", lambda *_a, **_k: None)
-    result = _score_cache_fetch.cached_project_summary(
-        project="p", version="v1", compute=lambda: {"score": 1}, log=recording_log,
-    )
-    assert result == {"score": 1}
-    assert recording_log.debug_messages
-    assert "re-check read failed" in recording_log.debug_messages[0]
-
-
-def test_cached_project_summary_logs_recheck_read_failure(monkeypatch, recording_log) -> None:
-    reads = {"n": 0}
-
-    def _read(_conn, _project, _version):
-        reads["n"] += 1
-        if reads["n"] == 1:
-            return None  # first look: miss, so we enter the single-flight block
-        raise sqlite3.Error("locked")  # re-check inside single-flight: fails
-
-    @contextmanager
-    def _fake_cache():
-        yield object()
-
-    monkeypatch.setattr(_score_cache_fetch, "read_cached_project_summary", _read)
-    monkeypatch.setattr(_score_cache_fetch, "open_score_cache", _fake_cache)
-    monkeypatch.setattr(_score_cache_fetch, "write_cached_project_summary", lambda *_a, **_k: None)
+    monkeypatch.setattr(_score_cache_fetch, "read_project_summary", _read)
+    monkeypatch.setattr(_score_cache_fetch, "write_project_summary", lambda *_a, **_k: None)
     result = _score_cache_fetch.cached_project_summary(
         project="p", version="v1", compute=lambda: {"score": 1}, log=recording_log,
     )

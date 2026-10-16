@@ -199,15 +199,15 @@ def test_fetching_one_run_does_not_decode_the_projects_whole_key_table(
 
     monkeypatch.setattr("quodeq.services.trend_fetcher.make_rescoring_fetcher", fake_rescoring_fetcher)
 
-    import quodeq.services.score_cache as sc
+    import quodeq.data.sqlite.score_cache_access as access
     looked_up: list[tuple[str, str]] = []
-    real = sc.load_run_key_sets
+    real = access.load_run_key_sets
 
     def one_row(conn, p, rid):
         looked_up.append((p, rid))
         return real(conn, p, rid)
 
-    monkeypatch.setattr(sc, "load_run_key_sets", one_row)
+    monkeypatch.setattr(access, "load_run_key_sets", one_row)
     deps = ScoringDeps(
         dismissed_keys=lambda _pd: {("R1", "a.py", 1)},
         deleted_keys=lambda _pd: set(),

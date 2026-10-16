@@ -13,7 +13,6 @@ request's budget are reported ``pending``.
 """
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -33,7 +32,7 @@ from quodeq.services.run_diff import diff_runs
 from quodeq.services.scan_progress import ScanProgress, build_scan_progress
 from quodeq.services.score_cache import score_cache_version
 from quodeq.services.scoring import ProjectRows
-from quodeq.services.wiring import load_run_changes, open_score_cache, prune_run_changes
+from quodeq.services.wiring import ScoreCacheError, take_run_changes
 from quodeq.shared.clock import normalise_utc_iso
 
 # Length of the short commit hash History shows.
@@ -141,10 +140,8 @@ def _changes(
     """Every run's change data found in the cache or computed now, by run id."""
     keys = {s.run_id: _cache_key(version, baselines[s.run_id], s) for s in scored}
     try:
-        with open_score_cache() as conn:
-            cached = load_run_changes(conn, rows.project, keys)
-            prune_run_changes(conn, rows.project, set(keys))
-    except (sqlite3.Error, OSError):
+        cached = take_run_changes(rows.project, keys)
+    except ScoreCacheError:
         # Disposable cache: an unopenable one (locked, unwritable dir) means
         # everything is recomputed, never a failed request.
         cached = {}

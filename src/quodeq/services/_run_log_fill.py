@@ -16,7 +16,6 @@ routes the worker's writes.
 from __future__ import annotations
 
 import contextvars
-import sqlite3
 import threading
 import time
 from collections import deque
@@ -25,7 +24,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from quodeq.core.observability import NULL_LOG, LogSink
-from quodeq.services.wiring import open_score_cache, store_run_change
+from quodeq.services.wiring import ScoreCacheError, save_run_change
 from quodeq.services.wiring_sync import score_cache_detached
 from quodeq.shared.fault_isolation import run_isolated
 
@@ -115,9 +114,8 @@ class RunChangeFiller:
         if entry is None:
             entry = dict(FAILED_CHANGE)
         try:
-            with open_score_cache() as conn:
-                store_run_change(conn, job.project, job.run_id, job.key, entry)
-        except (sqlite3.Error, OSError) as exc:
+            save_run_change(job.project, job.run_id, job.key, entry)
+        except ScoreCacheError as exc:
             self._log.warning(f"run change cache unavailable for {job.project}/{job.run_id}: {exc}")
         return entry
 

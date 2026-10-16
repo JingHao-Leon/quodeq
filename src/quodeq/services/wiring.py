@@ -245,18 +245,14 @@ from quodeq.data.sqlite.score_cache_db import (  # noqa: F401
 )
 from quodeq.data.sqlite.score_cache_rows import row_dimension, scalar_dimension  # noqa: F401
 from quodeq.data.sqlite.score_cache_store import (  # noqa: F401
-    load_map_snapshots, load_run_changes,
-    load_run_key_sets,
-    prune_run_changes,
-    read_all_cached_rows,
-    read_cached_project_summary,
-    read_cached_rows,
-    read_last_project_summary_cached,
-    read_project_summary_or_last,
-    save_map_snapshots, store_run_change,
-    store_run_keys,
-    write_cached_project_summary,
-    write_cached_rows,
+    load_map_snapshots, load_run_changes, load_run_key_sets, read_cached_project_summary, read_cached_rows,
+    read_last_project_summary_cached, read_project_summary_or_last, save_map_snapshots, store_run_keys,
+    write_cached_project_summary, write_cached_rows,
+)
+# Connection-owning score-cache operations: services never open the cache or catch driver errors.
+from quodeq.data.sqlite.score_cache_access import (  # noqa: F401
+    RunKeyStore, ScoreCacheError, persisted_run_key_sets, read_project_rows, read_project_summary, run_key_store,
+    save_run_change, save_run_keys, take_run_changes, write_project_summary, write_run_rows,
 )
 
 # Live evidence tally (heartbeat + scan-progress counters).

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -33,7 +32,7 @@ from quodeq.services._run_version_memo import (  # facade re-export
 from quodeq.core.scoring import projector_scoring
 from quodeq.services._score_cache_params import params_fingerprint
 from quodeq.services.standards_version import StandardsSnapshot, standards_fingerprint
-from quodeq.services.wiring import load_suppression_rules
+from quodeq.services.wiring import RunKeyStore, load_suppression_rules, run_key_store
 
 # ---------------------------------------------------------------------------
 # Every moved/data-layer name is re-exported here so external callers and
@@ -52,6 +51,7 @@ from quodeq.services.wiring import (  # noqa: F401 — facade re-export
     write_cached_project_summary,
     write_cached_rows,
 )
+from quodeq.services.wiring import persisted_run_key_sets  # noqa: F401 — facade re-export
 from quodeq.services._score_cache_fetch import (  # noqa: F401 — facade re-export
     cached_project_summary,
     make_cache_backed_fetcher,
@@ -242,48 +242,31 @@ def _fill_pending_versions(
     """Compute the versions per_run_versions could not serve from the memo.
 
     One cache connection serves the whole batch; a terminal run's persisted
-    key blobs are read one row at a time (:func:`load_run_key_sets`), never
+    key blobs are read one row at a time (:meth:`RunKeyStore.load`), never
     the project's whole table. An unopenable cache degrades to disk reads.
     """
-    try:
-        with open_score_cache() as conn:
-            _fill_versions(out, pending, project_dir, project, inputs, conn)
-    except sqlite3.Error:
-        _fill_versions(out, pending, project_dir, project, inputs, None)
+    with run_key_store() as keys_store:
+        _fill_versions(out, pending, project_dir, project, inputs, keys_store)
 
 
 def _fill_versions(
     out: list[tuple[str, RunState, str]], pending: list[tuple[int, str, RunState]],
-    project_dir: Path, project: str, inputs: VersionInputs, conn: sqlite3.Connection | None,
+    project_dir: Path, project: str, inputs: VersionInputs, keys_store: RunKeyStore,
 ) -> None:
     from quodeq.services.run_keys import read_run_key_sets  # noqa: PLC0415
     for idx, rid, status in pending:
         terminal = status is RunState.DONE
-        keys = load_run_key_sets(conn, project, rid) if terminal and conn is not None else None
+        keys = keys_store.load(project, rid) if terminal else None
         if keys is None:
             keys = read_run_key_sets(project_dir / rid)
-            if terminal and conn is not None:
-                store_run_keys(conn, project, rid, keys[0], keys[1])
+            if terminal:
+                keys_store.save(project, rid, keys)
         state, standards = inputs.run_state(rid)
         version = run_scoped_version(
             inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted, standards=standards)
         if terminal:
             remember_run_version(project_dir, rid, state, version)
         out[idx] = (rid, status, version)
-
-
-def persisted_run_key_sets(project: str, run_id: str) -> tuple[set[tuple], set[tuple]] | None:
-    """Open the cache, read one run's key sets, close; None when absent or on any sqlite3 error.
-
-    Only terminal runs are ever persisted (see :func:`per_run_versions`), so a
-    cancelled or in-flight run answers None cheaply instead of paying for a
-    decode of every other run's blobs, as the old whole-project load did.
-    """
-    try:
-        with open_score_cache() as conn:
-            return load_run_key_sets(conn, project, run_id)
-    except sqlite3.Error:
-        return None
 
 
 def suppression_state_fingerprint(

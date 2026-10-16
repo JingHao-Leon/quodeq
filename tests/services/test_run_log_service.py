@@ -200,8 +200,7 @@ def test_an_unusable_score_cache_still_answers(evals, filler_sync, monkeypatch) 
     def broken_open():
         raise OSError("cache dir not creatable")
 
-    monkeypatch.setattr("quodeq.services.run_log.open_score_cache", broken_open)
-    monkeypatch.setattr("quodeq.services._run_log_fill.open_score_cache", broken_open)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.open_score_cache", broken_open)
     newest = build_run_log(evals, PROJECT, provider=PROVIDER, filler=filler_sync)["runs"][0]
     assert newest["pending"] is False and newest["counts"]["new"] == 1
 
