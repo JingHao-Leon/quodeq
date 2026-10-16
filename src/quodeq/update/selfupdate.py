@@ -23,6 +23,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from quodeq.update.download import download_file as _download_file
+from quodeq.update.release_asset import is_dashboard_dmg_url
 
 from quodeq.shared.constants import PLATFORM_DARWIN
 from quodeq.shared.fault_isolation import run_isolated
@@ -34,9 +35,6 @@ _logger = logging.getLogger(__name__)
 # dormant and the update banner falls back to the manual download link.
 EXPECTED_TEAM_ID: str = ""
 
-# The only asset the dashboard app may replace itself with.
-_ASSET_PREFIX = "Quodeq-"
-_ASSET_SUFFIX = "-macOS.dmg"
 _HDIUTIL = "hdiutil"  # macOS disk-image CLI to mount/unmount the downloaded update
 
 _ACTIVE_PHASES = frozenset({"downloading", "verifying", "installing", "relaunching"})
@@ -83,13 +81,6 @@ def _is_translocated(bundle: Path) -> bool:
     return path.startswith("/Volumes/") or "/AppTranslocation/" in path
 
 
-def _asset_matches(download_url: str | None) -> bool:
-    if not download_url:
-        return False
-    name = Path(urlparse(download_url).path).name
-    return name.startswith(_ASSET_PREFIX) and name.endswith(_ASSET_SUFFIX)
-
-
 def describe(
     download_url: str | None,
     *,
@@ -116,7 +107,7 @@ def describe(
         reason = "translocated"
     elif not os.access(bundle.parent, os.W_OK):
         reason = "not_writable"
-    elif not _asset_matches(download_url):
+    elif not is_dashboard_dmg_url(download_url):
         reason = "no_asset"
     return {"supported": reason is None, "reason": reason, **_snapshot()}
 
