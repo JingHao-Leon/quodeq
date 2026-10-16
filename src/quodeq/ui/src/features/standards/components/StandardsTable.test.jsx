@@ -213,3 +213,11 @@ describe('StandardsTable columns', () => {
     expect(container.querySelector('.standards-row-subtitle')).toBeNull();
   });
 });
+
+describe('StandardsTable empty state', () => {
+  it('renders the create-or-import copy when there are no standards', () => {
+    render(<StandardsTable grouped={{}} actions={actions} customizedCounts={{}} />);
+    expect(screen.getByText('No standards yet. Create one or import a standard file.')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});

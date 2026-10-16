@@ -13,8 +13,8 @@ const ACTIVE_MS = 1000;
  * Shares the status query with `useSyncStatus` (the strip's poll) and reads
  * its last snapshot, so the top bar can sweep its loading hairline while the
  * strip says "downloading" or "reading projects". While a job is active it
- * also polls on its own: the strip's poll only exists on the Repositories tab
- * and in Settings, and a user who leaves for the overview would otherwise
+ * also polls on its own: the strip's poll only exists on the Repositories tab,
+ * in Settings and on the Standards page, and a user who leaves for the overview would otherwise
  * keep a sweeping hairline until they came back. Idle, it never fetches.
  *
  * The clone slot is read passively: the app shell's `useCloneTransitions`

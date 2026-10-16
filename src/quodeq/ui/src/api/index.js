@@ -13,7 +13,7 @@
  */
 
 export { listDismissedFindings, dismissFinding, dismissByType, restoreFinding, restoreAllFindings, getRescore, deleteFinding, deleteAllFindings, listVerifiedFindings, unverifyFinding } from './findings.js';
-export { listStandards, getStandard, createStandard, updateStandard, deleteStandard, duplicateStandard, listCwes, importStandard, exportStandard, getStandardsOverrides, putStandardsOverrides } from './standards.js';
+export { listStandards, getStandard, createStandard, updateStandard, deleteStandard, duplicateStandard, listCwes, importStandard, exportStandard, getStandardsOverrides, putStandardsOverrides, shareStandard, installStandard, updateStandardFromShared } from './standards.js';
 export {
   createAssistantSession, fetchAssistantWorkspace, postAssistantMessage, stopAssistantTurn,
   applyAssistantAction, rejectAssistantAction, assistantEventsUrl,
