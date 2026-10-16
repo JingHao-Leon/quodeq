@@ -8,16 +8,16 @@ from quodeq.core.types.severity import Severity
 # ---------------------------------------------------------------------------
 # Violation severity weights (per requirement row, see core/scoring/mass.py)
 # ---------------------------------------------------------------------------
-SEVERITY_WEIGHT: dict[str, float] = {Severity.CRITICAL: 4.0, Severity.MAJOR: 2.0, Severity.MINOR: 0.25}
+SEVERITY_WEIGHT: dict[str, float] = {Severity.CRITICAL: 7.5, Severity.MAJOR: 2.0, Severity.MINOR: 0.15}
 
 # Top of the score scale; an int so caps built from it keep their type.
 MAX_SCORE = 10
 
 # Base score curve: base = 10 / (1 + K * violation_mass)
-BASE_K: float = 0.08
+BASE_K: float = 0.07
 
 # Compliance lift curve compress exponent
-LIFT_COMPRESS: float = 2.2
+LIFT_COMPRESS: float = 2.0
 
 # Violation ceiling scale factor
 CEIL_SCALE: float = 0.5
@@ -25,7 +25,7 @@ CEIL_SCALE: float = 0.5
 # Severity grade floor: minimum score by worst effective severity present
 SEVERITY_GRADE_FLOOR: dict[str, float] = {
     Severity.CRITICAL: 0.0,
-    Severity.MAJOR: 3.0,
+    Severity.MAJOR: 2.5,
     Severity.MINOR: 5.0,
 }
 

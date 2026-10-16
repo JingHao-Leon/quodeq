@@ -101,7 +101,7 @@ def test_numerical_low_confidence_is_scored_and_marked():
     ts001 = scores.principles["ts-001"]
     assert ts001.confidence_level == "low"
     assert ts001.grade != "Insufficient"
-    assert ts001.final_score == 9.7
+    assert ts001.final_score == 9.8
 
 
 def test_graded_low_confidence_returns_insufficient():
@@ -134,10 +134,10 @@ def test_numerical_high_confidence_with_violations():
     ts001 = scores.principles["ts-001"]
     # Mass-based base from one critical and one major file-spread violation;
     # the passing evidence yields a small positive lift above that base.
-    assert ts001.base_score == 5.1
+    assert ts001.base_score == 4.3
     assert ts001.dampening_multiplier > 0.0
-    assert ts001.violation_mass == 12.0
-    assert ts001.final_score == 5.4
+    assert ts001.violation_mass == 19.0
+    assert ts001.final_score == 4.5
 
 
 def test_graded_high_confidence_no_violations():

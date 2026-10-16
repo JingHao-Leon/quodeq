@@ -82,7 +82,7 @@ def test_a_principle_measures_its_violations_over_the_files_its_dimension_checke
     write_run(env / "proj", "r1", DAYS[0], {"security": [_flagged(ALPHA[0], "Crypto", "critical"), _flagged(ALPHA[1])]},
               compliance={"security": [judged(ALPHA[2])]})
     area = _areas(build_map_history(env, "proj", selection=FindingSelection(frozenset({"security"}), "Crypto")))["alpha"]
-    assert (area.prod_files, area.violations, area.density, area.compliance_rate) == (3, 1, 1.333, 0.0)
+    assert (area.prod_files, area.violations, area.density, area.compliance_rate) == (3, 1, 2.5, 0.0)
 
 
 def test_an_unknown_dimension_is_refused(env):

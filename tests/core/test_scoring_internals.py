@@ -25,9 +25,9 @@ class TestViolationBase:
     def test_no_mass_returns_ten(self):
         assert violation_base(0.0, params=DEFAULT_PARAMS) == 10.0
 
-    def test_one_isolated_critical_caps_near_seven_and_a_half(self):
+    def test_one_isolated_critical_caps_near_six_and_a_half(self):
         wv = W["critical"] * spread(1, 4000)
-        assert 7.4 < violation_base(wv, params=DEFAULT_PARAMS) < 7.6
+        assert 6.4 < violation_base(wv, params=DEFAULT_PARAMS) < 6.6
 
     def test_formula(self):
         assert math.isclose(violation_base(12.5, params=DEFAULT_PARAMS), 10 / (1 + K * 12.5))
@@ -53,7 +53,7 @@ class TestCeilingAndFloor:
     def test_floor_by_worst_effective_severity(self):
         assert severity_grade_floor(None, params=DEFAULT_PARAMS) == 10.0
         assert severity_grade_floor("minor", params=DEFAULT_PARAMS) == 5.0
-        assert severity_grade_floor("major", params=DEFAULT_PARAMS) == 3.0
+        assert severity_grade_floor("major", params=DEFAULT_PARAMS) == 2.5
         assert severity_grade_floor("critical", params=DEFAULT_PARAMS) == 0.0
 
     def test_clamp_ceiling_beats_floor(self):
@@ -70,10 +70,10 @@ class TestStages:
         assert math.isclose(raw, base + (10 - base) * lift)
         assert final == clamp_principle_score(raw, mass.violation_mass, mass.worst, params=DEFAULT_PARAMS)
 
-    def test_single_minor_in_a_thousand_files_reads_about_nine_point_seven(self):
+    def test_single_minor_in_a_thousand_files_reads_about_nine_point_nine(self):
         mass = _mass([{"req": "R-1", "file": "a", "severity": "minor"}], [{"req": "R-2", "file": f"c{i}"} for i in range(50)])
         final, grade = principle_score_and_grade(mass, params=DEFAULT_PARAMS)
-        assert 9.6 <= final <= 9.8 and grade == "Exemplary"
+        assert 9.8 <= final < 10.0 and grade == "Exemplary"
 
     def test_clean_principle_is_ten(self):
         final, grade = principle_score_and_grade(_mass([], [{"req": "R-1", "file": "a"}]), params=DEFAULT_PARAMS)

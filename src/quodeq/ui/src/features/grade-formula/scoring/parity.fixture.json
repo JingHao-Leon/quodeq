@@ -4,77 +4,77 @@
    "expected": {
     "proj0": {
      "dimensions": {
-      "clean-architecture": 9.3,
-      "reliability": 6.1
+      "clean-architecture": 9.2,
+      "reliability": 5.7
      },
-     "overall": 7.7,
+     "overall": 7.4,
      "principles": {
       "clean-architecture/P0": 10.0,
       "clean-architecture/P1": 10.0,
-      "clean-architecture/P2": 8.3,
-      "clean-architecture/P3": 8.8,
-      "clean-architecture/P4": 6.9,
+      "clean-architecture/P2": 8.5,
+      "clean-architecture/P3": 8.9,
+      "clean-architecture/P4": 6.6,
       "clean-architecture/P5": 10.0,
-      "reliability/P0": 6.1
+      "reliability/P0": 5.7
      }
     },
     "proj1": {
      "dimensions": {
-      "reliability": 8.2,
-      "security": 9.1
+      "reliability": 8.3,
+      "security": 9.2
      },
-     "overall": 8.6,
+     "overall": 8.8,
      "principles": {
       "reliability/P0": 9.4,
-      "reliability/P1": 8.0,
-      "reliability/P2": 9.1,
+      "reliability/P1": 8.5,
+      "reliability/P2": 9.3,
       "reliability/P3": 10.0,
-      "reliability/P4": 6.9,
-      "reliability/P5": 7.1,
+      "reliability/P4": 7.5,
+      "reliability/P5": 6.6,
       "security/P0": 10.0,
-      "security/P1": 8.2
+      "security/P1": 8.4
      }
     },
     "proj10": {
      "dimensions": {
-      "clean-architecture": 7.5,
-      "maintainability": 6.9,
-      "reliability": 8.5,
+      "clean-architecture": 7.7,
+      "maintainability": 7.3,
+      "reliability": 8.6,
       "security": 8.0
      },
-     "overall": 7.7,
+     "overall": 7.9,
      "principles": {
-      "clean-architecture/P0": 6.4,
+      "clean-architecture/P0": 6.9,
       "clean-architecture/P1": 10.0,
       "clean-architecture/P2": 10.0,
-      "clean-architecture/P3": 7.1,
-      "maintainability/P0": 5.8,
+      "clean-architecture/P3": 7.2,
+      "maintainability/P0": 6.1,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.7,
-      "maintainability/P3": 5.3,
-      "reliability/P0": 7.6,
+      "maintainability/P2": 9.8,
+      "maintainability/P3": 5.8,
+      "reliability/P0": 8.0,
       "reliability/P1": 10.0,
       "reliability/P2": 6.9,
       "reliability/P3": 9.9,
-      "reliability/P4": 9.3,
+      "reliability/P4": 9.5,
       "reliability/P5": 10.0,
-      "security/P0": 5.9,
+      "security/P0": 6.6,
       "security/P1": 8.8,
-      "security/P2": 7.4,
-      "security/P3": 8.9
+      "security/P2": 7.3,
+      "security/P3": 9.0
      }
     },
     "proj11": {
      "dimensions": {
-      "clean-architecture": 8.0
+      "clean-architecture": 7.9
      },
-     "overall": 8.0,
+     "overall": 7.9,
      "principles": {
-      "clean-architecture/P0": 5.7,
-      "clean-architecture/P1": 9.3,
-      "clean-architecture/P2": 8.8,
-      "clean-architecture/P3": 6.0,
-      "clean-architecture/P4": 8.7
+      "clean-architecture/P0": 6.1,
+      "clean-architecture/P1": 9.5,
+      "clean-architecture/P2": 8.5,
+      "clean-architecture/P3": 5.5,
+      "clean-architecture/P4": 8.8
      }
     },
     "proj2": {
@@ -92,24 +92,24 @@
      },
      "overall": 8.1,
      "principles": {
-      "maintainability/P0": 7.2,
+      "maintainability/P0": 6.6,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.1,
-      "maintainability/P3": 5.3,
+      "maintainability/P2": 9.3,
+      "maintainability/P3": 5.9,
       "maintainability/P4": 10.0,
       "security/P0": 7.1
      }
     },
     "proj4": {
      "dimensions": {
-      "reliability": 7.5
+      "reliability": 7.6
      },
-     "overall": 7.5,
+     "overall": 7.6,
      "principles": {
-      "reliability/P0": 9.5,
-      "reliability/P1": 6.4,
-      "reliability/P2": 6.8,
-      "reliability/P3": 7.8
+      "reliability/P0": 9.7,
+      "reliability/P1": 6.9,
+      "reliability/P2": 6.3,
+      "reliability/P3": 7.0
      }
     },
     "proj5": {
@@ -121,77 +121,77 @@
     },
     "proj6": {
      "dimensions": {
-      "clean-architecture": 8.3,
-      "maintainability": 8.5,
-      "reliability": 6.6,
-      "security": 5.7
+      "clean-architecture": 8.5,
+      "maintainability": 9.0,
+      "reliability": 7.2,
+      "security": 6.1
      },
-     "overall": 7.3,
+     "overall": 7.7,
      "principles": {
-      "clean-architecture/P0": 9.2,
-      "clean-architecture/P1": 9.4,
-      "clean-architecture/P2": 7.3,
+      "clean-architecture/P0": 9.4,
+      "clean-architecture/P1": 9.5,
+      "clean-architecture/P2": 7.9,
       "clean-architecture/P3": 5.9,
-      "clean-architecture/P4": 6.0,
-      "clean-architecture/P5": 9.2,
-      "maintainability/P0": 7.8,
+      "clean-architecture/P4": 5.6,
+      "clean-architecture/P5": 9.4,
+      "maintainability/P0": 8.5,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.5,
-      "reliability/P0": 6.6,
-      "security/P0": 5.7
+      "maintainability/P2": 9.7,
+      "reliability/P0": 7.2,
+      "security/P0": 6.1
      }
     },
     "proj7": {
      "dimensions": {
       "clean-architecture": 10.0,
-      "security": 6.8
+      "security": 6.9
      },
      "overall": 8.4,
      "principles": {
       "clean-architecture/P0": 10.0,
       "security/P0": 8.8,
-      "security/P1": 5.5,
-      "security/P2": 5.7,
-      "security/P3": 7.9,
-      "security/P4": 7.1
+      "security/P1": 4.9,
+      "security/P2": 6.2,
+      "security/P3": 8.2,
+      "security/P4": 7.6
      }
     },
     "proj8": {
      "dimensions": {
-      "clean-architecture": 8.2,
+      "clean-architecture": 8.4,
       "maintainability": 8.0,
       "reliability": 10.0,
-      "security": 8.6
+      "security": 8.5
      },
      "overall": 8.7,
      "principles": {
-      "clean-architecture/P0": 8.3,
-      "clean-architecture/P1": 9.2,
-      "clean-architecture/P2": 9.8,
-      "clean-architecture/P3": 5.2,
-      "maintainability/P0": 8.1,
-      "maintainability/P1": 8.8,
+      "clean-architecture/P0": 8.5,
+      "clean-architecture/P1": 9.5,
+      "clean-architecture/P2": 9.9,
+      "clean-architecture/P3": 5.0,
+      "maintainability/P0": 8.0,
+      "maintainability/P1": 9.1,
       "maintainability/P2": 10.0,
-      "maintainability/P3": 6.1,
+      "maintainability/P3": 6.3,
       "reliability/P0": 10.0,
       "reliability/P1": 10.0,
       "security/P0": 10.0,
-      "security/P1": 7.4,
+      "security/P1": 7.7,
       "security/P2": 10.0,
-      "security/P3": 6.0,
-      "security/P4": 8.3,
+      "security/P3": 5.4,
+      "security/P4": 8.6,
       "security/P5": 10.0
      }
     },
     "proj9": {
      "dimensions": {
-      "reliability": 8.1,
+      "reliability": 8.2,
       "security": 9.9
      },
-     "overall": 9.0,
+     "overall": 9.1,
      "principles": {
-      "reliability/P0": 8.9,
-      "reliability/P1": 7.0,
+      "reliability/P0": 9.4,
+      "reliability/P1": 6.6,
       "security/P0": 10.0,
       "security/P1": 8.5,
       "security/P2": 10.0
@@ -199,7 +199,7 @@
     }
    },
    "params": {
-    "baseK": 0.08,
+    "baseK": 0.07,
     "ceilScale": 0.5,
     "dimensionWeights": {
      "accessibility": 1.0,
@@ -213,7 +213,7 @@
      "usability": 1.0
     },
     "dimensionWeightsEnabled": true,
-    "floorMajor": 3.0,
+    "floorMajor": 2.5,
     "floorMinor": 5.0,
     "gradeThresholds": [
      [
@@ -233,11 +233,11 @@
       "Poor"
      ]
     ],
-    "liftCompress": 2.2,
+    "liftCompress": 2.0,
     "severityWeight": {
-     "critical": 4.0,
+     "critical": 7.5,
      "major": 2.0,
-     "minor": 0.25
+     "minor": 0.15
     }
    },
    "projects": [
@@ -1241,76 +1241,76 @@
     "proj0": {
      "dimensions": {
       "clean-architecture": 8.9,
-      "reliability": 4.3
+      "reliability": 4.4
      },
-     "overall": 6.6,
+     "overall": 6.7,
      "principles": {
       "clean-architecture/P0": 10.0,
       "clean-architecture/P1": 10.0,
-      "clean-architecture/P2": 7.0,
-      "clean-architecture/P3": 8.4,
-      "clean-architecture/P4": 5.0,
+      "clean-architecture/P2": 7.1,
+      "clean-architecture/P3": 8.5,
+      "clean-architecture/P4": 5.2,
       "clean-architecture/P5": 10.0,
-      "reliability/P0": 4.3
+      "reliability/P0": 4.4
      }
     },
     "proj1": {
      "dimensions": {
-      "reliability": 7.1,
-      "security": 8.3
+      "reliability": 7.2,
+      "security": 8.4
      },
-     "overall": 7.7,
+     "overall": 7.8,
      "principles": {
       "reliability/P0": 9.2,
-      "reliability/P1": 6.2,
-      "reliability/P2": 8.3,
+      "reliability/P1": 6.4,
+      "reliability/P2": 8.4,
       "reliability/P3": 10.0,
-      "reliability/P4": 4.9,
-      "reliability/P5": 5.2,
+      "reliability/P4": 5.1,
+      "reliability/P5": 5.4,
       "security/P0": 10.0,
-      "security/P1": 6.6
+      "security/P1": 6.8
      }
     },
     "proj10": {
      "dimensions": {
-      "clean-architecture": 6.1,
-      "maintainability": 5.7,
-      "reliability": 7.6,
-      "security": 6.8
+      "clean-architecture": 6.2,
+      "maintainability": 5.8,
+      "reliability": 7.7,
+      "security": 7.0
      },
-     "overall": 6.6,
+     "overall": 6.7,
      "principles": {
-      "clean-architecture/P0": 4.5,
+      "clean-architecture/P0": 4.7,
       "clean-architecture/P1": 10.0,
       "clean-architecture/P2": 10.0,
-      "clean-architecture/P3": 5.4,
-      "maintainability/P0": 4.1,
+      "clean-architecture/P3": 5.6,
+      "maintainability/P0": 4.2,
       "maintainability/P1": 10.0,
       "maintainability/P2": 9.5,
-      "maintainability/P3": 3.5,
-      "reliability/P0": 6.0,
+      "maintainability/P3": 3.6,
+      "reliability/P0": 6.2,
       "reliability/P1": 10.0,
-      "reliability/P2": 5.1,
+      "reliability/P2": 5.3,
       "reliability/P3": 9.8,
-      "reliability/P4": 8.7,
+      "reliability/P4": 8.8,
       "reliability/P5": 10.0,
       "security/P0": 4.1,
-      "security/P1": 8.2,
-      "security/P2": 5.6,
+      "security/P1": 8.3,
+      "security/P2": 5.9,
       "security/P3": 8.6
      }
     },
     "proj11": {
      "dimensions": {
-      "clean-architecture": 6.5
+      "clean-architecture": 6.7
      },
-     "overall": 6.5,
+     "overall": 6.7,
      "principles": {
-      "clean-architecture/P0": 4.0,
+      "clean-architecture/P0": 4.1,
       "clean-architecture/P1": 8.0,
-      "clean-architecture/P2": 8.2,
-      "clean-architecture/P3": 4.2,
-      "clean-architecture/P4": 7.3
+      "clean-architecture/P2": 8.4,
+      "clean-architecture/P3": 4.4,
+      "clean-architecture/P4": 7.4
      }
     },
     "proj2": {
@@ -1323,29 +1323,29 @@
     "proj3": {
      "dimensions": {
       "clean-architecture": 8.9,
-      "maintainability": 7.5,
-      "security": 5.3
+      "maintainability": 7.6,
+      "security": 5.5
      },
-     "overall": 7.2,
+     "overall": 7.3,
      "principles": {
-      "maintainability/P0": 5.5,
+      "maintainability/P0": 5.7,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 8.1,
-      "maintainability/P3": 3.5,
+      "maintainability/P2": 8.2,
+      "maintainability/P3": 3.6,
       "maintainability/P4": 10.0,
-      "security/P0": 5.3
+      "security/P0": 5.5
      }
     },
     "proj4": {
      "dimensions": {
-      "reliability": 6.0
+      "reliability": 6.2
      },
-     "overall": 6.0,
+     "overall": 6.2,
      "principles": {
-      "reliability/P0": 8.8,
-      "reliability/P1": 4.6,
-      "reliability/P2": 5.1,
-      "reliability/P3": 6.2
+      "reliability/P0": 8.9,
+      "reliability/P1": 4.7,
+      "reliability/P2": 5.4,
+      "reliability/P3": 6.3
      }
     },
     "proj5": {
@@ -1359,77 +1359,77 @@
      "dimensions": {
       "clean-architecture": 7.5,
       "maintainability": 7.4,
-      "reliability": 4.8,
+      "reliability": 4.9,
       "security": 4.1
      },
-     "overall": 5.9,
+     "overall": 6.0,
      "principles": {
       "clean-architecture/P0": 8.9,
       "clean-architecture/P1": 9.0,
-      "clean-architecture/P2": 5.5,
-      "clean-architecture/P3": 4.1,
-      "clean-architecture/P4": 4.3,
+      "clean-architecture/P2": 5.8,
+      "clean-architecture/P3": 4.2,
+      "clean-architecture/P4": 4.4,
       "clean-architecture/P5": 8.8,
-      "maintainability/P0": 6.0,
+      "maintainability/P0": 6.1,
       "maintainability/P1": 10.0,
       "maintainability/P2": 9.3,
-      "reliability/P0": 4.8,
+      "reliability/P0": 4.9,
       "security/P0": 4.1
      }
     },
     "proj7": {
      "dimensions": {
       "clean-architecture": 10.0,
-      "security": 5.3
+      "security": 5.5
      },
-     "overall": 7.7,
+     "overall": 7.8,
      "principles": {
       "clean-architecture/P0": 10.0,
-      "security/P0": 8.1,
-      "security/P1": 3.8,
-      "security/P2": 3.9,
-      "security/P3": 6.4,
-      "security/P4": 5.3
+      "security/P0": 8.2,
+      "security/P1": 3.9,
+      "security/P2": 4.0,
+      "security/P3": 6.6,
+      "security/P4": 5.6
      }
     },
     "proj8": {
      "dimensions": {
-      "clean-architecture": 7.0,
-      "maintainability": 6.8,
+      "clean-architecture": 7.1,
+      "maintainability": 6.9,
       "reliability": 10.0,
-      "security": 7.7
+      "security": 7.8
      },
-     "overall": 7.9,
+     "overall": 8.0,
      "principles": {
-      "clean-architecture/P0": 6.6,
-      "clean-architecture/P1": 8.1,
+      "clean-architecture/P0": 6.8,
+      "clean-architecture/P1": 8.2,
       "clean-architecture/P2": 9.7,
       "clean-architecture/P3": 3.5,
-      "maintainability/P0": 6.6,
-      "maintainability/P1": 7.3,
+      "maintainability/P0": 6.8,
+      "maintainability/P1": 7.4,
       "maintainability/P2": 10.0,
-      "maintainability/P3": 4.3,
+      "maintainability/P3": 4.5,
       "reliability/P0": 10.0,
       "reliability/P1": 10.0,
       "security/P0": 10.0,
-      "security/P1": 5.6,
+      "security/P1": 5.9,
       "security/P2": 10.0,
-      "security/P3": 4.2,
-      "security/P4": 6.8,
+      "security/P3": 4.4,
+      "security/P4": 7.0,
       "security/P5": 10.0
      }
     },
     "proj9": {
      "dimensions": {
-      "reliability": 6.5,
+      "reliability": 6.6,
       "security": 9.9
      },
      "overall": 8.2,
      "principles": {
-      "reliability/P0": 7.4,
-      "reliability/P1": 5.2,
+      "reliability/P0": 7.5,
+      "reliability/P1": 5.4,
       "security/P0": 10.0,
-      "security/P1": 7.0,
+      "security/P1": 7.2,
       "security/P2": 10.0
      }
     }
@@ -1449,7 +1449,7 @@
      "usability": 1.0
     },
     "dimensionWeightsEnabled": true,
-    "floorMajor": 3.0,
+    "floorMajor": 2.5,
     "floorMinor": 5.0,
     "gradeThresholds": [
      [
@@ -1469,7 +1469,7 @@
       "Poor"
      ]
     ],
-    "liftCompress": 2.2,
+    "liftCompress": 2.0,
     "severityWeight": {
      "critical": 6.0,
      "major": 3.0,
@@ -2476,77 +2476,77 @@
    "expected": {
     "proj0": {
      "dimensions": {
-      "clean-architecture": 8.8,
-      "reliability": 4.8
+      "clean-architecture": 8.7,
+      "reliability": 4.3
      },
-     "overall": 6.8,
+     "overall": 6.5,
      "principles": {
       "clean-architecture/P0": 10.0,
       "clean-architecture/P1": 10.0,
       "clean-architecture/P2": 5.9,
-      "clean-architecture/P3": 6.7,
-      "clean-architecture/P4": 4.9,
+      "clean-architecture/P3": 6.8,
+      "clean-architecture/P4": 4.5,
       "clean-architecture/P5": 10.0,
-      "reliability/P0": 4.8
+      "reliability/P0": 4.3
      }
     },
     "proj1": {
      "dimensions": {
-      "reliability": 6.7,
-      "security": 7.6
+      "reliability": 6.6,
+      "security": 7.7
      },
      "overall": 7.2,
      "principles": {
       "reliability/P0": 8.4,
-      "reliability/P1": 5.9,
-      "reliability/P2": 7.6,
+      "reliability/P1": 6.1,
+      "reliability/P2": 8.1,
       "reliability/P3": 10.0,
-      "reliability/P4": 5.0,
-      "reliability/P5": 4.7,
+      "reliability/P4": 5.1,
+      "reliability/P5": 4.1,
       "security/P0": 10.0,
-      "security/P1": 5.4
+      "security/P1": 5.6
      }
     },
     "proj10": {
      "dimensions": {
-      "clean-architecture": 6.1,
-      "maintainability": 6.3,
-      "reliability": 7.2,
+      "clean-architecture": 6.0,
+      "maintainability": 6.4,
+      "reliability": 7.3,
       "security": 5.9
      },
      "overall": 6.4,
      "principles": {
-      "clean-architecture/P0": 5.1,
+      "clean-architecture/P0": 5.2,
       "clean-architecture/P1": 10.0,
       "clean-architecture/P2": 10.0,
-      "clean-architecture/P3": 4.8,
-      "maintainability/P0": 4.8,
+      "clean-architecture/P3": 4.6,
+      "maintainability/P0": 4.7,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.1,
-      "maintainability/P3": 4.7,
+      "maintainability/P2": 9.4,
+      "maintainability/P3": 4.8,
       "reliability/P0": 5.3,
       "reliability/P1": 10.0,
-      "reliability/P2": 4.5,
-      "reliability/P3": 9.6,
-      "reliability/P4": 8.1,
+      "reliability/P2": 4.3,
+      "reliability/P3": 9.8,
+      "reliability/P4": 8.7,
       "reliability/P5": 10.0,
-      "security/P0": 5.3,
+      "security/P0": 5.5,
       "security/P1": 6.7,
-      "security/P2": 4.9,
-      "security/P3": 7.0
+      "security/P2": 4.5,
+      "security/P3": 7.3
      }
     },
     "proj11": {
      "dimensions": {
-      "clean-architecture": 6.2
+      "clean-architecture": 6.3
      },
-     "overall": 6.2,
+     "overall": 6.3,
      "principles": {
       "clean-architecture/P0": 5.2,
-      "clean-architecture/P1": 7.9,
-      "clean-architecture/P2": 6.6,
-      "clean-architecture/P3": 4.4,
-      "clean-architecture/P4": 6.5
+      "clean-architecture/P1": 8.5,
+      "clean-architecture/P2": 5.8,
+      "clean-architecture/P3": 3.9,
+      "clean-architecture/P4": 6.8
      }
     },
     "proj2": {
@@ -2560,16 +2560,16 @@
      "dimensions": {
       "clean-architecture": 8.9,
       "maintainability": 7.6,
-      "security": 5.5
+      "security": 5.3
      },
      "overall": 7.3,
      "principles": {
-      "maintainability/P0": 5.5,
+      "maintainability/P0": 4.8,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 7.5,
-      "maintainability/P3": 4.8,
+      "maintainability/P2": 8.2,
+      "maintainability/P3": 4.9,
       "maintainability/P4": 10.0,
-      "security/P0": 5.5
+      "security/P0": 5.3
      }
     },
     "proj4": {
@@ -2578,10 +2578,10 @@
      },
      "overall": 6.2,
      "principles": {
-      "reliability/P0": 8.7,
-      "reliability/P1": 5.5,
-      "reliability/P2": 4.5,
-      "reliability/P3": 6.6
+      "reliability/P0": 9.1,
+      "reliability/P1": 5.6,
+      "reliability/P2": 4.0,
+      "reliability/P3": 5.8
      }
     },
     "proj5": {
@@ -2593,24 +2593,24 @@
     },
     "proj6": {
      "dimensions": {
-      "clean-architecture": 6.8,
-      "maintainability": 7.3,
-      "reliability": 5.6,
-      "security": 5.2
+      "clean-architecture": 7.2,
+      "maintainability": 7.7,
+      "reliability": 5.7,
+      "security": 5.3
      },
-     "overall": 6.2,
+     "overall": 6.5,
      "principles": {
-      "clean-architecture/P0": 7.8,
-      "clean-architecture/P1": 8.2,
-      "clean-architecture/P2": 4.9,
-      "clean-architecture/P3": 4.8,
-      "clean-architecture/P4": 4.7,
-      "clean-architecture/P5": 7.8,
-      "maintainability/P0": 6.3,
+      "clean-architecture/P0": 8.4,
+      "clean-architecture/P1": 8.7,
+      "clean-architecture/P2": 5.0,
+      "clean-architecture/P3": 4.6,
+      "clean-architecture/P4": 4.2,
+      "clean-architecture/P5": 8.4,
+      "maintainability/P0": 6.6,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 8.7,
-      "reliability/P0": 5.6,
-      "security/P0": 5.2
+      "maintainability/P2": 9.1,
+      "reliability/P0": 5.7,
+      "security/P0": 5.3
      }
     },
     "proj7": {
@@ -2621,57 +2621,57 @@
      "overall": 7.7,
      "principles": {
       "clean-architecture/P0": 10.0,
-      "security/P0": 6.7,
-      "security/P1": 4.8,
-      "security/P2": 4.9,
+      "security/P0": 6.8,
+      "security/P1": 4.1,
+      "security/P2": 5.0,
       "security/P3": 5.5,
       "security/P4": 4.8
      }
     },
     "proj8": {
      "dimensions": {
-      "clean-architecture": 6.9,
-      "maintainability": 6.4,
+      "clean-architecture": 7.2,
+      "maintainability": 6.3,
       "reliability": 10.0,
-      "security": 7.6
+      "security": 7.5
      },
-     "overall": 7.7,
+     "overall": 7.8,
      "principles": {
-      "clean-architecture/P0": 5.6,
-      "clean-architecture/P1": 7.9,
-      "clean-architecture/P2": 9.5,
-      "clean-architecture/P3": 4.9,
-      "maintainability/P0": 5.3,
-      "maintainability/P1": 7.1,
+      "clean-architecture/P0": 5.9,
+      "clean-architecture/P1": 8.5,
+      "clean-architecture/P2": 9.7,
+      "clean-architecture/P3": 4.5,
+      "maintainability/P0": 5.1,
+      "maintainability/P1": 7.4,
       "maintainability/P2": 10.0,
-      "maintainability/P3": 4.6,
+      "maintainability/P3": 4.5,
       "reliability/P0": 10.0,
       "reliability/P1": 10.0,
       "security/P0": 10.0,
       "security/P1": 4.9,
       "security/P2": 10.0,
-      "security/P3": 4.4,
-      "security/P4": 6.0,
+      "security/P3": 3.8,
+      "security/P4": 6.2,
       "security/P5": 10.0
      }
     },
     "proj9": {
      "dimensions": {
-      "reliability": 6.6,
+      "reliability": 6.7,
       "security": 9.8
      },
      "overall": 8.2,
      "principles": {
-      "reliability/P0": 7.8,
-      "reliability/P1": 4.8,
+      "reliability/P0": 8.4,
+      "reliability/P1": 4.3,
       "security/P0": 10.0,
-      "security/P1": 5.7,
+      "security/P1": 5.9,
       "security/P2": 10.0
      }
     }
    },
    "params": {
-    "baseK": 0.08,
+    "baseK": 0.07,
     "ceilScale": 1.4,
     "dimensionWeights": {
      "accessibility": 1.0,
@@ -2707,9 +2707,9 @@
     ],
     "liftCompress": 1.2,
     "severityWeight": {
-     "critical": 4.0,
+     "critical": 7.5,
      "major": 2.0,
-     "minor": 0.25
+     "minor": 0.15
     }
    },
    "projects": [
@@ -3712,77 +3712,77 @@
    "expected": {
     "proj0": {
      "dimensions": {
-      "clean-architecture": 9.3,
-      "reliability": 6.1
+      "clean-architecture": 9.2,
+      "reliability": 5.7
      },
-     "overall": 8.4,
+     "overall": 8.2,
      "principles": {
       "clean-architecture/P0": 10.0,
       "clean-architecture/P1": 10.0,
-      "clean-architecture/P2": 8.3,
-      "clean-architecture/P3": 8.8,
-      "clean-architecture/P4": 6.9,
+      "clean-architecture/P2": 8.5,
+      "clean-architecture/P3": 8.9,
+      "clean-architecture/P4": 6.6,
       "clean-architecture/P5": 10.0,
-      "reliability/P0": 6.1
+      "reliability/P0": 5.7
      }
     },
     "proj1": {
      "dimensions": {
-      "reliability": 8.2,
-      "security": 9.1
+      "reliability": 8.3,
+      "security": 9.2
      },
-     "overall": 9.0,
+     "overall": 9.1,
      "principles": {
       "reliability/P0": 9.4,
-      "reliability/P1": 8.0,
-      "reliability/P2": 9.1,
+      "reliability/P1": 8.5,
+      "reliability/P2": 9.3,
       "reliability/P3": 10.0,
-      "reliability/P4": 6.9,
-      "reliability/P5": 7.1,
+      "reliability/P4": 7.5,
+      "reliability/P5": 6.6,
       "security/P0": 10.0,
-      "security/P1": 8.2
+      "security/P1": 8.4
      }
     },
     "proj10": {
      "dimensions": {
-      "clean-architecture": 7.5,
-      "maintainability": 6.9,
-      "reliability": 8.5,
+      "clean-architecture": 7.7,
+      "maintainability": 7.3,
+      "reliability": 8.6,
       "security": 8.0
      },
-     "overall": 7.7,
+     "overall": 7.8,
      "principles": {
-      "clean-architecture/P0": 6.4,
+      "clean-architecture/P0": 6.9,
       "clean-architecture/P1": 10.0,
       "clean-architecture/P2": 10.0,
-      "clean-architecture/P3": 7.1,
-      "maintainability/P0": 5.8,
+      "clean-architecture/P3": 7.2,
+      "maintainability/P0": 6.1,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.7,
-      "maintainability/P3": 5.3,
-      "reliability/P0": 7.6,
+      "maintainability/P2": 9.8,
+      "maintainability/P3": 5.8,
+      "reliability/P0": 8.0,
       "reliability/P1": 10.0,
       "reliability/P2": 6.9,
       "reliability/P3": 9.9,
-      "reliability/P4": 9.3,
+      "reliability/P4": 9.5,
       "reliability/P5": 10.0,
-      "security/P0": 5.9,
+      "security/P0": 6.6,
       "security/P1": 8.8,
-      "security/P2": 7.4,
-      "security/P3": 8.9
+      "security/P2": 7.3,
+      "security/P3": 9.0
      }
     },
     "proj11": {
      "dimensions": {
-      "clean-architecture": 8.0
+      "clean-architecture": 7.9
      },
-     "overall": 8.0,
+     "overall": 7.9,
      "principles": {
-      "clean-architecture/P0": 5.7,
-      "clean-architecture/P1": 9.3,
-      "clean-architecture/P2": 8.8,
-      "clean-architecture/P3": 6.0,
-      "clean-architecture/P4": 8.7
+      "clean-architecture/P0": 6.1,
+      "clean-architecture/P1": 9.5,
+      "clean-architecture/P2": 8.5,
+      "clean-architecture/P3": 5.5,
+      "clean-architecture/P4": 8.8
      }
     },
     "proj2": {
@@ -3800,24 +3800,24 @@
      },
      "overall": 7.8,
      "principles": {
-      "maintainability/P0": 7.2,
+      "maintainability/P0": 6.6,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.1,
-      "maintainability/P3": 5.3,
+      "maintainability/P2": 9.3,
+      "maintainability/P3": 5.9,
       "maintainability/P4": 10.0,
       "security/P0": 7.1
      }
     },
     "proj4": {
      "dimensions": {
-      "reliability": 7.5
+      "reliability": 7.6
      },
-     "overall": 7.5,
+     "overall": 7.6,
      "principles": {
-      "reliability/P0": 9.5,
-      "reliability/P1": 6.4,
-      "reliability/P2": 6.8,
-      "reliability/P3": 7.8
+      "reliability/P0": 9.7,
+      "reliability/P1": 6.9,
+      "reliability/P2": 6.3,
+      "reliability/P3": 7.0
      }
     },
     "proj5": {
@@ -3829,77 +3829,77 @@
     },
     "proj6": {
      "dimensions": {
-      "clean-architecture": 8.3,
-      "maintainability": 8.5,
-      "reliability": 6.6,
-      "security": 5.7
+      "clean-architecture": 8.5,
+      "maintainability": 9.0,
+      "reliability": 7.2,
+      "security": 6.1
      },
-     "overall": 6.9,
+     "overall": 7.3,
      "principles": {
-      "clean-architecture/P0": 9.2,
-      "clean-architecture/P1": 9.4,
-      "clean-architecture/P2": 7.3,
+      "clean-architecture/P0": 9.4,
+      "clean-architecture/P1": 9.5,
+      "clean-architecture/P2": 7.9,
       "clean-architecture/P3": 5.9,
-      "clean-architecture/P4": 6.0,
-      "clean-architecture/P5": 9.2,
-      "maintainability/P0": 7.8,
+      "clean-architecture/P4": 5.6,
+      "clean-architecture/P5": 9.4,
+      "maintainability/P0": 8.5,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.5,
-      "reliability/P0": 6.6,
-      "security/P0": 5.7
+      "maintainability/P2": 9.7,
+      "reliability/P0": 7.2,
+      "security/P0": 6.1
      }
     },
     "proj7": {
      "dimensions": {
       "clean-architecture": 10.0,
-      "security": 6.8
+      "security": 6.9
      },
-     "overall": 7.7,
+     "overall": 7.8,
      "principles": {
       "clean-architecture/P0": 10.0,
       "security/P0": 8.8,
-      "security/P1": 5.5,
-      "security/P2": 5.7,
-      "security/P3": 7.9,
-      "security/P4": 7.1
+      "security/P1": 4.9,
+      "security/P2": 6.2,
+      "security/P3": 8.2,
+      "security/P4": 7.6
      }
     },
     "proj8": {
      "dimensions": {
-      "clean-architecture": 8.2,
+      "clean-architecture": 8.4,
       "maintainability": 8.0,
       "reliability": 10.0,
-      "security": 8.6
+      "security": 8.5
      },
      "overall": 8.5,
      "principles": {
-      "clean-architecture/P0": 8.3,
-      "clean-architecture/P1": 9.2,
-      "clean-architecture/P2": 9.8,
-      "clean-architecture/P3": 5.2,
-      "maintainability/P0": 8.1,
-      "maintainability/P1": 8.8,
+      "clean-architecture/P0": 8.5,
+      "clean-architecture/P1": 9.5,
+      "clean-architecture/P2": 9.9,
+      "clean-architecture/P3": 5.0,
+      "maintainability/P0": 8.0,
+      "maintainability/P1": 9.1,
       "maintainability/P2": 10.0,
-      "maintainability/P3": 6.1,
+      "maintainability/P3": 6.3,
       "reliability/P0": 10.0,
       "reliability/P1": 10.0,
       "security/P0": 10.0,
-      "security/P1": 7.4,
+      "security/P1": 7.7,
       "security/P2": 10.0,
-      "security/P3": 6.0,
-      "security/P4": 8.3,
+      "security/P3": 5.4,
+      "security/P4": 8.6,
       "security/P5": 10.0
      }
     },
     "proj9": {
      "dimensions": {
-      "reliability": 8.1,
+      "reliability": 8.2,
       "security": 9.9
      },
      "overall": 9.7,
      "principles": {
-      "reliability/P0": 8.9,
-      "reliability/P1": 7.0,
+      "reliability/P0": 9.4,
+      "reliability/P1": 6.6,
       "security/P0": 10.0,
       "security/P1": 8.5,
       "security/P2": 10.0
@@ -3907,7 +3907,7 @@
     }
    },
    "params": {
-    "baseK": 0.08,
+    "baseK": 0.07,
     "ceilScale": 0.5,
     "dimensionWeights": {
      "accessibility": 1.0,
@@ -3921,7 +3921,7 @@
      "usability": 1.0
     },
     "dimensionWeightsEnabled": true,
-    "floorMajor": 3.0,
+    "floorMajor": 2.5,
     "floorMinor": 5.0,
     "gradeThresholds": [
      [
@@ -3941,11 +3941,11 @@
       "Poor"
      ]
     ],
-    "liftCompress": 2.2,
+    "liftCompress": 2.0,
     "severityWeight": {
-     "critical": 4.0,
+     "critical": 7.5,
      "major": 2.0,
-     "minor": 0.25
+     "minor": 0.15
     }
    },
    "projects": [
@@ -4949,63 +4949,63 @@
     "proj0": {
      "dimensions": {
       "clean-architecture": 9.3,
-      "reliability": 6.1
+      "reliability": 5.7
      },
-     "overall": 7.7,
+     "overall": 7.5,
      "principles": {
       "clean-architecture/P0": 10.0,
       "clean-architecture/P1": 10.0,
-      "clean-architecture/P2": 8.3,
-      "clean-architecture/P3": 9.3,
-      "clean-architecture/P4": 6.9,
+      "clean-architecture/P2": 8.6,
+      "clean-architecture/P3": 9.5,
+      "clean-architecture/P4": 6.6,
       "clean-architecture/P5": 10.0,
-      "reliability/P0": 6.1
+      "reliability/P0": 5.7
      }
     },
     "proj1": {
      "dimensions": {
-      "reliability": 8.4,
-      "security": 9.1
+      "reliability": 8.5,
+      "security": 9.3
      },
-     "overall": 8.8,
+     "overall": 8.9,
      "principles": {
-      "reliability/P0": 9.8,
-      "reliability/P1": 8.0,
-      "reliability/P2": 9.4,
+      "reliability/P0": 9.9,
+      "reliability/P1": 8.5,
+      "reliability/P2": 9.7,
       "reliability/P3": 10.0,
-      "reliability/P4": 6.9,
-      "reliability/P5": 7.1,
+      "reliability/P4": 7.5,
+      "reliability/P5": 6.6,
       "security/P0": 10.0,
-      "security/P1": 8.2
+      "security/P1": 8.6
      }
     },
     "proj10": {
      "dimensions": {
-      "clean-architecture": 7.5,
-      "maintainability": 7.0,
-      "reliability": 8.6,
-      "security": 8.2
+      "clean-architecture": 7.7,
+      "maintainability": 7.3,
+      "reliability": 8.7,
+      "security": 8.3
      },
-     "overall": 7.8,
+     "overall": 8.0,
      "principles": {
-      "clean-architecture/P0": 6.4,
+      "clean-architecture/P0": 6.9,
       "clean-architecture/P1": 10.0,
       "clean-architecture/P2": 10.0,
-      "clean-architecture/P3": 7.1,
-      "maintainability/P0": 5.8,
+      "clean-architecture/P3": 7.2,
+      "maintainability/P0": 6.1,
       "maintainability/P1": 10.0,
       "maintainability/P2": 10.0,
-      "maintainability/P3": 5.3,
-      "reliability/P0": 7.6,
+      "maintainability/P3": 5.8,
+      "reliability/P0": 8.0,
       "reliability/P1": 10.0,
       "reliability/P2": 6.9,
       "reliability/P3": 10.0,
-      "reliability/P4": 9.6,
+      "reliability/P4": 9.9,
       "reliability/P5": 10.0,
-      "security/P0": 5.9,
-      "security/P1": 9.1,
-      "security/P2": 7.4,
-      "security/P3": 9.5
+      "security/P0": 6.6,
+      "security/P1": 9.3,
+      "security/P2": 7.3,
+      "security/P3": 9.7
      }
     },
     "proj11": {
@@ -5014,11 +5014,11 @@
      },
      "overall": 8.0,
      "principles": {
-      "clean-architecture/P0": 5.7,
-      "clean-architecture/P1": 9.3,
-      "clean-architecture/P2": 9.2,
-      "clean-architecture/P3": 6.0,
-      "clean-architecture/P4": 8.7
+      "clean-architecture/P0": 6.1,
+      "clean-architecture/P1": 9.7,
+      "clean-architecture/P2": 8.7,
+      "clean-architecture/P3": 5.5,
+      "clean-architecture/P4": 9.1
      }
     },
     "proj2": {
@@ -5031,29 +5031,29 @@
     "proj3": {
      "dimensions": {
       "clean-architecture": 8.9,
-      "maintainability": 8.4,
+      "maintainability": 8.5,
       "security": 7.1
      },
-     "overall": 8.1,
+     "overall": 8.2,
      "principles": {
-      "maintainability/P0": 7.2,
+      "maintainability/P0": 6.6,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.4,
-      "maintainability/P3": 5.3,
+      "maintainability/P2": 9.8,
+      "maintainability/P3": 5.9,
       "maintainability/P4": 10.0,
       "security/P0": 7.1
      }
     },
     "proj4": {
      "dimensions": {
-      "reliability": 7.5
+      "reliability": 7.6
      },
-     "overall": 7.5,
+     "overall": 7.6,
      "principles": {
-      "reliability/P0": 9.6,
-      "reliability/P1": 6.4,
-      "reliability/P2": 6.8,
-      "reliability/P3": 7.8
+      "reliability/P0": 9.8,
+      "reliability/P1": 6.9,
+      "reliability/P2": 6.3,
+      "reliability/P3": 7.0
      }
     },
     "proj5": {
@@ -5065,85 +5065,85 @@
     },
     "proj6": {
      "dimensions": {
-      "clean-architecture": 8.7,
-      "maintainability": 8.6,
-      "reliability": 6.6,
-      "security": 5.7
+      "clean-architecture": 8.8,
+      "maintainability": 9.1,
+      "reliability": 7.2,
+      "security": 6.1
      },
-     "overall": 7.4,
+     "overall": 7.8,
      "principles": {
-      "clean-architecture/P0": 9.8,
-      "clean-architecture/P1": 9.9,
-      "clean-architecture/P2": 7.3,
+      "clean-architecture/P0": 9.9,
+      "clean-architecture/P1": 10.0,
+      "clean-architecture/P2": 7.9,
       "clean-architecture/P3": 5.9,
-      "clean-architecture/P4": 6.0,
-      "clean-architecture/P5": 9.7,
-      "maintainability/P0": 7.8,
+      "clean-architecture/P4": 5.6,
+      "clean-architecture/P5": 9.9,
+      "maintainability/P0": 8.5,
       "maintainability/P1": 10.0,
-      "maintainability/P2": 9.9,
-      "reliability/P0": 6.6,
-      "security/P0": 5.7
+      "maintainability/P2": 10.0,
+      "reliability/P0": 7.2,
+      "security/P0": 6.1
      }
     },
     "proj7": {
      "dimensions": {
       "clean-architecture": 10.0,
-      "security": 6.9
+      "security": 7.1
      },
-     "overall": 8.4,
+     "overall": 8.6,
      "principles": {
       "clean-architecture/P0": 10.0,
-      "security/P0": 9.1,
-      "security/P1": 5.5,
-      "security/P2": 5.7,
-      "security/P3": 7.9,
-      "security/P4": 7.1
+      "security/P0": 9.3,
+      "security/P1": 4.9,
+      "security/P2": 6.2,
+      "security/P3": 8.2,
+      "security/P4": 7.6
      }
     },
     "proj8": {
      "dimensions": {
-      "clean-architecture": 8.3,
+      "clean-architecture": 8.6,
       "maintainability": 8.0,
       "reliability": 10.0,
-      "security": 8.6
+      "security": 8.5
      },
-     "overall": 8.7,
+     "overall": 8.8,
      "principles": {
-      "clean-architecture/P0": 8.3,
-      "clean-architecture/P1": 9.3,
+      "clean-architecture/P0": 8.8,
+      "clean-architecture/P1": 9.8,
       "clean-architecture/P2": 10.0,
-      "clean-architecture/P3": 5.2,
-      "maintainability/P0": 8.1,
-      "maintainability/P1": 8.8,
+      "clean-architecture/P3": 5.0,
+      "maintainability/P0": 8.0,
+      "maintainability/P1": 9.2,
       "maintainability/P2": 10.0,
-      "maintainability/P3": 6.1,
+      "maintainability/P3": 6.3,
       "reliability/P0": 10.0,
       "reliability/P1": 10.0,
       "security/P0": 10.0,
-      "security/P1": 7.4,
+      "security/P1": 7.7,
       "security/P2": 10.0,
-      "security/P3": 6.0,
-      "security/P4": 8.3,
+      "security/P3": 5.4,
+      "security/P4": 8.7,
       "security/P5": 10.0
      }
     },
     "proj9": {
      "dimensions": {
-      "reliability": 8.1,
+      "reliability": 8.3,
       "security": 9.9
      },
-     "overall": 9.0,
+     "overall": 9.1,
      "principles": {
-      "reliability/P0": 8.9,
-      "reliability/P1": 7.0,
+      "reliability/P0": 9.5,
+      "reliability/P1": 6.6,
       "security/P0": 10.0,
-      "security/P1": 8.5,
+      "security/P1": 8.9,
       "security/P2": 10.0
      }
     }
    },
    "params": {
-    "baseK": 0.08,
+    "baseK": 0.07,
     "ceilScale": 0.0,
     "dimensionWeights": {
      "accessibility": 1.0,
@@ -5157,7 +5157,7 @@
      "usability": 1.0
     },
     "dimensionWeightsEnabled": false,
-    "floorMajor": 3.0,
+    "floorMajor": 2.5,
     "floorMinor": 5.0,
     "gradeThresholds": [
      [
@@ -5177,11 +5177,11 @@
       "Poor"
      ]
     ],
-    "liftCompress": 2.2,
+    "liftCompress": 2.0,
     "severityWeight": {
-     "critical": 4.0,
+     "critical": 7.5,
      "major": 2.0,
-     "minor": 0.25
+     "minor": 0.15
     }
    },
    "projects": [
