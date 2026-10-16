@@ -84,3 +84,19 @@ def test_database_error_is_500(client):
 @pytest.mark.usefixtures("locked_db")
 def test_database_error_says_internal_error(client):
     assert client.get("/api/projects/proj/map/history").get_json()["code"] == "INTERNAL_ERROR"
+
+
+def test_a_shared_mirror_is_built_without_git(tmp_path, monkeypatch):
+    from quodeq.api import routes_map_history
+    from quodeq.core.map_history.history import EMPTY_HISTORY
+    seen = {}
+
+    def fake_build(reports_root, project, **kw):
+        seen.update(kw)
+        return EMPTY_HISTORY
+
+    monkeypatch.setattr(routes_map_history, "build_map_history", fake_build)
+    app = create_app(static_dist=None, api_key=None)
+    with app.test_request_context("/"):
+        routes_map_history.map_history_response("proj", tmp_path)
+    assert seen["git_activity"] is False

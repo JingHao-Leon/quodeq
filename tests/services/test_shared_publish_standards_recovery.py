@@ -71,3 +71,17 @@ def test_a_failed_project_push_leaves_the_clone_at_the_remote(tmp_path, remote, 
         shared_publish.publish_project("proj", remote, evaluations_root=scored_x)
     assert not (shared_standards_dir(remote) / "x.json").exists()
     assert _listed_state(ev, remote, "x") == "never_shared"
+
+
+def test_a_standard_the_shared_folder_refuses_is_skipped_not_fatal(tmp_path, remote, scored_x, monkeypatch):
+    def refuse(*_a, **_kw):
+        raise ValueError("refusing to write through a symlink")
+
+    ev = tmp_path / "evaluators"
+    _evaluator(ev, "x")
+    monkeypatch.setattr(_DIRS, lambda: (None, ev))
+    monkeypatch.setattr("quodeq.services._publish_standards.write_shared_standard", refuse)
+    skipped = []
+    assert shared_publish.publish_project("proj", remote, evaluations_root=scored_x, on_skipped=skipped.extend) == 1
+    assert skipped == ["x"]
+    assert not (_clone(remote, tmp_path / "check") / "standards" / "x.json").exists()

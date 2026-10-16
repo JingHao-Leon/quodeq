@@ -173,3 +173,13 @@ def test_a_share_that_failed_before_its_commit_leaves_nothing_behind(tmp_path, r
 def test_now_utc_iso_is_a_z_timestamp():
     stamp = ops.now_utc_iso()
     assert stamp.endswith("Z") and "T" in stamp and len(stamp) == len("2026-10-16T10:00:00Z")
+
+
+def test_install_keeps_remote_dates_only_when_well_typed(tmp_path, remote):
+    ev_a, ev_b = tmp_path / "a", tmp_path / "b"
+    _evaluator(ev_a, "go", updatedAt={"nested": 1}, version="x" * 500)
+    _share("go", remote, ev_a)
+    ops.install_standard("go", url=remote, evaluators_dir=ev_b)
+    got = _local(ev_b, "go")
+    assert got["createdAt"] == "2026-10-01"
+    assert "updatedAt" not in got and "version" not in got

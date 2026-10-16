@@ -29,7 +29,9 @@ from quodeq.services.wiring_sync import (
 )
 
 _PUBLISHED_AT = "publishedAt"
-_REMOTE_DATED_KEYS = ("createdAt", "updatedAt", "version")
+_VERSION_KEY = "version"
+_REMOTE_DATED_KEYS = ("createdAt", "updatedAt", _VERSION_KEY)
+_MAX_DATED_LEN = 40  # an ISO timestamp or a YYYY.MM.DD version, with room to spare
 _INSTALLED_DEFAULTS = {"type": "custom", "managed": False, "origin": None, "origin_hash": None}
 _MALFORMED = (TypeError, AttributeError, ValueError, KeyError)
 _LOCAL_EDITS = frozenset({SyncState.CHANGED, SyncState.DIVERGED})
@@ -260,10 +262,16 @@ def _write_from_remote(standard_id: str, remote: dict, evaluators_dir: Path) -> 
     if warnings:
         raise ShareError("unsafe", "This standard contains text that looks like instructions to the "
                                    f"model: {'; '.join(warnings)}. It was not installed.")
-    dates = {k: remote[k] for k in _REMOTE_DATED_KEYS if remote.get(k) is not None}
-    payload = {**content, **dates, **_INSTALLED_DEFAULTS}
+    payload = {**content, **_remote_dates(remote), **_INSTALLED_DEFAULTS}
     _write_local(evaluators_dir, standard_id, {**payload, SHARED_HASH_KEY: share_hash(payload)})
     return {"id": standard_id, "warnings": []}
+
+
+def _remote_dates(remote: dict) -> dict:
+    """The remote's dates and version, kept only when well typed: a short string (or an int version)."""
+    return {k: remote[k] for k in _REMOTE_DATED_KEYS
+            if (isinstance(remote.get(k), str) and len(remote[k]) <= _MAX_DATED_LEN)
+            or (k == _VERSION_KEY and type(remote.get(k)) is int)}
 
 
 def _extra_text_warnings(content: dict) -> list[str]:
