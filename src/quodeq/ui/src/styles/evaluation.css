@@ -1,14 +1,13 @@
 /* --- Evaluate Screen --- */
 .evaluate-screen {
   width: 100%;
-  max-width: 1180px;
   /* No page title: the topbar names the page and the first card carries
-     the heading, starting on the line every page's first row shares. */
-  margin: var(--page-top-gap) auto 0;
-  /* Redesign radii, scoped so the global --term-radius stays untouched. */
-  --eval-card-radius: 12px;
-  --eval-tile-radius: 10px;
-  --eval-inner-radius: 8px;
+     the heading, starting on the line every page's first row shares. Full
+     width like every other page, with the app's panel corners. */
+  margin: var(--page-top-gap) 0 0;
+  --eval-card-radius: var(--term-radius);
+  --eval-tile-radius: var(--term-radius);
+  --eval-inner-radius: var(--term-radius);
 }
 
 @media (max-width: 600px) {
