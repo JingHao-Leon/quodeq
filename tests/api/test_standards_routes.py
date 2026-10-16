@@ -203,3 +203,25 @@ def test_library_routes_are_gone(client):
     resp = client.post("/api/standards/library/import", json={"file": "standards/x.json"},
                        headers={"Origin": "http://localhost"})
     assert resp.status_code == 404
+
+
+class _RecordingLogger:
+    def __init__(self):
+        self.messages: list[str] = []
+
+    def _record(self, msg, *args, **_kwargs):
+        self.messages.append(msg % args)
+
+    info = debug = warning = _record
+
+
+def test_route_ids_cannot_forge_log_lines(client, monkeypatch):
+    recorder = _RecordingLogger()
+    monkeypatch.setattr("quodeq.api.standards_crud_routes.logger", recorder)
+    origin = {"Origin": "http://localhost"}
+    client.delete("/api/standards/x%0Aforged-entry", headers=origin)
+    client.post("/api/standards/security/duplicate", json={"newId": "copy\nforged-entry"}, headers=origin)
+    messages = recorder.messages
+    assert any("standards.delete" in m for m in messages)
+    assert any("standards.duplicate" in m for m in messages)
+    assert not any("\n" in m for m in messages)

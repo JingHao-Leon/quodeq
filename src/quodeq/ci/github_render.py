@@ -35,6 +35,8 @@ _LEADING_BLOCK_MARKER = re.compile(r"^(\d+)([.)])|^([-+])")
 # resolved, so escaping cannot defuse them. A zero-width space after the
 # trigger breaks the scan while leaving the text readable.
 _AUTOLINK_TRIGGER = re.compile(r"(https?://|www\.|@)", re.IGNORECASE)
+_BACKTICK_RUN = re.compile(r"`+")
+_WHITESPACE_RUN = re.compile(r"\s+")
 _ZWSP = "\u200b"
 
 _STATUS_NEW = "new"  # violation_to_comment status: introduced by this PR
@@ -45,6 +47,20 @@ def _escape_leading_marker(match: re.Match) -> str:
     if match.group(1) is not None:
         return f"{match.group(1)}\\{match.group(2)}"
     return f"\\{match.group(3)}"
+
+
+def _code_span(text: object) -> str:
+    """*text* as one inline code span that its own backticks cannot close.
+
+    Backslash escapes do not work inside a code span, so the fence is one
+    backtick longer than the longest run in *text*, padded with a space when
+    *text* starts or ends with a backtick (CommonMark strips one space each
+    side). Whitespace runs collapse so a newline cannot end the list item.
+    """
+    body = _WHITESPACE_RUN.sub(" ", str(text)).strip()
+    fence = "`" * (max((len(run) for run in _BACKTICK_RUN.findall(body)), default=0) + 1)
+    pad = " " if body.startswith("`") or body.endswith("`") else ""
+    return f"{fence}{pad}{body}{pad}{fence}"
 
 
 def _md_escape(text: object) -> str:
@@ -166,7 +182,7 @@ def _outside_diff_lines(outside: list[dict]) -> list[str]:
         loc = f"{file}:{line}" if line is not None else file
         severity = str(v.get("severity", Severity.MINOR)).upper()
         title = _md_escape(v.get("title") or "Violation")
-        lines.append(f"- `{loc}` — **{severity}** {title}")
+        lines.append(f"- {_code_span(loc)} — **{severity}** {title}")
     lines.append("")
     return lines
 

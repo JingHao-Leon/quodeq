@@ -119,3 +119,14 @@ def test_reason_at_paragraph_start_cannot_open_a_block(reason, expected):
     # otherwise render as a bullet, an ordered item, or a horizontal rule.
     body = violation_to_comment({"file": "a.py", "line": 1, "severity": "minor", "title": "t", "reason": reason})["body"]
     assert "\n\n" + expected in body
+
+
+def test_a_backtick_in_a_file_name_cannot_close_the_location_code_span():
+    from quodeq.ci.github_render import build_review_summary
+
+    violation = {"file": "a`<b>evil</b>`\n# x.py", "line": 3, "severity": "minor", "title": "t"}
+    summary = build_review_summary(
+        reports=[], new_violations=[violation], existing_violations=[],
+        outside_diff_violations=[violation],
+    )
+    assert "- ``a`<b>evil</b>` # x.py:3`` — **MINOR** t" in summary

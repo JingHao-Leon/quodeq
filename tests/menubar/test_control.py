@@ -32,7 +32,8 @@ _POSIX_ONLY = pytest.mark.skipif(
 @_POSIX_ONLY
 def test_running_with_live_pid(run_dir):
     control.write_pidfile()  # our own pid: definitely alive
-    assert control.is_running() is True
+    with patch.object(control, "process_has_arg", return_value=True):
+        assert control.is_running() is True
     control.remove_pidfile()
     assert control.is_running() is False
 
@@ -97,11 +98,22 @@ def test_spawn_survives_popen_failure(run_dir):
 @_POSIX_ONLY
 def test_stop_sigterms_pidfile_process(run_dir):
     (run_dir / "menubar.pid").write_text("12345")
-    with patch.object(os, "kill") as kill:
+    with patch.object(os, "kill") as kill, patch.object(control, "process_has_arg", return_value=True):
         # First call is the liveness probe (sig 0); make it succeed.
         kill.return_value = None
         assert control.stop() is True
     kill.assert_any_call(12345, signal.SIGTERM)
+    assert not (run_dir / "menubar.pid").exists()
+
+
+@_POSIX_ONLY
+def test_stop_never_signals_a_recycled_pid(run_dir):
+    """A live pid that is not a menu bar process is a stale pidfile, not a target."""
+    (run_dir / "menubar.pid").write_text("12345")
+    with patch.object(os, "kill") as kill, patch.object(control, "process_has_arg", return_value=False):
+        kill.return_value = None
+        assert control.stop() is False
+    assert all(c.args[1] != signal.SIGTERM for c in kill.call_args_list)
     assert not (run_dir / "menubar.pid").exists()
 
 
