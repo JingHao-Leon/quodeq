@@ -325,9 +325,3 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 # JSON (to_dict / to_camel_dict); the dashboard reads them by key.
 _.workflow
 _.run_url
-
-
-# Standards sharing (install/update write evaluator files, share routes answer
-# 409): the library caller is gone, the sharing service in this series is the
-# next caller of these helpers and of the conflict code.
-_.ERROR_CODE_CONFLICT  # api/_constants.py: used by the standards-sharing 409 responses.
