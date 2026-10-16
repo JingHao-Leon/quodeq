@@ -47,7 +47,7 @@ describe('ConnectTeamCard', () => {
   it('shows the title and the description', async () => {
     renderCard(makeApi());
     expect(screen.getByText('evaluations repository')).toBeInTheDocument();
-    expect(screen.getByText("A git repository where evaluations are published, yours or your team's. Connect it to browse them next to your own projects.")).toBeInTheDocument();
+    expect(screen.getByText("A git repository where evaluations are published, yours or one you share with others. Connect it to browse them next to your own projects.")).toBeInTheDocument();
   });
 
   it('typing a URL and pressing connect calls connectShared with it', async () => {
