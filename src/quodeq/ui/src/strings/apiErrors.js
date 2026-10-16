@@ -64,7 +64,6 @@ const CODE_KEYS = {
   STILL_RUNNING: 'apiError.stillRunning',
 
   // Standards library.
-  LIBRARY_NOT_CONFIGURED: 'apiError.libraryNotConfigured',
   BAD_ZIP: 'apiError.badZip',
 
   // Transport conditions where the code says everything the message does.
