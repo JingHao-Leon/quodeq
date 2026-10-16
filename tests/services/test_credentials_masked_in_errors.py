@@ -1,9 +1,10 @@
-"""Error messages that echo a repository URL mask its embedded credentials."""
+"""Credentials stay out of error messages and reprs."""
 from __future__ import annotations
 
 import pytest
 
 from quodeq.data.fs.repo_validation import validate_remote_url
+from quodeq.services.base import EvaluationOptions
 from quodeq.services.shared_connect import ConnectOutcome, ConnectStatus
 from quodeq.services.shared_connect_job import connect_failure
 from quodeq.services.shared_publish import PublishError, prepare_clone
@@ -30,3 +31,9 @@ def test_invalid_url_format_masks_credentials():
     with pytest.raises(ValueError, match="Invalid repository URL format") as excinfo:
         validate_remote_url(f"https://user:{_SECRET}@exa mple.com/org/repo.git")
     assert _SECRET not in str(excinfo.value)
+
+
+def test_evaluation_options_repr_hides_api_key():
+    options = EvaluationOptions(provider_api_key=_SECRET)
+    assert _SECRET not in repr(options)
+    assert options.provider_api_key == _SECRET

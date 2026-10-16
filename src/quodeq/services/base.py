@@ -34,7 +34,8 @@ class EvaluationOptions:
     branch: str | None = None
     scope_path: str | None = None
     context_size: int = 0
-    provider_api_key: str = ""
+    # repr=False: logging or a traceback that prints the options must not print the key.
+    provider_api_key: str = field(default="", repr=False)
     provider_api_base: str = ""
 
 

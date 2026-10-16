@@ -51,8 +51,8 @@ _ALLOWLIST: set[str] = {
     # pids from find_pids_on_port, which returns [] off-darwin.
     "menubar/_process.py:86",
     "menubar/_process.py:98",
-    "menubar/_app_lifecycle.py:156",
-    "menubar/_app_lifecycle.py:168",
+    "menubar/_app_lifecycle.py:157",
+    "menubar/_app_lifecycle.py:169",
     # _terminate's POSIX branch: `if _IS_WINDOWS` returns after proc.kill()
     # before this line, and the call is wrapped in `except OSError`. Kills the
     # streaming git process group (git plus any ssh/credential helper that
