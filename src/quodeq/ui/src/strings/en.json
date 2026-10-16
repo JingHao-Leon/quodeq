@@ -1176,7 +1176,6 @@
   "overview.riskAreasAria": "Areas that need rework, by issues per file",
   "overview.riskAreasLabel": "areas_needing_rework",
   "overview.riskAreasNote": "AREAS · CLICK TO OPEN",
-  "overview.riskAreasNone": "No area needs rework: every area is below the watch line.",
   "overview.riskAreasFootTotal": "{areas} areas",
   "overview.riskStripAria": "{fixFirst} areas to fix first, {watch} to watch, {healthy} healthy",
   "overview.folderInMap": "Show in the Map",

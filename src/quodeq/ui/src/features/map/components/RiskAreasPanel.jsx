@@ -1,16 +1,16 @@
 /**
  * RiskAreasPanel: the functional areas that need rework most, as the Map's
- * Risk tab places them: fix first then watch, on the absolute lines. Over
- * every finding (the Overview) it lists those two zones. Over some
- * `dimensions` (a dimension page), whose findings alone seldom reach the
- * lines, the healthy areas follow them, and each area says how many times
- * the selection's average its density is (its lift, which orders the areas
- * within a zone and never moves one into another). A row opens the area's
+ * Risk tab places them: fix first then watch, on the absolute lines, then
+ * the healthy ones, so the panel is never empty while the sky has areas.
+ * Over some `dimensions` (a dimension page) each area also says how many
+ * times the selection's average its density is (its lift, which orders the
+ * areas within a zone and never moves one into another). A row opens the area's
  * findings (a scoped Findings view, as the Map's View details does, over the
  * same dimensions); the map icon at its end opens the Risk tab with that
  * area selected. A strip splits every area into the three zones, and the
  * foot counts them and links to the whole sky.
- * With nothing to list it says so in one line.
+ * While the areas load, when they fail, or with nothing to list, it keeps
+ * its frame and says so in one line, so the switch above never sits alone.
  */
 import { useMemo } from 'react';
 import { GridTable, GridRow, GridCell, SectionLabel } from '../../../components/terminal/index.js';
@@ -133,6 +133,25 @@ function ZoneStrip({ fixFirst, watch, total }) {
   );
 }
 
+/** The panel's frame: its head, then the body. */
+function PanelFrame({ children }) {
+  return (
+    <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')}>
+      <div className="qd-cards-panel__head">
+        <SectionLabel>{t('overview.riskAreasLabel')}</SectionLabel>
+        <span className="run-history-panel__stats">{t('overview.riskAreasNote')}</span>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Why there are no rows: still loading, failed (the query retries), or no area the sky draws. */
+function statusKey({ loading, failed }) {
+  if (loading) return 'map.riskLoading';
+  return failed ? 'map.riskFailed' : 'map.riskEmpty';
+}
+
 /**
  * @param {object} props
  * @param {string} props.project
@@ -143,33 +162,29 @@ function ZoneStrip({ fixFirst, watch, total }) {
  * @param {() => void} [props.onOpenRisk]
  */
 export default function RiskAreasPanel({ project, source, dimensions = NO_DIMENSIONS, onAreaFindings, onAreaInMap, onOpenRisk }) {
-  const { areas, files, loading } = useRiskAreas({ project, source, dimensions });
+  const { areas, files, loading, failed } = useRiskAreas({ project, source, dimensions });
   const openArea = useMemo(() => {
     if (!onAreaFindings) return undefined;
     const selection = dimensions.length ? { dimensions } : null;
     return (area) => onAreaFindings(areaFindingsScope(area, files, selection));
   }, [onAreaFindings, dimensions, files]);
-  const { rows: rework, fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
-  // Over a selection every area judged is listed, zones first, then by lift.
-  const rows = useMemo(() => (dimensions.length ? areas.filter((a) => a.zone) : rework), [dimensions, areas, rework]);
-  if (loading || !total) return null;
+  const { fixFirst, watch, total } = useMemo(() => reworkSummary(areas), [areas]);
+  // Every area judged, zones first (fix first, watch, healthy), then by lift; too small to judge left out.
+  const rows = useMemo(() => areas.filter((a) => a.zone), [areas]);
+  if (loading || !rows.length) {
+    return <PanelFrame><div className="risk-areas-panel__none">{t(statusKey({ loading, failed }))}</div></PanelFrame>;
+  }
   return (
-    <section className="qd-cards-panel risk-areas-panel" aria-label={t('overview.riskAreasAria')}>
-      <div className="qd-cards-panel__head">
-        <SectionLabel>{t('overview.riskAreasLabel')}</SectionLabel>
-        <span className="run-history-panel__stats">{t('overview.riskAreasNote')}</span>
-      </div>
-      {rows.length ? (
-        <GridTable columns={onAreaInMap ? AREA_COLUMNS_WITH_MAP : PLACE_COLUMNS} dense>
-          <AreaHeader withMap={Boolean(onAreaInMap)} />
-          {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onOpen={openArea} onShowInMap={onAreaInMap} />)}
-        </GridTable>
-      ) : <div className="risk-areas-panel__none">{t('overview.riskAreasNone')}</div>}
+    <PanelFrame>
+      <GridTable columns={onAreaInMap ? AREA_COLUMNS_WITH_MAP : PLACE_COLUMNS} dense>
+        <AreaHeader withMap={Boolean(onAreaInMap)} />
+        {rows.slice(0, AREAS_SHOWN).map((area) => <AreaRow key={area.name} area={area} onOpen={openArea} onShowInMap={onAreaInMap} />)}
+      </GridTable>
       <ZoneStrip fixFirst={fixFirst} watch={watch} total={total} />
       <div className="panel-foot">
         <span>{t('overview.riskAreasFootTotal', { areas: total.toLocaleString(LOCALE) })}</span>
         {onOpenRisk && <button type="button" className="panel-foot__link" onClick={onOpenRisk}>{t('overview.riskAreasOpen')}</button>}
       </div>
-    </section>
+    </PanelFrame>
   );
 }
