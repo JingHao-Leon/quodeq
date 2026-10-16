@@ -106,5 +106,11 @@
 .overview-since__num--new { color: var(--color-sev-major-text); }
 .overview-since__num--fixed { color: var(--color-grade-top-text); }
 .overview-since__num--quiet { color: var(--color-text-muted); }
+/* Nothing to compare: one tip on the row's single line, cut with an ellipsis, faded in after a beat. */
+.overview-since--tip { flex-wrap: nowrap; overflow: hidden; }
+.overview-since__tip { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--color-text-muted); animation: overview-since-tip-in 240ms ease 600ms both; }
+.overview-since__tip strong { color: var(--color-text); font-weight: 600; }
+@keyframes overview-since-tip-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .overview-since__tip { animation: none; } }
 .overview-top-grid { margin-top: var(--space-3, 12px); }
 .explorer-where__note { margin: 0; font-size: 11px; color: var(--color-text-muted); }

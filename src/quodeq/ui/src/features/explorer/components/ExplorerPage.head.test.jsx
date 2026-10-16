@@ -102,7 +102,7 @@ describe('ExplorerPage header', () => {
     const { container } = page({ onNavigate: vi.fn() });
     await screen.findByRole('button', { name: 'principle card' });
     const order = [...container.querySelector('.explorer-page').children].map((n) => n.getAttribute('aria-label') || n.className);
-    expect(order).toEqual(['findings-head__sticky', 'findings-head qd-cards-panel', t('explorer.principlesAria'), 'qd-top-grid explorer-top-grid', 'explorer-bottom']);
+    expect(order).toEqual(['findings-head__sticky', t('overview.sinceTipLabel'), 'findings-head qd-cards-panel', t('explorer.principlesAria'), 'qd-top-grid explorer-top-grid', 'explorer-bottom']);
   });
 
   it('a principle card opens its principle, a file row its file', async () => {

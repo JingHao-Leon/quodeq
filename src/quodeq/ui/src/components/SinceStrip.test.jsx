@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import SinceStrip from './SinceStrip.jsx';
@@ -27,9 +27,15 @@ describe('SinceStrip', () => {
     expect(screen.getByText('1 closed')).toBeInTheDocument();
   });
 
-  it('renders nothing without a summary', () => {
+  it('keeps its row with a tip, small and on one line, when there is nothing to compare', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0); // the first tip, which bolds its point
     const { container } = render(<SinceStrip summary={null} />);
-    expect(container).toBeEmptyDOMElement();
+    const row = container.querySelector('.overview-since.overview-since--tip');
+    expect(row).not.toBeNull();
+    expect(row.querySelector('.overview-since__tip')).not.toBeNull();
+    expect(row.querySelector('.overview-since__tip strong')).not.toBeNull(); // the tip's bold survives
+    expect(screen.queryByText(/new$/)).not.toBeInTheDocument();
+    vi.restoreAllMocks();
   });
 
   it('takes the caller\'s label', () => {

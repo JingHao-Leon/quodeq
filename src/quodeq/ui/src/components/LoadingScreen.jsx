@@ -9,7 +9,7 @@ import { renderRich } from '../strings/rich.jsx';
 // commands as `code`, so a skim still lands the point. A tip that opens with
 // a question gets it on its own line: the reader decides from the question
 // alone whether the rest applies to them.
-const TIP_KEYS = [
+export const TIP_KEYS = [
   'loading.tips.warmup', 'loading.tips.incremental', 'loading.tips.cleanScan',
   'loading.tips.fixplans', 'loading.tips.dismiss', 'loading.tips.ignore',
   'loading.tips.assistant', 'loading.tips.riskTab', 'loading.tips.architecture',
