@@ -75,9 +75,9 @@ function concentrationPaint(n, ctx) {
   const b = badness(statsOf(n, ctx.agg.get(n)), ctx.average, kind);
   const hue = badnessHue(b, ctx.palette);
   if (kind === NODE_KIND.FILE) {
-    // Files keep the critical, major and minor colours; folders show concentration.
+    // Files better than average take the better hue, the rest their worst severity; folders show concentration.
     const worst = worstSeverity(n.data.severity || {});
-    const fileHue = fileSeverityHue(worst, ctx.palette);
+    const fileHue = fileSeverityHue(worst, b, ctx.palette);
     return { fill: rgbCss(fileSeverityColor(worst, b, ctx.palette)), alpha: 1, cutOut: false, file: true, badness: b, hue: fileHue };
   }
   const strength = badnessStrength(b, ctx.palette.dark);
