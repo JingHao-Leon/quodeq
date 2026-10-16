@@ -1,10 +1,11 @@
 import { badness, nodeWeight } from './mapBadness.js';
 import {
-  mixRgb, rgbCss, badnessHue, badnessStrength, fileConcentrationColor, activityScale, activityFileStrength,
+  mixRgb, rgbCss, badnessHue, badnessStrength, fileSeverityColor, fileSeverityHue, activityScale, activityFileStrength,
   activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE,
   ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
 import { NODE_KIND, PACK_COLOR_MODE } from '../../mapVocab.js';
+import { worstSeverity } from './mapColors.js';
 import { filePathKey } from '../../model/mapActivity.js';
 import { isPackFolder } from './packNode.js';
 
@@ -74,7 +75,10 @@ function concentrationPaint(n, ctx) {
   const b = badness(statsOf(n, ctx.agg.get(n)), ctx.average, kind);
   const hue = badnessHue(b, ctx.palette);
   if (kind === NODE_KIND.FILE) {
-    return { fill: rgbCss(fileConcentrationColor(b, ctx.palette)), alpha: 1, cutOut: false, file: true, badness: b, hue };
+    // Files keep the critical, major and minor colours; folders show concentration.
+    const worst = worstSeverity(n.data.severity || {});
+    const fileHue = fileSeverityHue(worst, ctx.palette);
+    return { fill: rgbCss(fileSeverityColor(worst, b, ctx.palette)), alpha: 1, cutOut: false, file: true, badness: b, hue: fileHue };
   }
   const strength = badnessStrength(b, ctx.palette.dark);
   return { ...folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette }), file: false, badness: b, hue };

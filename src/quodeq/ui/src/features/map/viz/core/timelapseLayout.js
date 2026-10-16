@@ -61,7 +61,9 @@ function packToday(model, kids, live, xyr) {
     return { i, c: present.map(build) };
   };
   const root = hierarchy(build(0), (d) => d.c).sum((d) => (d.c ? 0 : d.v));
-  root.sort((a, b) => (b.value || 0) - (a.value || 0));
+  // Largest first, equal sizes by path: the static Circle Pack's packOrder, so the first and last frames match it.
+  const rank = model.pathRank;
+  root.sort((a, b) => (b.value || 0) - (a.value || 0) || (rank ? rank[a.data.i] - rank[b.data.i] : 0));
   packInPlace(root);
   const scales = [];
   root.each((d) => {

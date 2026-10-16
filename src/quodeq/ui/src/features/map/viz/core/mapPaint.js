@@ -79,6 +79,18 @@ export function fileConcentrationColor(b, palette) {
   return mixRgb(palette.bg, badnessHue(b, palette), fileStrength(b, palette.dark));
 }
 
+const SEVERITY_HUE_KEY = Object.freeze({ critical: 'sevCritical', major: 'sevMajor', minor: 'sevMinor' });
+
+/** A file's hue: the severity colour of its worst finding, neutral without findings. */
+export function fileSeverityHue(worst, palette) {
+  return palette[SEVERITY_HUE_KEY[worst]] ?? palette.neutral;
+}
+
+/** A file in the Circle Pack: its worst finding's colour, stronger the more its findings weigh. */
+export function fileSeverityColor(worst, b, palette) {
+  return mixRgb(palette.bg, fileSeverityHue(worst, palette), fileStrength(Math.max(0, b), palette.dark));
+}
+
 /** Edits that count as "changed often": the 90th percentile of edited files, at least 2. */
 export function activityScale(editCounts) {
   const edited = editCounts.filter((n) => n > 0).sort((a, b) => a - b);

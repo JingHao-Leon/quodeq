@@ -27,7 +27,7 @@ Above the header, one line says what changed since the previous day, week or mon
 - **Dimension cards** one compact card per dimension, weakest first: its name and change on top, the ring with its score, the grade word, its severities and its pass rate. A standard switched on but never evaluated shows as a dashed card that opens Evaluate. Click a card to open the dimension's page.
 - **Score history and dimensions radial** side by side. The history shows the grade bands behind the bars and each run's change above it; hover or focus a card or its point on the radial and both light up.
 - **Fix first** the requirements to work on first, critical ones on top. Click one to open its findings.
-- **Where** beside it, the areas that need rework (the Map's Risk zones; click one to open its findings, or the map icon at the end of its row to open the Risk tab with it selected), or, one switch away, the folders that hold findings or the worst files. Click a folder or a file to open its findings.
+- **Where** beside it, the Map's areas, worst first: fix first, then watch, then the healthy ones (the Map's Risk zones; click one to open its findings, or the map icon at the end of its row to open the Risk tab with it selected), or, one switch away, the folders that hold findings or the worst files. Click a folder or a file to open its findings.
 
 When you pick an older run in the score history, these open the findings as of that run, read-only.
 

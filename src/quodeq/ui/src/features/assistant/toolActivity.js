@@ -100,6 +100,7 @@ const DESCRIBERS = {
     : t('assistant.activity.compareProjects')),
   get_dismissed: () => t('assistant.activity.getDismissed'),
   get_help: () => t('assistant.activity.getHelp'),
+  get_grade_formula: () => t('assistant.activity.getGradeFormula'),
   get_risk_areas: () => t('assistant.activity.getRiskAreas'),
   get_principle_history: (a) => t('assistant.activity.getPrincipleHistory', { dimension: a.dimension ?? '' }),
   list_standards: () => t('assistant.activity.listStandards'),

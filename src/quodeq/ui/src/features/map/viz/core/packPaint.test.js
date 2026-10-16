@@ -12,6 +12,7 @@ const PALETTE = {
   bg: C(10, 10, 10), surfaceAlt: C(20, 20, 20), text: C(230, 230, 230), border: C(60, 60, 60),
   worse: C(240, 80, 120), better: C(0, 212, 255), neutral: C(138, 143, 168),
   activity: C(0, 212, 255), activityIdle: C(138, 155, 176), glassParent: C(200, 195, 216),
+  sevCritical: C(255, 0, 0), sevMajor: C(255, 140, 0), sevMinor: C(230, 200, 0),
 };
 const file = (path, violations, compliance, critical = 0) => ({
   name: path.split('/').pop(), path, isFile: true, violations, compliance, severity: { critical, major: 0, minor: violations - critical },
@@ -133,4 +134,14 @@ test('the project circle is surface-alt in both themes: in dark mode one step ab
   assert.equal(root(true), rgbCss(PALETTE.surfaceAlt));
   assert.equal(root(false), rgbCss(PALETTE.surfaceAlt));
   assert.notEqual(root(true), rgbCss(PALETTE.bg));
+});
+
+test('files carry the colour of their worst finding, in both themes', () => {
+  for (const dark of [true, false]) {
+    const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, dark);
+    assert.deepEqual(at('src/bad/a.py').hue, PALETTE.sevCritical);
+    assert.deepEqual(at('src/good/d.py').hue, PALETTE.sevMinor);
+    assert.deepEqual(at('src/good/c.py').hue, PALETTE.neutral);
+    assert.notEqual(at('src/good/d.py').fill, at('src/good/c.py').fill);
+  }
 });
