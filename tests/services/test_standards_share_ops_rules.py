@@ -188,3 +188,4 @@ def test_extra_texts_are_capped_like_import_text():
     req = with_share_extras(sanitized, raw)["principles"][0]["requirements"][0]
     texts = [req["name"], req["hints"]["web"], req["hints"]["ios"][0], req["params"]["n"]["label"]]
     assert {len(t) for t in texts} == {2000}
+

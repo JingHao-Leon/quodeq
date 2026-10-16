@@ -153,7 +153,8 @@ def _register_serve_signal_handlers(stop_children: typing.Callable) -> None:
     if hasattr(signal, "SIGTSTP"):
         signal.signal(signal.SIGTSTP, _make_tstp_handler(stop_children))
     signal.signal(signal.SIGTERM, _make_term_handler(stop_children))
-    if hasattr(signal, "SIGHUP"):  # a closing terminal, else the API is orphaned
+    # A closing terminal, else the API is orphaned; `nohup` (SIGHUP ignored) means keep running.
+    if hasattr(signal, "SIGHUP") and signal.getsignal(signal.SIGHUP) != signal.SIG_IGN:
         signal.signal(signal.SIGHUP, _make_term_handler(stop_children))
 
 

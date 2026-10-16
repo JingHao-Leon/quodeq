@@ -29,10 +29,17 @@ def shared_standards_dir(url: str, env: Mapping[str, str] | None = None) -> Path
 
 
 def read_shared_standards(directory: Path) -> dict[str, dict]:
-    """``{id: payload}`` for every readable standard file in *directory*."""
+    """``{id: payload}`` for every readable standard file in *directory*.
+
+    Symlinks are never followed: a publisher could point the folder, or one
+    file, at this machine's own files.
+    """
     out: dict[str, dict] = {}
+    if directory.is_symlink():
+        _logger.warning("Ignoring shared standards in %s: the folder is a symlink", directory)
+        return out
     try:
-        paths = sorted(directory.glob(f"*{JSON_SUFFIX}")) if directory.is_dir() else []
+        paths = sorted(p for p in directory.glob(f"*{JSON_SUFFIX}") if not p.is_symlink()) if directory.is_dir() else []
     except OSError as exc:
         _logger.warning("Cannot list shared standards in %s: %s", directory, exc)
         return out
@@ -54,8 +61,11 @@ def write_shared_standard(directory: Path, standard_id: str, payload: dict) -> N
     if not standard_id or standard_id == ".":
         raise ValueError(f"Invalid standard id: {standard_id!r}")
     validate_path_segment(standard_id)
+    target = directory / f"{standard_id}{JSON_SUFFIX}"
+    if directory.is_symlink() or target.is_symlink():
+        raise ValueError(f"Refusing to write {standard_id} through a symlink in the shared repository")
     directory.mkdir(parents=True, exist_ok=True)
-    replace_json_file(directory / f"{standard_id}{JSON_SUFFIX}", payload, indent=2)
+    replace_json_file(target, payload, indent=2)
 
 
 def restore_shared_standards(repo: Path) -> tuple[bool, str]:

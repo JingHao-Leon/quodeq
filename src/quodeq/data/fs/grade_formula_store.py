@@ -81,7 +81,7 @@ def _read_saved(path: Path) -> dict | None:
         _logger.warning("Unreadable %s (not an object); using Q2 default formula.", path)
         return None
     if data.get(ALGO_VERSION_KEY) != GRADE_ALGO_VERSION:
-        _logger.info(
+        _logger.warning(
             "Custom formula in %s was saved under an older grade algorithm; "
             "retired, using Q2 default formula.", path,
         )
@@ -107,19 +107,44 @@ def load_params() -> ScoringParams:
     return params
 
 
+def _retired_version(path: Path) -> object | None:
+    """The algorithm version of a readable formula file at *path* saved under an older one, else None."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+    except _UNREADABLE:
+        return None
+    if not isinstance(data, dict) or data.get(ALGO_VERSION_KEY) == GRADE_ALGO_VERSION:
+        return None
+    return data.get(ALGO_VERSION_KEY, "old")
+
+
+def has_retired_formula() -> bool:
+    """True when the saved formula was tuned for an older grade algorithm and is set aside."""
+    return _retired_version(grade_formula_path()) is not None
+
+
+def _back_up_retired(path: Path) -> None:
+    """Copy a retired formula to ``<stem>.v<version>.json`` before it is overwritten or removed."""
+    version = _retired_version(path)
+    if version is not None:
+        path.with_name(f"{path.stem}.v{version}{path.suffix}").write_bytes(path.read_bytes())
+
+
 def save_params(params: ScoringParams) -> None:
-    """Validate and persist custom params. Raises ValueError when invalid."""
+    """Validate and persist custom params (a retired file is backed up first). Raises ValueError when invalid."""
     errors = validate_params(params)
     if errors:
         raise ValueError("; ".join(errors))
     path = grade_formula_path()
     path.parent.mkdir(parents=True, exist_ok=True)
+    _back_up_retired(path)
     data = params_to_dict(params) | {ALGO_VERSION_KEY: GRADE_ALGO_VERSION}
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def reset_params() -> None:
-    """Remove the custom-params file (back to Q² defaults)."""
+    """Remove the custom-params file (back to Q² defaults); a retired one is backed up first."""
+    _back_up_retired(grade_formula_path())
     grade_formula_path().unlink(missing_ok=True)
 
 

@@ -8,17 +8,19 @@ import { t } from '../../../strings/index.js';
 // The named writes the editor makes, so no consumer ever sees a raw setter.
 // A server response (initial load, apply, reset) is authoritative for both
 // the saved formula and the draft on screen, so the draft stops being dirty.
-function useFormulaIntents({ setSaved, setDraft, setIsCustom, setBusy, setError, setPartialNotice }) {
+function useFormulaIntents({ setSaved, setDraft, setIsCustom, setRetiredCustom, setBusy, setError, setPartialNotice }) {
   const queryClient = useQueryClient();
   // The Map's severity weights read the same formula: keep that cache entry current.
   // The entry holds the GET payload as `{...prev, current, isCustom}`: the server's
   // other fields (defaults, rescore) stay, the formula and its custom flag are replaced.
-  const adoptServerFormula = useCallback((formula, custom) => {
+  // `retired`: a custom formula saved under an older grade algorithm, set aside by the server.
+  const adoptServerFormula = useCallback((formula, custom, retired = false) => {
     setSaved(formula);
     setDraft(formula);
     setIsCustom(custom);
+    setRetiredCustom(Boolean(retired));
     queryClient.setQueryData(gradeFormulaKeys.current(), (prev) => ({ ...prev, current: formula, isCustom: custom }));
-  }, [setSaved, setDraft, setIsCustom, queryClient]);
+  }, [setSaved, setDraft, setIsCustom, setRetiredCustom, queryClient]);
 
   // Start an apply/reset: busy on, last error and partial notice cleared.
   const beginRequest = useCallback(() => {
@@ -50,6 +52,7 @@ export function useGradeFormulaState() {
   const [saved, setSaved] = useState(null);     // params dict as saved server-side
   const [draft, setDraft] = useState(null);     // params dict being edited
   const [isCustom, setIsCustom] = useState(false);
+  const [retiredCustom, setRetiredCustom] = useState(false);
   const [defaults, setDefaults] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -62,7 +65,7 @@ export function useGradeFormulaState() {
   const [resumeFrom, setResumeFrom] = useState(null);
 
   const intents = useFormulaIntents({
-    setSaved, setDraft, setIsCustom, setBusy, setError, setPartialNotice,
+    setSaved, setDraft, setIsCustom, setRetiredCustom, setBusy, setError, setPartialNotice,
   });
   const { adoptServerFormula } = intents;
 
@@ -70,7 +73,7 @@ export function useGradeFormulaState() {
     getGradeFormula()
       .then((d) => {
         setDefaults(d.defaults);
-        adoptServerFormula(d.current, d.isCustom);
+        adoptServerFormula(d.current, d.isCustom, d.retiredCustom);
         if (d.rescore?.state === RESCORE_STATE.RUNNING) setResumeFrom(d);
         // A pass that failed while the editor was closed: say so on return.
         if (d.rescore?.state === RESCORE_STATE.ERROR) setError(t('gradeFormula.rescoreFailed'));
@@ -79,7 +82,7 @@ export function useGradeFormulaState() {
   }, [adoptServerFormula]);
 
   return {
-    saved, draft, isCustom, defaults, busy, error, partialNotice,
+    saved, draft, isCustom, retiredCustom, defaults, busy, error, partialNotice,
     resumeFrom, ...intents,
   };
 }

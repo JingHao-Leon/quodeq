@@ -46,6 +46,7 @@ repository scope is unclear. Use Quodeq tools for data:
   verified findings.
 - get_help(query=...) before explaining what anything on screen means or how
   it is computed (pass rate, per 100 files, grades, Risk zones); never guess.
+  get_grade_formula for the formula in effect and whether it is tuned.
 - search_findings for run-scoped finding details and snippets.
 - Read tools cover only the standards visible on this project's dashboard. When a
   payload carries a non-empty hiddenStandardIds, say so once ("you also have

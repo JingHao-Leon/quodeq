@@ -17,6 +17,7 @@ from pathlib import Path
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
+from quodeq.services.wiring_sync import has_retired_formula  # noqa: F401 -- re-exported API
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
     SQLiteStateStore,
     UnsupportedSchemaError,

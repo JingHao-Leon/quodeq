@@ -108,3 +108,27 @@ def test_commit_staged_commits_only_when_something_is_staged(tmp_path, monkeypat
     subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
     assert commit_staged(repo, "first")[0] and _log_count(repo) == 1
     assert commit_staged(repo, "again") == (True, "") and _log_count(repo) == 1
+
+
+def test_a_symlinked_standards_folder_reads_empty_and_refuses_writes(tmp_path):
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "mine.json").write_text(json.dumps({"id": "mine"}), encoding="utf-8")
+    folder = tmp_path / "standards"
+    folder.symlink_to(elsewhere, target_is_directory=True)
+    assert read_shared_standards(folder) == {}
+    with pytest.raises(ValueError):
+        write_shared_standard(folder, "mine", {"id": "mine"})
+    assert json.loads((elsewhere / "mine.json").read_text())["id"] == "mine"
+
+
+def test_symlinked_standard_files_are_skipped_and_never_written_through(tmp_path):
+    outside = tmp_path / "outside.json"
+    outside.write_text(json.dumps({"id": "link"}), encoding="utf-8")
+    folder = tmp_path / "standards"
+    folder.mkdir()
+    (folder / "link.json").symlink_to(outside)
+    assert read_shared_standards(folder) == {}
+    with pytest.raises(ValueError):
+        write_shared_standard(folder, "link", {"id": "link", "x": 1})
+    assert "x" not in json.loads(outside.read_text())

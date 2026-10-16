@@ -100,6 +100,7 @@ const DESCRIBERS = {
     : t('assistant.activity.compareProjects')),
   get_dismissed: () => t('assistant.activity.getDismissed'),
   get_help: () => t('assistant.activity.getHelp'),
+  get_grade_formula: () => t('assistant.activity.getGradeFormula'),
   list_standards: () => t('assistant.activity.listStandards'),
   get_standard: (a) => t('assistant.activity.getStandard', { standard: a.standard_id ?? '' }),
   read_repo_file: (a) => t('assistant.activity.readFile', { path: a.path ?? '' }),

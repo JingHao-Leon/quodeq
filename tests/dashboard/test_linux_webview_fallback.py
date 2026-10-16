@@ -100,3 +100,15 @@ def test_a_closing_terminal_stops_the_api() -> None:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
     assert stopped == [True]
+
+
+@pytest.mark.skipif(not hasattr(signal, "SIGHUP"), reason="SIGHUP is POSIX-only")
+def test_nohup_keeps_the_api_running_when_the_terminal_closes() -> None:
+    previous = {sig: signal.getsignal(sig) for sig in (signal.SIGHUP, signal.SIGTERM, signal.SIGTSTP)}
+    try:
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)  # what `nohup` sets before exec
+        _server._register_serve_signal_handlers(lambda: None)
+        assert signal.getsignal(signal.SIGHUP) == signal.SIG_IGN
+    finally:
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)

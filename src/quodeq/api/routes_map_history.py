@@ -66,7 +66,8 @@ def map_history_response(project: str, root: Path | None = None) -> Response | t
         log=lambda: _logger.exception("Failed to build the map history for %s", project),
         bad_request=(SelectionError,))
     return serve_report_payload(
-        lambda reports_root: map_history_payload(build_map_history(reports_root, project, frames=frames, selection=selection),
+        lambda reports_root: map_history_payload(build_map_history(reports_root, project, frames=frames, selection=selection,
+                                                                   git_activity=root is None),
                                                  delta=frames == ALL_FRAMES),
         failure, root)
 
