@@ -158,13 +158,15 @@ def _top_counts(counts: dict[str, int], n: int) -> dict[str, int]:
 
 def get_violations(ctx: ToolContext, dimension: str | None = None,
                     limit: int = _VIOLATIONS_DEFAULT_LIMIT,
-                    path: str | None = None) -> dict:
+                    path: str | None = None, paths: list[str] | None = None) -> dict:
     """One page of violations for the run or overview scope, severity first,
     with per-principle, per-requirement and per-file counts.
 
     *path* narrows the scope to one folder or file (see ``path_matches``);
     the counts then describe that folder, which is what a "why does this
-    module have so many findings" question needs.
+    module have so many findings" question needs. *paths* does the same for
+    several at once (a Risk area spans several folders): a violation counts
+    when it lies under any of them.
     """
     limit = clamp(int(limit), 1, VIOLATIONS_MAX_LIMIT)
     if has_run(ctx):
@@ -174,8 +176,11 @@ def get_violations(ctx: ToolContext, dimension: str | None = None,
 
     total_in_scope = len(raw)
     norm_path = _normalize_path(path) if path else ""
+    norm_paths = [p for p in (_normalize_path(x) for x in (paths or []) if isinstance(x, str)) if p]
     if norm_path:
         raw = [v for v in raw if path_matches(v.get("file"), norm_path)]
+    if norm_paths:
+        raw = [v for v in raw if any(path_matches(v.get("file"), p) for p in norm_paths)]
 
     # The counts reflect ALL matching violations so "worst principle" and
     # "worst file" stay accurate even when the returned list is capped by
@@ -193,6 +198,9 @@ def get_violations(ctx: ToolContext, dimension: str | None = None,
            "by_file": by_file, "hiddenStandardIds": hidden}
     if norm_path:
         out["path"] = norm_path
+    if norm_paths:
+        out["paths"] = norm_paths
+    if norm_path or norm_paths:
         out["total_in_scope"] = total_in_scope
     return out
 

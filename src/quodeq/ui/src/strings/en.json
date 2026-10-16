@@ -83,6 +83,8 @@
   "assistant.activity.getDismissed": "Reading dismissed findings",
   "assistant.activity.getGradeFormula": "Reading the grade formula",
   "assistant.activity.getHelp": "Reading the help",
+  "assistant.activity.getPrincipleHistory": "Reading the {dimension} principle history",
+  "assistant.activity.getRiskAreas": "Reading the risk areas",
   "assistant.activity.getHistory": "Reading the score history",
   "assistant.activity.getHistoryDim": "Reading the {dimension} score history",
   "assistant.activity.getOverview": "Reading the overview",

@@ -221,3 +221,13 @@ it('drops a queued message on its ×, and Esc with an empty draft stops the turn
   rerender(<AssistantPane uiState={{ activeTab: 'overview' }} />);
   expect(state.sendMessage).not.toHaveBeenCalled();
 });
+
+it('sends what the open page published (the Risk area open on the Map) with the message', async () => {
+  const { usePageFocus } = await import('../../hooks/usePageFocus.js');
+  function RiskTab() { usePageFocus('riskArea', 'payments'); return null; }
+  render(<><RiskTab /><AssistantPane uiState={{ activeTab: 'map', page: 'map' }} /></>);
+  const input = screen.getByPlaceholderText(/ask/i);
+  fireEvent.change(input, { target: { value: 'why is this area red?' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(state.sendMessage).toHaveBeenCalledWith('why is this area red?', { activeTab: 'map', page: 'map', focus: { riskArea: 'payments' } });
+});

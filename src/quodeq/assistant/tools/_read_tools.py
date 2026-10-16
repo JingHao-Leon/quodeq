@@ -8,6 +8,7 @@ from quodeq.assistant.tools._read_tools_common import find_dimension, raw_run_di
 from quodeq.assistant.tools._read_tools_compare import register_compare_tools
 from quodeq.assistant.tools.help_tools import register_help_tools
 from quodeq.assistant.tools._formula_tool import register_formula_tool
+from quodeq.assistant.tools._map_tools import register_map_tools
 from quodeq.assistant.tools._read_tools_dismissed import register_dismissed_tools
 from quodeq.assistant.tools._read_tools_history import register_history_tools
 from quodeq.assistant.tools._read_tools_scope import (
@@ -203,11 +204,13 @@ def _register_findings_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
         "counts. `path` narrows to one folder or file (repo-relative, matched "
         "on whole path segments, e.g. the folder open in the Map or the file "
         "open in the Explorer); use it for 'why does this module/file have so "
-        "many findings'. Uses the selected run if one is selected, otherwise "
+        "many findings'. `paths` takes several at once, e.g. a Risk area's "
+        "`paths` from the page or get_risk_areas. Uses the selected run if one is selected, otherwise "
         "the accumulated (per-dimension-latest) view.",
         {"type": JSON_SCHEMA_TYPE_OBJECT, "properties": {
             "dimension": {"type": JSON_SCHEMA_TYPE_STRING},
             "path": {"type": JSON_SCHEMA_TYPE_STRING},
+            "paths": {"type": "array", "items": {"type": JSON_SCHEMA_TYPE_STRING}},
             "limit": {"type": "integer", "minimum": 1, "maximum": VIOLATIONS_MAX_LIMIT},
         }},
         lambda **kw: get_violations(ctx, **kw)))
@@ -261,4 +264,5 @@ def register_read_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
     register_dismissed_tools(registry, ctx)
     register_help_tools(registry)
     register_formula_tool(registry)
+    register_map_tools(registry, ctx)
     _register_standards_tools(registry, ctx)

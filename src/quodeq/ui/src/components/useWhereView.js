@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { usePageFocus } from '../hooks/usePageFocus.js';
 
 const KEY_PREFIX = 'quodeq.where.';
 
@@ -42,5 +43,6 @@ export function useWhereView(page, fallback, views) {
       console.debug('[useWhereView] write failed:', err);
     }
   }, [key]);
+  usePageFocus('whereView', view);
   return [view, choose];
 }
