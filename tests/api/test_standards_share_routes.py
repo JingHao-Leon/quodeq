@@ -88,3 +88,41 @@ def test_bad_id_is_a_400(client, monkeypatch):
     monkeypatch.setattr(f"{_MOD}.shared_url", lambda: "file:///x")
     resp = client.post("/api/standards/..%2Fx/share", headers=_LOCALHOST)
     assert resp.status_code in (400, 404)
+
+
+@pytest.mark.parametrize(("op", "name"), [("share", "share_standard"), ("update", "update_from_shared")])
+@pytest.mark.parametrize(("body", "force"), [(None, False), ({"force": True}, True), ({"force": "yes"}, False)])
+def test_share_and_update_read_force_from_the_body(client, monkeypatch, op, name, body, force):
+    monkeypatch.setattr(f"{_MOD}.shared_url", lambda: "file:///x")
+    seen = {}
+
+    def spy(sid, **kw):
+        seen["force"] = kw["force"]
+        return {"id": sid}
+    monkeypatch.setattr(f"{_MOD}.{name}", spy)
+    client.post(f"/api/standards/a/{op}", headers=_LOCALHOST, json=body)
+    assert seen == {"force": force}
+
+
+def test_install_takes_no_force(client, monkeypatch):
+    monkeypatch.setattr(f"{_MOD}.shared_url", lambda: "file:///x")
+    monkeypatch.setattr(f"{_MOD}.install_standard", lambda sid, **kw: {"id": sid, "kw": sorted(kw)})
+    resp = client.post("/api/standards/a/install", headers=_LOCALHOST, json={"force": True})
+    assert "force" not in resp.json["kw"]
+
+
+@pytest.mark.parametrize("op", ["share", "install", "update"])
+def test_a_foreign_origin_is_refused(client, monkeypatch, op):
+    monkeypatch.setattr(f"{_MOD}.shared_url", lambda: "file:///x")
+    called = []
+    for name in ("share_standard", "install_standard", "update_from_shared"):
+        monkeypatch.setattr(f"{_MOD}.{name}", lambda sid, **kw: called.append(sid) or {"id": sid})
+    resp = client.post(f"/api/standards/a/{op}", headers={"Origin": "http://evil.example"})
+    assert resp.status_code == 403 and called == []
+
+
+def test_a_body_that_is_not_an_object_is_a_400(client, monkeypatch):
+    monkeypatch.setattr(f"{_MOD}.shared_url", lambda: "file:///x")
+    monkeypatch.setattr(f"{_MOD}.share_standard", lambda sid, **kw: {"id": sid})
+    resp = client.post("/api/standards/a/share", headers=_LOCALHOST, json=[True])
+    assert resp.status_code == 400

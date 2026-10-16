@@ -9,7 +9,7 @@ from pathlib import Path
 from flask import Flask, Response, jsonify
 
 from quodeq.api._constants import ERROR_CODE_BAD_REQUEST
-from quodeq.api.helpers import error_response
+from quodeq.api.helpers import error_response, optional_json_object_or_error
 from quodeq.services.shared_settings import read_settings
 from quodeq.services.standards_share_ops import (
     ShareError,
@@ -38,6 +38,19 @@ def shared_url() -> str | None:
     return read_settings().url
 
 
+_FORCEABLE = frozenset({"share", "update"})
+
+
+def _force_kw(name: str) -> dict | tuple:
+    """``{"force": bool}`` from the optional JSON body for the ops that take it, or a 400 tuple."""
+    if name not in _FORCEABLE:
+        return {}
+    body = optional_json_object_or_error()
+    if isinstance(body, tuple):
+        return body
+    return {"force": body.get("force") is True}
+
+
 def _run(app: Flask, get_service, name: str, op: Callable[..., dict], standard_id: str):
     try:
         validate_path_segment(standard_id)
@@ -46,10 +59,13 @@ def _run(app: Flask, get_service, name: str, op: Callable[..., dict], standard_i
     url = shared_url()
     if not url:
         return error_response("Connect a shared repository first.", HTTPStatus.CONFLICT, ERROR_CODE_NOT_CONNECTED)
+    extra = _force_kw(name)
+    if isinstance(extra, tuple):
+        return extra
     logger.info("standards.share op=%s id=%s", name, standard_id)
     try:
         result = op(standard_id, url=url, evaluators_dir=Path(app.config["STANDARDS_EVALUATORS_DIR"]),
-                    is_builtin=get_service(app).is_builtin)
+                    is_builtin=get_service(app).is_builtin, **extra)
     except ShareError as exc:
         status = _STATUS_BY_CODE.get(exc.code, HTTPStatus.BAD_GATEWAY)
         return error_response(exc.message, status, exc.code)
@@ -57,7 +73,7 @@ def _run(app: Flask, get_service, name: str, op: Callable[..., dict], standard_i
 
 
 def register_share_routes(app: Flask, get_service) -> None:
-    """Bind POST /api/standards/<id>/{share,install,update}."""
+    """Bind POST /api/standards/<id>/{share,install,update}; share and update take ``{"force": true}``."""
     def bind(name: str, op: Callable[..., dict]) -> None:
         def view(standard_id: str) -> tuple[Response, int]:
             out = _run(app, get_service, name, op, standard_id)
