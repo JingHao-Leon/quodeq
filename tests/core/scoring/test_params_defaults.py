@@ -8,11 +8,11 @@ from quodeq.core.scoring.params import DEFAULT_PARAMS, validate_params
 
 
 def test_defaults_match_the_spec():
-    assert SEVERITY_WEIGHT == {"critical": 4.0, "major": 2.0, "minor": 0.25}
-    assert BASE_K == 0.08
-    assert LIFT_COMPRESS == 2.2
-    assert SEVERITY_GRADE_FLOOR == {"critical": 0.0, "major": 3.0, "minor": 5.0}
-    assert (DEFAULT_PARAMS.floor_major, DEFAULT_PARAMS.floor_minor) == (3.0, 5.0)
+    assert SEVERITY_WEIGHT == {"critical": 7.5, "major": 2.0, "minor": 0.15}
+    assert BASE_K == 0.07
+    assert LIFT_COMPRESS == 2.0
+    assert SEVERITY_GRADE_FLOOR == {"critical": 0.0, "major": 2.5, "minor": 5.0}
+    assert (DEFAULT_PARAMS.floor_major, DEFAULT_PARAMS.floor_minor) == (2.5, 5.0)
     assert validate_params(DEFAULT_PARAMS) == []
 
 

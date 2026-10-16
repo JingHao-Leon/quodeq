@@ -11,13 +11,13 @@
       "fromProject": "golden-child",
       "fromRunId": "20260205T000000",
       "overallGrade": "Exemplary",
-      "overallScore": "9.6/10",
+      "overallScore": "9.8/10",
       "principles": [
         {
           "confidence": "low",
           "grade": "Exemplary",
           "principle": "Confidentiality",
-          "score": "9.6/10"
+          "score": "9.8/10"
         },
         {
           "grade": "Adequate",
@@ -28,7 +28,7 @@
           "confidence": "low",
           "grade": "Exemplary",
           "principle": "Integrity",
-          "score": "9.6/10"
+          "score": "9.8/10"
         }
       ],
       "quarantinedCount": 0,
@@ -54,13 +54,13 @@
       "fromProject": "golden-child",
       "fromRunId": "20260210T000000",
       "overallGrade": "Exemplary",
-      "overallScore": "9.1/10",
+      "overallScore": "9.5/10",
       "principles": [
         {
           "confidence": "medium",
           "grade": "Exemplary",
           "principle": "Confidentiality",
-          "score": "9.1/10"
+          "score": "9.5/10"
         }
       ],
       "quarantinedCount": 0,
@@ -89,7 +89,7 @@
   },
   "summary": {
     "dimensionCount": 2,
-    "numericAverage": 9.3,
+    "numericAverage": 9.7,
     "overallGrade": "Exemplary",
     "previousNumericAverage": null,
     "severity": {
@@ -109,7 +109,7 @@
       "dimensionDetails": [
         {
           "dimension": "security",
-          "score": 9.7
+          "score": 9.8
         }
       ],
       "dimensions": [
@@ -117,11 +117,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.7,
+      "numericAverage": 9.8,
       "openTypes": 3,
       "overallGrade": "Exemplary",
       "runId": "20260205T000000",
-      "runNumericAverage": 9.7,
+      "runNumericAverage": 9.8,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 3
@@ -134,7 +134,7 @@
       "dimensionDetails": [
         {
           "dimension": "security",
-          "score": 9.8
+          "score": 9.9
         }
       ],
       "dimensions": [
@@ -142,11 +142,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.8,
+      "numericAverage": 9.9,
       "openTypes": 2,
       "overallGrade": "Exemplary",
       "runId": "20260204T000000",
-      "runNumericAverage": 9.8,
+      "runNumericAverage": 9.9,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 2
@@ -159,7 +159,7 @@
       "dimensionDetails": [
         {
           "dimension": "security",
-          "score": 9.4
+          "score": 9.7
         }
       ],
       "dimensions": [
@@ -167,11 +167,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.4,
+      "numericAverage": 9.7,
       "openTypes": 3,
       "overallGrade": "Exemplary",
       "runId": "20260202T000000",
-      "runNumericAverage": 9.4,
+      "runNumericAverage": 9.7,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 3
@@ -184,7 +184,7 @@
       "dimensionDetails": [
         {
           "dimension": "security",
-          "score": 9.3
+          "score": 9.6
         }
       ],
       "dimensions": [
@@ -192,11 +192,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.3,
+      "numericAverage": 9.6,
       "openTypes": 4,
       "overallGrade": "Exemplary",
       "runId": "20260201T000000",
-      "runNumericAverage": 9.3,
+      "runNumericAverage": 9.6,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 4
@@ -209,7 +209,7 @@
       "dimensionDetails": [
         {
           "dimension": "security",
-          "score": 9.1
+          "score": 9.5
         }
       ],
       "dimensions": [
@@ -217,11 +217,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.1,
+      "numericAverage": 9.5,
       "openTypes": 5,
       "overallGrade": "Exemplary",
       "runId": "20260200T000000",
-      "runNumericAverage": 9.1,
+      "runNumericAverage": 9.5,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 5

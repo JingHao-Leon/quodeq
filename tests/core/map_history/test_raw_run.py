@@ -38,7 +38,7 @@ def test_violations_count_per_severity_and_compliance_per_file():
 
 
 def test_weights_are_applied_when_materialised():
-    assert _snapshot().files["a.py"].weight == 4.25
+    assert _snapshot().files["a.py"].weight == 7.65
     assert _snapshot(weights={"critical": 10.0, "major": 1.0, "minor": 0.5}).files["a.py"].weight == 10.5
 
 

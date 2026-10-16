@@ -10,7 +10,7 @@
     "evaluation_db_opens": 300,
     "get_project_scores": 0,
     "peak_kib": 244,
-    "response_bytes": 32378,
+    "response_bytes": 32678,
     "score_cache_opens": 1
   },
   "dimension_eval_warm": {
@@ -56,24 +56,24 @@
   "run_page_overview_cold": {
     "eval_report_reads": 1,
     "evaluation_db_opens": 1,
-    "response_bytes": 5066,
+    "response_bytes": 5116,
     "score_cache_opens": 1
   },
   "run_page_overview_warm": {
     "peak_kib": 162,
-    "response_bytes": 5066,
+    "response_bytes": 5116,
     "score_cache_opens": 1
   },
   "scores_as_of_cold": {
     "eval_report_reads": 10,
     "evaluation_db_opens": 41,
     "event_log_reads": 1,
-    "response_bytes": 3865
+    "response_bytes": 3910
   },
   "scores_as_of_warm": {
     "eval_report_reads": 2,
     "evaluation_db_opens": 10,
     "peak_kib": 179,
-    "response_bytes": 3865
+    "response_bytes": 3910
   }
 }

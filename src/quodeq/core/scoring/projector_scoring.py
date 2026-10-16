@@ -56,7 +56,8 @@ from quodeq.core.types.scoring import ConfidenceLevel
 #    principles, thin evidence scored instead of gated (spec 2026-10-09).
 # 5: the finding's own severity again; the standard only suggests, in the prompt.
 # 6: dismissed findings stay observed (no penalty, principle weight kept).
-GRADE_ALGO_VERSION = 6
+# 7: retuned defaults (critical 7.5, minor 0.15, K 0.07, compress 2.0, major floor 2.5).
+GRADE_ALGO_VERSION = 7
 
 # A dimension is flagged low confidence when more than this share of its
 # observation comes from low-confidence principles.
