@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { slugify, shouldSyncIdFromName, applyNameChange, standardSourceNames, standardOriginParts, STANDARD_TYPES, standardSourceLine, standardVersionTitle, dottedDate } from './standard.js';
+import { standardTypeLabel, slugify, shouldSyncIdFromName, applyNameChange, standardSourceNames, standardOriginParts, STANDARD_TYPES, standardSourceLine, standardVersionTitle, dottedDate } from './standard.js';
 
 // ---------------------------------------------------------------------------
 // slugify
@@ -102,4 +102,11 @@ test('standardVersionTitle shows created and updated for custom standards only',
 test('standardSourceLine names every source body the built-ins ship with', () => {
   assert.equal(standardSourceLine({ sources: ['iso25010', 'cisq', 'cert'] }), 'ISO 25010, CISQ, CERT');
   assert.equal(standardSourceLine({ sources: ['wcag22', 'en301549'] }), 'WCAG 2.2, EN 301 549');
+});
+
+test('standardTypeLabel names the kind only; the edition lives in the source line', () => {
+  assert.equal(standardTypeLabel({ type: 'iso', subtype: '25010' }), 'iso');
+  assert.equal(standardTypeLabel({ type: 'wcag', subtype: '2.2' }), 'wcag');
+  assert.equal(standardTypeLabel({ type: 'custom' }), 'custom');
+  assert.equal(standardTypeLabel({ type: 'unknown-kind' }), null);
 });
