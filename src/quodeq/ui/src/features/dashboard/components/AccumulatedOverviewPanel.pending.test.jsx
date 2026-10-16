@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import { SidePaneProvider } from '../../side-pane/SidePaneProvider.jsx';
@@ -88,5 +88,15 @@ describe('section-pending stylesheet', () => {
       const m = rule.match(/opacity:\s*([\d.]+)/);
       if (m) expect(Number(m[1])).toBeGreaterThanOrEqual(DIM_FLOOR);
     }
+  });
+});
+
+describe('AccumulatedOverviewPanel standards not evaluated yet', () => {
+  it('lists them on one line under the cards instead of empty cards', () => {
+    const { container } = renderPanel({});
+    const line = screen.getByRole('note');
+    expect(line.closest('.quality-dimensions')).not.toBeNull();
+    expect(line).not.toHaveTextContent('maintainability');
+    expect(container.querySelectorAll('.quality-dimensions .dim-gauge-card')).toHaveLength(1);
   });
 });

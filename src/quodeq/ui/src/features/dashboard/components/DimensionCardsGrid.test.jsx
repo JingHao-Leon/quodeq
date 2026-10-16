@@ -41,28 +41,7 @@ describe('DimensionCardsGrid', () => {
   });
 });
 
-describe('DimensionCardsGrid, standards not evaluated yet', () => {
-  it('adds an empty card per standard switched on without results, opening Evaluate', () => {
-    const onEvaluate = vi.fn();
-    render(<DimensionCardsGrid sortedDimensions={DIMS} notEvaluated={['accessibility']} onEvaluate={onEvaluate} />);
-    const card = screen.getByRole('button', { name: /accessibility: switched on, not evaluated yet/i });
-    fireEvent.click(card);
-    expect(onEvaluate).toHaveBeenCalled();
-  });
-});
-
 describe('DimensionCardsGrid, compact (the Overview)', () => {
-  it('draws a standard without results as the compact not-evaluated card, still opening Evaluate', () => {
-    const onEvaluate = vi.fn();
-    render(<DimensionCardsGrid sortedDimensions={DIMS} notEvaluated={['accessibility']} onEvaluate={onEvaluate} compact />);
-    const card = screen.getByRole('button', { name: /accessibility: switched on, not evaluated yet/i });
-    expect(card).toHaveClass('dim-gauge-card--compact', 'dim-gauge-card--not-evaluated');
-    expect(card).toHaveTextContent('NOT EVALUATED');
-    expect(card).toHaveTextContent('evaluate to see it here');
-    fireEvent.click(card);
-    expect(onEvaluate).toHaveBeenCalled();
-  });
-
   it('lights the card its radial point lights, and reports the card the pointer is on', () => {
     const onHover = vi.fn();
     render(<DimensionCardsGrid sortedDimensions={DIMS} compact lit={{ name: 'maintainability', setName: onHover }} />);

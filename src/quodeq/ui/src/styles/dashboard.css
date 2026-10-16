@@ -364,6 +364,19 @@
   text-transform: uppercase;
 }
 
+/* Standards switched on without results: one quiet line under the cards. */
+.not-evaluated-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: var(--space-3) 0 0;
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.not-evaluated-line__names { color: var(--color-text); }
+
 /* ── Dimension cards ──────────────────────────────────── */
 
 .dimension-grid {

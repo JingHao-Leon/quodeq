@@ -39,7 +39,7 @@ function renderPanel(extra = {}) {
 describe('AccumulatedOverviewPanel layout', () => {
   it('puts the weakest dimension first', () => {
     renderPanel();
-    const evaluated = [...document.querySelectorAll('.quality-dimensions .dim-gauge-card:not(.dim-gauge-card--not-evaluated)')];
+    const evaluated = [...document.querySelectorAll('.quality-dimensions .dim-gauge-card')];
     expect(evaluated.map((el) => el.querySelector('.dim-gauge-card__name').textContent)).toEqual(['security', 'reliability']);
     expect(evaluated.every((el) => el.classList.contains('dim-gauge-card--compact'))).toBe(true);
   });

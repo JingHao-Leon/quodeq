@@ -1,5 +1,4 @@
 import DimensionGaugeCard from './DimensionGaugeCard.jsx';
-import NotEvaluatedGaugeCard from './NotEvaluatedGaugeCard.jsx';
 import { fallbackDelta } from '../../../utils/dimensionUtils.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
 import { useBalancedColumns } from '../hooks/useBalancedColumns.js';
@@ -16,16 +15,13 @@ const NOT_LIT = Object.freeze({ name: null, setName: null });
 /**
  * The dimension cards. They keep the incoming order (the Overview hands
  * them weakest first) whatever the selected period: changing the
- * day/week/month re-dims cards but never reorders them. Standards switched
- * on but never evaluated follow as empty cards. Rows are balanced (5 + 4,
+ * day/week/month re-dims cards but never reorders them. Rows are balanced (5 + 4,
  * never 8 + 1) once the grid needs more than one.
  * @param {object} props
  * @param {object[]} props.sortedDimensions
  * @param {(item: object) => void} [props.onDimensionClick]
  * @param {Set<string>} [props.selectedDayDimNames] the dimensions the selected period evaluated (the others dim)
  * @param {object} [props.dimTrends] each dimension's change, by lowercase name
- * @param {string[]} [props.notEvaluated] standards switched on without results
- * @param {() => void} [props.onEvaluate] what an empty card opens
  * @param {boolean} [props.compact] the principle card's form: ring beside grade, pills and pass rate
  * @param {{name: ?string, setName: ?Function}} [props.lit] the card lit with its radial point, and who to tell which card the pointer or keyboard is on
  * @param {(item: object) => import('react').ReactNode} [props.footerFor] compact only: a card's footer in place of its pass rate (the run page's new and fixed findings)
@@ -33,11 +29,11 @@ const NOT_LIT = Object.freeze({ name: null, setName: null });
  *   from the left, so a run with one or two dimensions shows one or two normal cards (the run page)
  */
 export default function DimensionCardsGrid({
-  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, notEvaluated = [], onEvaluate, compact = false, lit = NOT_LIT, footerFor, fill = false,
+  sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, compact = false, lit = NOT_LIT, footerFor, fill = false,
 }) {
   const dimNameSet = selectedDayDimNames instanceof Set ? selectedDayDimNames : new Set();
   // A filled grid balances nothing: no cards to balance, so no inline columns.
-  const balanced = fill ? 0 : sortedDimensions.length + notEvaluated.length;
+  const balanced = fill ? 0 : sortedDimensions.length;
   const [gridRef, gridStyle] = useBalancedColumns(balanced, compact ? COMPACT_MIN_WIDTH : CARD_MIN_WIDTH, GRID_GAP);
   return (
     <div className={fill ? 'dimensions-grid dimensions-grid--fill' : 'dimensions-grid'} ref={gridRef} style={gridStyle}>
@@ -61,7 +57,6 @@ export default function DimensionCardsGrid({
           />
         );
       })}
-      {notEvaluated.map((name) => <NotEvaluatedGaugeCard key={name} name={name} onActivate={onEvaluate} compact={compact} />)}
     </div>
   );
 }
