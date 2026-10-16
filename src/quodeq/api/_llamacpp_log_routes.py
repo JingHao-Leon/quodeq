@@ -20,6 +20,8 @@ hides the console button. Recommended launch:
 from __future__ import annotations
 
 import logging
+import os
+import stat
 import sys
 from collections.abc import Mapping
 from pathlib import Path
@@ -33,6 +35,8 @@ from quodeq.shared.env_resolve import resolve_env
 _logger = logging.getLogger(__name__)
 
 _LLAMA_LOG_FILENAME = "llama-server.log"  # the filename probed at every candidate log directory
+# World-writable location: used only when it is our own regular file (see _is_own_regular_file).
+_SHARED_TMP_LOG = Path("/tmp") / _LLAMA_LOG_FILENAME
 
 
 def _default_log_paths(env: Mapping[str, str] | None = None) -> list[Path]:
@@ -47,7 +51,9 @@ def _default_log_paths(env: Mapping[str, str] | None = None) -> list[Path]:
     2. Platform-standard log directory (macOS Library/Logs, XDG state
        dir on Linux, LocalAppData on Windows). Honors host conventions
        and integrates with system log viewers like macOS Console.app.
-    3. ``/tmp/llama-server.log`` as a lowest-friction last resort.
+    3. ``/tmp/llama-server.log`` as a lowest-friction last resort, used only
+       when it is a regular file owned by the current user: any local user
+       can pre-create or symlink a file there.
 
     *env* overrides the platform-directory lookups and defaults to
     ``os.environ``.
@@ -74,7 +80,7 @@ def _default_log_paths(env: Mapping[str, str] | None = None) -> list[Path]:
     else:
         xdg_state = environ.get("XDG_STATE_HOME") or str(home / ".local" / "state")
         candidates.append(Path(xdg_state) / _LLAMA_LOG_FILENAME)
-    candidates.append(Path("/tmp") / _LLAMA_LOG_FILENAME)
+    candidates.append(_SHARED_TMP_LOG)
     return candidates
 
 
@@ -96,9 +102,22 @@ def _llamacpp_log_path(
         # availability poll will pick it up then.
         return Path(override)
     for candidate in _default_log_paths(env):
-        if candidate.exists():
+        if candidate == _SHARED_TMP_LOG:
+            if _is_own_regular_file(candidate):
+                return candidate
+        elif candidate.exists():
             return candidate
     return None
+
+
+def _is_own_regular_file(path: Path) -> bool:
+    """True for a regular file (not a symlink) owned by the current user."""
+    try:
+        info = path.lstat()
+    except OSError:
+        return False
+    getuid = getattr(os, "getuid", None)  # absent on Windows, where there is no shared /tmp
+    return stat.S_ISREG(info.st_mode) and (getuid is None or info.st_uid == getuid())
 
 
 _LLAMACPP_LOG = ProviderLog(
