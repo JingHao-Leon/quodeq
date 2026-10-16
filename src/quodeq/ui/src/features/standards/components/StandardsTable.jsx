@@ -205,6 +205,12 @@ function StandardRow({ standard, isVisible, onEdit, onDelete, onDuplicate, onTog
   );
 }
 
+// The sync column leaves the other columns less room: their headers shorten,
+// keeping the full word for hover and screen readers.
+function HeadLabel({ full, short, compact }) {
+  return compact ? <abbr title={full}>{short}</abbr> : full;
+}
+
 function SyncError({ message }) {
   return message ? <div role="alert" className="standards-row-error">{message}</div> : null;
 }
@@ -242,11 +248,17 @@ export default function StandardsTable({ grouped, actions, customizedCounts, sha
       <div className="standards-table-head" role="row">
         <div className="standards-cell standards-cell--name">{t('standards.colName')}</div>
         <div className="standards-cell standards-cell--base">{t('standards.colBase')}</div>
-        <div className="standards-cell standards-cell--num standards-cell--principles">{t('standards.colPrinciples')}</div>
-        <div className="standards-cell standards-cell--num">{t('standards.colRequirements')}</div>
+        <div className="standards-cell standards-cell--num standards-cell--principles">
+          <HeadLabel full={t('standards.colPrinciples')} short={t('standards.colPrinciplesShort')} compact={connected} />
+        </div>
+        <div className="standards-cell standards-cell--num">
+          <HeadLabel full={t('standards.colRequirements')} short={t('standards.colRequirementsShort')} compact={connected} />
+        </div>
         <div className="standards-cell standards-cell--version">{t('standards.colVersion')}</div>
         {connected && <div className="standards-cell standards-cell--sync">{t('standards.colSync')}</div>}
-        <div className="standards-cell standards-cell--enabled">{t('standards.colEnabled')}</div>
+        <div className="standards-cell standards-cell--enabled">
+          <HeadLabel full={t('standards.colEnabled')} short={t('standards.colEnabledShort')} compact={connected} />
+        </div>
         <div className="standards-cell standards-cell--actions" />
       </div>
       <div className="standards-table-body">
