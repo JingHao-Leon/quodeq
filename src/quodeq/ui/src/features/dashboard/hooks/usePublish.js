@@ -8,6 +8,7 @@ import { PUBLISH_STATE } from '../dashboardVocab.js';
 import { useApplyOptimisticPublish } from './publishOptimisticCache.js';
 import { useOptionalSidePane } from '../../side-pane/SidePaneContext.jsx';
 import { t } from '../../../strings/index.js';
+import { standardsKeys } from '../../../api/queryKeys.js';
 
 /**
  * usePublish -- publish action + job progress for local cards on the merged
@@ -181,6 +182,7 @@ function usePublishJob({ queryClient, sharedListProjects, getSharedStatus, publi
 // (project + finishedAt) is announced once. No side pane mounted (a hook
 // rendered on its own in tests): nothing to show the notice in.
 function useSkippedStandardsNotice() {
+  const queryClient = useQueryClient();
   const showToast = useOptionalSidePane()?.showToast;
   const announced = useRef(null);
   return useCallback((publish) => {
@@ -189,8 +191,11 @@ function useSkippedStandardsNotice() {
     const key = `${publish.project}:${publish.finishedAt ?? ''}`;
     if (publish.finishedAt != null && announced.current === key) return;
     announced.current = key;
-    showToast(t('standards.publishSkipped', { names: skipped.join(', ') }));
-  }, [showToast]);
+    // The cached Standards list names them; an id is the fallback when it was never loaded.
+    const cached = queryClient.getQueryData(standardsKeys.list());
+    const names = skipped.map((id) => (Array.isArray(cached) && cached.find((s) => s.id === id)?.name) || id);
+    showToast(t('standards.publishSkipped', { names: names.join(', ') }));
+  }, [showToast, queryClient]);
 }
 
 /**

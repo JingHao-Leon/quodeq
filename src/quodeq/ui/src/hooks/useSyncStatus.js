@@ -16,6 +16,9 @@ function useSyncTransitions(status, tick, queryClient) {
     if (!status) return;
     const before = prev.current;
     prev.current = status;
+    // The first status only seeds the baseline: a slot already DONE when the
+    // screen mounted finished before this screen looked, not while it watched.
+    if (before === null) return;
     // Only the DONE edge re-lists. The job hydrates the listing during READING;
     // a list request then would run that same cold hydration a second time.
     // A second job of the same kind can start and finish between two polls

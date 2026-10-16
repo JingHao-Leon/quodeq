@@ -4,6 +4,11 @@ import { t } from '../../../strings/index.js';
 import StandardSyncCell from './StandardSyncCell.jsx';
 import StandardSyncActions from './StandardSyncActions.jsx';
 
+function remoteSubline(publishedAt) {
+  const time = relativeTime(publishedAt);
+  return time ? t('projects.remoteOnlyPublished', { time }) : t('projects.remoteOnly');
+}
+
 /** A standard that exists only in the shared repository: plain row, one install action, no toggle. */
 export default function StandardRemoteRow({ standard, sync }) {
   const baseLabel = standardBaseLabel(standard) || standard.type || t('standards.baseUnknown');
@@ -11,7 +16,7 @@ export default function StandardRemoteRow({ standard, sync }) {
     <div className="standards-row standards-row--remote" role="row">
       <div className="standards-cell standards-cell--name">
         <span className="standards-row-name" title={standard.description || undefined}>{standard.name}</span>
-        <span className="standards-row-subtitle">{t('projects.remoteOnlyPublished', { time: relativeTime(standard.publishedAt) })}</span>
+        <span className="standards-row-subtitle">{remoteSubline(standard.publishedAt)}</span>
       </div>
       <div className="standards-cell standards-cell--base">
         <span className={`standards-base-pill standards-base-pill--${standard.type || 'unknown'}`}>{baseLabel}</span>

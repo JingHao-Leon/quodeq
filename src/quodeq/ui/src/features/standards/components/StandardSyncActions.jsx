@@ -6,7 +6,8 @@ const LABEL_KEYS = { share: 'standards.syncShare', publish: 'standards.syncPubli
 export default function StandardSyncActions({ standard, sync }) {
   const actions = syncActions(standard);
   if (actions.length === 0) return null;
-  const pending = sync.pendingId === standard.id;
+  const mine = sync.pendingId === standard.id;
+  const busy = sync.pendingId != null; // one sync at a time: every button waits
   return (
     <span className="standards-sync-actions">
       {actions.map(({ action, force }) => (
@@ -14,10 +15,10 @@ export default function StandardSyncActions({ standard, sync }) {
           key={action}
           type="button"
           className="standards-sync-btn"
-          aria-disabled={pending || undefined}
-          onClick={(e) => { e.stopPropagation(); if (!pending) sync.run(standard, { action, force }); }}
+          aria-disabled={busy || undefined}
+          onClick={(e) => { e.stopPropagation(); if (!busy) sync.run(standard, { action, force }); }}
         >
-          {pending ? t('standards.syncPending') : t(LABEL_KEYS[action])}
+          {mine ? t('standards.syncPending') : t(LABEL_KEYS[action])}
         </button>
       ))}
     </span>

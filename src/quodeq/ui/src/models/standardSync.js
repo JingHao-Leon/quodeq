@@ -21,11 +21,16 @@ export function isBuiltinType(type) {
   return BUILTIN_TYPES.has(type);
 }
 
+// A missing publish time must not print as "null": fall back to the copy that names none.
+function timed(tone, s, key, keyNoTime) {
+  return s.publishedAt ? { tone, key, time: s.publishedAt } : { tone, key: keyNoTime, time: null };
+}
+
 const CELLS = {
-  [SYNC_STATE.PUBLISHED]: (s) => ({ tone: OK, key: 'standards.syncPublished', time: s.publishedAt ?? null }),
-  [SYNC_STATE.CHANGED]: (s) => ({ tone: WARN, key: 'standards.syncChanged', time: s.publishedAt ?? null }),
+  [SYNC_STATE.PUBLISHED]: (s) => timed(OK, s, 'standards.syncPublished', 'standards.syncPublishedNoTime'),
+  [SYNC_STATE.CHANGED]: (s) => timed(WARN, s, 'standards.syncChanged', 'standards.syncChangedNoTime'),
   [SYNC_STATE.UPDATE_AVAILABLE]: () => ({ tone: WARN, key: 'standards.syncUpdateAvailable', time: null }),
-  [SYNC_STATE.DIVERGED]: (s) => ({ tone: WARN, key: 'standards.syncDiverged', time: s.publishedAt ?? null }),
+  [SYNC_STATE.DIVERGED]: () => ({ tone: WARN, key: 'standards.syncDiverged', time: null }),
   [SYNC_STATE.REMOTE_ONLY]: () => ({ tone: MUTED, key: 'standards.syncRemote', time: null }),
   [SYNC_STATE.NEVER_SHARED]: () => ({ tone: MUTED, key: null, time: null }),
   [SYNC_STATE.REMOVED_REMOTELY]: () => ({ tone: MUTED, key: null, time: null }),

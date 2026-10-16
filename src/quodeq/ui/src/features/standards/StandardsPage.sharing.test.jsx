@@ -98,4 +98,34 @@ describe('StandardsPage sharing', () => {
     release({ started: true });
     expect(await screen.findByRole('button', { name: t('standards.bandPull') })).toBeInTheDocument();
   });
+
+  it('an ERROR refresh slot left from before is not shown as this page\'s failed pull', () => {
+    state.connection = { configured: true, host: 'h' };
+    state.sync.refresh = { state: 'error', phase: 'error' };
+    renderPage({ startRefresh: vi.fn() });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a pull started here that ends in ERROR shows the failure', async () => {
+    state.connection = { configured: true, host: 'h' };
+    const view = renderPage({ startRefresh: vi.fn(async () => ({ started: true })) });
+    state.sync.refresh = { state: 'error', phase: 'error' };
+    fireEvent.click(screen.getByRole('button', { name: t('standards.bandPull') }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(t('standards.bandPullFailed'));
+    view.unmount();
+  });
+
+  it('going from connected to disconnected removes band, column and remote rows without errors', () => {
+    state.connection = { configured: true, host: 'h' };
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const ui = () => <QueryClientProvider client={qc}><ApiProvider value={{ startRefresh: vi.fn() }}><StandardsPage /></ApiProvider></QueryClientProvider>;
+    const { rerender } = render(ui());
+    expect(screen.getByText(t('standards.colSync'))).toBeInTheDocument();
+    state.connection = { configured: false, host: null };
+    rerender(ui());
+    expect(screen.queryByText(t('standards.bandRepository'))).toBeNull();
+    expect(screen.queryByText(t('standards.colSync'))).toBeNull();
+    expect(screen.queryByText('Go Services')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
 });

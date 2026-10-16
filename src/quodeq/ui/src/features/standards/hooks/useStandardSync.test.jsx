@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 import { useStandardSync } from './useStandardSync.js';
 
@@ -9,17 +9,17 @@ import { confirmDialog } from '../../../utils/confirmDialog.js';
 const A = { id: 'a', name: 'Android' };
 const B = { id: 'b', name: 'Go' };
 
-function setup(overrides = {}) {
+function setup(overrides = {}, refreshImpl = vi.fn()) {
   const api = {
     shareStandard: vi.fn().mockResolvedValue({ id: 'a' }),
     installStandard: vi.fn().mockResolvedValue({ id: 'a' }),
     updateStandardFromShared: vi.fn().mockResolvedValue({ id: 'a' }),
     ...overrides,
   };
-  const refresh = vi.fn();
+  const refresh = refreshImpl;
   const wrapper = ({ children }) => <ApiProvider value={api}>{children}</ApiProvider>;
-  const { result } = renderHook(() => useStandardSync({ refresh }), { wrapper });
-  return { api, refresh, result };
+  const { result, rerender } = renderHook(({ list }) => useStandardSync({ refresh, list }), { wrapper, initialProps: { list: 'l1' } });
+  return { api, refresh, result, rerender };
 }
 
 describe('useStandardSync', () => {
@@ -78,5 +78,38 @@ describe('useStandardSync', () => {
     await act(() => result.current.run(A, { action: 'update', force: false }));
     expect(api.installStandard).toHaveBeenCalledWith('b');
     expect(api.updateStandardFromShared).toHaveBeenCalledWith('a', { force: false });
+  });
+
+  it('stays pending until the re-list resolves, so the old button cannot be clicked twice', async () => {
+    let release;
+    const refresh = vi.fn(() => new Promise((r) => { release = r; }));
+    const { api, result } = setup({}, refresh);
+    let first;
+    act(() => { first = result.current.run(A, { action: 'share', force: false }); });
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(result.current.pendingId).toBe('a');
+    await act(() => result.current.run(A, { action: 'share', force: false }));
+    expect(api.shareStandard).toHaveBeenCalledTimes(1);
+    await act(async () => { release(); await first; });
+    expect(result.current.pendingId).toBeNull();
+  });
+
+  it('a failed re-list is not reported as a failed sync', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = setup({}, vi.fn().mockRejectedValue(new Error('offline')));
+    await act(() => result.current.run(A, { action: 'share', force: false }));
+    expect(result.current.errors.a).toBeUndefined();
+    expect(result.current.pendingId).toBeNull();
+  });
+
+  it('row errors are cleared when the list changes', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result, rerender } = setup({ shareStandard: vi.fn().mockRejectedValue(new Error('nope')) });
+    await act(() => result.current.run(A, { action: 'share', force: false }));
+    expect(result.current.errors.a).toBe('nope');
+    rerender({ list: 'l1' });
+    expect(result.current.errors.a).toBe('nope');
+    rerender({ list: 'l2' });
+    expect(result.current.errors.a).toBeUndefined();
   });
 });

@@ -22,7 +22,7 @@ describe('StandardsTable sharing', () => {
     expect(screen.queryByText('go')).toBeNull();
   });
 
-  it('connected flag false: built-ins show no sync cell', () => {
+  it('connected flag false: no sync cell and no sync actions', () => {
     const { container } = renderTable([row('a', 'changed')], { connected: false, sync: sync() });
     expect(container.querySelector('.standards-cell--sync')).toBeNull();
     expect(screen.queryByRole('button', { name: t('standards.syncPublish') })).toBeNull();
@@ -70,6 +70,26 @@ describe('StandardsTable sharing', () => {
     renderTable([row('a', 'changed')], { connected: true, sync: sync({ pendingId: 'a' }) });
     const btn = screen.getByRole('button', { name: t('standards.syncPending') });
     expect(btn).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('while one row syncs, every sync button is disabled', () => {
+    renderTable([row('a', 'changed'), row('b', 'never_shared')], { connected: true, sync: sync({ pendingId: 'a' }) });
+    const buttons = screen.getAllByRole('button', { name: /^(share|working…)$/ });
+    expect(buttons).toHaveLength(2);
+    buttons.forEach((b) => expect(b).toHaveAttribute('aria-disabled', 'true'));
+  });
+
+  it('a published or changed row without a publish time never prints null', () => {
+    renderTable([row('a', 'published', { publishedAt: null }), row('b', 'changed', { publishedAt: null })], { connected: true, sync: sync() });
+    expect(screen.getByText(t('standards.syncPublishedNoTime'))).toBeInTheDocument();
+    expect(screen.getByText(t('standards.syncChangedNoTime'))).toBeInTheDocument();
+    expect(screen.queryByText(/null/)).toBeNull();
+  });
+
+  it('a remote-only row without a publish time reads remote only', () => {
+    renderTable([row('go', 'remote_only', { remote: true, publishedAt: null })], { connected: true, sync: sync() });
+    expect(screen.getByText(t('projects.remoteOnly'))).toBeInTheDocument();
+    expect(screen.queryByText(/null/)).toBeNull();
   });
 
   it('the sync cell carries the class the narrow layout hides', () => {

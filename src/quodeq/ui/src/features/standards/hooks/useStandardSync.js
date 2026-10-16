@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { confirmDialog } from '../../../utils/confirmDialog.js';
 import { apiErrorMessage } from '../../../strings/apiErrors.js';
@@ -27,12 +27,28 @@ async function confirmed(action, force, name) {
   });
 }
 
+// The list is re-read before the row counts as done, so the old button is
+// never on screen with nothing pending. A failed re-read is not a failed sync.
+async function relist(refresh) {
+  try {
+    await refresh();
+  } catch (err) {
+    console.warn('[useStandardSync] re-listing after sync failed', err);
+  }
+}
+
 /** Run share / publish / update / install for one row at a time, with per-row errors. */
-export function useStandardSync({ refresh }) {
+export function useStandardSync({ refresh, list }) {
   const api = useApi();
   const [pendingId, setPendingId] = useState(null);
   const [errors, setErrors] = useState({});
   const busy = useRef(false);
+
+  // A row error describes the list it was raised against; a new list (a pull,
+  // any refresh) makes it stale.
+  useEffect(() => {
+    setErrors((e) => (Object.keys(e).length ? {} : e));
+  }, [list]);
 
   const run = useCallback(async (standard, { action, force = false }) => {
     if (busy.current) return;
@@ -42,7 +58,7 @@ export function useStandardSync({ refresh }) {
       setPendingId(standard.id);
       setErrors((e) => ({ ...e, [standard.id]: undefined }));
       await callFor(api, action, standard.id, force);
-      refresh();
+      await relist(refresh);
     } catch (err) {
       console.warn('[useStandardSync] sync failed', err);
       setErrors((e) => ({ ...e, [standard.id]: apiErrorMessage(err, 'standards.syncFailed') }));

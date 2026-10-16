@@ -52,10 +52,18 @@ describe('useSyncStatus', () => {
     expect(keyCalls(spy, projectsKeys.list())).toBe(0);
   });
 
-  it('a slot that stays done across polls fires its transition once', async () => {
-    const done = { ...base, connect: { state: 'done', phase: 'done' } };
+  it('a slot already done at mount seeds the baseline and invalidates nothing', async () => {
+    const done = { ...base, connect: { state: 'done', phase: 'done' }, refresh: { state: 'done', phase: 'done' } };
     const { spy, api } = setup([done, done, done]);
     await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(3), { timeout: 500 });
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('a slot that stays done after a real transition fires once', async () => {
+    const running = { ...base, connect: { state: 'running', phase: 'downloading' } };
+    const done = { ...base, connect: { state: 'done', phase: 'done' } };
+    const { spy, api } = setup([running, done, done, done]);
+    await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(4), { timeout: 500 });
     expect(keyCalls(spy, projectsKeys.list())).toBe(1);
   });
 
@@ -78,16 +86,16 @@ describe('useSyncStatus', () => {
   it('two DONE snapshots with different finishedAt are two jobs and invalidate twice', async () => {
     const first = { ...base, pull: { state: 'done', phase: 'done', project: 'a', finishedAt: 10 } };
     const second = { ...base, pull: { state: 'done', phase: 'done', project: 'b', finishedAt: 20 } };
-    const { spy, api } = setup([first, second, second, second]);
-    await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(4), { timeout: 500 });
+    const { spy, api } = setup([base, first, second, second, second]);
+    await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(5), { timeout: 500 });
     expect(keyCalls(spy, projectsKeys.list())).toBe(2);
     expect(keyCalls(spy, sharedKeys.list())).toBe(2);
   });
 
   it('identical DONE snapshots (same finishedAt) invalidate once', async () => {
     const done = { ...base, pull: { state: 'done', phase: 'done', project: 'a', finishedAt: 10 } };
-    const { spy, api } = setup([done, { ...done, pull: { ...done.pull } }, done, done]);
-    await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(4), { timeout: 500 });
+    const { spy, api } = setup([base, done, { ...done, pull: { ...done.pull } }, done, done]);
+    await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(5), { timeout: 500 });
     expect(keyCalls(spy, projectsKeys.list())).toBe(1);
   });
 

@@ -8,9 +8,15 @@ test('syncCell maps every state', () => {
   assert.deepEqual(syncCell({ type: 'custom', syncState: 'published', publishedAt: T }), { tone: 'ok', key: 'standards.syncPublished', time: T });
   assert.deepEqual(syncCell({ type: 'custom', syncState: 'changed', publishedAt: T }), { tone: 'warn', key: 'standards.syncChanged', time: T });
   assert.deepEqual(syncCell({ type: 'custom', syncState: 'update_available', publishedAt: T }), { tone: 'warn', key: 'standards.syncUpdateAvailable', time: null });
-  assert.deepEqual(syncCell({ type: 'custom', syncState: 'diverged', publishedAt: T }), { tone: 'warn', key: 'standards.syncDiverged', time: T });
+  assert.deepEqual(syncCell({ type: 'custom', syncState: 'diverged', publishedAt: T }), { tone: 'warn', key: 'standards.syncDiverged', time: null });
   assert.deepEqual(syncCell({ type: 'custom', syncState: 'never_shared' }), { tone: 'muted', key: null, time: null });
   assert.deepEqual(syncCell({ type: 'custom', syncState: 'remote_only', remote: true }), { tone: 'muted', key: 'standards.syncRemote', time: null });
+});
+
+test('syncCell without a publish time uses the copy that needs none', () => {
+  assert.equal(syncCell({ type: 'custom', syncState: 'published' }).key, 'standards.syncPublishedNoTime');
+  assert.equal(syncCell({ type: 'custom', syncState: 'changed' }).key, 'standards.syncChangedNoTime');
+  assert.equal(syncCell({ type: 'custom', syncState: 'published', publishedAt: null }).time, null);
 });
 
 test('syncCell for built-ins and when not connected', () => {
