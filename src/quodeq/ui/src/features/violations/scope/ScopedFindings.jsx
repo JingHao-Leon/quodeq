@@ -210,7 +210,7 @@ function ScopedFile({ file, within, dims, head, initialFilter, onDismissFinding,
         badge={scoreChangeShows(head.change) ? <TrendBadge delta={head.change} /> : null} oneFile={within.inFile} showRisk={within.showsRisk} requirements={counts} riskAreas={head.riskAreas} history={head.scoreHistory} metrics={metrics} filesHint={filesHint}
         changes={head.previous ? tileChanges(metrics, scopeMetrics({ ...head.previous, files: metrics.files })) : undefined}
         deltas={severityDeltas(metrics.sevCounts, head.previous)} pastRun={head.pastRun}
-        since={head.since && <SinceStrip summary={head.since} granularity={head.granularity} />} />
+        since={<SinceStrip summary={head.since} granularity={head.granularity} />} />
       <div className={workClass(rail, view)}>
         {rail && <ReqRail rail={rail} total={filtering.liveTotal} selected={req} onSelect={setReq} />}
         <div className="findings-scope__main">

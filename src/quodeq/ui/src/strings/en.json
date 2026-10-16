@@ -1978,6 +1978,7 @@
   "overview.subModel": "by {model}",
   "overview.subPartial": "{count} dimensions read only part of the files",
   "overview.subPartialOne": "1 dimension read only part of the files",
+  "overview.sinceTipLabel": "tip",
   "overview.sinceNone": "no new or fixed findings",
   "overview.sincePeriod_day": "since the previous day",
   "overview.sincePeriod_week": "since the previous week",
