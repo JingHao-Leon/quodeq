@@ -27,6 +27,7 @@ from quodeq.shared.process import is_pid_alive, process_has_arg
 _logger = logging.getLogger(__name__)
 
 WINDOW_PID_FILE = "window.pid"
+_NOT_RUNNING = 3  # LSB init-script status code for "program is not running"
 API_PID_FILE = "action_api.pid"  # written by dashboard._api_spawn
 _GRACE_S = 5  # SIGTERM first; SIGKILL whatever is still alive after this
 _POLL_S = 0.1
@@ -137,7 +138,10 @@ def _api_line(run_dir: Path) -> str | None:
 
 
 def dashboard_status(run_dir: Path | None = None, evaluations_dir: Path | None = None) -> int:
-    """Print the window, the API and the running evaluations. Exit code 0 either way."""
+    """Print the window, the API and the running evaluations.
+
+    Exit code 0 while the window or the API runs, 3 (LSB "not running") when neither does.
+    """
     run_dir = run_dir or ensure_run_dir()
     evaluations_dir = evaluations_dir or Path(get_evaluations_dir())
     window_pid = _read_pid(run_dir / WINDOW_PID_FILE)
@@ -160,4 +164,4 @@ def dashboard_status(run_dir: Path | None = None, evaluations_dir: Path | None =
     for run in runs:
         since = f", {run.running_for}" if run.running_for else ""
         print(f"  {run.project}: {', '.join(run.dimensions) or 'starting'} (pid {run.pid}{since})")
-    return 0
+    return 0 if window_up or api is not None else _NOT_RUNNING

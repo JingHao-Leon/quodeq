@@ -162,6 +162,12 @@ describe('GradeFormulaPage', () => {
     expect(screen.getByText(/^1 project · /)).toBeInTheDocument();
   });
 
+  it('says when an older custom formula was set aside', () => {
+    mockHook({ retiredCustom: true });
+    mount(<GradeFormulaPage navigation={NAVIGATION} />);
+    expect(screen.getByText(/older custom formula set aside/)).toBeInTheDocument();
+  });
+
   it('shows a loading header until the draft arrives', () => {
     mockHook({ draft: null });
     mount(<GradeFormulaPage navigation={NAVIGATION} />);

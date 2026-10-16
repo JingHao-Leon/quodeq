@@ -54,6 +54,8 @@ def _state_payload(rescore: RescoreSnapshot) -> dict:
         "current": params_to_dict(grade_formula.load_params()),
         "defaults": params_to_dict(DEFAULT_PARAMS),
         "isCustom": grade_formula.is_custom(),
+        # A custom formula saved under an older grade algorithm, set aside: the page says so.
+        "retiredCustom": grade_formula.has_retired_formula(),
         # Progress of the background rescore pass. The client polls GET
         # until appliedGeneration reaches the generation its PUT/DELETE got,
         # and warns when failed > 0: those runs keep the old formula.

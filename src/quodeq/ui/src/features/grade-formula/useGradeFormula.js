@@ -48,7 +48,7 @@ function useDraftPatch(updateDraft) {
  */
 export default function useGradeFormula(thresholdsStore = defaultGradeThresholdsStore) {
   const {
-    saved, draft, isCustom, defaults, busy, error, partialNotice, resumeFrom,
+    saved, draft, isCustom, retiredCustom, defaults, busy, error, partialNotice, resumeFrom,
     adoptServerFormula, beginRequest, endRequest, failWith, notePartialRescore, updateDraft,
   } = useGradeFormulaState();
 
@@ -68,7 +68,7 @@ export default function useGradeFormula(thresholdsStore = defaultGradeThresholds
     beginRequest();
     try {
       const d = await run();
-      adoptServerFormula(d.current, d.isCustom);
+      adoptServerFormula(d.current, d.isCustom, d.retiredCustom);
       thresholdsStore.set(d.current.gradeThresholds);
       setDimensionWeights(d.current);
       track(d);
@@ -99,7 +99,7 @@ export default function useGradeFormula(thresholdsStore = defaultGradeThresholds
   ), [submitFormula]);
 
   return {
-    saved, draft, defaults, isCustom, isDirty, busy, error, partialNotice, rescoreProgress,
+    saved, draft, defaults, isCustom, retiredCustom, isDirty, busy, error, partialNotice, rescoreProgress,
     update, apply, resetToDefaults,
   };
 }

@@ -12,7 +12,9 @@ from quodeq.dashboard._api_health import ApiConfig, action_api_healthy, spawn_an
 from quodeq.dashboard._networking import port_is_open
 from quodeq.shared.env_paths import ensure_run_dir
 from quodeq.shared.config_loader import get_default_host as _get_default_host
+from quodeq.shared.frozen import subprocess_cmd
 from quodeq.shared.logging import log_debug
+from quodeq.shared.process import process_has_arg
 from quodeq.shared.utils import IS_WIN32
 
 _POLL_INTERVAL_S = 0.1
@@ -84,7 +86,7 @@ def kill_stale_action_api(host: str, port: int) -> None:
         if record is not None and _recorded_api_healthy(record, host, port):
             log_debug("Action API in PID file is healthy; leaving it running")
             return
-        if record is not None:
+        if record is not None and process_has_arg(record["pid"], subprocess_cmd("api")[-1]):
             try:
                 _terminate_pid(record["pid"])
             except (ValueError, OSError) as exc:

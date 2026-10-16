@@ -808,6 +808,7 @@
   "gradeFormula.ceilScale": "ceiling scale",
   "gradeFormula.customActive": "custom formula active",
   "gradeFormula.defaultsActive": "Q² defaults active",
+  "gradeFormula.defaultsActiveRetired": "Q² defaults active, older custom formula set aside",
   "gradeFormula.floorMajor": "majors, no critical",
   "gradeFormula.headerFacts": "{count} projects · {state}",
   "gradeFormula.headerFactsOne": "1 project · {state}",

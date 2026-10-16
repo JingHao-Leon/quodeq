@@ -58,6 +58,18 @@ def is_pid_alive(pid: int) -> bool:
 _PS_TIMEOUT_S = 5
 
 
+def _on_windows() -> bool:
+    return sys.platform == PLATFORM_WIN32
+
+
+def _command_line_cmd(pid: int) -> list[str]:
+    """The command that prints *pid*'s command line: ``ps`` on POSIX, CIM through PowerShell on Windows."""
+    if _on_windows():
+        query = f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"
+        return ["powershell", "-NoProfile", "-NonInteractive", "-Command", query]
+    return ["ps", "-o", "command=", "-p", str(pid)]
+
+
 def process_has_arg(pid: int, token: str) -> bool:
     """True when *pid* is alive and *token* is one of its whole argv tokens.
 
@@ -65,21 +77,20 @@ def process_has_arg(pid: int, token: str) -> bool:
     reuses PIDs, so a stale file can name any program. A whole token, not a
     substring: "quodeq" alone also sits in the interpreter's path
     (``.../quodeq/.venv/bin/python``) of every process run from that venv.
-    Windows has no ``ps``; there liveness alone has to do.
+    A command line that cannot be read counts as not matching, on every
+    platform: never signal a process we could not identify.
     """
     if not is_pid_alive(pid):
         return False
-    if sys.platform == PLATFORM_WIN32:
-        return True
     try:
         out = subprocess.run(
-            ["ps", "-o", "command=", "-p", str(pid)],
+            _command_line_cmd(pid),
             capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=_PS_TIMEOUT_S, check=False,
         ).stdout
     except (OSError, subprocess.TimeoutExpired):
         return False
-    return token in out.split()
+    return token in (out or "").split()
 
 
 _START_SLACK_S = 2  # `ps lstart` has 1 s resolution; clocks and file mtimes can disagree slightly
