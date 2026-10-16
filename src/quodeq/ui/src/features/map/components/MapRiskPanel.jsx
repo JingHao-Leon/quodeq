@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { RiskView, RiskTimelapseView } from '../viz/index.js';
 import MapTimelapseStage from './MapTimelapseStage.jsx';
 import useSkyTimeline from '../hooks/useSkyTimeline.js';
+import { usePageFocus } from '../../../hooks/usePageFocus.js';
 
 /**
  * The selected area by name, shared by today's sky and the time-lapse; a new
@@ -28,6 +29,7 @@ export default function MapRiskPanel({ risk, riskActions, view, timelapse }) {
   const { dark, showLabels, resetKey } = view;
   const timeline = useSkyTimeline(timelapse.data);
   const selection = useAreaSelection(resetKey, risk.initialArea);
+  usePageFocus('riskArea', selection.selectedName);
   const latest = (
     <RiskView areaState={risk.areaState} dark={dark} showLabels={showLabels} resetKey={resetKey}
       onViewDetails={riskActions.onViewDetails} selection={selection} />

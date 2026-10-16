@@ -12,6 +12,7 @@ import { useAppState } from '../../hooks/useAppState.js';
 import { t } from '../../strings/index.js';
 import { ACTION_TYPE } from '../../vocab/actionType.js';
 import { ASSISTANT_ACTION_APPLIED_EVENT } from '../../constants.js';
+import { usePageFocus } from '../../hooks/usePageFocus.js';
 
 // Which screen the page shows: the table, or the editor in create/edit mode.
 const VIEW_MODE = { LIST: 'list', EDIT: 'edit', NEW: 'new' };
@@ -37,6 +38,8 @@ export function useStandardsPageActions(refresh, handleDelete, addVisible, remov
   };
 
   useAssistantCreatedStandard({ view, setView, addVisible });
+  // The standard open in the editor (or a new one being written), for the assistant.
+  usePageFocus('standardEditor', view.mode === VIEW_MODE.LIST ? null : { mode: view.mode, standardId: view.standardId ?? null });
 
   return {
     view,

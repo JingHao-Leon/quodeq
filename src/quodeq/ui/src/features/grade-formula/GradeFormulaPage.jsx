@@ -15,6 +15,7 @@ import TypesTab from './TypesTab.jsx';
 import { DimensionsTab } from './tabs.jsx';
 import { t } from '../../strings/index.js';
 import { pluralKey } from '../../utils/plural.js';
+import { usePageFocus } from '../../hooks/usePageFocus.js';
 
 function FormulaBody({ editor, inputs, view }) {
   return (
@@ -165,6 +166,7 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
   const { inputs, loading, failed, retry } = useFormulaInputs();
   const actionsRef = useRef(null);
   const types = useTypesTab(scope, editor.draft);
+  usePageFocus('gradeFormulaTab', { tab: view.tab, dimension: types.dimensionFilter });
   const projects = navigation?.projects;
   const names = useMemo(() => Object.fromEntries((projects || []).map((p) => [p.id, p.name])), [projects]);
   if (!editor.draft) return <LoadingPage error={editor.error} />;

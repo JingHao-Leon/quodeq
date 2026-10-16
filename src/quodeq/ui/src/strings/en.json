@@ -82,6 +82,8 @@
   "assistant.activity.getContext": "Checking the project scope",
   "assistant.activity.getDismissed": "Reading dismissed findings",
   "assistant.activity.getHelp": "Reading the help",
+  "assistant.activity.getPrincipleHistory": "Reading the {dimension} principle history",
+  "assistant.activity.getRiskAreas": "Reading the risk areas",
   "assistant.activity.getHistory": "Reading the score history",
   "assistant.activity.getHistoryDim": "Reading the {dimension} score history",
   "assistant.activity.getOverview": "Reading the overview",

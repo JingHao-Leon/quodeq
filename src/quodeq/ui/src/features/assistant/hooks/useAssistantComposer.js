@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildMetaResponse, matchCommands, parseMetaCommand, META_COMMAND_NAME } from '../commands.js';
 import { KEY } from '../../../vocab/keyboard.js';
+import { withPageFocus } from '../../../hooks/usePageFocus.js';
 
 // Must equal the `.assistant-drawer-input` max-height in assistant.css: the
 // auto-grow below stops where the CSS cap would clip anyway.
@@ -60,7 +61,7 @@ function useQueuedMessages({ streaming, sendMessage, uiState }) {
     if (streaming || queued.length === 0) return;
     const [next, ...rest] = queued;
     setQueued(rest);
-    sendMessage(next, uiState);
+    sendMessage(next, withPageFocus(uiState));
   }, [streaming, queued, sendMessage, uiState]);
   const enqueue = useCallback((text) => setQueued((prev) => [...prev, text]), []);
   const dropQueued = useCallback((index) => setQueued((prev) => prev.filter((_, i) => i !== index)), []);
@@ -104,7 +105,7 @@ export function useAssistantComposer({ active, streaming, catalog, readOnly, uiS
     if (meta === META_COMMAND_NAME.CLEAR) { if (streaming) return; resetConversation(); setDraft(''); return; }
     if (meta) { addLocalExchange(text, buildMetaResponse(meta, catalog, { readOnly })); setDraft(''); return; }
     if (streaming || queued.length > 0) enqueue(text);
-    else sendMessage(text, uiState);
+    else sendMessage(text, withPageFocus(uiState));
     setDraft('');
   }, [draft, streaming, queued.length, enqueue, sendMessage, uiState, catalog, addLocalExchange, resetConversation, readOnly]);
 
