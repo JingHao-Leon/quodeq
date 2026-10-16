@@ -24,6 +24,7 @@ from quodeq.core.finding_identity import SuppressionSubject
 from quodeq.core.run.state import RunState
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import has_valid_score
+from quodeq.services._fs_project_primitives import repo_attach_reason
 from quodeq.services._map_git import git_commits_per_transition
 from quodeq.services._run_liveness import run_still_writing
 from quodeq.services._map_snapshots import Snapshots, run_snapshots
@@ -260,24 +261,24 @@ def _estimated_activity(snaps: list[RunSnapshot]) -> RunActivity:
                        (Counter(), *(Counter(estimate_edits(snaps[i - 1], s)) for i, s in enumerate(snaps[1:], start=1))))
 
 
-def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot]) -> RunActivity:
-    """Per transition, edits per path (index 0 is empty) and where they came from: git when the project is a repo."""
-    info = read_repository_info(project_dir) or {}
-    if not info.get("path"):
+def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot], use_git: bool) -> RunActivity:
+    """Per transition, edits per path (index 0 is empty) and where they came from: git only on a local working copy."""
+    path = repo_attach_reason(read_repository_info(project_dir) or {})[0] if use_git else None
+    if path is None:
         return _estimated_activity(snaps)
-    got = git_commits_per_transition(Path(info["path"]), days) if len(days) > 1 else [Counter()]
+    got = git_commits_per_transition(Path(path), days) if len(days) > 1 else [Counter()]
     if got is None:
         return _estimated_activity(snaps)
     return RunActivity(_SOURCE_GIT, tuple(Counter({p: n for p, n in c.items() if p in snaps[i].files}) for i, c in enumerate(got)))
 
 
 def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_FRAMES,
-                      selection: FindingSelection | None = None) -> MapHistory:
+                      selection: FindingSelection | None = None, git_activity: bool = True) -> MapHistory:
     """The project's map history: the latest frame, or every frame when *frames* is ``ALL_FRAMES``.
 
     With a *selection* the files, flows, ages and area metrics are measured
     over its findings only, each area keeps the area it has without one and
-    carries its lift; activity (edits) stays every file's own.
+    carries its lift; activity (edits) stays every file's own, from git only with *git_activity*.
 
     Raises ValueError when *frames* is not one of ``FRAME_CHOICES``, and
     SelectionError (a ValueError) when a selected dimension is unknown.
@@ -290,7 +291,7 @@ def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_
     if not m.days:
         return EMPTY_HISTORY
     frame_runs = list(range(len(m.days))) if frames == ALL_FRAMES else [len(m.days) - 1]
-    activity = _activity(reports_root / project, m.days, m.snaps.snapshots)
+    activity = _activity(reports_root / project, m.days, m.snaps.snapshots, git_activity)
     if selection is None:
         history = assemble_history(m.days, m.snaps.snapshots, activity, frame_runs)
     else:

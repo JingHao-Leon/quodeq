@@ -96,8 +96,13 @@ def stage_project_standards(
         if state in _NEWER_REMOTELY:
             skipped.append(standard_id)
         elif state != SyncState.PUBLISHED:
-            write_shared_standard(shared_dir, standard_id,
-                                  {**shareable_payload(local), _PUBLISHED_AT: published_at})
+            try:
+                write_shared_standard(shared_dir, standard_id,
+                                      {**shareable_payload(local), _PUBLISHED_AT: published_at})
+            except ValueError as exc:
+                log.warning(f"Not publishing standard {standard_id}: {exc}")
+                skipped.append(standard_id)
+                continue
             published.append(standard_id)
     return published, skipped
 
