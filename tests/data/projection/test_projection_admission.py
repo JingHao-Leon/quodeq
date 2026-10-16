@@ -56,9 +56,9 @@ def _project(tmp_path: Path, findings: list[dict]) -> Path:
     return run_dir
 
 
-def _rows(run_dir: Path, sql: str) -> list[tuple]:
+def _rows(run_dir: Path, sql: str, params: tuple = ()) -> list[tuple]:
     with sqlite3.connect(run_dir / "evaluation.db") as conn:
-        return conn.execute(sql).fetchall()
+        return conn.execute(sql, params).fetchall()
 
 
 def test_a_finding_without_a_principle_is_placed_by_its_requirement(tmp_path, standards) -> None:
@@ -124,7 +124,7 @@ def test_without_a_standard_a_blank_principle_is_unmapped_never_stored(tmp_path,
 
 
 def _meta(run_dir: Path, key: str):
-    rows = _rows(run_dir, f"SELECT value FROM run_meta WHERE key = '{key}'")
+    rows = _rows(run_dir, "SELECT value FROM run_meta WHERE key = ?", (key,))
     return rows[0][0] if rows else None
 
 
