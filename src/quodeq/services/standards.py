@@ -95,6 +95,10 @@ class StandardsService:
                self._store,
                lambda sid: check_builtin_id(sid, self._dimensions_file, self._read_json))
 
+    def is_builtin(self, standard_id: str) -> bool:
+        """True when *standard_id* names a built-in dimension."""
+        return check_builtin_id(standard_id, self._dimensions_file, self._read_json)
+
     def duplicate_standard(self, standard_id: str, new_id: str) -> StandardDetail:
         """Clone an existing standard under a new ID."""
         return duplicate(new_id=new_id,

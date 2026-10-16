@@ -40,6 +40,7 @@ class ShareError(Exception):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+        self.message = message
 
 
 def now_utc_iso() -> str:

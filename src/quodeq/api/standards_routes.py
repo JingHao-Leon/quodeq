@@ -4,6 +4,7 @@ Entry point that delegates to focused sub-modules:
 - standards_read_routes: GET / list / detail endpoints
 - standards_import_routes: import from file
 - standards_crud_routes: create, update, delete, duplicate
+- standards_share_routes: share, install, update via the shared repository
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from flask import Flask
 from quodeq.api.standards_crud_routes import register_crud_routes
 from quodeq.api.standards_import_routes import register_import_routes
 from quodeq.api.standards_overrides_routes import register_overrides_routes
+from quodeq.api.standards_share_routes import register_share_routes
 from quodeq.api.standards_read_routes import register_read_routes
 from quodeq.api.standards_visibility_routes import register_visibility_routes
 from quodeq.api.routes_common import standards_compiled_dir
@@ -47,5 +49,6 @@ def register_standards_routes(app: Flask) -> None:
     register_read_routes(app, _get_service)
     register_import_routes(app, _get_service)
     register_crud_routes(app, _get_service)
+    register_share_routes(app, _get_service)
     register_overrides_routes(app)
     register_visibility_routes(app)
