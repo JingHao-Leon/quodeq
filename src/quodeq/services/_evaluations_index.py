@@ -19,7 +19,7 @@ from pathlib import Path
 
 from quodeq.core.run.job_status import JOB_FINISHED, JobStatus, external_job_id, is_external_job_id, strip_external_prefix
 from quodeq.core.types.job import JobSnapshot
-from quodeq.services.wiring import run_index as _run_index
+from quodeq.services.wiring import RunIndexStore, RunRow, run_index as _run_index
 from quodeq.services._external_jobs import sync_external_run, sync_indexed_run
 from quodeq.services.jobs import JobManager
 from quodeq.services._run_index_fs import (
@@ -82,8 +82,8 @@ class EvaluationsIndex:
 
     def list_project(self, project: str, reports_dir: Path | None = None) -> list[JobSnapshot]:
         """One project's runs, newest first: only its run dirs are synced and read."""
-        return project_snapshots(
-            self._open_index(), self._coerce_reports_dir(reports_dir), project, self._internal_jobs())
+        rows = self._store().synced_project_runs(self._coerce_reports_dir(reports_dir), project)
+        return project_snapshots(rows, project, self._internal_jobs())
 
     def _internal_jobs(self) -> list[JobSnapshot]:
         """In-memory jobs from the ``JobManager``; empty when it cannot list them."""
@@ -97,12 +97,7 @@ class EvaluationsIndex:
         self, reports_dir: Path, db_limit: int | None, states: set[str] | None,
     ) -> list[JobSnapshot]:
         """Sync the index against *reports_dir*, then read up to *db_limit* rows (None: all) in *states*."""
-        db = self._open_index()
-        try:
-            _run_index.sync_index(db, reports_dir)
-            rows = _run_index.list_runs(db, limit=db_limit, states=states or None)
-        finally:
-            db.close()
+        rows = self._store().synced_runs(reports_dir, limit=db_limit, states=states)
         return [self._run_row_to_snapshot(r, with_logs=r.state == JobStatus.RUNNING) for r in rows]
 
     def delete(self, job_id: str, reports_dir: Path | None = None) -> bool:
@@ -125,13 +120,7 @@ class EvaluationsIndex:
         # Remove from index regardless so stale rows get cleaned up. The same
         # on-disk run can be indexed under "ext-<run_uuid>" even when the
         # caller holds the internal job id, so clear both key forms.
-        db = self._open_index()
-        try:
-            _run_index.delete_run(db, job_id)
-            if run_uuid != job_id:
-                _run_index.delete_run(db, external_job_id(run_uuid))
-        finally:
-            db.close()
+        self._store().delete(job_id, *([external_job_id(run_uuid)] if run_uuid != job_id else []))
         # Also drop any in-memory JobManager entry.
         try:
             if hasattr(self._jobs, "delete"):
@@ -154,16 +143,13 @@ class EvaluationsIndex:
                 return internal
 
         reports_dir = self._coerce_reports_dir(reports_dir)
-        db = self._open_index()
-        try:
+        with self._store().session() as db:
             if is_external:
                 if not sync_external_run(db, job_id, reports_dir):
                     return None
             elif not sync_indexed_run(db, job_id):
                 _run_index.sync_index(db, reports_dir)
             row = _run_index.get_run(db, job_id)
-        finally:
-            db.close()
         if row is None:
             return None
         return self._run_row_to_snapshot(row)
@@ -191,19 +177,13 @@ class EvaluationsIndex:
         if snapshot.status != JobStatus.RUNNING:
             return False
 
-        from quodeq.services.wiring import force_promote_to_cancelled_stale
-
         run_dir: Path | None = None
         if snapshot.output_project and snapshot.output_run_id and reports_dir:
             candidate = Path(reports_dir) / snapshot.output_project / snapshot.output_run_id
             if candidate.is_dir():
                 run_dir = candidate
 
-        db = self._open_index()
-        try:
-            return force_promote_to_cancelled_stale(db, job_id, run_dir=run_dir)
-        finally:
-            db.close()
+        return self._store().promote_to_cancelled_stale(job_id, run_dir=run_dir)
 
     def get_log_run_dir(self, job_id: str) -> Path | None:
         """Return the run_dir for *job_id*, or None if unknown.
@@ -244,11 +224,7 @@ class EvaluationsIndex:
         ``/api/index/rebuild`` admin endpoint.
         """
         root = self._coerce_reports_dir(reports_root)
-        db = self._open_index()
-        try:
-            return _run_index.rebuild_index(db, root)
-        finally:
-            db.close()
+        return self._store().rebuild(root)
 
     @property
     def index_db_path(self) -> Path | None:
@@ -289,11 +265,11 @@ class EvaluationsIndex:
             raise ValueError("EvaluationsIndex requires reports_root when reports_dir is omitted")
         return root
 
-    def _open_index(self):
-        """Open the index DB at the injected path."""
+    def _store(self) -> RunIndexStore:
+        """The run index at the injected path; it opens and closes every connection."""
         if self._index_db_path is None:
             raise ValueError("EvaluationsIndex requires index_db_path to be set")
-        return _run_index.open_index(self._index_db_path)
+        return RunIndexStore(self._index_db_path)
 
-    def _run_row_to_snapshot(self, row: "_run_index.RunRow", *, with_logs: bool = True) -> JobSnapshot:
+    def _run_row_to_snapshot(self, row: RunRow, *, with_logs: bool = True) -> JobSnapshot:
         return build_job_snapshot(row, with_logs=with_logs)

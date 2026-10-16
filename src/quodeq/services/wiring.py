@@ -158,7 +158,7 @@ from quodeq.data.fs.report_parser import OVERALL_PRINCIPLE, parse_eval_from_json
 from quodeq.data.events.reader import EventLogReader  # noqa: F401
 
 # SQLite run index (module, for its attribute-style callers) + the specific
-# names services import by name, plus the stale-run cancellation helper.
+# names services import by name, plus the store that owns the index connection.
 from quodeq.data.sqlite import run_index  # noqa: F401
 from quodeq.data.sqlite.run_index import (  # noqa: F401
     RunRow,
@@ -166,7 +166,7 @@ from quodeq.data.sqlite.run_index import (  # noqa: F401
     open_index,
     sync_index,
 )
-from quodeq.data.sqlite.index_sync import force_promote_to_cancelled_stale  # noqa: F401
+from quodeq.data.sqlite.run_index_store import RunIndexStore  # noqa: F401
 
 # External (CLI-started) run liveness resolution: safe run-id segment check
 # and the .pid file read.
