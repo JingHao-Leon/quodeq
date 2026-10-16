@@ -1919,13 +1919,14 @@
 .overview-skeleton__bar--since-num { width: 64px; height: 12px; }
 /* A compact dimension card: the name, the 56px ring, the grade word, the
    severity pills and the pass rate beside it. */
-.overview-skeleton__bar--name { width: 60%; height: 14px; }
+.overview-skeleton__bar--name { width: 60%; height: 16px; }
 /* the top line as tall as a trend badge, which most rows of cards carry */
 .overview-skeleton .dim-gauge-card__top { min-height: 25px; align-items: center; }
 .overview-skeleton__bar--mini-ring { width: 56px; height: 56px; border-radius: 50%; }
 .overview-skeleton__bar--card-grade { width: 56px; height: 10px; }
-.overview-skeleton__bar--card-pills { width: 110px; height: 18px; }
-.overview-skeleton__bar--card-pass { width: 64px; height: 11px; }
+.overview-skeleton__bar--card-pills { width: 110px; height: 20px; }
+/* The real pass line is 11px text on an 18px line: the same box, so the card keeps its height. */
+.overview-skeleton__bar--card-pass { width: 64px; height: 11px; margin-block: 4px 3px; }
 /* The radial's disc, as tall as the drawn radial. */
 .overview-skeleton__bar--radial { width: 290px; max-width: 100%; aspect-ratio: 1; border-radius: 50%; }
 /* The list panels' rows (Fix first, the areas): the dense two-line row's
@@ -1933,6 +1934,8 @@
    switch above the areas. */
 .overview-skeleton__rows { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
 .overview-skeleton__bar--row { display: block; width: 100%; height: 43px; }
+/* Holds a real control's box (the not-evaluated line's button) without showing it. */
+.overview-skeleton__ghost { visibility: hidden; }
 .overview-skeleton__bar--foot { width: 160px; height: 14px; }
 .overview-skeleton__bar--where-switch { width: 173px; height: 30px; }
 

@@ -1,6 +1,8 @@
-import { useMemo, useState, lazy, Suspense } from 'react';
+import { useMemo, useRef, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
 import NotEvaluatedLine from './NotEvaluatedLine.jsx';
+import { rememberShape } from '../overviewShape.js';
+import { useRememberedHeight } from '../../../hooks/useRememberedHeight.js';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import OverviewHead from './OverviewHead.jsx';
 import OffendingFilesSection from '../../../components/OffendingFilesSection.jsx';
@@ -50,9 +52,15 @@ export { useAccumulatedComputations, computeAccumulatedStats };
 // ---------------------------------------------------------------------------
 
 /** The dimensions as compact cards, weakest first, each lit with its radial point. */
-function AccumulatedDimensionsSection({ sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, pending, notEvaluated, onEvaluate, lit }) {
+function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, pending, notEvaluated, onEvaluate, lit }) {
+  const cards = sortedDimensions.length;
+  const hasLine = Boolean(notEvaluated?.length);
+  const ref = useRef(null);
+  // The next skeleton for this project draws this footprint, height included (overviewShape.js).
+  useRememberedHeight(ref, !pending, (height) => rememberShape(project, { cards, notEvaluated: hasLine, height }), [project, cards, hasLine]);
   return (
     <section
+      ref={ref}
       className={withPending('quality-dimensions', pending)}
       aria-label={t('overview.qualityDimensionsAria')}
       aria-busy={pending || undefined}
@@ -104,8 +112,11 @@ function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
 function OverviewBottom({ data, filteredDimensions, topFiles, pending, opens, onNavigate }) {
   const [where, setWhere] = useWhereView(WHERE_PAGE.OVERVIEW, WHERE.AREAS, WHERE_VIEWS);
   const openMap = onNavigate ? (params) => onNavigate(NAV_TAB.MAP, params) : null;
+  const ref = useRef(null);
+  const project = data.selectedProject;
+  useRememberedHeight(ref, !pending, (bottom) => rememberShape(project, { bottom }), [project]);
   return (
-    <div className="explorer-bottom">
+    <div className="explorer-bottom" ref={ref}>
       <FixFirstPanel dimensions={filteredDimensions} onRequirementClick={opens.requirement} />
       <WherePanel view={where} onView={setWhere}>
         {where === WHERE.AREAS && (
@@ -163,6 +174,7 @@ function AccumulatedOverviewSections({
         since={<SinceStrip summary={view.since} granularity={granularity} />} />
 
       <AccumulatedDimensionsSection
+        project={data.selectedProject}
         sortedDimensions={view.sorted}
         onDimensionClick={onDimensionClick}
         selectedDayDimNames={selectedDayDimNames}

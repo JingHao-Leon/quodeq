@@ -5,6 +5,7 @@ import { FIX_FIRST_SHOWN } from '../../../components/FixFirstPanel.jsx';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import { COMPACT_MIN_WIDTH, GRID_GAP } from './DimensionCardsGrid.jsx';
 import { useBalancedColumns } from '../hooks/useBalancedColumns.js';
+import { DEFAULT_SHAPE } from '../overviewShape.js';
 
 // Skeleton frame for the Overview's full footprint, top to bottom as
 // AccumulatedOverviewPanel lays it out: the header panel (ring, title and sub
@@ -128,18 +129,25 @@ function SkeletonDimensionCard({ index }) {
 }
 
 /** The compact cards, balanced over their rows as DimensionCardsGrid balances them, under `label`. */
-function SkeletonDimensions({ label }) {
-  const [gridRef, gridStyle] = useBalancedColumns(DIMENSION_CARD_COUNT, COMPACT_MIN_WIDTH, GRID_GAP);
+function SkeletonDimensions({ label, shape }) {
+  const count = shape?.cards ?? DIMENSION_CARD_COUNT;
+  const [gridRef, gridStyle] = useBalancedColumns(count, COMPACT_MIN_WIDTH, GRID_GAP);
   return (
-    <section className="quality-dimensions" aria-hidden="true">
+    <section className="quality-dimensions" aria-hidden="true" style={shape?.height ? { height: shape.height, overflow: 'hidden' } : undefined}>
       <div className="quality-dimensions__head">
         <SectionLabel>{label}</SectionLabel>
       </div>
       <div className="dimensions-panel">
         <div className="dimensions-grid" ref={gridRef} style={gridStyle}>
-          {placeholders(DIMENSION_CARD_COUNT).map((index) => <SkeletonDimensionCard key={index} index={index} />)}
+          {placeholders(count).map((index) => <SkeletonDimensionCard key={index} index={index} />)}
         </div>
       </div>
+      {shape?.notEvaluated && (
+        <p className="not-evaluated-line">
+          <Bar kind="since-label" />
+          <span className="term-btn not-evaluated-line__btn overview-skeleton__ghost">{'\u00a0'}</span>
+        </p>
+      )}
     </section>
   );
 }
@@ -178,9 +186,9 @@ function SkeletonListPanel({ className, label, rows }) {
  * page (`run`), its folders; the run page shows it alone while the run's
  * findings load.
  */
-export function SkeletonBottom({ run = false }) {
+export function SkeletonBottom({ run = false, height = null }) {
   return (
-    <div className="explorer-bottom" aria-hidden="true">
+    <div className="explorer-bottom" aria-hidden="true" style={height ? { height, overflow: 'hidden' } : undefined}>
       <SkeletonListPanel className="fix-first-panel" label={t('overview.fixFirstLabel')} rows={FIX_FIRST_SHOWN} />
       <section className="explorer-where">
         <Bar kind="where-switch" />
@@ -201,15 +209,16 @@ export function SkeletonBottom({ run = false }) {
  *   the run's header, no score history or radial, folders in the Where panel
  * @param {string} [props.title] the header's name in place of the Overview's (a dimension page's dimension)
  * @param {string} [props.cardsLabel] the cards' section label in place of "quality dimensions" (a dimension's principles)
+ * @param {{cards: number, notEvaluated: boolean}} [props.shape] the project's last drawn footprint (overviewShape.js)
  */
-export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, title, cardsLabel }) {
+export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, title, cardsLabel, shape = DEFAULT_SHAPE }) {
   return (
     <div className="overview-skeleton" aria-busy="true">
       <SkeletonSince />
       <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} />
-      <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} />
+      <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} shape={shape} />
       {!run && <SkeletonTopGrid />}
-      <SkeletonBottom run={run} />
+      <SkeletonBottom run={run} height={run ? null : shape?.bottom} />
     </div>
   );
 }
