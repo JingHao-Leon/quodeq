@@ -149,3 +149,17 @@ export async function putStandardsVisibility(projectId, visibleStandardIds) {
     body: JSON.stringify({ visibleStandardIds }),
   });
 }
+
+function syncPost(id, op, force) {
+  return request(`/standards/${encodeURIComponent(id)}/${op}`, {
+    method: 'POST',
+    body: JSON.stringify(force ? { force: true } : {}),
+  });
+}
+
+/** Push this machine's copy of a custom standard to the shared repository. */
+export function shareStandard(id, { force = false } = {}) { return syncPost(id, 'share', force); }
+/** Copy a standard from the shared repository onto this machine. */
+export function installStandard(id) { return syncPost(id, 'install', false); }
+/** Replace this machine's copy with the shared one. */
+export function updateStandardFromShared(id, { force = false } = {}) { return syncPost(id, 'update', force); }
