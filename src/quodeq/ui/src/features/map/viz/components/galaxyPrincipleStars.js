@@ -27,7 +27,8 @@ const LAYOUT = Object.freeze({
 
 /** Group violations and compliance by principle name, returning { [principleName]: { violations, compliance } } */
 export function groupByPrinciple(dim) {
-  const groups = {};
+  // No prototype: a principle named "constructor" or "__proto__" is a plain key, not an inherited member.
+  const groups = Object.create(null);
   for (const v of (dim.violations || [])) {
     const key = v.principle || '(ungrouped)';
     if (!groups[key]) groups[key] = { violations: [], compliance: [] };
@@ -43,7 +44,7 @@ export function groupByPrinciple(dim) {
 
 /** Build a lookup from principle name to { grade, score } from dim.principles array */
 export function buildGradeLookup(dim) {
-  const lookup = {};
+  const lookup = Object.create(null);
   for (const p of (dim.principles || [])) {
     const key = p.name || p.principle || '';
     if (key) lookup[key] = { grade: p.grade, score: p.score, confidence: p.confidence ?? null };
