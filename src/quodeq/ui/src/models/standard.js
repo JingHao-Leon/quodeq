@@ -55,6 +55,12 @@ const FAMILY_LABEL_KEYS = {
   [STANDARD_TYPES.CUSTOM]: 'standards.baseCustom',
 };
 
+/** The kind of standard alone, as the Standards table's type column shows it: "iso", "wcag", "custom". */
+export function standardTypeLabel(standard) {
+  const key = FAMILY_LABEL_KEYS[standard?.type];
+  return key ? t(key) : null;
+}
+
 /** The standard's family and, when it has one, its edition: "iso-25010", "wcag-2.2", "custom". */
 export function standardBaseLabel(standard) {
   const key = FAMILY_LABEL_KEYS[standard?.type];

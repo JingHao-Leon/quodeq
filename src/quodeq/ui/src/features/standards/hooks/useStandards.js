@@ -8,7 +8,7 @@ import { useStandardsQuery } from './useStandardsQuery.js';
 // The families and the base label live with the standard's model (the dimension page reads them too).
 import { STANDARD_TYPES } from '../../../models/standard.js';
 
-export { STANDARD_TYPES, standardBaseLabel } from '../../../models/standard.js';
+export { STANDARD_TYPES, standardBaseLabel, standardTypeLabel } from '../../../models/standard.js';
 
 // Fallback bucket for a standard whose `type` doesn't match any known
 // STANDARD_TYPES value. Keeps it visible (StandardsTable folds this bucket

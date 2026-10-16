@@ -155,9 +155,9 @@ describe('StandardsTable WCAG standard', () => {
     description: '', principleCount: 5, requirementCount: 34,
   };
 
-  it('shows the family and edition and, like ISO, offers no delete', () => {
+  it('shows the family as its type and, like ISO, offers no delete', () => {
     render(<StandardsTable grouped={{ wcag: [wcag] }} actions={actions} customizedCounts={{}} />);
-    expect(screen.getByText('wcag-2.2')).toBeInTheDocument();
+    expect(screen.getByText('wcag')).toBeInTheDocument();
     expect(screen.queryByLabelText(`${t('violations.delete')} Accessibility`)).not.toBeInTheDocument();
   });
 });
@@ -219,5 +219,15 @@ describe('StandardsTable empty state', () => {
     render(<StandardsTable grouped={{}} actions={actions} customizedCounts={{}} />);
     expect(screen.getByText('No standards yet. Create one or import a standard file.')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});
+
+describe('StandardsTable type column', () => {
+  it('shows the kind without the edition, which the source line already carries', () => {
+    const grouped = { iso: [{ id: 'security', name: 'Security', type: 'iso', subtype: '25010', sources: ['iso25010'], principleCount: 1, requirementCount: 1 }] };
+    render(<StandardsTable grouped={grouped} actions={actions} />);
+    expect(screen.getByText('iso')).toBeInTheDocument();
+    expect(screen.queryByText('iso-25010')).toBeNull();
+    expect(screen.getByText('ISO 25010')).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { standardBaseLabel } from '../hooks/useStandards.js';
+import { standardTypeLabel } from '../hooks/useStandards.js';
 import { relativeTime } from '../../../utils/relativeTime.js';
 import { t } from '../../../strings/index.js';
 import StandardSyncCell from './StandardSyncCell.jsx';
@@ -11,7 +11,7 @@ function remoteSubline(publishedAt) {
 
 /** A standard that exists only in the shared repository: plain row, one install action, no toggle. */
 export default function StandardRemoteRow({ standard, sync }) {
-  const baseLabel = standardBaseLabel(standard) || standard.type || t('standards.baseUnknown');
+  const baseLabel = standardTypeLabel(standard) || standard.type || t('standards.baseUnknown');
   return (
     <div className="standards-row standards-row--remote" role="row">
       <div className="standards-cell standards-cell--name">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { STANDARD_TYPES, UNKNOWN_STANDARD_TYPE, standardBaseLabel } from '../hooks/useStandards.js';
+import { STANDARD_TYPES, UNKNOWN_STANDARD_TYPE, standardTypeLabel } from '../hooks/useStandards.js';
 import { useStandardRowModals } from '../hooks/useStandardRowModals.js';
 import { ICON_STAR_FILLED, ICON_STAR_OUTLINE } from '../../../constants/navigation.jsx';
 import Icon from '../../../components/Icon.jsx';
@@ -169,7 +169,7 @@ function StandardRow({ standard, isVisible, onEdit, onDelete, onDuplicate, onTog
   const principleCount = standard.principleCount ?? standard.principles?.length ?? 0;
   const requirementCount = standard.requirementCount ?? (standard.principles || []).reduce((sum, p) => sum + (p.requirements?.length ?? 0), 0);
   const isDeletable = isDeletableStandard(standard.type);
-  const baseLabel = standardBaseLabel(standard) || standard.type || t('standards.baseUnknown');
+  const baseLabel = standardTypeLabel(standard) || standard.type || t('standards.baseUnknown');
 
   return (
     <>
