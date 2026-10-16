@@ -14,7 +14,7 @@ The **Repositories** tab is your home base. Every codebase you evaluate becomes 
 | Key | Value |
 | --- | --- |
 | Select project | Open it. Goes to Overview if it has runs, otherwise Evaluate. |
-| Add evaluations repository | In the header's **more ▾** menu (it reads *change repository* once one is configured): paste the address of a git repository where evaluations are published, yours or your team's, or choose a local folder that is a git repository. Once connected, a strip shows its state. |
+| Add evaluations repository | In the header's **more ▾** menu (it reads *change repository* once one is configured): paste the address of a git repository where evaluations are published, yours alone or shared with others, or choose a local folder that is a git repository. Once connected, a strip shows its state. |
 | Add project | Open the add panel: paste a git address or a local folder path and press **add**. |
 | Import project | Restore a project from an exported .zip, runs and history included (the header's **more ▾** menu, or the welcome's *An exported archive* card). |
 | Resume setup | Pick up an interrupted wizard with the same draft. |
@@ -22,7 +22,7 @@ The **Repositories** tab is your home base. Every codebase you evaluate becomes 
 | Export | Download the project as a .zip with all its runs and history. It imports again with *import project*, on this machine or another. |
 | Delete | Remove the project and all its runs. Not reversible. |
 | Publish / update | Send completed runs to the connected evaluations repository. |
-| Pull local copy | Import a teammate's shared project into your local list. |
+| Pull local copy | Import a shared project someone else published into your local list. |
 
 While a repository is cloning in the background, a tile with a progress bar (percentage and size) sits at the top of the list. It becomes the project card when the clone finishes, or turns into an error card if it fails. Closing the panel never cancels a clone, and a clone you closed early only adds the project; it does not start an evaluation.
 

@@ -21,7 +21,7 @@ const TIP_KEYS = [
   'loading.tips.shareBareRepo', 'loading.tips.shareUpdate',
   'loading.tips.sharePublishedBy', 'loading.tips.shareLocation',
   'loading.tips.sharePullCopy', 'loading.tips.shareAssistant',
-  'loading.tips.shareCompare', 'loading.tips.shareDisconnect',
+  'loading.tips.shareCompare', 'loading.tips.shareDisconnect', 'loading.tips.shareStandards',
   'loading.tips.githubSignIn', 'loading.tips.testAccess',
   'loading.tips.exportZip', 'loading.tips.fetchLatest',
   'loading.tips.cancelKeep', 'loading.tips.timeLimit',

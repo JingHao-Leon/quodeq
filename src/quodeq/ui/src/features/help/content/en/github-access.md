@@ -34,7 +34,7 @@ GitHub answers a private repository you cannot see with "Repository not found" r
 
 ## Settings
 
-Settings has a "github access" block: your current state, sign in, sign out, and a field to test any repository address. Signing out forgets only the token quodeq stored; it never touches `gh` or your git configuration.
+Settings has a *GitHub access* block in its *Connections* group: your current account state, **sign in with GitHub**, and **sign out** once you are signed in. Signing out forgets only the token quodeq stored; it never touches `gh` or your git configuration.
 
 ## For forks
 

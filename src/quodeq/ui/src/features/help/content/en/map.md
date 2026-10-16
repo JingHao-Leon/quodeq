@@ -1,27 +1,23 @@
 ## Code Map
 
-The **Map** tab draws your codebase as shapes you can scan at a glance: three layouts (Circle Pack, Risk and Galaxy), and for the Circle Pack two ways to color it.
+The **Map** tab draws your codebase as shapes you can scan at a glance. Four tabs in the map controls pick the view: **Circle Pack**, **Activity**, **Risk** and **Galaxy**.
 
-### Pick a color mode (Circle Pack)
-
-- **Concentration** colors a circle by its issues compared with the project's average for the same size, capped by the worst severity inside it. Size is checks run.
-- **Activity** colors a circle by how often its files changed, from git history or, without it, estimated from finding changes. It is unavailable for remote projects and projects with no local history.
-
-### Pick a layout
+### Pick a view
 
 | Key | Value |
 | --- | --- |
-| Circle Pack | Nested circles sized by checks run. Best for spotting heavy files at a glance. |
+| Circle Pack | Nested circles sized by checks run, colored by concentration: a circle's issues compared with the project's average for the same size, capped by the worst severity inside it. Best for spotting heavy files at a glance. |
+| Activity | The same circles, colored by how often their files changed: from git history, or estimated from finding changes when there is none, as for remote projects. The tab is unavailable, with the reason on hover, only for a project with no history yet. |
 | Risk | Functional areas on a sky: the closer to the centre, the more an area needs rework. Two zones mark where to look first: **Fix first** in the middle, then **Watch** around it, each labelled on its ring with the number of areas it holds and sized by how much room those areas take. A solid ring around an area marks a hotspot (needs work and changes often), a dashed ring dormant debt (needs work, rarely touched). Hover an area for its numbers; click it for its details, and **View details** opens the area's findings as one page (the × on the panel clears the selection). The legend gives each zone's threshold in weighted issues per file, the colour scale of bubbles and dots (issues compared with the project's average) and what the size stands for (files). |
 | Galaxy | Force-directed cluster view. Two sub-modes: filesystem (by directory) or standards (by violated principle). |
 
 ### Filter by dimension
 
-The **Dimensions** pill in the map controls narrows every layout to the dimensions you tick. A dot on the pill reminds you a filter is active. On the Risk sky the areas are measured again over the dimensions you keep (or over one principle, when the Map was opened from a principle's page), and **View details** then opens the area's findings of those dimensions, and that principle, only: the findings page names them under the area's name.
+The **Dimensions** button in the map controls narrows every view. In its menu, tick the boxes to combine several dimensions, or click a dimension's name to show only that one; **All dimensions** brings every dimension back. The button then names the dimension you kept, or the first one and how many more, so you can see a filter is active. On the Risk sky the areas are measured again over the dimensions you keep (or over one principle, when the Map was opened from a principle's page), and **View details** then opens the area's findings of those dimensions, and that principle, only: the findings page names them under the area's name.
 
 ### Time-lapse
 
-The **Time-lapse** switch in the map's corner turns the time-lapse on under the Circle Pack and the Risk sky. It is off until you turn it on, and the Map remembers your choice; turning it off returns the map to today. While it is on, the time-lapse sits in a dock along the bottom edge of the map and plays your project's history back, showing the project as it stood at the end of each step.
+The **Time-lapse** switch in the map's corner turns the time-lapse on under the Circle Pack, the Activity tab and the Risk sky. It is off until you turn it on, and the Map remembers your choice; turning it off returns the map to today. While it is on, the time-lapse sits in a dock along the bottom edge of the map and plays your project's history back, showing the project as it stood at the end of each step.
 
 It plays by day, week or month, the same grouping as the Overview's history: change it in one place and the other follows. By day, each step is a day with an evaluation. By week or by month, each step is the end of that week or month (its last evaluation), named after the week's first day or after the month, and its bars add up the new and fixed issues of the whole week or month. Changing the grouping keeps you on the day you were looking at.
 
@@ -31,7 +27,7 @@ On the Circle Pack, each day shows only the files and folders it had. The latest
 
 Hover shows that day's numbers on both layouts. Clicks work the same whether it plays or not: on the Circle Pack a click on a folder zooms in and a click on a file of the open folder selects it; on the Risk sky a click on an area selects it, and a click on empty sky clears the selection. What you select stays selected while the days play, so you can follow it over time: the panel in the top right corner shows its numbers for the day shown. On the Circle Pack, with no file selected, the panel shows the open folder, counting only what it held that day. On a past day, **View details** opens the findings as of that day, read-only. The × in the panel's corner clears the selection. A file you select on today's Circle Pack stays selected when the time-lapse takes over, and the other way round.
 
-The time-lapse covers every dimension, so it is replaced by a short note while the Dimensions filter is on. Remote projects have no local history, so they have no time-lapse.
+The time-lapse covers every dimension, so it is replaced by a short note while the Dimensions filter is on. Remote projects get the time-lapse, the Risk sky and the Activity tab too, read from the runs in the shared repository; it needs at least two runs to play.
 
 ### Labels and legend
 
