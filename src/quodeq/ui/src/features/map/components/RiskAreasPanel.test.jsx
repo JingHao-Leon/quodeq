@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import RiskAreasPanel, { AREAS_SHOWN } from './RiskAreasPanel.jsx';
@@ -8,21 +8,25 @@ const stats = (files, violations = 3, critical = 0, major = 1) => ({ files, viol
 const area = (name, density, { files = 8, kind = 'watch', lift = null } = {}) => ({ name, density, kind, lift, stats: stats(files), dots: [], layers: [] });
 
 let areaSet = { areas: [], files: [], average: 0 };
+let status = { loading: false, failed: false };
 const FILES = [{ path: 'src/hot/a.py', area: 'hot' }, { path: 'src/hot/b.py', area: 'hot' }, { path: 'src/warm/c.py', area: 'warm' }];
 const asked = vi.hoisted(() => ({ selection: undefined }));
 vi.mock('../hooks/useMapAreas.js', () => ({
-  default: (_p, _s, _active, selection) => { asked.selection = selection; return { areaSet, loading: false, failed: false }; },
+  default: (_p, _s, _active, selection) => { asked.selection = selection; return { areaSet, ...status }; },
 }));
 
 // The rows under the column header.
 const bodyRows = () => screen.getAllByRole('row').slice(1);
 
 describe('RiskAreasPanel', () => {
-  it('lists the areas with their zone and density, and counts both zones', () => {
+  beforeEach(() => { status = { loading: false, failed: false }; });
+
+  it('lists the areas with their zone and density, worst first, the healthy ones after the two zones', () => {
     areaSet = { areas: [area('hot', 1.4, { kind: 'hotspot' }), area('warm', 0.6), area('calm', 0.1)] };
     render(<RiskAreasPanel project="p" source="local" />);
     const rows = bodyRows();
-    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['hot', 'warm', 'calm']);
+    expect(rows[2]).toHaveTextContent(t('overview.riskZoneHealthy'));
     expect(rows[0]).toHaveTextContent('hot');
     expect(rows[0]).toHaveTextContent(t('overview.riskZoneFixFirst'));
     expect(rows[0]).toHaveTextContent('1.40');
@@ -80,11 +84,31 @@ describe('RiskAreasPanel', () => {
     expect(screen.queryByRole('button', { name: t('overview.riskAreaInMapAria', { name: 'hot' }) })).toBeNull();
   });
 
-  it('says so in one line when no area needs rework', () => {
-    areaSet = { areas: [area('calm', 0.1)] };
+  it('lists the healthy areas when no area needs rework, never an empty panel', () => {
+    areaSet = { areas: [area('calm', 0.1), area('quiet', 0.05)] };
+    render(<RiskAreasPanel project="p" source="local" />);
+    expect(bodyRows().map((r) => r.querySelector('.offending-file-name').textContent)).toEqual(['calm', 'quiet']);
+  });
+
+  it('keeps its frame while the areas load, so the switch above never sits alone', () => {
+    areaSet = { areas: [] };
+    status = { loading: true, failed: false };
+    render(<RiskAreasPanel project="p" source="local" />);
+    expect(screen.getByRole('region', { name: t('overview.riskAreasAria') })).toHaveTextContent(t('map.riskLoading'));
+  });
+
+  it('says the areas failed to load instead of vanishing', () => {
+    areaSet = { areas: [] };
+    status = { loading: false, failed: true };
+    render(<RiskAreasPanel project="p" source="local" />);
+    expect(screen.getByText(t('map.riskFailed'))).toBeInTheDocument();
+  });
+
+  it('says no area can be placed yet when every area is too small to judge', () => {
+    areaSet = { areas: [area('tiny', 3, { kind: 'small' })] };
     render(<RiskAreasPanel project="p" source="local" />);
     expect(screen.queryAllByRole('row')).toHaveLength(0);
-    expect(screen.getByText(t('overview.riskAreasNone'))).toBeInTheDocument();
+    expect(screen.getByText(t('map.riskEmpty'))).toBeInTheDocument();
   });
 
   it('leaves out an area too small to judge, and one the sky does not draw', () => {
