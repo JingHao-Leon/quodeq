@@ -31,7 +31,6 @@ and must always be supplied.
 from __future__ import annotations
 
 import logging
-import sqlite3
 from pathlib import Path
 from typing import Callable
 
@@ -41,7 +40,9 @@ from quodeq.services._accumulated_data import read_scalar_dimensions
 from quodeq.services.scoring_deps import ScoringDeps, NO_DEPS
 from quodeq.services.deleted import deleted_keys as _default_deleted_keys
 from quodeq.services.dismissed import dismissed_keys as _default_dismissed_keys
-from quodeq.services.wiring import load_suppression_rules, read_run_scalars as _default_read_run_scalars
+from quodeq.services.wiring import (
+    ScoreCacheError, load_suppression_rules, read_run_scalars as _default_read_run_scalars, save_run_keys,
+)
 from quodeq.services.rescore import rescore_dimension, with_hidden_counts
 from quodeq.services.score_cache import VersionInputs, make_cache_backed_fetcher
 from quodeq.services.suppression_keys import SuppressionKeys
@@ -108,8 +109,7 @@ def _make_version_for(
     """
     from quodeq.services.run_keys import read_run_key_sets  # noqa: PLC0415
     from quodeq.services.score_cache import (  # noqa: PLC0415
-        memoized_run_version, open_score_cache, remember_run_version,
-        run_scoped_version, store_run_keys,
+        memoized_run_version, remember_run_version, run_scoped_version,
     )
 
     keys_cache: dict[str, tuple] = {}
@@ -126,9 +126,8 @@ def _make_version_for(
             keys = read_run_key_sets(project_dir / run_id)
             if cacheable:
                 try:
-                    with open_score_cache() as _c:
-                        store_run_keys(_c, project, run_id, keys[0], keys[1])
-                except (OSError, sqlite3.Error):
+                    save_run_keys(project, run_id, keys[0], keys[1])
+                except ScoreCacheError:
                     _logger.debug(
                         "Could not store run keys in score cache for %s/%s",
                         project, run_id, exc_info=True,

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
-import { useFolderNavigation } from './useFolderNavigation.js';
+import { isWithinRoot, useFolderNavigation } from './useFolderNavigation.js';
 
 function wrapper(api) {
   return function Wrapper({ children }) {
@@ -73,6 +73,31 @@ describe('useFolderNavigation', () => {
 
     expect(browseDirectory).not.toHaveBeenCalled();
     expect(result.current.pathInput).toBe('/repo');
+  });
+
+  it.each([
+    ['/repo/../etc'],
+    ['/repo-other'],
+    ['/repo/./../repo-other/x'],
+  ])('navigate to %s is blocked: it only looks like it is under rootPath', async (path) => {
+    const browseDirectory = vi.fn().mockResolvedValue({ current: '/repo', parent: '/', directories: [], files: [] });
+    const { result } = renderHook(() => useFolderNavigation({ rootPath: '/repo', showFiles: false }), {
+      wrapper: wrapper({ browseDirectory }),
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    browseDirectory.mockClear();
+
+    act(() => { result.current.navigate(path); });
+
+    expect(browseDirectory).not.toHaveBeenCalled();
+    expect(result.current.pathInput).toBe('/repo');
+  });
+
+  it('isWithinRoot accepts the root itself, its children and Windows separators', () => {
+    expect(isWithinRoot('/repo', '/repo')).toBe(true);
+    expect(isWithinRoot('/repo/a/b', '/repo/')).toBe(true);
+    expect(isWithinRoot('C:\\work\\repo\\src', 'C:\\work\\repo')).toBe(true);
+    expect(isWithinRoot('C:\\work\\repo2', 'C:\\work\\repo')).toBe(false);
   });
 
   it('setSelectedFolder and setPathInput update state directly', async () => {

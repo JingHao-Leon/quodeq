@@ -15,6 +15,7 @@ import subprocess
 import threading
 
 from quodeq.shared.frozen import dashboard_cmd as _dashboard_cmd
+from quodeq.shared.utils import sanitize_sensitive
 from quodeq.menubar._constants import STATUS_STOPPED
 from quodeq.menubar._process import (
     DashboardCallbacks as _DashboardCallbacks,
@@ -113,11 +114,11 @@ class DashboardLifecycleMixin:
                 err = f.read(STDERR_READ_MAX).strip()
         except OSError:
             err = "unknown error"
-        sanitized = err[:ERROR_DISPLAY_MAX].replace("\n", " ").strip()
+        sanitized = sanitize_sensitive(err[:ERROR_DISPLAY_MAX].replace("\n", " ").strip())
         if sanitized:
-            # Keep the crash detail in the local log for troubleshooting, but
-            # do not surface raw dashboard stderr (which may include tokens or
-            # filesystem paths) in the always-visible menu.
+            # Keep the crash detail in the local log for troubleshooting, with
+            # secrets masked, and keep raw dashboard stderr (which may include
+            # tokens or filesystem paths) out of the always-visible menu.
             _logging.getLogger(__name__).warning(
                 "Dashboard crashed (exit code %s): %s", self._process.returncode, sanitized,
             )

@@ -91,6 +91,8 @@ def _walk_files(root: Path):
 
     Uses a stack instead of recursion to avoid depth limits on deeply nested trees.
     Yields ``Path`` objects one at a time instead of accumulating into a list.
+    Symlinked directories are not followed: one can point outside *root* (or
+    back up into it), and the file tree must only list the project's own files.
     """
     stack: list[Path] = [root]
     while stack:
@@ -102,7 +104,7 @@ def _walk_files(root: Path):
         dirs: list[Path] = []
         for item in entries:
             if item.is_dir():
-                if _is_scanned_dir_name(item.name):
+                if _is_scanned_dir_name(item.name) and not item.is_symlink():
                     dirs.append(item)
             elif item.is_file():
                 yield item

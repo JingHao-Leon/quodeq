@@ -93,10 +93,13 @@ class GitCloneClient:
         )
 
     def clone_legacy(self, repo_input: str, dest: Path, *, timeout_s: int) -> None:
-        """Run ``git clone`` for *repo_input* into *dest* (mkdtemp fallback path)."""
+        """Run ``git clone`` for *repo_input* into *dest* (mkdtemp fallback path).
+
+        ``--`` keeps a dash-prefixed *repo_input* from being read as a git option.
+        """
         env = git_env_floor(self._env)
         subprocess.run(
-            ["git", "clone", "--progress", repo_input, str(dest)],
+            ["git", "clone", "--progress", "--", repo_input, str(dest)],
             check=True, env=env, stdin=subprocess.DEVNULL, timeout=timeout_s,
         )
 

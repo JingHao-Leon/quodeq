@@ -13,7 +13,7 @@ import pytest
 
 from quodeq.update import selfupdate
 
-DMG_URL = "https://example.com/Quodeq-1.11.0-macOS.dmg"
+DMG_URL = "https://github.com/quodeq/quodeq/releases/download/v1.11.0/Quodeq-1.11.0-macOS.dmg"
 
 
 @pytest.fixture(autouse=True)

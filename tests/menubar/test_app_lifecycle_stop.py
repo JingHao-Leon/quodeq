@@ -219,3 +219,28 @@ class TestStopResetsState:
 
         assert not stderr_log.exists()
         assert app._stderr_log_path is None
+
+
+class _CrashedProcess:
+    returncode = 1
+
+
+class _CrashApp(_app_lifecycle.DashboardLifecycleMixin):
+    def __init__(self) -> None:
+        self._process = _CrashedProcess()
+        self.errors: list[str] = []
+
+    def _stop_with_error(self, message: str) -> None:
+        self.errors.append(message)
+
+
+def test_crash_log_masks_tokens(tmp_path: Path, caplog) -> None:
+    stderr_path = tmp_path / "stderr.log"
+    stderr_path.write_text("boom: token=ghp_abc123 while starting\n", encoding="utf-8")
+    app = _CrashApp()
+    with caplog.at_level("WARNING", logger=_app_lifecycle.__name__):
+        app._handle_crashed_process(stderr_path.open(encoding="utf-8"))
+    assert "Dashboard crashed" in caplog.text
+    assert "ghp_abc123" not in caplog.text
+    assert "token=***" in caplog.text
+    assert app.errors

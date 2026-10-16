@@ -22,6 +22,7 @@ from quodeq.services.wiring import (
     ensure_shared_clone,
     refresh_shared_clone,
 )
+from quodeq.shared.repo import mask_userinfo
 
 _GIT_REMOTE_ORIGIN = "origin"
 _GIT_HEAD = "HEAD"
@@ -61,7 +62,7 @@ def prepare_clone(url: str, env: dict | None) -> tuple[Path, str]:
     repo = ensure_shared_clone(url, env)
     if repo is None:
         raise PublishError(
-            f"could not reach the shared repository, check that git can access {url}"
+            f"could not reach the shared repository, check that git can access {mask_userinfo(url)}"
         )
     refresh_shared_clone(url, env)  # best effort, publish is still guarded by push
 

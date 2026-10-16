@@ -92,7 +92,7 @@ def test_a_cache_os_error_in_the_worker_leaves_nothing_pending(monkeypatch) -> N
         with real_open() as conn:
             yield conn
 
-    monkeypatch.setattr("quodeq.services._run_log_fill.open_score_cache", flaky_open)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.open_score_cache", flaky_open)
     filler = RunChangeFiller(budget_s=0.0)
     filler.fill([_job("r1"), _job("r2")], lambda job: {"run": job.run_id})
     assert filler.wait_idle(timeout=WAIT_S)

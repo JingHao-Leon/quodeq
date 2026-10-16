@@ -250,9 +250,10 @@ describe('loadProviderState api-key handling', () => {
     expect(state['api-key']).toBe('');
   });
 
-  it('still returns a genuine legacy raw value unchanged', () => {
+  it('never returns a legacy raw key: it stays in storage for the boot migration only', () => {
     const storage = storageWith({ 'cc-omlx-api-key': 'sk-legacy-raw-value' });
-    expect(loadProviderState('omlx', {}, storage)['api-key']).toBe('sk-legacy-raw-value');
+    expect(loadProviderState('omlx', {}, storage)['api-key']).toBe('');
+    expect(storage.getItem('cc-omlx-api-key')).toBe('sk-legacy-raw-value');
   });
 
   it('falls back to the default when nothing is stored', () => {

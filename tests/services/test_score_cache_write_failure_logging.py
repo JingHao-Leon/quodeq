@@ -1,7 +1,7 @@
 """score-cache write failures must log, not just silently degrade.
 
-Each write-side except block in ``_score_cache_fetch`` (write
-cached_project_summary, write_cached_rows inside make_cache_backed_fetcher's
+Each write-side except block in ``_score_cache_fetch`` (the
+write_project_summary call, and write_run_rows inside make_cache_backed_fetcher's
 fetch closure) must log a warning before falling
 through to the plain-recompute result. The degrade-to-recompute behavior
 itself must be unchanged: the caller still gets the freshly computed value,
@@ -33,6 +33,7 @@ from quodeq.shared.log_sink import SHARED_LOG
 
 
 def _boom(*_args, **_kwargs):
+    """A driver failure inside the data layer, which surfaces as ScoreCacheError."""
     raise sqlite3.Error("disk full")
 
 
@@ -60,7 +61,7 @@ class _FakeLog:
 
 def test_make_cache_backed_fetcher_logs_on_bulk_read_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "sc.db"))
-    monkeypatch.setattr(_score_cache_fetch, "read_all_cached_rows", _boom)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.read_all_cached_rows", _boom)
 
     scalars = [DimensionResult(dimension="security", overall_score="8.0/10", overall_grade="Good")]
 
@@ -79,19 +80,19 @@ def test_make_cache_backed_fetcher_logs_on_bulk_read_failure(monkeypatch, tmp_pa
 
 def test_cached_project_summary_logs_on_write_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "sc.db"))
-    monkeypatch.setattr(_score_cache_fetch, "write_cached_project_summary", _boom)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.write_cached_project_summary", _boom)
 
     log = _FakeLog()
     computed = {"grade": "Good", "score": 8.0}
     result = _score_cache_fetch.cached_project_summary("proj", "v1", lambda: computed, log=log)
 
     assert result is computed
-    assert any("write_cached_project_summary" in msg for msg in log.warnings)
+    assert any("write_project_summary" in msg for msg in log.warnings)
 
 
 def test_make_cache_backed_fetcher_logs_on_write_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "sc.db"))
-    monkeypatch.setattr(_score_cache_fetch, "write_cached_rows", _boom)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.write_cached_rows", _boom)
 
     scalars = [DimensionResult(dimension="security", overall_score="8.0/10", overall_grade="Good")]
 
@@ -106,7 +107,7 @@ def test_make_cache_backed_fetcher_logs_on_write_failure(monkeypatch, tmp_path):
 
     # Degrade-to-recompute is unchanged: the base fetcher's scalars are served.
     assert [d.overall_score for d in out] == ["8.0/10"]
-    assert any("write_cached_rows" in msg for msg in log.warnings)
+    assert any("write_run_rows" in msg for msg in log.warnings)
 
 
 class TestProductionCallerReachesRealSink:
@@ -118,7 +119,7 @@ class TestProductionCallerReachesRealSink:
 
     def test_compute_on_miss_summary_logs_through_shared_log(self, monkeypatch, tmp_path):
         monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "sc.db"))
-        monkeypatch.setattr(_score_cache_fetch, "write_cached_project_summary", _boom)
+        monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.write_cached_project_summary", _boom)
 
         computed = {"grade": "Good", "score": 7.0, "files": 3}
         monkeypatch.setattr(_md, "_compute_summary", lambda *a, **k: computed)
@@ -134,7 +135,7 @@ class TestProductionCallerReachesRealSink:
         )
 
         assert result == ("Good", 7.0, 3, False)
-        assert any("write_cached_project_summary" in msg for msg in log.warnings)
+        assert any("write_project_summary" in msg for msg in log.warnings)
 
     def test_fs_metadata_imports_the_real_shared_log_singleton(self):
         # Sanity check that _fs_metadata.SHARED_LOG is the actual production
@@ -157,16 +158,16 @@ def test_cached_project_summary_goes_through_read_through(monkeypatch):
 
 def test_kill_switch_computes_without_touching_the_cache(monkeypatch):
     monkeypatch.setenv("QUODEQ_DISABLE_SCORE_CACHE", "1")
-    monkeypatch.setattr(_score_cache_fetch, "open_score_cache", _boom)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.open_score_cache", _boom)
     computed = {"score": 1.0}
     assert _score_cache_fetch.cached_project_summary("proj", "v1", lambda: computed) is computed
 
 
 def test_first_read_error_computes_and_skips_the_write(monkeypatch, tmp_path):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "sc.db"))
-    monkeypatch.setattr(_score_cache_fetch, "read_cached_project_summary", _boom)
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.read_cached_project_summary", _boom)
     writes: list[str] = []
-    monkeypatch.setattr(_score_cache_fetch, "write_cached_project_summary",
+    monkeypatch.setattr("quodeq.data.sqlite.score_cache_access.write_cached_project_summary",
                         lambda *a, **k: writes.append("write"))
     computed = {"score": 2.0}
     assert _score_cache_fetch.cached_project_summary("proj", "v1", lambda: computed) is computed

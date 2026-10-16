@@ -20,7 +20,7 @@ from pathlib import Path
 from quodeq.core.run.job_status import JobStatus
 from quodeq.core.types.job import JobSnapshot
 from quodeq.services.wiring import remove_run_directory, scan_reports_root_for_run  # noqa: F401
-from quodeq.services.wiring import run_index as _run_index
+from quodeq.services.wiring import RunIndexStore, run_index as _run_index
 from quodeq.services._run_status_readers import status_json_terminal
 
 
@@ -100,11 +100,7 @@ def indexed_run_dir(index_db_path: Path | None, job_id: str) -> Path | None:
     """
     if index_db_path is None:
         return None
-    db = _run_index.open_index(index_db_path)
-    try:
-        row = _run_index.get_run(db, job_id)
-    finally:
-        db.close()
+    row = RunIndexStore(index_db_path).get(job_id)
     if row is None or not row.run_dir:
         return None
     candidate = Path(row.run_dir)
