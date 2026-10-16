@@ -139,3 +139,11 @@ it('emits only the page when the entry has no usable params, and nothing without
   expect(pageState(undefined)).toEqual({});
   expect('page' in deriveAssistantContext({ activeTab: 'overview', projects: [] }, { activeProvider: 'ollama' }).uiState).toBe(false);
 });
+
+it('forwards the run picked in the History run log so "this run" resolves there', () => {
+  const gate = { activeProvider: 'claude', model: 'm' };
+  const picked = deriveAssistantContext({ activeTab: 'history', selectedProject: 'p', historySelectedRun: 'run-7' }, gate);
+  expect(picked.uiState.historySelectedRun).toBe('run-7');
+  const latest = deriveAssistantContext({ activeTab: 'history', selectedProject: 'p', historySelectedRun: 'latest' }, gate);
+  expect(latest.uiState).not.toHaveProperty('historySelectedRun');
+});

@@ -2,7 +2,7 @@
 name: explain-score
 description: Explain why a dimension scored the way it did
 argument_hint: [dimension]
-views: overview, violations
+views: overview, violations, explorer, evalprinciple, run, history-run
 ---
 The user wants to understand a dimension's score/grade (usually the one in
 `[ui-state]`). Call `get_report` for that dimension. Explain the grade from

@@ -2,7 +2,7 @@
 name: compare-runs
 description: Say what changed between two runs, finding by finding
 argument_hint: [run id] [against run id]
-views: history
+views: history, history-run, run
 ---
 The user wants the difference between two runs, by default the selected run
 (or the newest) against each dimension's previous scoring run. Call

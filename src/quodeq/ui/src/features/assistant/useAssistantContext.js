@@ -2,6 +2,7 @@ import { useAppState } from '../../hooks/useAppState.js';
 import { useAssistantProvider } from '../settings/hooks/useAssistantProvider.js';
 import { PROJECT_SOURCE } from '../../vocab/projectSource.js';
 import { projectId } from '../../utils/projectIdentity.js';
+import { LATEST_RUN_ID } from '../../constants.js';
 
 // Route params the model has no use for: the page id is emitted on its own
 // and _tabKey only counts fresh clicks on a sidebar tab.
@@ -84,10 +85,12 @@ function resolveProjectId(selectedProject, projects) {
 function buildUiState(appState, dimension) {
   const {
     activeTab, selectedProject, selectedRun, activePage,
-    currentOverviewRun, granularity, dailyRuns, overviewRunIndex,
+    currentOverviewRun, granularity, dailyRuns, overviewRunIndex, historySelectedRun,
   } = appState;
   const uiState = { view: activeTab, activeTab, selectedProject, selectedRun, ...pageState(activePage) };
   if (currentOverviewRun) uiState.currentOverviewRun = currentOverviewRun;
+  // The run picked in the History run log; 'latest' is no pick at all.
+  if (historySelectedRun && historySelectedRun !== LATEST_RUN_ID) uiState.historySelectedRun = historySelectedRun;
   if (dimension) uiState.dimension = dimension;
   if (granularity) uiState.grouping = granularity;
   const overviewDate = Array.isArray(dailyRuns) ? dailyRuns[overviewRunIndex]?.dateLabel : undefined;
