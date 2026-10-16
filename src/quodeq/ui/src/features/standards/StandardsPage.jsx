@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useStandards } from './hooks/useStandards.js';
 import { useVisibleStandards } from './hooks/useVisibleStandards.js';
 import { useStandardsOverrides } from './hooks/useStandardsOverrides.js';
+import { useStandardsSharing } from './hooks/useStandardsSharing.js';
 import StandardsTable from './components/StandardsTable.jsx';
+import StandardsSharedBand from './components/StandardsSharedBand.jsx';
 import StandardEditor from './components/StandardEditor.jsx';
 import ImportModal from './components/ImportModal.jsx';
 import PageToolbar from '../../components/PageToolbar.jsx';
@@ -63,14 +65,15 @@ function useAssistantCreatedStandard({ view, setView, addVisible }) {
   }, [setView]);
 }
 
-function StandardsListView({ grouped, loading, error, actions, customizedCounts }) {
+function StandardsListView({ grouped, loading, error, actions, customizedCounts, sharing }) {
   return (
     <>
       {error && <p className="inline-error inline-error--spaced">{error}</p>}
+      {sharing.band && <StandardsSharedBand {...sharing.band} />}
       {loading ? (
         <div className="standards-loading">{t('standards.loadingStandards')}</div>
       ) : (
-        <StandardsTable grouped={grouped} actions={actions} customizedCounts={customizedCounts} />
+        <StandardsTable grouped={grouped} actions={actions} customizedCounts={customizedCounts} shared={sharing.shared} />
       )}
     </>
   );
@@ -86,6 +89,7 @@ export default function StandardsPage({ onRescan }) {
   // land here and in handleImported.
   const { grouped, loading, error, refresh, handleDelete, handleDuplicate } = useStandards({ onDuplicated: addVisible });
   const { counts: customizedCounts } = useStandardsOverrides(selectedProject);
+  const sharing = useStandardsSharing({ grouped, refresh });
   const {
     view,
     showImport,
@@ -102,19 +106,26 @@ export default function StandardsPage({ onRescan }) {
     return <StandardEditor standardId={view.standardId} isNew={view.mode === VIEW_MODE.NEW} onBack={handleEditorBack} onSaved={handleSaved} onRescan={onRescan} />;
   }
 
+  // Remote-only rows are not installed, so they never count as active.
   const activeCount = grouped
-    ? Object.values(grouped).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
+    ? Object.values(grouped).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.filter((s) => !s.remote).length : 0), 0)
     : 0;
+  const facts = (
+    <>
+      {t('standards.activeCount', { count: activeCount })}
+      {sharing.remoteCount > 0 && <> · {t('standards.remoteCount', { count: sharing.remoteCount })}</>}
+    </>
+  );
 
   return (
     <div className="standards-page standards-page--terminal">
-      <PageToolbar title={t('standards.termName')} facts={t('standards.activeCount', { count: activeCount })}>
+      <PageToolbar title={t('standards.termName')} facts={facts}>
         <span className="standards-page-header-actions">
           <button type="button" className="btn-secondary" onClick={() => setShowImport(true)}>{t('standards.importBtn')}</button>
           <button type="button" className="btn-primary" onClick={handleNewStandard}>{t('standards.newStandardBtn')}</button>
         </span>
       </PageToolbar>
-      <StandardsListView grouped={grouped} loading={loading} error={error} actions={{ onEdit: handleEdit, onDelete: handleDeleteWithCleanup, onDuplicate: handleDuplicate, isVisible, onToggleVisibility: toggle }} customizedCounts={customizedCounts} />
+      <StandardsListView grouped={grouped} loading={loading} error={error} actions={{ onEdit: handleEdit, onDelete: handleDeleteWithCleanup, onDuplicate: handleDuplicate, isVisible, onToggleVisibility: toggle }} customizedCounts={customizedCounts} sharing={sharing} />
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={handleImported} />}
     </div>
   );

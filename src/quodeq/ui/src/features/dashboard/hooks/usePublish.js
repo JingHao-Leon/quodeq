@@ -6,6 +6,8 @@ import { usePublishQueries } from './usePublishQueries.js';
 import { usePublishPolling } from './usePublishPolling.js';
 import { PUBLISH_STATE } from '../dashboardVocab.js';
 import { useApplyOptimisticPublish } from './publishOptimisticCache.js';
+import { useOptionalSidePane } from '../../side-pane/SidePaneContext.jsx';
+import { t } from '../../../strings/index.js';
 
 /**
  * usePublish -- publish action + job progress for local cards on the merged
@@ -105,7 +107,7 @@ function usePublishLifecycleEffects({ mountedRef, stopPolling, enabled }) {
 // status no longer reports as running, the job finished while this hook
 // wasn't polling (disabled, or a fresh mount after external completion) and
 // local state is reconciled to match the server.
-function useReconcilePublishStatus({ statusQueryData, setPublishState, setPublishError, setPublishErrorProject, setPublishingProjectBoth, publishingProjectRef, startPolling, stopPolling, applyOptimisticPublish, refreshListAfterCompletion }) {
+function useReconcilePublishStatus({ statusQueryData, setPublishState, setPublishError, setPublishErrorProject, setPublishingProjectBoth, publishingProjectRef, startPolling, stopPolling, applyOptimisticPublish, refreshListAfterCompletion, notifyDone }) {
   useEffect(() => {
     const publish = statusQueryData?.publish;
     if (!publish) return;
@@ -128,6 +130,7 @@ function useReconcilePublishStatus({ statusQueryData, setPublishState, setPublis
         setPublishState(PUBLISH_STATE.DONE);
         setPublishError(null);
         setPublishErrorProject(null);
+        notifyDone(publish);
         const doneProject = publish.project ?? publishingProjectRef.current;
         if (doneProject) applyOptimisticPublish(doneProject);
         refreshListAfterCompletion();
@@ -160,16 +163,34 @@ function usePublishRefGuards() {
 
 // The publish job itself: the in-flight guards, the optimistic cache patch,
 // the running-job poll and the trigger that starts one.
-function usePublishJob({ queryClient, sharedListProjects, getSharedStatus, publishProject }) {
+function usePublishJob({ queryClient, sharedListProjects, getSharedStatus, publishProject, onDone }) {
   const { publishingRef, mountedRef, publishingLocalRef } = usePublishRefGuards();
   const applyOptimisticPublish = useApplyOptimisticPublish({ queryClient, publishingLocalRef });
-  const polling = usePublishPolling({ queryClient, sharedListProjects, getSharedStatus, applyOptimisticPublish, mountedRef });
+  const polling = usePublishPolling({ queryClient, sharedListProjects, getSharedStatus, applyOptimisticPublish, mountedRef, onDone });
   const publish = usePublishTrigger({
     publishProject, startPolling: polling.startPolling, publishingRef, publishingLocalRef,
     setPublishState: polling.setPublishState, setPublishError: polling.setPublishError,
     setPublishErrorProject: polling.setPublishErrorProject, setPublishingProjectBoth: polling.setPublishingProjectBoth,
   });
   return { ...polling, publish, mountedRef, applyOptimisticPublish };
+}
+
+// A project publish leaves alone every custom standard whose shared copy is
+// newer and reports them as `skippedStandards`; tell the user which ones.
+// The poll and the reconcile path can both see one finished job, so a job
+// (project + finishedAt) is announced once. No side pane mounted (a hook
+// rendered on its own in tests): nothing to show the notice in.
+function useSkippedStandardsNotice() {
+  const showToast = useOptionalSidePane()?.showToast;
+  const announced = useRef(null);
+  return useCallback((publish) => {
+    const skipped = publish?.skippedStandards;
+    if (!showToast || !skipped?.length) return;
+    const key = `${publish.project}:${publish.finishedAt ?? ''}`;
+    if (publish.finishedAt != null && announced.current === key) return;
+    announced.current = key;
+    showToast(t('standards.publishSkipped', { names: skipped.join(', ') }));
+  }, [showToast]);
 }
 
 /**
@@ -187,20 +208,21 @@ export function usePublish({ enabled = true } = {}) {
   const queryClient = useQueryClient();
 
   const { statusQuery, configured, publishedAtByProject } = usePublishQueries({ enabled, getSharedStatus, sharedListProjects });
+  const notifyDone = useSkippedStandardsNotice();
 
   const {
     publishState, publishingProject, publishError, publishErrorProject, publish,
     setPublishState, setPublishError, setPublishErrorProject,
     publishingProjectRef, setPublishingProjectBoth,
     stopPolling, startPolling, refreshListAfterCompletion, mountedRef, applyOptimisticPublish,
-  } = usePublishJob({ queryClient, sharedListProjects, getSharedStatus, publishProject });
+  } = usePublishJob({ queryClient, sharedListProjects, getSharedStatus, publishProject, onDone: notifyDone });
 
   usePublishLifecycleEffects({ mountedRef, stopPolling, enabled });
 
   useReconcilePublishStatus({
     statusQueryData: statusQuery.data,
     setPublishState, setPublishError, setPublishErrorProject, setPublishingProjectBoth,
-    publishingProjectRef, startPolling, stopPolling, applyOptimisticPublish, refreshListAfterCompletion,
+    publishingProjectRef, startPolling, stopPolling, applyOptimisticPublish, refreshListAfterCompletion, notifyDone,
   });
 
   return {

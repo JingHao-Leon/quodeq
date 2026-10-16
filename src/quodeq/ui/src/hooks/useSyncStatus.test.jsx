@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiProvider } from '../api/ApiContext.jsx';
-import { projectsKeys, sharedKeys } from '../api/queryKeys.js';
+import { projectsKeys, sharedKeys, standardsKeys } from '../api/queryKeys.js';
 import { useSyncStatus } from './useSyncStatus.js';
 
 const idle = { state: 'idle', phase: null };
@@ -97,5 +97,15 @@ describe('useSyncStatus', () => {
     await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(6), { timeout: 500 });
     expect(keyCalls(spy, projectsKeys.list())).toBe(2);
     expect(keyCalls(spy, sharedKeys.list())).toBe(2);
+  });
+
+  it('a refresh or connect done re-lists the standards (their sync state reads the clone); a pull done does not', async () => {
+    for (const [kind, expected] of [['refresh', 1], ['connect', 1], ['pull', 0]]) {
+      const running = { ...base, [kind]: { state: 'running', phase: 'downloading' } };
+      const done = { ...base, [kind]: { state: 'done', phase: 'done' } };
+      const { spy, api } = setup([running, done, done]);
+      await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(3), { timeout: 500 });
+      expect(keyCalls(spy, standardsKeys.list())).toBe(expected);
+    }
   });
 });

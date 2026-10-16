@@ -1422,6 +1422,24 @@
   font-size: var(--text-xs);
 }
 
+/* Shared repository band: one slim row atop the table, as on Repositories. */
+.standards-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-bottom: var(--page-head-gap);
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--term-radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+}
+.standards-band__name { color: var(--color-text); overflow-wrap: anywhere; }
+.standards-band__spacer { flex: 1; }
+
 @media (max-width: 900px) {
   .standards-table-head,
   .standards-row {

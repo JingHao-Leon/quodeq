@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../api/ApiContext.jsx';
-import { projectsKeys, sharedKeys } from '../api/queryKeys.js';
+import { projectsKeys, sharedKeys, standardsKeys } from '../api/queryKeys.js';
 import { anyActive } from '../api/syncStatus.js';
 import { SYNC_KIND, SYNC_PHASE } from '../vocab/syncPhase.js';
 
@@ -28,6 +28,8 @@ function useSyncTransitions(status, tick, queryClient) {
       queryClient.invalidateQueries({ queryKey: sharedKeys.list() });
       // A refresh only re-reads the shared list; connect and pull change what is local or configured.
       if (kind !== SYNC_KIND.REFRESH) queryClient.invalidateQueries({ queryKey: projectsKeys.list() });
+      // Each standard's sync state reads the clone, which connect and refresh rewrite; a pull leaves it alone.
+      if (kind !== SYNC_KIND.PULL) queryClient.invalidateQueries({ queryKey: standardsKeys.list() });
     }
   }, [status, tick, queryClient]);
 }
@@ -35,7 +37,7 @@ function useSyncTransitions(status, tick, queryClient) {
 /**
  * The one poll of GET /api/shared/status that every sync consumer reads.
  * Polls fast while a connect, refresh or pull job runs and slowly otherwise,
- * and keeps the shared and project lists in step as jobs reach DONE. Mount it
+ * and keeps the shared, project and standards lists in step as jobs reach DONE. Mount it
  * once per screen: each mount runs its own transition effect.
  */
 export function useSyncStatus({ activeMs = ACTIVE_MS, idleMs = IDLE_MS } = {}) {
