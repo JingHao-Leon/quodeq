@@ -94,7 +94,7 @@ class TestMultiLoadersListStandardsDirsOnce:
         assert "S-CON-1" in reqs and "R-1" in reqs
 
     def test_multi_loaders_accept_a_mixed_case_dimension_id(self, tmp_path):
-        # services/standards_library.py writes "{id}.json" verbatim from
+        # a library import wrote "{id}.json" verbatim from
         # user-supplied JSON, so a custom evaluator's filename can be
         # mixed-case. is_known_dimension() lower-cases both sides for the
         # membership check; the request is passed through unchanged, so

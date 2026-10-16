@@ -179,6 +179,9 @@ _.taxonomy_used  # core/types/scoring.py: PrincipleScore field; read by name thr
 _.total_deduction  # core/types/scoring.py: Deductions field; read by name through serialization or a dict key (1 refs).
 _.untracked_files  # core/types/scan.py: ScanData field; read by name through serialization or a dict key (9 refs).
 _.updated_at  # data/sqlite/run_index.py RunRow and core/types/standard.py StandardHeader field; read by name through serialization or a dict key.
+_.published_at  # core/types/standard.py: StandardMeta field; read by name through serialization (to_camel_dict).
+_.remote  # core/types/standard.py: StandardMeta field; read by name through serialization (to_camel_dict).
+_.sync_state  # core/types/standard.py: StandardMeta field; read by name through serialization (to_camel_dict).
 _.violations_per100_files  # core/types/finding.py: Totals field; read by name through serialization or a dict key (19 refs).
 
 # Seams whose only caller lives in tests/, which this scan does not cover (src/quodeq is the scanned tree).
@@ -322,4 +325,3 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 # JSON (to_dict / to_camel_dict); the dashboard reads them by key.
 _.workflow
 _.run_url
-

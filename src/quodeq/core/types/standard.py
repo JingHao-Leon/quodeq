@@ -37,6 +37,9 @@ class StandardMeta(StandardHeader):
     """Lightweight metadata for listing standards."""
     principle_count: int = 0
     requirement_count: int = 0
+    sync_state: str | None = None  # shared repository connected only: a SyncState value
+    published_at: str | None = None  # when the shared copy was pushed
+    remote: bool = False  # True: exists only in the shared repository
 
 
 @dataclass(frozen=True, slots=True)

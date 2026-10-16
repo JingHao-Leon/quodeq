@@ -6,8 +6,8 @@ ValueError raised after validation passed must all answer through this
 module's ``{"error", "code"}`` shape with the right reason, never a 500 or a
 misattributed "schema validation failed".
 
-Sibling of test_standards_routes_errors.py; the ``dirs`` fixture and the
-library-client helpers are reused from test_standards_routes.py.
+Sibling of test_standards_routes_errors.py; the ``dirs`` fixture is reused
+from test_standards_routes.py.
 """
 from __future__ import annotations
 
@@ -18,8 +18,6 @@ import pytest
 from quodeq.api.app import create_app
 
 from tests.api.test_standards_routes import (  # noqa: F401 -- `dirs` is a fixture
-    _FakeLibraryHttpClient,
-    _library_client,
     dirs,
 )
 
@@ -82,32 +80,6 @@ def test_import_standard_non_object_body_returns_400(dirs):
     with app.test_client() as c:
         resp = c.post(
             "/api/standards/import", data="[]",
-            content_type="application/json", headers=_ORIGIN,
-        )
-    assert resp.status_code == 400
-    body = resp.get_json()
-    assert body["code"] == "bad_request"
-
-
-def test_import_from_library_malformed_json_returns_structured_400(dirs, monkeypatch):
-    app = _library_client(dirs, monkeypatch, _FakeLibraryHttpClient({}))
-    with app.test_client() as c:
-        resp = c.post(
-            "/api/standards/library/import", data="{not json",
-            content_type="application/json", headers=_ORIGIN,
-        )
-    assert resp.status_code == 400
-    body = resp.get_json()
-    assert body is not None, "malformed JSON must still get the module's JSON error shape"
-    assert body["code"] == "bad_request"
-    assert "json" in body["error"].lower()
-
-
-def test_import_from_library_non_object_body_returns_400(dirs, monkeypatch):
-    app = _library_client(dirs, monkeypatch, _FakeLibraryHttpClient({}))
-    with app.test_client() as c:
-        resp = c.post(
-            "/api/standards/library/import", data="[]",
             content_type="application/json", headers=_ORIGIN,
         )
     assert resp.status_code == 400

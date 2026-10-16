@@ -1,8 +1,7 @@
 """Custom-standard file mechanics for the evaluators directory.
 
 services/_standards_crud composed paths, checked existence, mkdir'd and
-unlinked inline; services/standards_library wrote payloads with
-write_text. The path/file mechanics live here; validation and permission
+unlinked inline. The path/file mechanics live here; validation and permission
 decisions (managed/builtin/collision rules) stay in the services, and the
 CRUD service keeps its injected JsonIO for the payload contents.
 """

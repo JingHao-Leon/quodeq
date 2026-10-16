@@ -1,7 +1,6 @@
 """GET routes for the Standards Browser & Editor."""
 from __future__ import annotations
 
-import http.client
 import logging
 import threading
 import time as _time
@@ -106,13 +105,12 @@ def _page_params(args) -> tuple[int, int] | tuple[dict, int]:
     )
 
 
-def register_read_routes(app: Flask, get_service, get_library_client) -> None:
+def register_read_routes(app: Flask, get_service) -> None:
     """Register GET routes for the standards API.
 
     Args:
         app: The Flask application instance.
         get_service: Factory callable returning the standards service.
-        get_library_client: Factory callable returning the library client (or None).
     """
 
     @app.get("/api/standards/refs/cwe")
@@ -129,22 +127,6 @@ def register_read_routes(app: Flask, get_service, get_library_client) -> None:
         svc = get_service(app)
         page = svc.list_standards()[offset:offset + limit]
         return jsonify([to_camel_dict(s) for s in page])
-
-    @app.get("/api/standards/library")
-    def list_library() -> Response:
-        library = get_library_client(app)
-        if library is None:
-            return jsonify([])
-        try:
-            index = library.fetch_index()
-        except (OSError, ValueError, http.client.HTTPException) as exc:
-            # OSError covers urllib/ssl transport errors, ValueError covers
-            # JSON decode and a non-object body; HTTPException (IncompleteRead,
-            # BadStatusLine, ...) is urllib's own family and NOT an OSError.
-            logger.warning("Failed to fetch library index: %s", exc)
-            return error_response(
-                "Failed to connect to standards library", HTTPStatus.BAD_GATEWAY, "library_error")
-        return jsonify(index)
 
     @app.get("/api/standards/<standard_id>")
     def get_standard(standard_id: str) -> Response:

@@ -180,7 +180,6 @@ const STANDARDS_SCOPE = "standards"; // query-key prefix for the standardsKeys.*
 export const standardsKeys = {
   all: () => [STANDARDS_SCOPE],
   list: () => [STANDARDS_SCOPE, LIST_KEY],
-  library: () => [STANDARDS_SCOPE, "library"],
   cwes: () => [STANDARDS_SCOPE, "cwes"],
   overrides: (projectId) => [STANDARDS_SCOPE, "overrides", projectId],
   detail: (standardId) => [STANDARDS_SCOPE, "detail", standardId],
