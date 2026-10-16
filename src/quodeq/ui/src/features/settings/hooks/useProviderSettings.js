@@ -35,9 +35,9 @@ const LEGACY_KEY_MAP = { [PROVIDER_SETTING_KEY.TIME_LIMIT]: PROVIDER_SETTING_KEY
  * Reads one provider's settings, falling back to `overrides` and then the
  * shipped defaults for anything unset.
  *
- * The api-key slot comes back blank when the backend holds the key (the local
- * value is only a "configured" marker), so a caller can never send the marker
- * to a provider as a credential. Legacy key names are migrated on read;
+ * The api-key slot always comes back blank: the local value is a "configured"
+ * marker or a legacy raw key awaiting the boot migration, and neither may be
+ * sent to a provider from the page. Legacy key names are migrated on read;
  * `onPersistError` reports a migration that could not be written back.
  */
 export function loadProviderState(providerId, overrides, storage = localStorage, { onPersistError } = {}) {
@@ -45,14 +45,13 @@ export function loadProviderState(providerId, overrides, storage = localStorage,
   const state = {};
   for (const key of SETTINGS) {
     let value = storage.getItem(providerKey(providerId, key));
-    if (key === PROVIDER_SETTING_KEY.API_KEY && value === PROVIDER_CONFIGURED_MARKER) {
-      // The sentinel means "the backend holds a key", not "here is a key".
-      // Consumers of state['api-key'] (OmlxTab hands it straight to
-      // getOmlxModels / testOmlxConcurrency as a real credential) would
-      // otherwise send the literal '•configured•' to a provider. Blank it
-      // out. A genuine legacy raw value is still returned as-is below, so
-      // installs that saved one before the secure-storage change keep
-      // working.
+    if (key === PROVIDER_SETTING_KEY.API_KEY && value !== null) {
+      // Neither stored value is a credential the page may send. The sentinel
+      // means "the backend holds a key"; a raw key saved before the
+      // secure-storage change waits there only until migrateLegacyProviderKeys
+      // (run at boot) moves it to the backend. Consumers of state['api-key']
+      // (OmlxTab hands it to getOmlxModels / testOmlxConcurrency) send an
+      // empty key, and the backend uses the one in its secure store.
       state[key] = '';
       continue;
     }
