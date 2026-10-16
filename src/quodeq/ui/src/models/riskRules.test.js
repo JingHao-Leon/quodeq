@@ -12,8 +12,8 @@ import { SKY_ZONE } from '../features/map/mapVocab.js';
 
 const EPS = 1e-9;
 
-test('the Risk measure mirrors area_metrics.py: weights 4/2/0.25, zones at 0.75 and 0.5, three production files', () => {
-  assert.deepEqual(SEVERITY_WEIGHTS, { critical: 4, major: 2, minor: 0.25 });
+test('the Risk measure mirrors area_metrics.py: the formula weights, zones at 0.75 and 0.5, three production files', () => {
+  assert.deepEqual(SEVERITY_WEIGHTS, { critical: 7.5, major: 2, minor: 0.15 });
   assert.deepEqual([FIX_FIRST_DENSITY, WATCH_DENSITY, MIN_PROD_FILES], [0.75, 0.5, 3]);
   assert.equal(Object.isFrozen(SEVERITY_WEIGHTS), true);
 });
@@ -41,10 +41,10 @@ test('isTestPath tells a test file as the Map\'s areas do (areas.py _TEST_SEGMEN
 });
 
 test('severityWeight: a severity the formula does not know weighs as a minor one', () => {
-  assert.deepEqual(['critical', 'major', 'minor'].map(severityWeight), [4, 2, 0.25]);
-  assert.equal(severityWeight('unknown'), 0.25);
-  assert.equal(severityWeight(undefined), 0.25);
-  assert.equal(severityWeight('toString'), 0.25);
+  assert.deepEqual(['critical', 'major', 'minor'].map(severityWeight), [7.5, 2, 0.15]);
+  assert.equal(severityWeight('unknown'), 0.15);
+  assert.equal(severityWeight(undefined), 0.15);
+  assert.equal(severityWeight('toString'), 0.15);
 });
 
 test('judgedFiles: the production files, or every file when there are only tests', () => {

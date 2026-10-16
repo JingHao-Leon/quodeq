@@ -8,8 +8,8 @@
 import { RISK_ZONE } from '../vocab/riskZone.js';
 import { SEVERITY } from '../vocab/severity.js';
 
-/** The grade formula's default severity weights (critical 4, major 2, minor 0.25). */
-export const SEVERITY_WEIGHTS = Object.freeze({ [SEVERITY.CRITICAL]: 4, [SEVERITY.MAJOR]: 2, [SEVERITY.MINOR]: 0.25 });
+/** The grade formula's default severity weights (core/scoring/constants.py; tests/test_ui_risk_weights_match_formula.py keeps them equal). */
+export const SEVERITY_WEIGHTS = Object.freeze({ [SEVERITY.CRITICAL]: 7.5, [SEVERITY.MAJOR]: 2, [SEVERITY.MINOR]: 0.15 });
 /** "Fix first" zone, weighted findings per file: mirrors FLOOR_HOTSPOT in area_metrics.py. */
 export const FIX_FIRST_DENSITY = 0.75;
 /** "Watch" zone, weighted findings per file: mirrors FLOOR_DORMANT in area_metrics.py. */

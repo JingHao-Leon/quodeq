@@ -39,28 +39,28 @@ test('filesChecked: the distinct files of the violations and compliant checks', 
 test('areaRisk: weighted issues over production files only, on a mixed area', () => {
   const s = scope({ critical: [v('src/a.py')], major: [v('tests/test_a.py'), v('tests/test_b.py')] }, [v('src/b.py'), v('src/c.py')]);
   const risk = areaRisk(s, live);
-  assert.equal(risk.density, 4 / 3);
+  assert.equal(risk.density, 7.5 / 3);
   assert.equal(risk.zone, RISK_ZONE.FIX_FIRST);
 });
 
 test('areaRisk: an area of only tests is judged on its tests', () => {
   const s = scope({ minor: [v('tests/a.py'), v('tests/b.py')] }, [v('tests/c.py'), v('tests/d.py')]);
   const risk = areaRisk(s, live);
-  assert.equal(risk.density, 0.5 / 4);
+  assert.equal(risk.density, (0.15 + 0.15) / 4);
   assert.equal(risk.zone, RISK_ZONE.HEALTHY);
 });
 
 test('areaRisk: unknown severities weigh as minor, dismissed violations do not weigh', () => {
   const s = scope({ unknown: [v('a.py'), v('b.py')], major: [v('c.py', { line: 9 })] }, [v('d.py')]);
   const risk = areaRisk(s, (x) => x.line !== 9);
-  assert.equal(risk.density, 0.5 / 3);
+  assert.equal(risk.density, (0.15 + 0.15) / 3);
   assert.equal(risk.zone, RISK_ZONE.HEALTHY);
 });
 
 test('areaRisk: under three production files, or judged small by the Map, it is too small to judge', () => {
   const two = scope({ critical: [v('a.py'), v('b.py')] });
   assert.equal(areaRisk(two, live).zone, RISK_SMALL);
-  assert.equal(areaRisk(two, live).density, 4);
+  assert.equal(areaRisk(two, live).density, 7.5);
   const three = scope({ major: [v('a.py')] }, [v('b.py'), v('c.py')]);
   assert.equal(areaRisk(three, live).zone, RISK_ZONE.WATCH);
   assert.equal(areaRisk(three, live, true).zone, RISK_SMALL);
