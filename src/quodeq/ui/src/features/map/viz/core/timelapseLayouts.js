@@ -6,7 +6,7 @@ export const RUN_LAYOUT_CACHE_SIZE = 64;
 
 /** The part of a time-lapse model the layout reads (what crosses to the worker). */
 export function layoutModelOf(model) {
-  return { parent: model.parent, sizes: model.sizes, maxSize: model.maxSize };
+  return { parent: model.parent, sizes: model.sizes, maxSize: model.maxSize, pathRank: model.pathRank };
 }
 
 /**

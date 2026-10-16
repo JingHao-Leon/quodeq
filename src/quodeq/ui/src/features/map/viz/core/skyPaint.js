@@ -1,5 +1,5 @@
 import { badness } from './mapBadness.js';
-import { mixRgb, rgbCss, badnessHue, badnessStrength, fileConcentrationColor, GLASS_FOLDER_SCALE } from './mapPaint.js';
+import { mixRgb, rgbCss, badnessHue, badnessStrength, fileSeverityColor, GLASS_FOLDER_SCALE } from './mapPaint.js';
 import { AREA_KIND, NODE_KIND } from '../../mapVocab.js';
 
 /** How an area's kind ring is drawn. */
@@ -33,13 +33,20 @@ export function skyAreaPaint(area, average, palette) {
 }
 
 /**
- * A file dot's colour, the Circle Pack's file rule: its issues against the
- * project average, capped by its worst finding.
+ * A file dot's colour, the Circle Pack's file rule: its worst finding's
+ * colour, stronger the more its issues weigh against the project average.
  * @param {{violations:number, compliance:number, weight:number, files:number, critical:number, major:number}} stats the file's own stats
  * @param {number} average project severity weight per file
  * @param {object} palette readMapPalette output (with `dark`)
  * @returns {string} CSS colour
  */
 export function fileDotColor(stats, average, palette) {
-  return rgbCss(fileConcentrationColor(badness(stats, average, NODE_KIND.FILE), palette));
+  return rgbCss(fileSeverityColor(worstOfStats(stats), badness(stats, average, NODE_KIND.FILE), palette));
+}
+
+/** The worst severity a file's stats hold (they count critical and major; the rest of its violations are minor). */
+export function worstOfStats(stats) {
+  if (stats.critical > 0) return 'critical';
+  if (stats.major > 0) return 'major';
+  return stats.violations > 0 ? 'minor' : null;
 }

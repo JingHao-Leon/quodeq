@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { skyAreaPaint, fileDotColor, RING_STYLE } from './skyPaint.js';
+import { skyAreaPaint, fileDotColor, worstOfStats, RING_STYLE } from './skyPaint.js';
 import { badness } from './mapBadness.js';
-import { fileConcentrationColor, rgbCss } from './mapPaint.js';
+import { fileSeverityColor, rgbCss } from './mapPaint.js';
 import { AREA_KIND, NODE_KIND } from '../../mapVocab.js';
 
 const C = (r, g, b) => ({ r, g, b });
@@ -30,14 +30,14 @@ test('a heavy area takes the worse hue: glass in dark, solid in light', () => {
 });
 
 const fileStats = (stats) => ({ violations: 0, compliance: 0, weight: 0, files: 1, critical: 0, major: 0, ...stats });
-const packFileColor = (stats, palette) => rgbCss(fileConcentrationColor(badness(stats, 1, NODE_KIND.FILE), palette));
+const packFileColor = (stats, palette) => rgbCss(fileSeverityColor(worstOfStats(stats), badness(stats, 1, NODE_KIND.FILE), palette));
 
-test('dots follow the Circle Pack file colour: issues against the project average', () => {
+test('dots follow the Circle Pack file colour: worst finding, issues against the project average', () => {
   const light = { ...PALETTE, dark: false };
   const heavy = fileStats({ violations: 4, compliance: 1, weight: 8, major: 2 });
   const clean = fileStats({ compliance: 6 });
   assert.equal(fileDotColor(heavy, 1, light), packFileColor(heavy, light));
   assert.equal(fileDotColor(clean, 1, light), packFileColor(clean, light));
   assert.notEqual(fileDotColor(heavy, 1, light), fileDotColor(clean, 1, light));
-  assert.equal(fileDotColor(fileStats({}), 1, light), rgbCss(fileConcentrationColor(0, light)));
+  assert.equal(fileDotColor(fileStats({}), 1, light), rgbCss(fileSeverityColor(null, 0, light)));
 });

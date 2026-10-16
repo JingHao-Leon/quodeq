@@ -14,6 +14,7 @@ export const MAP_PALETTE_TOKENS = Object.freeze({
   textMuted: '--color-text-muted',
   sevCritical: '--color-sev-critical-text',
   sevMajor: '--color-sev-major-text',
+  sevMinor: '--color-sev-minor-text',
 });
 
 /**
