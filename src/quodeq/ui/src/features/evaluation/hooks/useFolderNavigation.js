@@ -2,6 +2,28 @@ import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { apiErrorMessage } from '../../../strings/apiErrors.js';
 
+// Path segments with "." dropped and ".." applied, so "/repo/../etc" is ["etc"].
+function pathSegments(path) {
+  const segments = [];
+  for (const part of path.split(/[\\/]+/)) {
+    if (part === '..') segments.pop();
+    else if (part && part !== '.') segments.push(part);
+  }
+  return segments;
+}
+
+/**
+ * Segment-wise containment: "/repo-other" and "/repo/../etc" are outside "/repo".
+ * @param {string} path - the folder the browser is asked to open
+ * @param {string} rootPath - the folder it must stay inside
+ * @returns {boolean} whether `path` is `rootPath` or below it
+ */
+export function isWithinRoot(path, rootPath) {
+  const root = pathSegments(rootPath);
+  const target = pathSegments(path);
+  return root.length <= target.length && root.every((part, i) => part === target[i]);
+}
+
 async function navigateFolder(path, navigation, showFiles, browseDirectory) {
   const { setLoading, setNavError, updateNavState } = navigation;
   setLoading(true);
@@ -38,7 +60,7 @@ export function useFolderNavigation({ rootPath, showFiles }) {
 
   const navigate = useCallback((path) => {
     // Prevent navigating above rootPath when rootPath is set
-    if (rootPath && path && !path.startsWith(rootPath)) {
+    if (rootPath && path && !isWithinRoot(path, rootPath)) {
       setPathInput(rootPath);
       return;
     }
