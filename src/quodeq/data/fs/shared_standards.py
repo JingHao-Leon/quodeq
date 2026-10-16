@@ -58,6 +58,28 @@ def write_shared_standard(directory: Path, standard_id: str, payload: dict) -> N
     replace_json_file(directory / f"{standard_id}{JSON_SUFFIX}", payload, indent=2)
 
 
+def restore_shared_standards(repo: Path) -> tuple[bool, str]:
+    """Bring the clone's ``standards/`` folder back to HEAD.
+
+    A share or publish that failed before its commit can leave an untracked
+    or modified ``standards/<id>.json`` behind, and ``reset --hard`` keeps
+    untracked files: compared later, that leftover would read as already
+    shared. Removes untracked files there and restores tracked ones. A
+    missing clone, an empty repository or a HEAD without ``standards/`` is
+    fine (nothing to restore).
+    """
+    if not (repo / ".git").exists():
+        return True, ""
+    ok, out = run_git(["clean", "-fdq", "--", SHARED_STANDARDS_DIRNAME], cwd=repo)
+    if not ok:
+        return ok, out
+    listed, tracked = run_git(["ls-tree", "-d", "--name-only", "HEAD", "--", SHARED_STANDARDS_DIRNAME],
+                              cwd=repo)
+    if not listed or not tracked.strip():
+        return True, ""
+    return run_git(["checkout", "HEAD", "--", SHARED_STANDARDS_DIRNAME], cwd=repo)
+
+
 def stage_standard_paths(repo: Path, standard_ids: Iterable[str]) -> tuple[bool, str]:
     """``git add`` the format marker, ignore file and each shared standard file.
 

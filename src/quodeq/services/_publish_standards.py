@@ -50,7 +50,10 @@ def _read_local(evaluators_dir: Path, standard_id: str, log: LogSink) -> dict | 
     except (OSError, ValueError, RecursionError) as exc:
         log.warning(f"Not publishing standard {standard_id}: its file cannot be read ({exc})")
         return None
-    return data if isinstance(data, dict) else None
+    if data is not None and not isinstance(data, dict):
+        log.warning(f"Not publishing standard {standard_id}: its file is not a JSON object")
+        return None
+    return data
 
 
 def _candidates(evaluators_dir: Path, scored: frozenset[str], compiled_dir: Path | None,

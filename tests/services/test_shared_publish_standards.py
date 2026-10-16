@@ -97,6 +97,31 @@ def test_unreadable_local_standard_is_skipped_not_fatal(tmp_path, remote, projec
     assert not (_clone(remote, tmp_path / "check") / "standards").exists()
 
 
+def test_a_publish_that_failed_before_its_commit_is_retried_in_full(
+        tmp_path, remote, project_with_run, monkeypatch):
+    ev = tmp_path / "evaluators"
+    _evaluator(ev, "android")
+    monkeypatch.setattr(_DIRS, lambda: (None, ev))
+    real = shared_publish.stage_standard_paths
+    monkeypatch.setattr(shared_publish, "stage_standard_paths", lambda repo, ids: (False, "add failed"))
+    with pytest.raises(shared_publish.PublishError):
+        shared_publish.publish_project("proj", remote, evaluations_root=project_with_run)
+    monkeypatch.setattr(shared_publish, "stage_standard_paths", real)
+    shared_publish.publish_project("proj", remote, evaluations_root=project_with_run)
+    pushed = json.loads((_clone(remote, tmp_path / "check") / "standards" / "android.json").read_text())
+    assert _local(ev, "android")["shared_hash"] == share_hash(pushed)
+
+
+def test_a_standard_file_that_is_not_an_object_is_skipped_with_a_warning(
+        tmp_path, remote, project_with_run, monkeypatch, caplog):
+    ev = tmp_path / "evaluators"
+    ev.mkdir()
+    (ev / "android.json").write_text("[1]", encoding="utf-8")
+    monkeypatch.setattr(_DIRS, lambda: (None, ev))
+    shared_publish.publish_project("proj", remote, evaluations_root=project_with_run)
+    assert "android" in caplog.text and "not a JSON object" in caplog.text
+
+
 def test_publish_job_reports_skipped_standards(tmp_path, monkeypatch):
     def fake(project_id, url, *, evaluations_root, env=None, on_skipped=None):
         on_skipped(["android"])

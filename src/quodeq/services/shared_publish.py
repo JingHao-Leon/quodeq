@@ -48,7 +48,7 @@ from quodeq.services.wiring import (
     run_git,  # noqa: F401 -- _publish_git reads run_git from this namespace
     stage_publish_paths,
 )
-from quodeq.services.wiring_sync import stage_standard_paths
+from quodeq.services.wiring_sync import restore_shared_standards, stage_standard_paths
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.validation import validate_path_segment
@@ -131,6 +131,12 @@ def publish_project(
     working tree.
     """
     with _prepare_workspace(project_id, url, evaluations_root, env) as (project_dir, repo):
+        # A failed earlier attempt can leave standards/ files the comparison
+        # below would read as already shared: start from HEAD.
+        restored, out = restore_shared_standards(repo)
+        if not restored:
+            raise PublishError("failed to reset the shared standards folder, "
+                               f"{out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
         try:
             count = stage_project(project_dir, repo / "evaluations" / project_id)
             standards = stage_scored_standards(project_dir, repo, log=LoggerSink(logger))

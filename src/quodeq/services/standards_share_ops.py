@@ -21,7 +21,8 @@ from quodeq.services.wiring import (
     resolve_jailed_standard_path, write_standard_payload,
 )
 from quodeq.services.wiring_sync import (
-    read_shared_standards, shared_standards_dir, stage_standard_paths, write_shared_standard,
+    read_shared_standards, restore_shared_standards, shared_standards_dir, stage_standard_paths,
+    write_shared_standard,
 )
 
 _PUBLISHED_AT = "publishedAt"
@@ -90,7 +91,15 @@ def _prepared(url: str, env: dict | None) -> Path:
         except (OSError, ValueError) as exc:
             shared_publish.logger.warning("Could not lay out the shared clone %s: %s", repo, exc)
             raise ShareError("git", "Could not lay out the shared repository.") from exc
+    _restore(repo)
     return repo
+
+
+def _restore(repo: Path) -> None:
+    """Drop what a failed share or publish left in ``standards/`` (see ``restore_shared_standards``)."""
+    ok, out = restore_shared_standards(repo)
+    if not ok:
+        raise ShareError("git", f"Could not reset the shared standards folder: {_snippet(out)}")
 
 
 def _snippet(out: str) -> str:
@@ -147,7 +156,9 @@ def share_standard(standard_id: str, *, url: str, evaluators_dir: Path,
 
 
 def _remote(url: str, env: dict | None, standard_id: str) -> dict:
-    remote = read_shared_standards(shared_standards_dir(url, env)).get(standard_id)
+    folder = shared_standards_dir(url, env)
+    _restore(folder.parent)
+    remote = read_shared_standards(folder).get(standard_id)
     if remote is None:
         raise ShareError("not_found", f"{standard_id} is not in the shared repository.")
     return remote

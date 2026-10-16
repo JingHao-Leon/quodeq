@@ -154,6 +154,22 @@ def test_a_failed_push_is_a_git_error_and_leaves_no_base(tmp_path, remote, monke
     assert err.value.code == "git" and "shared_hash" not in _local(ev, "go")
 
 
+def test_a_share_that_failed_before_its_commit_leaves_nothing_behind(tmp_path, remote, monkeypatch):
+    from quodeq.data.fs.shared_standards import shared_standards_dir
+
+    ev = tmp_path / "ev"
+    _evaluator(ev, "go")
+    _evaluator(ev, "other")
+    real = ops.stage_standard_paths
+    monkeypatch.setattr(ops, "stage_standard_paths", lambda repo, ids: (False, "add failed"))
+    with pytest.raises(ops.ShareError):
+        _share("go", remote, ev)
+    monkeypatch.setattr(ops, "stage_standard_paths", real)
+    _share("other", remote, ev)
+    assert sorted(p.stem for p in shared_standards_dir(remote).glob("*.json")) == ["other"]
+    assert ops.install_standard("other", url=remote, evaluators_dir=tmp_path / "b")["id"] == "other"
+
+
 def test_now_utc_iso_is_a_z_timestamp():
     stamp = ops.now_utc_iso()
     assert stamp.endswith("Z") and "T" in stamp and len(stamp) == len("2026-10-16T10:00:00Z")
