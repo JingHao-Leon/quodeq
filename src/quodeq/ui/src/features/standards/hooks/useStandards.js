@@ -15,6 +15,9 @@ export { STANDARD_TYPES, standardBaseLabel } from '../../../models/standard.js';
 // into its flat row list) instead of silently dropping it from the list.
 export const UNKNOWN_STANDARD_TYPE = 'unknown';
 
+// One stable identity while the list loads, so memos keyed on it do not rerun.
+const EMPTY = Object.freeze([]);
+
 function makeHandleDelete({ deleteStandard, setMutationError, refresh }) {
   return async (id) => {
     try {
@@ -80,7 +83,7 @@ export function useStandards({ onDuplicated } = {}) {
     queryFn: () => listStandards(),
   });
 
-  const standards = data || [];
+  const standards = data || EMPTY;
 
   // invalidateQueries already refetches the mounted list query and its
   // promise settles when that fetch does; a second refetch() would cancel

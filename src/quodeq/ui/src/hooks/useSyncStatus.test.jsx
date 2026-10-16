@@ -8,8 +8,9 @@ import { useSyncStatus } from './useSyncStatus.js';
 const idle = { state: 'idle', phase: null };
 const base = { configured: true, url: 'u', lastSynced: 1, syncing: false, connect: idle, refresh: idle, pull: idle };
 
-function setup(statuses, opts) {
+function setup(statuses, opts, seed) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  if (seed) seed(qc);
   const spy = vi.spyOn(qc, 'invalidateQueries');
   let i = 0; // each poll takes the next status; the last one repeats
   const api = { getSyncStatus: vi.fn(async () => statuses[Math.min(i++, statuses.length - 1)]) };
@@ -115,5 +116,36 @@ describe('useSyncStatus', () => {
       await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(3), { timeout: 500 });
       expect(keyCalls(spy, standardsKeys.list())).toBe(expected);
     }
+  });
+
+  describe('a slot already DONE at the first snapshot', () => {
+    const done = { ...base, refresh: { state: 'done', phase: 'done', finishedAt: 100 } };
+    const run = async (seed) => {
+      const { spy, api } = setup([done, done], undefined, seed);
+      await waitFor(() => expect(api.getSyncStatus.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 500 });
+      return spy;
+    };
+
+    it('invalidates a list cached before the job finished', async () => {
+      const spy = await run((qc) => {
+        qc.setQueryData(sharedKeys.list(), [], { updatedAt: 50000 });
+        qc.setQueryData(standardsKeys.list(), [], { updatedAt: 50000 });
+      });
+      expect(keyCalls(spy, sharedKeys.list())).toBe(1);
+      expect(keyCalls(spy, standardsKeys.list())).toBe(1);
+    });
+
+    it('leaves a list fetched after the job finished alone', async () => {
+      const spy = await run((qc) => {
+        qc.setQueryData(sharedKeys.list(), [], { updatedAt: 200000 });
+        qc.setQueryData(standardsKeys.list(), [], { updatedAt: 200000 });
+      });
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('leaves a key with no cache alone', async () => {
+      const spy = await run(() => {});
+      expect(spy).not.toHaveBeenCalled();
+    });
   });
 });
