@@ -4,7 +4,8 @@ import subprocess
 import pytest
 
 from quodeq.data.fs.shared_standards import (
-    read_shared_standards, restore_shared_standards, stage_standard_paths, write_shared_standard,
+    commit_staged, read_shared_standards, restore_shared_standards, stage_standard_paths,
+    write_shared_standard,
 )
 
 
@@ -92,3 +93,18 @@ def test_restore_drops_untracked_and_restores_tracked_standards(tmp_path):
     ok, _ = restore_shared_standards(repo)
     assert ok and read_shared_standards(repo / "standards") == {"kept": {"id": "kept", "v": 1}}
     assert (repo / "other.txt").exists()
+
+
+def _log_count(repo):
+    out = subprocess.run(["git", "rev-list", "--count", "HEAD"], cwd=repo, capture_output=True, text=True)
+    return int(out.stdout.strip() or 0)
+
+
+def test_commit_staged_commits_only_when_something_is_staged(tmp_path, monkeypatch):
+    for var in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.setenv(var, "t@t")
+    repo = _repo(tmp_path)
+    write_shared_standard(repo / "standards", "a", {"id": "a"})
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
+    assert commit_staged(repo, "first")[0] and _log_count(repo) == 1
+    assert commit_staged(repo, "again") == (True, "") and _log_count(repo) == 1

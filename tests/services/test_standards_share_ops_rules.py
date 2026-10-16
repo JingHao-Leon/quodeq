@@ -6,7 +6,7 @@ import pytest
 from quodeq.services import standards_share_ops as ops
 from quodeq.services.standards_share_content import with_share_extras
 from quodeq.services.standards_sharing import SyncState, share_hash, sync_state
-from tests.services._standards_share_fixtures import _evaluator, _local, remote  # noqa: F401 -- remote is a fixture
+from tests.services._standards_share_fixtures import _share_at, _evaluator, _local, remote  # noqa: F401 -- remote is a fixture
 
 _AT = "2026-10-16T10:00:00Z"
 _PARAMS = {"max_complexity": {"label": "Max cyclomatic complexity", "type": "int",
@@ -24,7 +24,7 @@ _DUPLICATED_BUILTIN = [{
 
 
 def _share(sid, url, ev):
-    return ops.share_standard(sid, url=url, evaluators_dir=ev, now=lambda: _AT)
+    return _share_at(sid, url, ev, _AT)
 
 
 def _shared_copy(tmp_path, remote_url, sid):

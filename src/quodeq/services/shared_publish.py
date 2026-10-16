@@ -48,7 +48,7 @@ from quodeq.services.wiring import (
     run_git,  # noqa: F401 -- _publish_git reads run_git from this namespace
     stage_publish_paths,
 )
-from quodeq.services.wiring_sync import restore_shared_standards, stage_standard_paths
+from quodeq.services.wiring_sync import reset_clone_to_remote, restore_shared_standards, stage_standard_paths
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.validation import validate_path_segment
@@ -143,7 +143,12 @@ def publish_project(
         except (OSError, ValueError) as exc:
             raise PublishError(f"failed to stage project files, {exc}") from exc
 
-        _commit_and_push(repo, project_id, count, env, standards.published)
+        try:
+            _commit_and_push(repo, project_id, count, env, standards.published)
+        except PublishError:
+            # An unpushed commit must not read as shared (listing, installs).
+            reset_clone_to_remote(url, env)
+            raise
         record_shared_hashes(repo, standards, log=LoggerSink(logger))
     if on_skipped is not None:
         on_skipped(standards.skipped)

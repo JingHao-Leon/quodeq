@@ -4,7 +4,8 @@ A project's COMPLETED runs name the dimensions they scored; every custom
 evaluator file among them is written to ``standards/<id>.json`` in the same
 clone, so it rides in the project's commit. Built-in ids never travel, and
 a shared copy that is newer than this machine's (``update_available`` or
-``diverged``) is never overwritten: those ids come back as skipped. The
+``diverged``) is never overwritten: those ids come back as skipped, like a
+shared copy that cannot be compared (a warning, never a failed publish). The
 machine-local ``shared_hash`` is recorded only after the push succeeded.
 """
 from __future__ import annotations
@@ -28,6 +29,7 @@ from quodeq.services.wiring_sync import read_shared_standards, write_shared_stan
 _STANDARDS_DIRNAME = "standards"
 _PUBLISHED_AT = "publishedAt"
 _NEWER_REMOTELY = frozenset({SyncState.UPDATE_AVAILABLE, SyncState.DIVERGED})
+_MALFORMED = (TypeError, AttributeError, ValueError, KeyError)
 
 
 @dataclass(frozen=True)
@@ -86,7 +88,11 @@ def stage_project_standards(
         local = _read_local(evaluators_dir, standard_id, log)
         if local is None:
             continue
-        state = sync_state(local, remote.get(standard_id))
+        try:
+            state = sync_state(local, remote.get(standard_id))
+        except _MALFORMED as exc:
+            log.warning(f"Not publishing standard {standard_id}: it cannot be compared with its shared copy ({exc})")
+            state = SyncState.DIVERGED
         if state in _NEWER_REMOTELY:
             skipped.append(standard_id)
         elif state != SyncState.PUBLISHED:

@@ -5,9 +5,8 @@ import subprocess
 import pytest
 
 from quodeq.services import shared_publish
-from quodeq.services import standards_share_ops as ops
 from quodeq.services.standards_sharing import share_hash
-from tests.services._standards_share_fixtures import _clone, _evaluator, _local, remote  # noqa: F401 -- remote is a fixture
+from tests.services._standards_share_fixtures import _share_at, _clone, _evaluator, _local, remote  # noqa: F401 -- remote is a fixture
 
 _DIRS = "quodeq.services._publish_standards.standard_dirs"
 
@@ -76,7 +75,7 @@ def test_publish_never_overwrites_a_newer_shared_copy(tmp_path, remote, project_
     monkeypatch.setattr(_DIRS, lambda: (None, ev_a))
     monkeypatch.setenv("QUODEQ_CACHE_ROOT", str(tmp_path / "cache-b"))
     _evaluator(ev_b, "android", name="Theirs")
-    ops.share_standard("android", url=remote, evaluators_dir=ev_b, now=lambda: "2026-10-16T09:00:00Z")
+    _share_at("android", remote, ev_b, "2026-10-16T09:00:00Z")
     monkeypatch.setenv("QUODEQ_CACHE_ROOT", str(tmp_path / "cache"))
     (ev_a / "android.json").write_text(json.dumps({**old, "shared_hash": share_hash(old)}), encoding="utf-8")
     skipped = []

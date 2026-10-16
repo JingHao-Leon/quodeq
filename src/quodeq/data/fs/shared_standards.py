@@ -91,3 +91,11 @@ def stage_standard_paths(repo: Path, standard_ids: Iterable[str]) -> tuple[bool,
     if (repo / _GITKEEP).exists():
         paths.append(_GITKEEP)
     return run_git(["--literal-pathspecs", "add", "--", *paths], cwd=repo)
+
+
+def commit_staged(repo: Path, message: str) -> tuple[bool, str]:
+    """Commit what is staged in *repo*; ``(True, "")`` without a commit when nothing is."""
+    nothing_staged, _ = run_git(["diff", "--cached", "--quiet"], cwd=repo)
+    if nothing_staged:
+        return True, ""
+    return run_git(["commit", "-m", message], cwd=repo)

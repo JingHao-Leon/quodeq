@@ -6,13 +6,13 @@ import pytest
 from quodeq.data.fs.shared_repo import refresh_shared_clone
 from quodeq.services import standards_share_ops as ops
 from quodeq.services.standards_sharing import share_hash
-from tests.services._standards_share_fixtures import _clone, _evaluator, _local, remote  # noqa: F401 -- remote is a fixture
+from tests.services._standards_share_fixtures import _share_at, _clone, _evaluator, _local, remote  # noqa: F401 -- remote is a fixture
 
 _AT = "2026-10-16T10:00:00Z"
 
 
-def _share(sid, url, ev, at=_AT):
-    return ops.share_standard(sid, url=url, evaluators_dir=ev, now=lambda: at)
+def _share(sid, url, ev, at=_AT, **kw):
+    return _share_at(sid, url, ev, at, **kw)
 
 
 def test_share_into_an_empty_repo_bootstraps_and_records_the_base(tmp_path, remote):
@@ -89,7 +89,7 @@ def test_update_takes_theirs_and_moves_the_base(tmp_path, remote, monkeypatch):
     _share("go", remote, ev_a)
     monkeypatch.setenv("QUODEQ_CACHE_ROOT", str(tmp_path / "cache-b"))
     _evaluator(ev_b, "go", name="theirs", updatedAt="2026-10-12", version="2026.10.12")
-    _share("go", remote, ev_b, at="2026-10-16T11:00:00Z")
+    _share("go", remote, ev_b, at="2026-10-16T11:00:00Z", force=True)  # B replaces A's copy
     monkeypatch.setenv("QUODEQ_CACHE_ROOT", str(tmp_path / "cache"))
     refresh_shared_clone(remote)  # the band's pull on machine A
     assert ops.update_from_shared("go", url=remote, evaluators_dir=ev_a) == {"id": "go", "warnings": []}

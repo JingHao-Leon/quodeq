@@ -38,3 +38,33 @@ def _clone(remote_url, dest):
     """A fresh clone of *remote_url* at *dest*, to inspect what was pushed."""
     _git("clone", remote_url, str(dest), cwd=dest.parent)
     return dest
+
+
+def _listed_state(evaluators, remote_url, sid):
+    """*sid*'s sync state as the standards listing shows it, read from this machine's clone."""
+    from quodeq.services.standards import StandardsService
+    from quodeq.services.wiring_sync import read_shared_standards, shared_standards_dir
+
+    dims = evaluators.parent / "dims.json"
+    dims.write_text('{"applies": []}', encoding="utf-8")
+    svc = StandardsService(evaluators, evaluators.parent / "compiled", dims,
+                           shared_standards=lambda: read_shared_standards(shared_standards_dir(remote_url)))
+    return {m.id: m.sync_state for m in svc.list_standards()}.get(sid)
+
+
+def _push_from_second_clone(remote_url, dest, edit):
+    """Clone *remote_url* at *dest*, let *edit(dest)* change it, then commit and push everything."""
+    _clone(remote_url, dest)
+    edit(dest)
+    _git("add", "-A", cwd=dest)
+    _git("commit", "-m", "edit from a second clone", cwd=dest)
+    _git("push", "origin", "HEAD", cwd=dest)
+
+
+def _share_at(sid, url, evaluators, at, **kw):
+    """``share_standard`` with its clock pinned to *at*."""
+    from quodeq.services import standards_share_ops as ops
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(ops, "now_utc_iso", lambda: at)
+        return ops.share_standard(sid, url=url, evaluators_dir=evaluators, **kw)
