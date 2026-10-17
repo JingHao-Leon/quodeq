@@ -8,6 +8,7 @@ this module re-exports their entry points under public spellings, so
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from enum import StrEnum
 from typing import Callable
@@ -16,7 +17,7 @@ from quodeq.cli_parser import build_parser  # re-export
 from quodeq.update.checker import check_async, get_status, set_settings
 from quodeq.config.paths import default_paths, load_env_file
 from quodeq.dashboard.cli import main as dashboard_main
-from quodeq.dashboard.instances import dashboard_status, stop_dashboard
+from quodeq.dashboard.instances import dashboard_status, read_launch_args, stop_dashboard
 
 # Re-export the evaluation entry points under their public spellings.
 from quodeq._cli_env import (  # noqa: F401 — public re-exports
@@ -72,9 +73,15 @@ _COMMAND_HANDLERS: dict[str, Callable] = {
 
 
 def _restart() -> int:
-    """Stop the window and its API, then open Quodeq again (it loads the code installed now)."""
+    """Stop the window and its API, then open Quodeq again with the flags it was started with.
+
+    The new process loads the code installed now, so this is also how an upgrade takes effect.
+    """
+    launch = read_launch_args()
     stop_dashboard()
-    return dashboard_main([])
+    if launch.cwd is not None and launch.cwd.is_dir():
+        os.chdir(launch.cwd)  # relative flags such as --evaluations ./reports mean what they meant
+    return dashboard_main(launch.args)
 
 
 def maybe_emit_cli_notice(stream=None, env: dict[str, str] | None = None) -> None:
@@ -163,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     command = getattr(args, "handler_command", None) or args.command
     # Default to dashboard when no subcommand is given — skip the notice (dashboard has its own banner)
     if command is None:
-        return dashboard_main(argv[1:] if argv is not None else sys.argv[1:])
+        return dashboard_main(argv if argv is not None else sys.argv[1:])
 
     if command == Command.EVALUATE:
         code = run_evaluate(args)

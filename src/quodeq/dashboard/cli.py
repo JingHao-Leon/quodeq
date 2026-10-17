@@ -99,8 +99,14 @@ class _StderrLog:
         print(f"Error: {message}", file=sys.stderr)
 
 
+def _run(argv: list[str] | None) -> int:
+    """Launch with *argv*, handing the flags on so ``quodeq restart`` can repeat them."""
+    args = list(argv) if argv is not None else sys.argv[1:]
+    return run_dashboard(parse_args(args), launch_args=args)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the dashboard command."""
     return run_isolated(
-        lambda: run_dashboard(parse_args(argv)), label="dashboard", log=_StderrLog(), on_error=lambda _exc: 1,
+        lambda: _run(argv), label="dashboard", log=_StderrLog(), on_error=lambda _exc: 1,
     )
