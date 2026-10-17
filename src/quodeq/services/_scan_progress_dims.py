@@ -231,7 +231,7 @@ def build_dim_progress(
         has_evaluation=dimension_report_exists(ctx.run_dir / "evaluation", dim_id),
     )
     record = ctx.dim_records.get(dim_id) if isinstance(ctx.dim_records, dict) else None
-    tally = _dim_evidence_tally(dim_id, ctx, dismissed, deleted)
+    tally = _dim_evidence_tally(dim_id, ctx, dismissed, deleted) if ctx.tally_findings else FindingTally()
     measurements = _dim_measurements(dim_id, ctx, d_state, record)
     return DimProgress(
         id=dim_id,

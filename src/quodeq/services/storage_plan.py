@@ -4,7 +4,8 @@ A run is touched only when its ``status.json`` is readable and in a terminal
 state. The newest finished run of each dimension (the one the Overview
 reads) is tidied but never archived, and a project with a run still in
 flight is left alone entirely. A restored run counts as touched when it was
-restored, so it stays warm for the window.
+restored, so it stays warm for the window. A run bigger than a restore
+accepts is never archived.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from pathlib import Path
 
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
-from quodeq.services.wiring_sync import has_event_log, is_archived, restored_at
+from quodeq.services.wiring_sync import has_event_log, is_archived, max_archive_bytes, packable_bytes, restored_at
 
 
 @dataclass(frozen=True)
@@ -99,7 +100,8 @@ def _plan_project(project: Path, now: datetime, warm_days: int | None) -> tuple[
         r for r, w, _ in runs
         if w is not None and r not in protected and has_event_log(r) and _last_touched(r, w) < cutoff
     ]
-    return tidy, archive
+    cap = max_archive_bytes()  # a run past the restore cap would never open again: it stays unpacked
+    return tidy, [r for r in archive if packable_bytes(r) <= cap]
 
 
 def plan_cleanup(evaluations_root: Path | str, now: datetime, warm_days: int | None) -> CleanupPlan:

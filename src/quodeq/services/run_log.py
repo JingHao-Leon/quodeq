@@ -120,7 +120,8 @@ def compute_run_change(job: ChangeJob) -> dict[str, Any]:
         diff = diff_runs(job.reports_root, job.project, job.run_id, job.baseline_id, since_baseline=False)
         out.update(summarise_diff(diff))
     try:
-        progress = build_scan_progress(job.run_id, job.reports_root / job.project / job.run_id)
+        # Files and time only: the finding tally would restore an archived run.
+        progress = build_scan_progress(job.run_id, job.reports_root / job.project / job.run_id, tally_findings=False)
     except (OSError, ValueError):
         progress = None
     out.update(summarise_progress(_progress_view(progress)) if progress is not None else _NO_PROGRESS)

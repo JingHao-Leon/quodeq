@@ -44,7 +44,7 @@ describe('usePrinciplePeriodDeltas', () => {
     const getRunScores = vi.fn(async () => ({ dimensions: [dim] }));
     const { result } = renderHook(() => usePrinciplePeriodDeltas(args), { wrapper: withStableQueryApi({ getRunScores }) });
     await waitFor(() => expect(result.current.previous).toEqual(dim));
-    expect(getRunScores).toHaveBeenCalledWith('p1', 'r2');
+    expect(getRunScores).toHaveBeenCalledWith('p1', 'r2', { keepArchived: true });
     expect(result.current.principles.get('Secrets')).toBe(1);
     expect(result.current.beforeRunId).toBe('r2');
   });

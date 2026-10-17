@@ -269,7 +269,7 @@ def _start_background_work(app: Flask, env: Mapping[str, str] | None = None) -> 
         warmup_engine.start(reports_dir())
         start_cache_maintenance(log=SHARED_LOG)
         storage_cleanup.start_storage_cleanup(
-            reports_dir(), env, log=SHARED_LOG, warmup_idle=lambda: not (warmup_engine.snapshot() or {}).get("active"),
+            reports_dir(), env, log=SHARED_LOG, warmup_idle=app.extensions["storage_clean"].ready,  # warm-up, rescore
             start_pass=app.extensions["storage_clean"].start)
     except (ImportError, RuntimeError, OSError):  # pragma: no cover - warm-up must never block serving
         _logger.warning("warm-up start failed", exc_info=True)

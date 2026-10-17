@@ -52,28 +52,36 @@ function useCleanProgress(summary) {
   return { clean, running, endedHere: endedHere === clean?.state ? endedHere : null };
 }
 
-function useArchiveAfter() {
+/**
+ * One storage setting (`field` of PUT /api/storage/settings), shown at once
+ * and put back when the save fails. A first-start notice on show is read
+ * again after the save, since the setting changes what it says.
+ */
+function useStorageSetting(field) {
   const { putStorageSettings } = useApi();
   const queryClient = useQueryClient();
   const key = storageKeys.summary();
   return useMutation({
-    mutationFn: (archiveAfterDays) => putStorageSettings({ archiveAfterDays }),
-    onMutate: async (archiveAfterDays) => {
+    mutationFn: (value) => putStorageSettings({ [field]: value }),
+    onMutate: async (value) => {
       await queryClient.cancelQueries({ queryKey: key, exact: true });
       const previous = queryClient.getQueryData(key);
-      if (previous) queryClient.setQueryData(key, { ...previous, archiveAfterDays });
+      if (previous) queryClient.setQueryData(key, { ...previous, [field]: value });
       return { previous };
     },
-    onError: (err, _days, context) => {
+    onError: (err, _value, context) => {
       if (context?.previous) queryClient.setQueryData(key, context.previous);
-      console.warn('[useStorage] could not save archive-after:', err);
+      console.warn(`[useStorage] could not save ${field}:`, err);
+    },
+    onSuccess: (_saved, _value, context) => {
+      if (context?.previous?.archiveNotice) queryClient.invalidateQueries({ queryKey: key, exact: true });
     },
   });
 }
 
 /**
  * Settings › Storage: the summary (['storage']), clean progress, and the
- * archive-after, clean and delete-all actions. Each action resolves to its
+ * archive-after, cleanup on/off, clean and delete-all actions. Each action resolves to its
  * result and rejects with the API error, so the modal shows its own failure.
  */
 export default function useStorage() {
@@ -81,7 +89,8 @@ export default function useStorage() {
   const queryClient = useQueryClient();
   const summary = useStorageSummary();
   const progress = useCleanProgress(summary);
-  const archiveAfter = useArchiveAfter();
+  const archiveAfter = useStorageSetting('archiveAfterDays');
+  const autoCleanup = useStorageSetting('autoCleanup');
   const runClean = async () => {
     const result = await startClean();
     queryClient.setQueryData(storageKeys.clean(), result);
@@ -97,6 +106,7 @@ export default function useStorage() {
   };
   return {
     data: summary.data ?? null, isLoading: summary.isPending, isError: summary.isError,
-    ...progress, setArchiveAfter: archiveAfter.mutate, archiveAfterFailed: archiveAfter.isError, runClean, deleteAll,
+    ...progress, setArchiveAfter: archiveAfter.mutate, setAutoCleanup: autoCleanup.mutate,
+    saveFailed: archiveAfter.isError || autoCleanup.isError, runClean, deleteAll,
   };
 }

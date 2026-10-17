@@ -11,7 +11,7 @@ const GB = 1024 ** 3;
 const POLL_WAIT = { timeout: 2500 };
 const IDLE = { state: 'idle', done: 0, total: 0, archived: 0, bytesFreed: 0 };
 const SUMMARY = {
-  bytes: 6.5 * GB, runs: 470, archived: 216, archiveAfterDays: 183, clean: IDLE,
+  bytes: 6.5 * GB, runs: 470, archived: 216, archiveAfterDays: 183, autoCleanup: true, archiveNotice: null, clean: IDLE,
   projects: { p1: { bytes: 1, runs: 1, archived: 0 }, p2: { bytes: 1, runs: 1, archived: 0 } },
 };
 
@@ -62,7 +62,7 @@ describe('StorageSection', () => {
     const { section } = setup({ getStorage: vi.fn(async () => { throw new Error('boom'); }) });
     await waitFor(() => expect(section().getByText("Couldn't read storage.")).toBeInTheDocument());
     expect(section().getByRole('button', { name: 'clean now' })).toBeInTheDocument();
-    expect(section().getAllByRole('tab')).toHaveLength(4);
+    expect(section().getAllByRole('tab')).toHaveLength(6);
   });
 
   it('saves the archive-after choice in days', async () => {
@@ -183,5 +183,39 @@ describe('StorageSection', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'delete' }));
     await waitFor(() => expect(dialog.getByText('An evaluation is running in Beta. Wait for it to finish.')).toBeInTheDocument());
     expect(onEvaluationsDeleted).not.toHaveBeenCalled();
+  });
+
+  it('says what the next start archives while the first-start notice is pending', async () => {
+    const getStorage = vi.fn(async () => ({ ...SUMMARY, archiveNotice: { runs: 212, bytes: 3 * GB } }));
+    const { section } = setup({ getStorage });
+    const text = 'Next time quodeq starts, it archives 212 runs untouched for more than 6 months, freeing about 3.0 GB.';
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent(text));
+    expect(section().getByRole('status')).toHaveTextContent('turn Clean up after start off');
+  });
+
+  it('shows no notice when there is none', async () => {
+    const { section } = setup();
+    await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
+    expect(section().queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('turns cleanup after start off, and reads the notice again', async () => {
+    const getStorage = vi.fn()
+      .mockResolvedValueOnce({ ...SUMMARY, archiveNotice: { runs: 2, bytes: GB } })
+      .mockResolvedValue({ ...SUMMARY, autoCleanup: false });
+    const { api, section } = setup({ getStorage });
+    await waitFor(() => expect(section().getByRole('status')).toBeInTheDocument());
+    fireEvent.click(section().getByRole('tab', { name: 'Off' }));
+    await waitFor(() => expect(api.putStorageSettings).toHaveBeenCalledWith({ autoCleanup: false }));
+    await waitFor(() => expect(section().queryByRole('status')).not.toBeInTheDocument());
+    expect(section().getByRole('tab', { name: 'Off' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('says a clean waits for a grade-formula rescore', async () => {
+    const startClean = vi.fn(async () => { throw busy('rescoring', [], 'STORAGE_RESCORE'); });
+    const { section } = setup({ startClean });
+    const dialog = await openClean(section);
+    fireEvent.click(dialog.getByRole('button', { name: 'clean now' }));
+    await waitFor(() => expect(dialog.getByText('Runs are being rescored with the grade formula. Try again when it ends.')).toBeInTheDocument());
   });
 });

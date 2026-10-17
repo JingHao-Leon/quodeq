@@ -1,8 +1,10 @@
 """Storage cleanup: tidy finished runs and archive the old ones.
 
-On by default; ``QUODEQ_STORAGE_CLEANUP=0`` turns it off. The archive window
+On by default; the storage settings' ``auto_cleanup`` (Settings › Storage) or
+``QUODEQ_STORAGE_CLEANUP=0`` turns the pass after start off. The archive window
 comes from the storage settings (None means tidy only); which runs are
-tidied and which archived is decided in ``storage_plan``.
+tidied and which archived is decided in ``storage_plan``. The first start
+that would archive only tidies (see ``storage_notice``).
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.run.state import RunState
 from quodeq.services.run_keys import read_run_key_sets
 from quodeq.services.storage_plan import CleanupPlan, plan_cleanup, project_in_flight, read_run  # noqa: F401
+from quodeq.services.storage_notice import first_start_may_archive
 from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring import ScoreCacheError, SqliteFindingsRepository, has_evaluation_db, save_run_keys
 from quodeq.services.wiring_sync import RunArchiveError, archive_run, is_archived, tidy_run
@@ -125,9 +128,9 @@ class _InFlightWatch:
         return seen[1]
 
 
-def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> CleanupResult | None:
-    """One startup pass with the archive window read now, not at import."""
-    days = read_storage_settings(env).archive_after_days
+def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink, *, archive: bool = True) -> CleanupResult | None:
+    """One startup pass with the archive window read now, not at import; tidy only when *archive* is False."""
+    days = read_storage_settings(env).archive_after_days if archive else None
     result = try_run_cleanup(root, datetime.now(timezone.utc), warm_days=days, log=log)
     if result is None:
         log.debug("storage cleanup: another pass holds the lock, skipping the startup pass")
@@ -136,9 +139,12 @@ def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> Cleanup
 
 def run_cleanup(
     evaluations_root: Path | str, now: datetime, *, warm_days: int | None, log: LogSink = NULL_LOG,
-    on_progress: Callable[[int, int], None] | None = None,
+    on_progress: Callable[[int, int], None] | None = None, should_stop: Callable[[], bool] | None = None,
 ) -> CleanupResult:
     """Apply the plan; one failing run is logged and the rest carry on.
+
+    *should_stop* is asked before each run; True ends the pass there (a
+    grade-formula rescore started, and the two must not overlap).
 
     Each run is tidied, then archived when the plan says so; *on_progress*
     gets (runs done, runs in the pass) after each, so a pass that only tidies
@@ -153,6 +159,9 @@ def run_cleanup(
     watch, wall_now = _InFlightWatch(), time.time()
     tidied = archived = freed = 0
     for index, run_dir in enumerate(runs, start=1):
+        if should_stop is not None and should_stop():
+            log.info("storage cleanup: stopped early, a grade-formula rescore started")
+            break
         if not _gone(run_dir) and _settled(run_dir, wall_now) and not watch.busy(run_dir.parent):
             got = _tidy_one(run_dir, log)
             if got is not None:
@@ -193,14 +202,16 @@ def try_run_cleanup(
 def start_storage_cleanup(
     evaluations_root: Path | str, env: Mapping[str, str] | None = None, *,
     log: LogSink = NULL_LOG, warmup_idle: Callable[[], bool] | None = None, poll_s: float = WARMUP_POLL_S,
-    start_pass: Callable[[Path, Mapping[str, str], LogSink], bool] | None = None,
+    start_pass: Callable[..., bool] | None = None,
 ) -> threading.Thread | None:
     """Run the cleanup on a daemon thread unless switched off; never raises.
 
-    The thread first waits until *warmup_idle* reports the score warm-up done.
-    With *start_pass* (the app's ``CleanJob.start``) the pass runs as that
-    job, so Settings shows its progress and "clean now" answers busy;
-    without it the pass runs here. Either reads the archive window then.
+    The thread first waits until *warmup_idle* reports nothing the pass must
+    wait for (the score warm-up, a grade-formula rescore). With *start_pass*
+    (the app's ``CleanJob.start``) the pass runs as that job, so Settings
+    shows its progress and "clean now" answers busy; without it the pass
+    runs here. Either reads the settings then: ``auto_cleanup`` off skips
+    the pass, and the first start that would archive only tidies.
     """
     if not cleanup_enabled(resolve_env(env)):
         return None
@@ -208,9 +219,13 @@ def start_storage_cleanup(
     resolved = resolve_env(env)
 
     def _cleanup() -> None:
+        if not read_storage_settings(resolved).auto_cleanup:
+            log.debug("storage cleanup: turned off in Settings, skipping the startup pass")
+            return
+        archive = first_start_may_archive(root, resolved, datetime.now(timezone.utc), log)
         if start_pass is None:
-            _scheduled_pass(root, resolved, log)
-        elif not start_pass(root, resolved, log):
+            _scheduled_pass(root, resolved, log, archive=archive)
+        elif not start_pass(root, resolved, log, archive=archive):
             log.debug("storage cleanup: a clean is already running, skipping the startup pass")
 
     def _isolated() -> None:

@@ -15,6 +15,7 @@ import { STALE_TIME_MS } from './queryDefaults.js';
 
 // The series asked for: the period before, and the one on show.
 const PREVIOUS_AND_NOW = 2;
+const PERIOD_COMPARISON = 'periodComparison';
 const nameKey = (name) => String(name ?? '').toLowerCase();
 
 /**
@@ -62,13 +63,17 @@ export function principleChanges(previousDim, principles) {
  */
 export function usePrinciplePeriodDeltas({ project, selectedSource = PROJECT_SOURCE.LOCAL, trend, dimension, granularity, activeRunId, principles }) {
   const { getRunScores, sharedGetRunScores } = useApi();
-  const fetchRunScores = selectedSource === PROJECT_SOURCE.SHARED ? sharedGetRunScores : getRunScores;
+  // A comparison, not an open: a local run archived since is read without unpacking it.
+  const fetchRunScores = selectedSource === PROJECT_SOURCE.SHARED
+    ? sharedGetRunScores
+    : (projectId, runId) => getRunScores(projectId, runId, { keepArchived: true });
   const beforeRunId = useMemo(
     () => previousPeriodRunId({ trend, dimension, granularity, activeRunId }),
     [trend, dimension, granularity, activeRunId],
   );
   const before = useQuery({
-    queryKey: projectKeys.runScores(project, beforeRunId, selectedSource),
+    // Its own key: the run page's entry for the same run is the full read.
+    queryKey: [...projectKeys.runScores(project, beforeRunId, selectedSource), PERIOD_COMPARISON],
     queryFn: () => fetchRunScores(project, beforeRunId),
     enabled: Boolean(project && beforeRunId),
     staleTime: STALE_TIME_MS,

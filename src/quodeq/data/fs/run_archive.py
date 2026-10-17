@@ -11,18 +11,17 @@ multi-second rebuild measured on the biggest real runs.
 
 Safety rules: originals are deleted only after the archive is written,
 fsynced, verified and renamed into place, and only when no packed file
-changed, none was added and no database sidecar appeared meanwhile; a restore extracts into a temporary
+changed, none was added and no database sidecar appeared meanwhile (one that cannot be deleted
+undoes the archive); a run a restore would refuse as too big is never packed. A restore extracts into a temporary
 folder and renames each file into place before the archive goes. Leftover
 temporary files from an interrupted attempt are removed at the start of the
 next one. Both operations hold a per-run lock file.
 """
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import logging
 import os
-import posixpath
 import shutil
 import sqlite3
 import tarfile
@@ -38,7 +37,9 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
-from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits, check_restore_dirs, read_members  # noqa: F401
+from quodeq.data.fs.run_archive_limits import (  # noqa: F401 -- check_members re-exported
+    RunArchiveError, check_members, check_packable, check_restore_dirs, read_members,
+)
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
@@ -46,7 +47,9 @@ from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal,
 
 _logger = logging.getLogger(__name__)
 
-TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
+# The dispatch queues (``*_queue.json``) stay: History's files analysed and a cancelled
+# run's partly scanned dimensions are read from them.
+TIDY_PATTERNS = ("*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
 
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
@@ -134,6 +137,7 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         except WalNotFoldedError as exc:
             raise RunArchiveError(str(exc)) from exc
         sources = archive_sources(run_dir)
+        check_packable([p.stat().st_size for _, p in sources])
         dropped = dropped_sidecars(run_dir)
         bytes_before = sum(p.stat().st_size for p in [*(p for _, p in sources), *dropped])
         tmp, final = run_dir / _TMP_ARCHIVE, run_dir / ARCHIVE_FILENAME
@@ -153,36 +157,34 @@ def archive_run(run_dir: Path) -> ArchiveResult:
             for sidecar in (PRECEDENTS_NAME, SCALARS_NAME):
                 (run_dir / sidecar).unlink(missing_ok=True)
             raise
-        for path in [*(p for _, p in sources), *dropped, run_dir / RESTORED_STAMP]:
-            path.unlink(missing_ok=True)
+        _drop_originals(run_dir, sources)
+        for path in [*dropped, run_dir / RESTORED_STAMP]:
+            try:  # a restore drops stray sidecars and rewrites the stamp, so one left behind is harmless
+                path.unlink(missing_ok=True)
+            except OSError as exc:
+                _logger.debug("Could not remove %s after archiving: %s", path, exc)
         return ArchiveResult(bytes_before=bytes_before, bytes_after=final.stat().st_size)
 
 
-def _allowed_name(name: str) -> bool:
-    """True for ``events.jsonl``, ``evaluation.db`` and ``evidence/<x>_evidence.jsonl`` only."""
-    if name in (EVENTS_NAME, DB_NAME):
-        return True
-    folder, _, base = name.partition("/")
-    return folder == EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, EVIDENCE_PATTERN)
+def _drop_originals(run_dir: Path, sources: list[tuple[str, Path]]) -> None:
+    """Delete the packed originals; when one cannot go (a file held open on Windows), undo the archive.
 
-
-def check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
-    """Member names when every member is a safe regular file, else raise ``RunArchiveError``."""
-    check_archive_limits(members)
-    root = staging.resolve()
-    names: list[str] = []
-    for member in members:
-        name = member.name
-        if not member.isreg():
-            raise RunArchiveError(f"archive member {name!r} is not a regular file")
-        if "\\" in name or posixpath.isabs(name) or posixpath.normpath(name) != name:
-            raise RunArchiveError(f"archive member {name!r} has an unsafe path")
-        if not (root / name).resolve().is_relative_to(root) or not _allowed_name(name):
-            raise RunArchiveError(f"archive member {name!r} is not an archived run file")
-        if name in names:
-            raise RunArchiveError(f"archive member {name!r} appears twice")
-        names.append(name)
-    return names
+    The files already deleted come back from the verified archive and the
+    archive goes, so the run is plainly unpacked and the next pass tries
+    again, never left with an archive and originals side by side.
+    """
+    try:
+        for _, path in sources:
+            path.unlink(missing_ok=True)
+    except OSError as exc:
+        kept = tuple(name for name, path in sources if path.exists())
+        staging = run_dir / _RESTORE_DIR
+        for name in _extract(run_dir / ARCHIVE_FILENAME, staging, skip=kept):
+            os.replace(staging / name, run_dir / name)
+        shutil.rmtree(staging, ignore_errors=True)
+        for name in (ARCHIVE_FILENAME, PRECEDENTS_NAME, SCALARS_NAME):
+            (run_dir / name).unlink(missing_ok=True)
+        raise RunArchiveError(f"could not remove the packed files of {run_dir}, left it unpacked: {exc}") from exc
 
 
 def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = (), *, ratio_capped: bool = False) -> list[str]:

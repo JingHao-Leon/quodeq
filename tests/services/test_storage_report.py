@@ -119,6 +119,21 @@ def test_delete_all_removes_every_project_once_and_skips_cascaded_children(tmp_p
     assert storage_cleanup.CLEANUP_LOCK.locked() is False
 
 
+def test_delete_all_leaves_folders_that_are_not_projects(tmp_path):
+    _run(tmp_path, "proj", "r", 300)
+    (tmp_path / "registered").mkdir()
+    (tmp_path / "registered" / "repository_info.json").write_text(json.dumps({"name": "r"}))
+    (tmp_path / "src" / "module").mkdir(parents=True)  # an evaluations folder pointed at a repository
+    (tmp_path / "src" / "module" / "code.py").write_text("x = 1")
+    (tmp_path / "notes").mkdir()
+    provider = _Provider()
+
+    assert delete_all_evaluations(provider, tmp_path) == 2
+
+    assert sorted(provider.deleted) == ["proj", "registered"]
+    assert (tmp_path / "src" / "module" / "code.py").is_file() and (tmp_path / "notes").is_dir()
+
+
 def test_delete_all_on_a_missing_root_deletes_nothing(tmp_path):
     assert delete_all_evaluations(_Provider(), tmp_path / "missing") == 0
 

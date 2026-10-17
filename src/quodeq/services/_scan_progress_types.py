@@ -37,6 +37,10 @@ class ProgressContext:
     # point of use (services/_process_owners.py); tests inject a fresh
     # LiveTallyMemo() instead for isolation.
     live_tallies: LiveTallyMemo | None = None
+    # False skips the per-dimension evidence tally (counts read as zero): a
+    # caller that needs only files and time never opens the evidence, so an
+    # archived run is read without being restored.
+    tally_findings: bool = True
 
 
 @dataclass

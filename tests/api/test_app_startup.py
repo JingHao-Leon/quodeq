@@ -33,6 +33,8 @@ def test_main_starts_warmup_before_serving(monkeypatch, tmp_path):
     started = []
     monkeypatch.setattr("quodeq.services.warmup.engine.start", started.append)
     monkeypatch.setattr("flask.Flask.run", lambda self, **kwargs: None)
+    # env={} points the storage settings at the real ~/.quodeq: no startup cleanup here.
+    monkeypatch.setattr("quodeq.services.storage_cleanup.start_storage_cleanup", lambda *_a, **_k: None)
 
     app_module.main(env={})
 
