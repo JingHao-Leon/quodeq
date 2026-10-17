@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { GROUPS, KNOB_GROUP, applyKnob, knobChanges } from './knobGroups.js';
+import { GROUPS, KNOB_GROUP, applyKnob, knobChanges, withRange } from './knobGroups.js';
 
 const SAVED = {
   severityWeight: { critical: 4, major: 2, minor: 0.25 }, baseK: 0.08, liftCompress: 2.2, ceilScale: 0.5,
@@ -43,4 +43,20 @@ test('switching dimension weights off or on is one change', () => {
   const changes = knobChanges({ ...SAVED, dimensionWeightsEnabled: false }, SAVED);
   assert.deepEqual(changes.map((c) => [c.group.id, c.knob.labelKey, c.from, c.to]),
     [['dimensions', 'gradeFormula.dimensionWeightsToggle', true, false]]);
+});
+
+test('withRange gives a knob the min and max of its server range', () => {
+  const steep = GROUPS.find((g) => g.id === KNOB_GROUP.STEEP).knobs[0];
+  assert.deepEqual([withRange(steep, { baseK: [0.01, 1] }).min, withRange(steep, { baseK: [0.01, 1] }).max], [0.01, 1]);
+});
+
+test('withRange leaves a knob without a server range (the bands) as it is', () => {
+  const band = GROUPS.find((g) => g.id === KNOB_GROUP.BANDS).knobs[0];
+  assert.equal(withRange(band, { baseK: [0.01, 1] }), band);
+});
+
+test('every knob but the bands names a range the server serves', () => {
+  const served = new Set(['severityWeight', 'baseK', 'liftCompress', 'ceilScale', 'floorMinor', 'floorMajor']);
+  const knobs = GROUPS.filter((g) => g.id !== KNOB_GROUP.BANDS).flatMap((g) => g.knobs);
+  assert.ok(knobs.every((k) => served.has(k.range)));
 });

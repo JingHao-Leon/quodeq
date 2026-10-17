@@ -40,7 +40,7 @@ _DEFAULT_DIMENSION_WEIGHTS: dict[str, float] = {
     "accessibility": 1.0,
 }
 
-# Slider ranges shared by validation and (conceptually) the UI.
+# Slider ranges: validation enforces them and the editor reads them (ranges_to_dict).
 _RANGES: dict[str, tuple[float, float]] = {
     "base_k": (0.01, 1.0),
     "lift_compress": (1.0, 4.0),
@@ -48,7 +48,7 @@ _RANGES: dict[str, tuple[float, float]] = {
     "floor_minor": (0.0, 10.0),
     "floor_major": (0.0, 10.0),
 }
-# Critical needs headroom past its 7.5 default; the UI slider is log-scaled over the same range.
+# Critical needs headroom past its 7.5 default; the editor draws this range on a log slider.
 _SEVERITY_WEIGHT_RANGE = (0.05, 25.0)
 _DIMENSION_WEIGHT_RANGE = (0.1, 3.0)
 
@@ -89,6 +89,23 @@ DEFAULT_PARAMS = ScoringParams(
     floor_major=SEVERITY_GRADE_FLOOR["major"],
     grade_thresholds=tuple((float(t), label) for t, label in GRADE_THRESHOLDS),
 )
+
+
+def _camel(name: str) -> str:
+    head, *rest = name.split("_")
+    return head + "".join(part.capitalize() for part in rest)
+
+
+def ranges_to_dict() -> dict[str, list[float]]:
+    """The bounds validate_params enforces, in the API's camelCase.
+
+    The editor's sliders read these, so they never offer a value the server refuses.
+    """
+    return {
+        "severityWeight": list(_SEVERITY_WEIGHT_RANGE),
+        **{_camel(name): list(bounds) for name, bounds in _RANGES.items()},
+        "dimensionWeight": list(_DIMENSION_WEIGHT_RANGE),
+    }
 
 
 def params_to_dict(params: ScoringParams) -> dict[str, Any]:

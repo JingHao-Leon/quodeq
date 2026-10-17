@@ -21,6 +21,7 @@ from quodeq.core.scoring.params import (
     params_error,
     params_from_dict,
     params_to_dict,
+    ranges_to_dict,
     validate_params,
 )
 from quodeq.services import grade_formula, grade_formula_inputs, grade_formula_preview
@@ -53,6 +54,8 @@ def _state_payload(rescore: RescoreSnapshot) -> dict:
     return {
         "current": params_to_dict(grade_formula.load_params()),
         "defaults": params_to_dict(DEFAULT_PARAMS),
+        # The bounds the PUT validates, so the editor's sliders match them.
+        "ranges": ranges_to_dict(),
         "isCustom": grade_formula.is_custom(),
         # A custom formula saved under an older grade algorithm, set aside: the page says so.
         "retiredCustom": grade_formula.has_retired_formula(),

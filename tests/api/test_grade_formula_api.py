@@ -80,6 +80,14 @@ def test_get_returns_defaults_and_is_custom_false(client, formula_path):
     assert body["defaults"] == params_to_dict(DEFAULT_PARAMS)
 
 
+def test_get_serves_the_bounds_the_put_validates(client, formula_path):
+    ranges = client.get("/api/grade-formula").get_json()["ranges"]
+    assert ranges["severityWeight"] == [0.05, 25.0]
+    assert ranges["baseK"] == [0.01, 1.0]
+    assert ranges["dimensionWeight"] == [0.1, 3.0]
+    assert set(ranges) == {"severityWeight", "baseK", "liftCompress", "ceilScale", "floorMinor", "floorMajor", "dimensionWeight"}
+
+
 def test_get_says_when_an_older_custom_formula_was_set_aside(client, formula_path):
     import json
     assert client.get("/api/grade-formula").get_json()["retiredCustom"] is False

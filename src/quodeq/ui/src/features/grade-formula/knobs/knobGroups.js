@@ -10,10 +10,14 @@ export const KNOB_GROUP = Object.freeze({
   COST: 'cost', BANDS: 'bands', STEEP: 'steep', LIFT: 'lift', CEIL: 'ceil', FLOOR: 'floor', DIMENSIONS: 'dimensions',
 });
 
-// The server's range (core/scoring/params.py _SEVERITY_WEIGHT_RANGE), on a log slider.
-const SEVERITY = { min: 0.05, max: 25, step: 0.05, scale: KNOB_SCALE.LOG };
+// A knob names the server range it lives in (`range`, a key of the GET payload's
+// `ranges`, which validate_params enforces); withRange adds its min and max.
+// Only how the slider moves is set here: the step, and the severity weights' log scale.
+const SEVERITY = { range: 'severityWeight', step: 0.05, scale: KNOB_SCALE.LOG };
 const BAND_MARGIN = 0.5;
 const BAND_STEP = 0.5;
+// How far one slider step moves each scalar knob.
+const STEP = Object.freeze({ BASE_K: 0.01, LIFT: 0.1, CEIL: 0.05 });
 const cap = (s) => s[0].toUpperCase() + s.slice(1);
 
 const severityKnob = (id) => ({
@@ -22,8 +26,8 @@ const severityKnob = (id) => ({
   get: (p) => p.severityWeight[id],
   patch: (p, v) => ({ severityWeight: { ...p.severityWeight, [id]: v } }),
 });
-const scalarKnob = (id, field, range, keys) => ({
-  id, ...range, ...keys, get: (p) => p[field], patch: (_p, v) => ({ [field]: v }),
+const scalarKnob = (id, field, step, keys) => ({
+  id, range: field, step, ...keys, get: (p) => p[field], patch: (_p, v) => ({ [field]: v }),
 });
 const bandKnob = (label, index) => ({
   id: label, labelKey: `gradeFormula.band${label}`, min: BAND_MARGIN, max: SCORE_SCALE_MAX - BAND_MARGIN, step: BAND_STEP,
@@ -31,7 +35,6 @@ const bandKnob = (label, index) => ({
   patch: (p, v) => ({ gradeThresholds: p.gradeThresholds.map(([t, l], i) => [i === index ? v : t, l]) }),
 });
 
-const FLOOR_RANGE = { min: 0, max: SCORE_SCALE_MAX, step: BAND_STEP };
 
 export const GROUPS = [
   { id: KNOB_GROUP.COST, titleKey: 'gradeFormula.groupCost', questionKey: 'gradeFormula.groupCostQ', folded: false,
@@ -39,20 +42,26 @@ export const GROUPS = [
   { id: KNOB_GROUP.BANDS, titleKey: 'gradeFormula.groupBands', questionKey: 'gradeFormula.groupBandsQ', folded: false, labelsOnly: true,
     knobs: [GRADE.EXEMPLARY, GRADE.GOOD, GRADE.ADEQUATE, GRADE.POOR].map(bandKnob) },
   { id: KNOB_GROUP.STEEP, titleKey: 'gradeFormula.groupSteep', questionKey: 'gradeFormula.groupSteepQ', folded: true,
-    knobs: [scalarKnob('k', 'baseK', { min: 0.01, max: 1, step: 0.01 },
+    knobs: [scalarKnob('k', 'baseK', STEP.BASE_K,
       { labelKey: 'gradeFormula.knobSteepness', techKey: 'gradeFormula.strictnessK', hintKey: 'gradeFormula.hintStrictness' })] },
   { id: KNOB_GROUP.LIFT, titleKey: 'gradeFormula.groupLift', questionKey: 'gradeFormula.groupLiftQ', folded: true,
-    knobs: [scalarKnob('lift', 'liftCompress', { min: 1, max: 4, step: 0.1 },
+    knobs: [scalarKnob('lift', 'liftCompress', STEP.LIFT,
       { labelKey: 'gradeFormula.knobLiftDamping', techKey: 'gradeFormula.liftCompress', hintKey: 'gradeFormula.hintLift' })] },
   { id: KNOB_GROUP.CEIL, titleKey: 'gradeFormula.groupCeil', questionKey: 'gradeFormula.groupCeilQ', folded: true,
-    knobs: [scalarKnob('ceil', 'ceilScale', { min: 0, max: 2, step: 0.05 },
+    knobs: [scalarKnob('ceil', 'ceilScale', STEP.CEIL,
       { labelKey: 'gradeFormula.knobCeilingDrop', techKey: 'gradeFormula.ceilScale', hintKey: 'gradeFormula.hintCeil' })] },
   { id: KNOB_GROUP.FLOOR, titleKey: 'gradeFormula.groupFloor', questionKey: 'gradeFormula.groupFloorQ', folded: true,
     knobs: [
-      scalarKnob('floorMinor', 'floorMinor', FLOOR_RANGE, { labelKey: 'gradeFormula.minorOnly', hintKey: 'gradeFormula.hintFloorMinor' }),
-      scalarKnob('floorMajor', 'floorMajor', FLOOR_RANGE, { labelKey: 'gradeFormula.floorMajor', hintKey: 'gradeFormula.hintFloorMajor' }),
+      scalarKnob('floorMinor', 'floorMinor', BAND_STEP, { labelKey: 'gradeFormula.minorOnly', hintKey: 'gradeFormula.hintFloorMinor' }),
+      scalarKnob('floorMajor', 'floorMajor', BAND_STEP, { labelKey: 'gradeFormula.floorMajor', hintKey: 'gradeFormula.hintFloorMajor' }),
     ] },
 ];
+
+/** *knob* with the min and max of its server range; a knob without one (the bands) is returned as is. */
+export function withRange(knob, ranges) {
+  const bounds = knob.range ? ranges?.[knob.range] : null;
+  return bounds ? { ...knob, min: bounds[0], max: bounds[1] } : knob;
+}
 
 /** *params* with one knob set to *value* (a new object; *params* is untouched). */
 export function applyKnob(params, knob, value) {

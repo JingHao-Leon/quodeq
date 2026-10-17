@@ -13,6 +13,7 @@ import { ApiProvider } from '../../api/ApiContext.jsx';
 import useGradeFormula from './useGradeFormula.js';
 import { useFormulaInputs } from './hooks/useFormulaInputs.js';
 import GradeFormulaPage from './GradeFormulaPage.jsx';
+import { SERVER_RANGES } from './knobs/_serverRanges.fixtures.js';
 
 vi.mock('./useGradeFormula.js', () => ({ default: vi.fn() }));
 vi.mock('./hooks/useFormulaInputs.js', () => ({ useFormulaInputs: vi.fn() }));
@@ -38,7 +39,7 @@ function mount() {
 describe('GradeFormulaPage a11y', () => {
   beforeEach(() => {
     useGradeFormula.mockReturnValue({
-      saved: FORMULA, draft: FORMULA, defaults: FORMULA, isCustom: true, isDirty: false, busy: false, error: null,
+      saved: FORMULA, draft: FORMULA, defaults: FORMULA, ranges: SERVER_RANGES, isCustom: true, isDirty: false, busy: false, error: null,
       partialNotice: null, rescoreProgress: null, update: vi.fn(), apply: vi.fn(), resetToDefaults: vi.fn(),
     });
     useFormulaInputs.mockReturnValue({ inputs: { projects: [] }, loading: false, failed: false });
