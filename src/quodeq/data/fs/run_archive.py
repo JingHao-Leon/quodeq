@@ -8,7 +8,8 @@ first) move into ``archive.tar.gz`` inside the run folder; the ``-wal`` and
 multi-second rebuild measured on the biggest real runs.
 
 Safety rules: originals are deleted only after the archive is written,
-fsynced, verified and renamed into place; a restore extracts into a temporary
+fsynced, verified and renamed into place, and only when no packed file
+changed and no database sidecar appeared meanwhile; a restore extracts into a temporary
 folder and renames each file into place before the archive goes. Leftover
 temporary files from an interrupted attempt are removed at the start of the
 next one. Both operations hold a per-run lock file.
@@ -29,6 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.core.utils.file_lock import lock_file, unlock_file
+from quodeq.data.fs.run_archive_guard import RESTORED_STAMP, snapshot, unchanged, write_restored_stamp
 from quodeq.data.fs.run_archive_wal import DB_NAME, WAL_NAME, WalNotFoldedError, fold_wal
 
 _logger = logging.getLogger(__name__)
@@ -169,6 +171,7 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         dropped = [run_dir / name for name in _DB_SIDECARS if (run_dir / name).is_file()]
         bytes_before = sum(p.stat().st_size for p in [*(p for _, p in sources), *dropped])
         tmp, final = run_dir / _TMP_ARCHIVE, run_dir / ARCHIVE_FILENAME
+        packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in _DB_SIDECARS)])
         try:
             _write_archive(tmp, sources)
             _verify_archive(tmp, sources)
@@ -176,7 +179,10 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         except BaseException:
             tmp.unlink(missing_ok=True)
             raise
-        for path in [*(p for _, p in sources), *dropped]:
+        if not unchanged(packed):  # a reader or writer touched the run while it was packed
+            final.unlink(missing_ok=True)
+            raise RunArchiveError(f"run changed while it was archived: {run_dir}")
+        for path in [*(p for _, p in sources), *dropped, run_dir / RESTORED_STAMP]:
             path.unlink(missing_ok=True)
         return ArchiveResult(bytes_before=bytes_before, bytes_after=final.stat().st_size)
 
@@ -249,6 +255,7 @@ def ensure_restored(run_dir: Path) -> bool:
             os.replace(staging / name, dest)
         archive.unlink()
         shutil.rmtree(staging, ignore_errors=True)
+        write_restored_stamp(run_dir)
         return True
 
 

@@ -15,6 +15,7 @@ from quodeq.data.fs.repo_clone import GitCloneClient  # noqa: F401
 from quodeq.data.fs.run_archive import (  # noqa: F401
     archive_run, ensure_restored, has_event_log, is_archived, restore_or_warn, tidy_run,
 )
+from quodeq.data.fs.run_archive_guard import restored_at  # noqa: F401
 from quodeq.data.fs.shared_clone_reset import reset_clone_to_remote  # noqa: F401
 from quodeq.data.fs.shared_standards import (  # noqa: F401
     commit_staged, read_shared_standards, restore_shared_standards, shared_standards_dir, stage_standard_paths,

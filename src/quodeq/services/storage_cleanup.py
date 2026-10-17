@@ -3,7 +3,8 @@
 Off unless ``QUODEQ_STORAGE_CLEANUP=1``. A run is touched only when its
 ``status.json`` is readable and in a terminal state. The newest finished run
 of each dimension (the one the Overview reads) is tidied but never archived,
-and a project with a run still in flight is left alone entirely.
+and a project with a run still in flight is left alone entirely. A restored
+run counts as touched when it was restored, so it stays warm for the window.
 """
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ from pathlib import Path
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
-from quodeq.services.wiring_sync import archive_run, has_event_log, is_archived, tidy_run
+from quodeq.services.wiring_sync import archive_run, has_event_log, is_archived, restored_at, tidy_run
 from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.fault_isolation import run_isolated
 
@@ -91,22 +92,36 @@ def _newest_per_dimension(runs: list[tuple[Path, datetime | None, RunState]]) ->
     return {path for _, path in newest.values()}
 
 
+def _in_flight(run_dir: Path, state: RunState | None) -> bool:
+    """Fail safe: any run with a status that is not terminal (a crashed run included) blocks its project."""
+    return state not in TERMINAL_STATES and (run_dir / "status.json").is_file()
+
+
+def _project_in_flight(project: Path) -> bool:
+    return any(_in_flight(run_dir, _read_run(run_dir)[0]) for run_dir in _subdirs(project))
+
+
+def _last_touched(run_dir: Path, started: datetime) -> datetime:
+    """The later of the run's start and its last restore."""
+    restored = restored_at(run_dir)
+    return max(started, restored) if restored is not None else started
+
+
 def _plan_project(project: Path, now: datetime, warm_days: int) -> tuple[list[Path], list[Path]]:
     runs: list[tuple[Path, datetime | None, RunState]] = []
     for run_dir in _subdirs(project):
         state, when = _read_run(run_dir)
-        if state not in TERMINAL_STATES:
-            # Fail safe: any run with a status that is not terminal (a crashed
-            # run included) keeps its whole project untouched.
-            if (run_dir / "status.json").is_file():
-                return [], []
-            continue
-        if not is_archived(run_dir):
+        if _in_flight(run_dir, state):
+            return [], []
+        if state in TERMINAL_STATES and not is_archived(run_dir):
             runs.append((run_dir, when, state))
     protected = _newest_per_dimension(runs)
     cutoff = now - timedelta(days=warm_days)
     tidy = [r for r, _, _ in runs]
-    archive = [r for r, w, _ in runs if w is not None and w < cutoff and r not in protected and has_event_log(r)]
+    archive = [
+        r for r, w, _ in runs
+        if w is not None and r not in protected and has_event_log(r) and _last_touched(r, w) < cutoff
+    ]
     return tidy, archive
 
 
@@ -131,6 +146,8 @@ def run_cleanup(evaluations_root: Path | str, now: datetime, *, log: LogSink = N
             tidied += 1
             freed += got
     for run_dir in plan.archive:
+        if _project_in_flight(run_dir.parent):  # a run started after the plan was made
+            continue
         done = run_isolated(lambda d=run_dir: archive_run(d), label=f"storage cleanup archive {run_dir}", log=log)
         if done is not None:
             archived += 1
