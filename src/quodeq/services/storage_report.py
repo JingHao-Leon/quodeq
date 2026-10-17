@@ -12,7 +12,8 @@ from pathlib import Path
 
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.base import ActionProvider
-from quodeq.services.storage_cleanup import CLEANUP_LOCK, plan_cleanup
+from quodeq.services.storage_cleanup import CLEANUP_LOCK
+from quodeq.services.storage_plan import plan_cleanup
 from quodeq.services.wiring import UnsupportedSchemaError, read_json_object, read_status
 from quodeq.services.wiring_sync import is_archived, packable_bytes, run_pid_alive
 
@@ -168,8 +169,9 @@ def delete_all_evaluations(provider: ActionProvider, root: Path) -> int:
     """Delete every project folder under *root* through ``delete_project``; the folders removed.
 
     Raises ``StorageBusyError`` while a clean holds the lock or any project
-    has a run in flight; nothing is deleted then. Parents go first, so a
-    child their cascade removed is skipped instead of deleted twice.
+    has a run in flight; nothing is deleted then. A project whose run starts
+    during the deletion is kept. Parents go first, so a child their cascade
+    removed is skipped instead of deleted twice.
     """
     if not CLEANUP_LOCK.acquire(blocking=False):
         raise StorageBusyError("a storage clean is running")
@@ -178,9 +180,12 @@ def delete_all_evaluations(provider: ActionProvider, root: Path) -> int:
         live = _live_projects(projects)
         if live:
             raise StorageBusyError("an evaluation is running", live)
-        # Accepted gap: an evaluation that starts after this check is not excluded (it does not take CLEANUP_LOCK).
+        # Evaluations do not take CLEANUP_LOCK, and deleting every project can
+        # take a while: each project is checked again right before it goes, and
+        # one whose run started meanwhile is kept. The gap left is one
+        # project's check-to-delete.
         for project in sorted(projects, key=_is_child):
-            if project.is_dir():
+            if project.is_dir() and not any(_run_is_live(r) for r in _subdirs(project)):
                 provider.delete_project(str(root), project.name)
         if projects:
             provider.invalidate_projects_cache()

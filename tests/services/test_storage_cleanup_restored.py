@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
 
 from quodeq.data.fs.run_archive import archive_run, ensure_restored
@@ -17,6 +18,8 @@ def _run(root, name, days, *, state="done"):
     (run_dir / "evaluation").mkdir(parents=True)
     started = (NOW - timedelta(days=days)).isoformat()
     (run_dir / "status.json").write_text(json.dumps({"state": state, "started_at": started}))
+    settled = (NOW - timedelta(days=days)).timestamp()  # finished long enough ago to tidy
+    os.utime(run_dir / "status.json", (settled, settled))
     (run_dir / "evaluation" / "quality.json").write_text("{}")
     (run_dir / "events.jsonl").write_text("{}\n")
     return run_dir

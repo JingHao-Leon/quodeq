@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -17,6 +18,8 @@ def make_run(root, project, name, days, *, state="done", dims=("quality",), log=
     if pid is not None:
         status["pid"] = pid
     (run_dir / "status.json").write_text(json.dumps(status))
+    settled = (NOW - timedelta(days=days)).timestamp()  # finished long enough ago to tidy
+    os.utime(run_dir / "status.json", (settled, settled))
     for dim in dims:
         (run_dir / "evaluation" / f"{dim}.json").write_text("{}")
     if log:

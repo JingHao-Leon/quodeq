@@ -35,7 +35,7 @@ def test_the_job_archives_and_reports_done(tmp_path):
     assert job.start(root, _env(tmp_path)) is True
     assert _wait(job, "done")
     snap = job.snapshot()
-    assert (snap["archived"], snap["done"], snap["total"]) == (1, 1, 1)
+    assert (snap["archived"], snap["done"], snap["total"]) == (1, 3, 3)  # two tidied, one archived
     assert (old / "archive.tar.gz").is_file()
     assert storage_cleanup.CLEANUP_LOCK.locked() is False
 

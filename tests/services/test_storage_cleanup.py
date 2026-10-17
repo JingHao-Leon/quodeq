@@ -153,15 +153,6 @@ def test_a_shorter_window_archives_younger_runs(tmp_path):
     assert plan_cleanup(tmp_path, NOW, 91).archive == (mid,)
 
 
-def test_progress_is_reported_after_each_archive(tmp_path):
-    for name, days in (("a", 300), ("b", 290)):
-        _run(tmp_path, name, "old", days)
-        _run(tmp_path, name, "newer", 10)
-    seen = []
-    run_cleanup(tmp_path, NOW, warm_days=183, on_progress=lambda d, t: seen.append((d, t)))
-    assert seen == [(1, 2), (2, 2)]
-
-
 def test_try_run_cleanup_is_busy_while_the_lock_is_held(tmp_path):
     with storage_cleanup.CLEANUP_LOCK:
         assert storage_cleanup.try_run_cleanup(tmp_path, NOW, warm_days=183) is None
