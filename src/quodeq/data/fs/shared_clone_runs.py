@@ -2,18 +2,25 @@
 
 The shared routes read the clone's run folders with the same readers as the
 local ones, so a clone run is restored and projected like a local run, with
-three differences that keep the clone's working tree matching the remote:
+these differences that keep the clone's working tree matching the remote and
+nothing the repository carries trusted:
 
 - the restore keeps ``archive.tar.gz`` (it is tracked) and records the
-  archive's size and modification time in ``.unpacked``; while that matches
-  and the unpacked files are there, the next restore is a no-op. A checkout
-  that rewrites the archive changes its time, and the run is unpacked again;
+  archive's size and modification time in an ``unpacked`` marker; while that
+  matches and the unpacked files are there, the next restore is a no-op. A
+  checkout that rewrites the archive changes its time, and the run is
+  unpacked again;
 - ``evaluation.db`` is never taken from an archive, and a database is only
-  opened when quodeq created it in this clone (``.local_db``). Anything else
-  named ``evaluation.db`` (force-added in the repository, left by an older
-  build) is deleted with its sidecars and rebuilt from the event log;
-- ``.git/info/exclude`` keeps the databases, markers and temporary files out
-  of ``git status``, so a publish from this clone never stages them.
+  opened when quodeq created it in this clone: the ``local_db`` marker holds
+  the file's device and inode, which a checkout writing the file anew
+  changes. Anything else is deleted with its sidecars and rebuilt from the
+  event log;
+- both markers live under ``.git/quodeq/runs/<project>/<run>/``, which no
+  commit can carry;
+- the run, its project and the evaluations folder must be real folders inside
+  the clone, and nothing is restored through a linked ``evidence`` folder;
+- ``.git/info/exclude`` keeps the databases and temporary files out of
+  ``git status``, so a publish from this clone never stages them.
 
 Every function that changes a run folder runs under the run lock.
 """
@@ -31,7 +38,7 @@ from quodeq.data.fs.run_archive_files import (
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, is_plain_file, write_json_sidecar,
 )
 from quodeq.data.fs.run_archive_guard import warn_once
-from quodeq.data.fs.run_archive_limits import RunArchiveError
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_restore_dirs
 from quodeq.data.fs.run_archive_wal import DB_NAME
 from quodeq.data.fs.shared_repo_git import EVALUATIONS_DIRNAME, run_git
 from quodeq.data.fs.shared_repo_meta import MARKER_FILENAME
@@ -39,22 +46,59 @@ from quodeq.shared.constants import GIT_DIR_NAME
 
 _logger = logging.getLogger(__name__)
 
-UNPACKED_MARKER = ".unpacked"
-LOCAL_DB_MARKER = ".local_db"
-CLONE_EXCLUDES = (
-    DB_NAME, *DB_SIDECARS, ".restored_at", ".archive.lock", ".restore.tmp/", UNPACKED_MARKER, LOCAL_DB_MARKER, "*.tmp",
-)
+CLONE_EXCLUDES = (DB_NAME, *DB_SIDECARS, ".restored_at", ".archive.lock", ".restore.tmp/", "*.tmp")
 _DB_FILES = (DB_NAME, *DB_SIDECARS)
-_MARKERS = (UNPACKED_MARKER, LOCAL_DB_MARKER)
+_MARKER_ROOT = ("quodeq", "runs")
 
 Extractor = Callable[[Path, Path, Sequence[str]], list[str]]
 
 
+def _clone_root(run_dir: Path) -> Path:
+    return run_dir.parent.parent.parent
+
+
 def is_shared_clone_run(run_dir: Path) -> bool:
     """True when *run_dir* is ``<clone>/evaluations/<project>/<run>`` in a git clone holding ``quodeq.json``."""
-    root = run_dir.parent.parent
-    repo = root.parent
-    return root.name == EVALUATIONS_DIRNAME and (repo / MARKER_FILENAME).is_file() and (repo / GIT_DIR_NAME).exists()
+    repo = _clone_root(run_dir)
+    return (run_dir.parent.parent.name == EVALUATIONS_DIRNAME and (repo / MARKER_FILENAME).is_file()
+            and (repo / GIT_DIR_NAME).is_dir())
+
+
+def _marker(run_dir: Path, name: str) -> Path:
+    return _clone_root(run_dir).joinpath(GIT_DIR_NAME, *_MARKER_ROOT, run_dir.parent.name, run_dir.name, name)
+
+
+def unpacked_marker(run_dir: Path) -> Path:
+    """Where the clone run's ``unpacked`` record lives, inside the clone's ``.git``."""
+    return _marker(run_dir, "unpacked")
+
+
+def local_db_marker(run_dir: Path) -> Path:
+    """Where the clone run's ``local_db`` record lives, inside the clone's ``.git``."""
+    return _marker(run_dir, "local_db")
+
+
+def _write_marker(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json_sidecar(path, payload)
+
+
+def _read_marker(path: Path) -> dict | None:
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def clone_run_contained(run_dir: Path) -> bool:
+    """True when the run, its project and the evaluations folder are real folders inside the clone."""
+    if any(p.is_symlink() for p in (run_dir, run_dir.parent, run_dir.parent.parent)):
+        return False
+    try:
+        return run_dir.resolve().is_relative_to(_clone_root(run_dir).resolve())
+    except OSError:
+        return False
 
 
 def _archive_stamp(run_dir: Path) -> dict:
@@ -70,13 +114,13 @@ def _unpacked_name(name: object) -> bool:
 
 
 def unpacked_current(run_dir: Path) -> bool:
-    """True when ``.unpacked`` matches the archive on disk and every file it lists is there."""
+    """True when the ``unpacked`` record matches the archive on disk and every file it lists is there."""
+    record = _read_marker(unpacked_marker(run_dir))
     try:
-        record = json.loads((run_dir / UNPACKED_MARKER).read_text(encoding="utf-8"))
         stamp = _archive_stamp(run_dir)
-    except (OSError, ValueError):
+    except OSError:
         return False
-    if not isinstance(record, dict) or any(record.get(k) != v for k, v in stamp.items()):
+    if record is None or any(record.get(k) != v for k, v in stamp.items()):
         return False
     members = record.get("members")
     if not isinstance(members, list) or EVENTS_NAME not in members:
@@ -84,9 +128,20 @@ def unpacked_current(run_dir: Path) -> bool:
     return all(_unpacked_name(m) and is_plain_file(run_dir / m) for m in members)
 
 
-def _unlink_all(run_dir: Path, names: Sequence[str]) -> None:
+def _check_destinations(run_dir: Path, names: Sequence[str]) -> None:
+    if not clone_run_contained(run_dir):
+        raise RunArchiveError(f"{run_dir} is not a folder inside the shared clone")
+    check_restore_dirs(run_dir)
+    real = run_dir.resolve()
     for name in names:
+        if not (run_dir / name).resolve().is_relative_to(real):
+            raise RunArchiveError(f"archive member {name!r} would land outside {run_dir}")
+
+
+def _forget_db(run_dir: Path) -> None:
+    for name in _DB_FILES:
         (run_dir / name).unlink(missing_ok=True)
+    local_db_marker(run_dir).unlink(missing_ok=True)
 
 
 def restore_clone_locked(run_dir: Path, staging: Path, extract: Extractor) -> bool:
@@ -94,44 +149,65 @@ def restore_clone_locked(run_dir: Path, staging: Path, extract: Extractor) -> bo
 
     The caller holds the run lock. ``evaluation.db`` is skipped, and the
     database projected from an earlier unpack goes: the event log it was
-    built from may have changed with the archive.
+    built from may have changed with the archive. Raises ``RunArchiveError``
+    when a destination is linked out of the run folder.
     """
     if unpacked_current(run_dir):
         return False
-    stamp = _archive_stamp(run_dir)  # read first: an archive rewritten meanwhile reads as changed next time
     try:
+        _check_destinations(run_dir, ())
+        stamp = _archive_stamp(run_dir)  # read first: an archive rewritten meanwhile reads as changed next time
         names = extract(run_dir / ARCHIVE_FILENAME, staging, (DB_NAME,))
+        _check_destinations(run_dir, names)
     except RunArchiveError as exc:
+        shutil.rmtree(staging, ignore_errors=True)
         warn_once(run_dir, "Refusing to unpack shared run archive: %s", exc)
         raise
-    _unlink_all(run_dir, (*_MARKERS, *_DB_FILES))
+    unpacked_marker(run_dir).unlink(missing_ok=True)
+    _forget_db(run_dir)
     for name in names:
         dest = run_dir / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         os.replace(staging / name, dest)
     shutil.rmtree(staging, ignore_errors=True)
-    write_json_sidecar(run_dir / UNPACKED_MARKER, {**stamp, "members": names})
+    _write_marker(unpacked_marker(run_dir), {**stamp, "members": names})
     return True
 
 
-def trust_local_db_locked(run_dir: Path, locked: bool) -> bool:
-    """Make the clone run's database one quodeq created; False when it cannot (no lock held).
+def _db_identity(run_dir: Path) -> dict | None:
+    try:
+        st = (run_dir / DB_NAME).lstat()
+    except OSError:
+        return None
+    return {"dev": st.st_dev, "ino": st.st_ino}
 
-    Without ``.local_db`` any database and sidecars there are deleted, so the
-    connect that follows creates a fresh one; the caller then marks it.
+
+def trust_local_db_locked(run_dir: Path, locked: bool) -> bool:
+    """Make the clone run's database one quodeq created; False when it cannot (no lock, or a linked run).
+
+    A database whose device and inode differ from the ``local_db`` record
+    (or without one) is deleted with its sidecars, so the connect that
+    follows creates a fresh one; the caller then marks it.
     """
-    if (run_dir / LOCAL_DB_MARKER).is_file():
+    if not clone_run_contained(run_dir):
+        return False
+    identity = _db_identity(run_dir)
+    if identity is not None and _read_marker(local_db_marker(run_dir)) == identity:
         return True
     if not locked:
         return False
-    _unlink_all(run_dir, _DB_FILES)
+    _forget_db(run_dir)
     return True
 
 
 def mark_local_db(run_dir: Path) -> None:
-    """Record that quodeq created the clone run's database; a failed write only costs a rebuild."""
+    """Record the clone run's database as created here; a failed write only costs a rebuild."""
+    identity = _db_identity(run_dir)
+    marker = local_db_marker(run_dir)
+    if identity is None or _read_marker(marker) == identity:
+        return
     try:
-        (run_dir / LOCAL_DB_MARKER).touch()
+        _write_marker(marker, identity)
     except OSError as exc:
         _logger.warning("Could not mark the database of %s as local: %s", run_dir, exc)
 
@@ -150,11 +226,12 @@ def write_clone_excludes(clone_root: Path) -> None:
     exclude.write_text("\n".join([*lines, *missing]) + "\n", encoding="utf-8")
 
 
-def forget_tracked_markers(clone_root: Path, env: Mapping[str, str] | None = None) -> None:
-    """Drop the trust a checkout may have broken: tracked markers, and ``.local_db`` beside a tracked database.
+def _forget_tracked_databases(clone_root: Path, env: Mapping[str, str] | None) -> None:
+    """Drop the ``local_db`` record of every run whose database files git tracks.
 
-    A tracked database is checked out over the local one by a reset, and a
-    tracked marker was never written here; both must read as foreign.
+    The inode check already catches a checkout writing the file anew; this
+    covers a file system that hands the freed inode straight back. Only
+    records inside ``.git`` are removed, never a tracked file.
     """
     ok, out = run_git(["ls-files", "-z", "--", EVALUATIONS_DIRNAME], cwd=clone_root, env=env)
     if not ok:
@@ -162,18 +239,16 @@ def forget_tracked_markers(clone_root: Path, env: Mapping[str, str] | None = Non
         return
     for rel in filter(None, out.split("\0")):
         path = clone_root / rel
-        if path.name in _DB_FILES:
-            (path.parent / LOCAL_DB_MARKER).unlink(missing_ok=True)
-        elif path.name in _MARKERS:
-            path.unlink(missing_ok=True)
+        if path.name in _DB_FILES and _clone_root(path.parent) == clone_root:
+            local_db_marker(path.parent).unlink(missing_ok=True)
 
 
-def prepare_clone(clone_root: Path, env: Mapping[str, str] | None = None) -> None:
-    """``write_clone_excludes`` and ``forget_tracked_markers``: after every clone, ensure and reset."""
+def secure_clone_tree(clone_root: Path, env: Mapping[str, str] | None = None) -> None:
+    """Write the clone's git excludes and drop trust in tracked databases: after a clone, ensure, reset or pull."""
     if not (clone_root / GIT_DIR_NAME).is_dir():
         return
     try:
         write_clone_excludes(clone_root)
     except OSError as exc:
         _logger.warning("Could not write the git excludes of %s: %s", clone_root, exc)
-    forget_tracked_markers(clone_root, env)
+    _forget_tracked_databases(clone_root, env)

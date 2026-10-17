@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import tarfile
+from pathlib import Path
 
 from quodeq.shared.env import env_int
 
 EVENTS_NAME = "events.jsonl"
+EVIDENCE_DIR = "evidence"
 MAX_MEMBERS = 10000
 _DEFAULT_MAX_MB = 2048
 _MB = 1024 * 1024
@@ -29,3 +31,13 @@ def check_archive_limits(members: list[tarfile.TarInfo]) -> None:
         raise RunArchiveError(f"archive is larger than {cap // _MB} MB when unpacked ({total} bytes)")
     if not any(m.name == EVENTS_NAME for m in members):
         raise RunArchiveError(f"archive has no {EVENTS_NAME}")
+
+
+def check_restore_dirs(run_dir: Path) -> None:
+    """Raise ``RunArchiveError`` when a restore would write through a link: the run or its evidence folder."""
+    evidence = run_dir / EVIDENCE_DIR
+    for folder in (run_dir, evidence):
+        if folder.is_symlink():
+            raise RunArchiveError(f"{folder} is a symbolic link, refusing to restore into it")
+    if evidence.exists() and not evidence.is_dir():
+        raise RunArchiveError(f"{evidence} is not a folder, refusing to restore into it")

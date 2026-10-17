@@ -12,9 +12,9 @@ from quodeq.data.fs import run_archive
 from quodeq.data.fs.run_archive import ARCHIVE_FILENAME, RESTORED_STAMP, archive_run, ensure_restored, is_archived
 from quodeq.data.fs.shared_clone_runs import (
     CLONE_EXCLUDES,
-    LOCAL_DB_MARKER,
-    UNPACKED_MARKER,
-    forget_tracked_markers,
+    local_db_marker,
+    secure_clone_tree,
+    unpacked_marker,
     is_shared_clone_run,
     write_clone_excludes,
 )
@@ -84,7 +84,7 @@ def test_a_clone_restore_keeps_the_archive_and_never_extracts_the_database(clone
     assert (clone_run / ARCHIVE_FILENAME).is_file() and is_archived(clone_run)
     assert (clone_run / "events.jsonl").read_text() == _EVENTS
     assert (clone_run / _EVIDENCE).is_file()
-    assert (clone_run / UNPACKED_MARKER).is_file()
+    assert unpacked_marker(clone_run).is_file()
     assert not (clone_run / "evaluation.db").exists()
     assert not (clone_run / RESTORED_STAMP).exists()
     assert not (clone_run / ".restore.tmp").exists()
@@ -115,7 +115,7 @@ def test_a_second_restore_is_a_no_op_until_the_archive_changes(clone_run, monkey
 def test_opening_an_archived_clone_run_builds_a_local_database(clone_run):
     with open_evaluation_db(clone_run) as conn:
         assert "sentinel_marker" not in {r[0] for r in conn.execute("SELECT name FROM sqlite_master")}
-    assert (clone_run / LOCAL_DB_MARKER).is_file()
+    assert local_db_marker(clone_run).is_file()
     assert (clone_run / "events.jsonl").is_file() and is_archived(clone_run)
     with open_evaluation_db(clone_run) as conn:  # the local database is kept on the next open
         conn.execute("CREATE TABLE IF NOT EXISTS kept (v TEXT)")
@@ -134,7 +134,7 @@ def test_a_foreign_database_in_a_clone_run_is_deleted_and_rebuilt(tmp_path):
     (run / "evaluation.db-wal").write_bytes(b"junk")
     with open_evaluation_db(run) as conn:
         assert "sentinel_marker" not in {r[0] for r in conn.execute("SELECT name FROM sqlite_master")}
-    assert (run / LOCAL_DB_MARKER).is_file()
+    assert local_db_marker(run).is_file()
     assert "sentinel_marker" not in _tables(run / "evaluation.db")
 
 
@@ -143,7 +143,7 @@ def test_a_local_run_still_opens_its_database_unchanged(tmp_path):
     _sentinel_db(run / "evaluation.db")
     with open_evaluation_db(run) as conn:
         assert conn.execute("SELECT v FROM sentinel_marker").fetchone() == ("foreign",)
-    assert not (run / LOCAL_DB_MARKER).exists()
+    assert not local_db_marker(run).exists()
 
 
 def test_write_clone_excludes_merges_idempotently(tmp_path):
@@ -164,18 +164,14 @@ def test_write_clone_excludes_merges_idempotently(tmp_path):
     assert set(CLONE_EXCLUDES) <= set(exclude.read_text().splitlines())
 
 
-def test_tracked_databases_and_markers_lose_their_trust(tmp_path):
+def test_a_tracked_database_loses_its_trust_on_securing(tmp_path):
     repo = tmp_path / "repo"
     run = _run(repo)
     (repo / "quodeq.json").write_text("{}")
     _git("init", "-q", cwd=repo)
-    _sentinel_db(run / "evaluation.db")
-    other = _run(repo / "x")  # a second run whose marker file itself is tracked
-    other_link = repo / "evaluations" / "proj" / "run-2"
-    other.rename(other_link)
-    (other_link / UNPACKED_MARKER).write_text("{}")
-    _git("add", "-f", "-A", cwd=repo)
-    (run / LOCAL_DB_MARKER).write_text("")
-    forget_tracked_markers(repo)
-    assert not (run / LOCAL_DB_MARKER).exists()
-    assert not (other_link / UNPACKED_MARKER).exists()
+    with open_evaluation_db(run):
+        pass
+    assert local_db_marker(run).is_file()
+    _git("add", "-f", "-A", cwd=repo)  # the database is tracked now: a reset may check another one out over it
+    secure_clone_tree(repo)
+    assert not local_db_marker(run).exists()

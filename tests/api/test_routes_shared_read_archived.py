@@ -19,7 +19,7 @@ import pytest
 
 from quodeq.data.fs import run_archive
 from quodeq.data.fs.run_archive import ARCHIVE_FILENAME, RESTORED_STAMP, archive_run, is_archived
-from quodeq.data.fs.shared_clone_runs import LOCAL_DB_MARKER, UNPACKED_MARKER
+from quodeq.data.fs.shared_clone_runs import local_db_marker, unpacked_marker
 from quodeq.data.fs.shared_repo import refresh_shared_clone, shared_evaluations_root, shared_repo_path
 from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository
 from tests.api._routes_shared_read_fixtures import app, client, wait_shared_warmup_idle  # noqa: F401 -- fixtures
@@ -67,7 +67,7 @@ def _publish_from_scratch(url: str, tmp_path: Path, *, force_db: bool = False) -
     SqliteFindingsRepository(old).ensure_projected()
     _plant_sentinel(old / "evaluation.db")
     archive_run(old)
-    for leftover in (".archive.lock", LOCAL_DB_MARKER, RESTORED_STAMP):
+    for leftover in (".archive.lock", RESTORED_STAMP):
         (old / leftover).unlink(missing_ok=True)
     if force_db:
         _plant_sentinel(new / "evaluation.db")
@@ -102,12 +102,14 @@ def _shared_get_urls(flask_app) -> list[str]:
 
 
 def _unpacked(run: Path) -> bool:
-    return (run / "events.jsonl").exists() or (run / UNPACKED_MARKER).exists()
+    return (run / "events.jsonl").exists() or unpacked_marker(run).exists()
 
 
 def _repack(run: Path) -> None:
-    for name in ("events.jsonl", UNPACKED_MARKER, LOCAL_DB_MARKER, *_DB_FILES):
+    for name in ("events.jsonl", *_DB_FILES):
         (run / name).unlink(missing_ok=True)
+    unpacked_marker(run).unlink(missing_ok=True)
+    local_db_marker(run).unlink(missing_ok=True)
     for log in (run / "evidence").glob("*_evidence.jsonl"):
         log.unlink()
 
@@ -137,8 +139,8 @@ def test_opening_the_archived_run_unpacks_in_place_and_rebuilds_the_database(cli
     body = _open(client)
     assert body["total"] >= 1
     assert (run / "events.jsonl").is_file() and (run / ARCHIVE_FILENAME).is_file()
-    assert (run / UNPACKED_MARKER).is_file() and not (run / RESTORED_STAMP).exists()
-    assert (run / LOCAL_DB_MARKER).is_file()
+    assert unpacked_marker(run).is_file() and not (run / RESTORED_STAMP).exists()
+    assert local_db_marker(run).is_file()
     assert (run / "evaluation.db").is_file() and not _has_sentinel(run / "evaluation.db")
 
 
@@ -189,12 +191,12 @@ def test_a_force_added_database_is_never_opened(client, shared_clone_fixture, tm
     assert _has_sentinel(run / "evaluation.db")
     body = _open(client, _FULL)
     assert body["total"] >= 1
-    assert (run / LOCAL_DB_MARKER).is_file() and not _has_sentinel(run / "evaluation.db")
+    assert local_db_marker(run).is_file() and not _has_sentinel(run / "evaluation.db")
     ok, reason = refresh_shared_clone(url)  # the reset checks the tracked database out again
     assert ok, reason
-    assert not (run / LOCAL_DB_MARKER).exists()
+    assert not local_db_marker(run).exists()
     assert _open(client, _FULL) == body
-    assert (run / LOCAL_DB_MARKER).is_file() and not _has_sentinel(run / "evaluation.db")
+    assert local_db_marker(run).is_file() and not _has_sentinel(run / "evaluation.db")
 
 
 def test_two_readers_opening_the_archived_run_extract_once(app, archived_clone, monkeypatch):  # noqa: F811

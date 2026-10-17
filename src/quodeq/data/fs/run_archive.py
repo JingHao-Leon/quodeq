@@ -37,7 +37,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
-from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits  # noqa: F401 -- error re-exported
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits, check_restore_dirs  # noqa: F401
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
@@ -223,6 +223,7 @@ def restore_locked(run_dir: Path) -> bool:
     if is_shared_clone_run(run_dir):  # the archive is tracked there: unpack beside it, never its database
         return restore_clone_locked(run_dir, staging, _extract)
     try:
+        check_restore_dirs(run_dir)
         names = _extract(archive, staging)
     except RunArchiveError as exc:
         warn_once(run_dir, "Refusing to restore run archive: %s", exc)
