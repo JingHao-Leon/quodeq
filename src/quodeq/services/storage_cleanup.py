@@ -98,7 +98,8 @@ def _in_flight(run_dir: Path, state: RunState | None) -> bool:
     return state not in TERMINAL_STATES and (run_dir / "status.json").is_file()
 
 
-def _project_in_flight(project: Path) -> bool:
+def project_in_flight(project: Path) -> bool:
+    """True when any run of *project* has a status that is not terminal."""
     return any(_in_flight(run_dir, _read_run(run_dir)[0]) for run_dir in _subdirs(project))
 
 
@@ -144,7 +145,10 @@ def _archive_one(run_dir: Path, log: LogSink):
 def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> CleanupResult | None:
     """One startup pass with the archive window read now, not at import."""
     days = read_storage_settings(env).archive_after_days
-    return try_run_cleanup(root, datetime.now(timezone.utc), warm_days=days, log=log)
+    result = try_run_cleanup(root, datetime.now(timezone.utc), warm_days=days, log=log)
+    if result is None:
+        log.debug("storage cleanup: another pass holds the lock, skipping the startup pass")
+    return result
 
 
 def run_cleanup(
@@ -163,7 +167,7 @@ def run_cleanup(
             tidied += 1
             freed += got
     for index, run_dir in enumerate(plan.archive, start=1):
-        if not _project_in_flight(run_dir.parent):  # else a run started after the plan was made
+        if not project_in_flight(run_dir.parent):  # else a run started after the plan was made
             done = _archive_one(run_dir, log)
             if done is not None:
                 archived += 1

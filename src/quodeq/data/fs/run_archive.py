@@ -31,17 +31,16 @@ from pathlib import Path
 
 from quodeq.core.utils.file_lock import lock_file, unlock_file
 from quodeq.data.fs.run_archive_guard import RESTORED_STAMP, snapshot, unchanged, write_restored_stamp
-from quodeq.data.fs.run_archive_wal import DB_NAME, WAL_NAME, WalNotFoldedError, fold_wal
+from quodeq.data.fs.run_archive_files import (
+    DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars, is_plain_file,
+)
+from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal
 
 _logger = logging.getLogger(__name__)
 
 ARCHIVE_FILENAME = "archive.tar.gz"
 TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
 
-_EVENTS = "events.jsonl"
-_EVIDENCE_DIR = "evidence"
-_EVIDENCE_PATTERN = "*_evidence.jsonl"
-_DB_SIDECARS = (WAL_NAME, "evaluation.db-shm")
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
 _LOCK_NAME = ".archive.lock"
@@ -68,7 +67,7 @@ def is_archived(run_dir: Path) -> bool:
 
 def has_event_log(run_dir: Path) -> bool:
     """True when ``events.jsonl`` is a file, or the run is archived."""
-    return (run_dir / _EVENTS).is_file() or is_archived(run_dir)
+    return (run_dir / EVENTS_NAME).is_file() or is_archived(run_dir)
 
 
 @contextmanager
@@ -97,23 +96,6 @@ def _clean_leftovers(run_dir: Path) -> None:
         shutil.rmtree(staging)
     else:
         staging.unlink(missing_ok=True)
-
-
-def _is_plain_file(path: Path) -> bool:
-    return path.is_file() and not path.is_symlink()
-
-
-def _archive_sources(run_dir: Path) -> list[tuple[str, Path]]:
-    """(member name, source path) for every file that moves into the archive."""
-    sources = [(_EVENTS, run_dir / _EVENTS)]
-    if _is_plain_file(run_dir / DB_NAME):
-        sources.append((DB_NAME, run_dir / DB_NAME))
-    evidence = run_dir / _EVIDENCE_DIR
-    if evidence.is_dir():
-        for path in sorted(evidence.glob(_EVIDENCE_PATTERN)):
-            if _is_plain_file(path):
-                sources.append((f"{_EVIDENCE_DIR}/{path.name}", path))
-    return sources
 
 
 def _write_archive(tmp: Path, sources: list[tuple[str, Path]]) -> None:
@@ -161,17 +143,17 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         _clean_leftovers(run_dir)
         if is_archived(run_dir):
             raise RunArchiveError(f"run is already archived: {run_dir}")
-        if not _is_plain_file(run_dir / _EVENTS):
+        if not is_plain_file(run_dir / EVENTS_NAME):
             raise RunArchiveError(f"run has no event log: {run_dir}")
         try:
             fold_wal(run_dir)
         except WalNotFoldedError as exc:
             raise RunArchiveError(str(exc)) from exc
-        sources = _archive_sources(run_dir)
-        dropped = [run_dir / name for name in _DB_SIDECARS if (run_dir / name).is_file()]
+        sources = archive_sources(run_dir)
+        dropped = dropped_sidecars(run_dir)
         bytes_before = sum(p.stat().st_size for p in [*(p for _, p in sources), *dropped])
         tmp, final = run_dir / _TMP_ARCHIVE, run_dir / ARCHIVE_FILENAME
-        packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in _DB_SIDECARS)])
+        packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in DB_SIDECARS)])
         try:
             _write_archive(tmp, sources)
             _verify_archive(tmp, sources)
@@ -189,10 +171,10 @@ def archive_run(run_dir: Path) -> ArchiveResult:
 
 def _allowed_name(name: str) -> bool:
     """True for ``events.jsonl``, ``evaluation.db`` and ``evidence/<x>_evidence.jsonl`` only."""
-    if name in (_EVENTS, DB_NAME):
+    if name in (EVENTS_NAME, DB_NAME):
         return True
     folder, _, base = name.partition("/")
-    return folder == _EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, _EVIDENCE_PATTERN)
+    return folder == EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, EVIDENCE_PATTERN)
 
 
 def _check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
@@ -280,11 +262,11 @@ def tidy_run(run_dir: Path) -> int:
     """Remove scratch sidecars from ``evidence/`` and fold the WAL; the bytes freed."""
     freed = 0
     with _run_lock(run_dir):
-        evidence = run_dir / _EVIDENCE_DIR
+        evidence = run_dir / EVIDENCE_DIR
         if evidence.is_dir():
             for pattern in TIDY_PATTERNS:
                 for path in evidence.glob(pattern):
-                    if _is_plain_file(path):
+                    if is_plain_file(path):
                         freed += path.stat().st_size
                         path.unlink()
         try:

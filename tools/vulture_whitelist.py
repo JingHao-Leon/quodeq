@@ -75,6 +75,11 @@ _.plain_logs  # api/_log_stream_routes.py: Flask view function; the route decora
 _.post_assistant_message  # api/assistant_turn_routes.py: Flask view function; the route decorator is its only caller.
 _.preview_grade_formula  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
 _.rescore_grade_formula  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
+_.get_storage  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.put_storage_settings  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.get_storage_preview  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.post_storage_clean  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.delete_storage  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
 _.grade_formula_inputs_route  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
 _.fleet_compare  # api/routes_compare.py: Flask view function; the route decorator is its only caller.
 _.project_compare_summary  # api/routes_compare.py: Flask view function; the route decorator is its only caller.
@@ -326,5 +331,3 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 _.workflow
 _.run_url
 
-# services/storage_settings.py: the storage settings route (next PR task) is its caller; tests cover it now.
-_.write_storage_settings
