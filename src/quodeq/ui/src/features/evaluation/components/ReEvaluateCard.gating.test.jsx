@@ -230,6 +230,14 @@ describe('ReEvaluateCard first-run defaults', () => {
     expect(scopeCode.closest('[title]')).toHaveAttribute('title', expect.stringContaining('/repos/myproj'));
   });
 
+  it('an active provider with no model keeps scan disabled and asks for one', async () => {
+    localStorage.clear();
+    localStorage.setItem('cc-active-provider', 'ollama');
+    renderCard({ project: 'p-first-emptymodel', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByText('pick a model to start')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^▸\s*scan|^scan/i })).toBeDisabled();
+  });
+
   it('scan is disabled and names the missing model', async () => {
     localStorage.clear();
     renderCard({ project: 'p-first-nomodel', projectInfo: firstRunInfo, api: apiWithTwoDims() });

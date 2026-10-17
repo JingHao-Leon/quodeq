@@ -160,7 +160,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
         handleScan={handleScan}
         estimates={estimates}
         budget={budget}
-        hasModel={Boolean(activeModel)}
+        hasModel={Boolean(activeModel?.model)}
         isFirstRun={isFirstRun}
       />
     </div>
