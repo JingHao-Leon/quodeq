@@ -33,6 +33,7 @@ from quodeq.services._publish_standards import (
     stage_scored_standards,
 )
 from quodeq.services._publish_staging import (
+    StagedProject,
     copy_run,
     list_completed_runs,
     merge_actions_log,
@@ -60,7 +61,7 @@ __all__ = [
     "get_publish_status", "publish_project", "start_publish",
     # Re-exported so callers and tests keep reaching them at this module's
     # path; ``ensure_shared_clone`` is also a patch target.
-    "clone_lock", "copy_run", "ensure_shared_clone", "list_completed_runs",
+    "StagedProject", "clone_lock", "copy_run", "ensure_shared_clone", "list_completed_runs",
     "merge_actions_log", "stage_project",
 ]
 
@@ -106,15 +107,15 @@ def _prepare_workspace(
         yield project_dir, repo
 
 
-def _commit_and_push(repo: Path, project_id: str, count: int, env: dict | None = None,
+def _commit_and_push(repo: Path, project_id: str, staged: StagedProject, env: dict | None = None,
                      standard_ids: list[str] | None = None) -> None:
-    ok, out = stage_publish_paths(repo, project_id)
+    ok, out = stage_publish_paths(repo, staged.paths)
     if ok and standard_ids:
         ok, out = stage_standard_paths(repo, standard_ids)
     if not ok:
         raise PublishError(f"git add failed, {out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
 
-    commit_staged_changes(repo, project_id, count)
+    commit_staged_changes(repo, project_id, staged.runs)
     push_with_rebase_fallback(repo, env)
 
 
@@ -140,15 +141,17 @@ def publish_project(
             raise PublishError("failed to reset the shared standards folder, "
                                f"{out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
         try:
-            count = stage_project(project_dir, repo / "evaluations" / project_id)
-            stage_activity(project_dir, repo / "evaluations" / project_id, local_repo_root(evaluations_root, project_id),
-                           log=LoggerSink(logger))
+            staged = stage_project(project_dir, repo / "evaluations" / project_id)
+            activity = stage_activity(project_dir, repo / "evaluations" / project_id,
+                                      local_repo_root(evaluations_root, project_id), log=LoggerSink(logger))
+            if activity is not None:
+                staged.paths.append(activity)
             standards = stage_scored_standards(project_dir, repo, log=LoggerSink(logger))
         except (OSError, ValueError) as exc:
             raise PublishError(f"failed to stage project files, {exc}") from exc
 
         try:
-            _commit_and_push(repo, project_id, count, env, standards.published)
+            _commit_and_push(repo, project_id, staged, env, standards.published)
         except PublishError:
             # An unpushed commit must not read as shared (listing, installs).
             reset_clone_to_remote(url, env)
@@ -156,7 +159,7 @@ def publish_project(
         record_shared_hashes(repo, standards, log=LoggerSink(logger))
     if on_skipped is not None:
         on_skipped(standards.skipped)
-    return count
+    return staged.runs
 
 
 class PublishState(StrEnum):

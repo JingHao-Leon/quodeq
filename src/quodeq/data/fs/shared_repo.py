@@ -25,7 +25,7 @@ import os
 import shutil
 import stat
 import threading
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
 # Re-exported so the api layer can validate a shared-repo URL without
@@ -260,13 +260,24 @@ _GITIGNORE_FILENAME = ".gitignore"
 _GITKEEP_FILENAME = ".gitkeep"
 
 
-def stage_publish_paths(repo: Path, project_id: str) -> tuple[bool, str]:
-    """``git add`` everything a publish of *project_id* may have written:
-    the format marker, the ignore file, the project's evaluations tree and
-    the evaluations/.gitkeep placeholder when the layout has one. Returns
-    ``run_git``'s ``(ok, output)``.
+_ADD_BATCH = 200  # paths per ``git add``, well under any platform's command-line limit
+
+
+def stage_publish_paths(repo: Path, paths: Iterable[Path]) -> tuple[bool, str]:
+    """``git add`` exactly the files a publish wrote, plus the format marker, the
+    ignore file and the evaluations/.gitkeep placeholder when the layout has
+    one. Never the rest of the project folder: a database, a restore stamp or
+    a log unpacked in the clone stays out of the commit. Literal pathspecs, in
+    batches. Returns ``run_git``'s ``(ok, output)`` of the first failure, or
+    of the last batch.
     """
-    add_paths = [MARKER_FILENAME, _GITIGNORE_FILENAME, f"{EVALUATIONS_DIRNAME}/{project_id}"]
+    add_paths = [MARKER_FILENAME, _GITIGNORE_FILENAME]
     if (repo / EVALUATIONS_DIRNAME / _GITKEEP_FILENAME).exists():
         add_paths.append(f"{EVALUATIONS_DIRNAME}/{_GITKEEP_FILENAME}")
-    return run_git(["add", "--", *add_paths], cwd=repo)
+    add_paths.extend(sorted({p.relative_to(repo).as_posix() for p in paths}))
+    result = (True, "")
+    for start in range(0, len(add_paths), _ADD_BATCH):
+        result = run_git(["--literal-pathspecs", "add", "--", *add_paths[start:start + _ADD_BATCH]], cwd=repo)
+        if not result[0]:
+            return result
+    return result

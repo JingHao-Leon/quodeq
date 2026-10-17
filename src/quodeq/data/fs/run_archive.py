@@ -50,7 +50,7 @@ TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolida
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
 _CHUNK = 1 << 20
-_READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
+READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
 
 
 @dataclass(frozen=True)
@@ -165,7 +165,7 @@ def _allowed_name(name: str) -> bool:
     return folder == EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, EVIDENCE_PATTERN)
 
 
-def _check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
+def check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
     """Member names when every member is a safe regular file, else raise ``RunArchiveError``."""
     check_archive_limits(members)
     root = staging.resolve()
@@ -189,13 +189,13 @@ def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = ()) -> list[s
     try:
         with tarfile.open(archive, "r:gz") as tar:
             members = tar.getmembers()
-            names = [name for name in _check_members(members, staging) if name not in skip]
+            names = [name for name in check_members(members, staging) if name not in skip]
             staging.mkdir()
             tar.extractall(staging, members=[m for m in members if m.name in names], filter="data")
     except RunArchiveError:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    except _READ_ERRORS as exc:
+    except READ_ERRORS as exc:
         shutil.rmtree(staging, ignore_errors=True)
         raise RunArchiveError(f"cannot read run archive {archive}: {exc}") from exc
     return names

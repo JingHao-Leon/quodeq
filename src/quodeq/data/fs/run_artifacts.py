@@ -35,14 +35,17 @@ def copy_file_if_exists(src: Path, dest: Path) -> bool:
     return True
 
 
-def copy_matching_files(src_dir: Path, dest_dir: Path, pattern: str) -> None:
-    """Copy the files in *src_dir* matching *pattern* into *dest_dir*.
+def copy_matching_files(src_dir: Path, dest_dir: Path, pattern: str) -> list[Path]:
+    """Copy the files in *src_dir* matching *pattern* into *dest_dir*; the paths written.
 
     Creates *dest_dir* if needed; sorted for a deterministic copy order.
     """
     ensure_dir(dest_dir)
+    written = []
     for src in sorted(src_dir.glob(pattern)):
         shutil.copy2(src, dest_dir / src.name)
+        written.append(dest_dir / src.name)
+    return written
 
 
 def read_json_object(path: Path) -> dict | None:
