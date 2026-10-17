@@ -5,11 +5,11 @@ folder, so storage cleanup keeps a restored run warm for the full window
 instead of archiving it again on the next pass. The snapshot lets
 ``archive_run`` notice a file that changed, or a database that was opened,
 while it was packing, and keep the originals. A run whose archive cannot be
-restored is warned about once per process, not on every read. A database
-found beside an archive under the run lock is a stray and is dropped.
+restored is warned about once per process, not on every read.
 """
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import threading
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from quodeq.core.utils.file_lock import lock_file, unlock_file
-from quodeq.data.fs.run_archive_files import ARCHIVE_FILENAME, DB_SIDECARS
+from quodeq.data.fs.run_archive_files import DB_SIDECARS
 from quodeq.data.fs.run_archive_wal import DB_NAME
 
 _logger = logging.getLogger(__name__)
@@ -93,7 +93,32 @@ def run_lock(run_dir: Path) -> Iterator[None]:
     The lock file is never deleted: removing it would let a waiter lock an
     unlinked file while a newcomer locks a fresh one.
     """
-    fd = os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o644)
+    with _locked(os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o644)):
+        yield
+
+
+@contextmanager
+def run_lock_if_writable(run_dir: Path) -> Iterator[bool]:
+    """``run_lock``, or no lock (False) where this process cannot write the run folder.
+
+    A read-only process (the assistant inside a sandbox, a read-only mount)
+    can neither create the lock file nor archive or restore the run.
+    """
+    try:
+        fd = os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o644)
+    except OSError as exc:
+        if exc.errno not in (errno.EACCES, errno.EPERM, errno.EROFS):
+            raise
+        fd = None
+    if fd is None:
+        yield False
+        return
+    with _locked(fd):
+        yield True
+
+
+@contextmanager
+def _locked(fd: int) -> Iterator[None]:
     try:
         lock_file(fd)
         try:
@@ -104,18 +129,11 @@ def run_lock(run_dir: Path) -> Iterator[None]:
         os.close(fd)
 
 
-def drop_stray_db(run_dir: Path) -> bool:
-    """Delete a database (and its sidecars) that sits beside the archive; True when one went.
+def drop_stray_db_locked(run_dir: Path) -> None:
+    """Delete ``evaluation.db`` and its sidecars from an archived run; the caller holds the run lock.
 
-    Decided under the run lock: archive, abort and restore all finish before
-    releasing it (the archive's originals unlinked, or the archive itself), so
-    an archived run with ``evaluation.db`` present there is always a stray
-    created by a connect that raced the archive.
+    Archive, abort and restore all finish before releasing that lock, so a
+    database beside the archive there is always a stray from a raced connect.
     """
-    with run_lock(run_dir):
-        db = run_dir / DB_NAME
-        if not (run_dir / ARCHIVE_FILENAME).is_file() or not db.exists():
-            return False
-        for path in (db, *(run_dir / name for name in DB_SIDECARS)):
-            path.unlink(missing_ok=True)
-        return True
+    for name in (DB_NAME, *DB_SIDECARS):
+        (run_dir / name).unlink(missing_ok=True)

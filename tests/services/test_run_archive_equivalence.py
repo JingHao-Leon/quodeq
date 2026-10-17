@@ -15,6 +15,7 @@ from quodeq.data.fs import run_archive
 from quodeq.data.fs.report_parser.runs import list_runs
 from quodeq.data.fs.run_files import dimension_evidence_file
 from quodeq.data.fs.run_archive import archive_run, is_archived
+from quodeq.data.sqlite import connection
 from quodeq.data.sqlite.connection import open_evaluation_db
 from quodeq.data.sqlite.errors import SqliteStoreUnreadableError
 from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository
@@ -146,6 +147,7 @@ def test_a_lock_timeout_during_restore_is_a_warning(tmp_path, monkeypatch, caplo
         raise TimeoutError("lock wait")
 
     monkeypatch.setattr(run_archive, "ensure_restored", stuck)
+    monkeypatch.setattr(connection, "restore_locked", stuck)  # the open path restores under its own lock
     with caplog.at_level(logging.WARNING), pytest.raises(SqliteStoreUnreadableError):
         SqliteFindingsRepository(old).list_by_dimension("security")
 

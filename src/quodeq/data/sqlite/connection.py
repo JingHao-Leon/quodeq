@@ -15,8 +15,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from quodeq.data.fs.run_archive import is_archived, restore_or_warn
-from quodeq.data.fs.run_archive_guard import drop_stray_db
+from quodeq.data.fs.run_archive import RunArchiveError, is_archived, restore_locked
+from quodeq.data.fs.run_archive_guard import LOCK_NAME, drop_stray_db_locked, run_lock_if_writable, warn_once
 from quodeq.data.sqlite._db_stamp_memo import db_stamp
 from quodeq.data.sqlite._migrations import SchemaVersionError, apply_evaluation_schema
 from quodeq.data.sqlite._schema import SCHEMA_VERSION
@@ -110,27 +110,60 @@ def _open_mapped(path: Path) -> sqlite3.Connection:
 
 
 def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
-    """Restore the run, then connect; never leave a database beside an archive.
+    """Connect to the run's real database, never to one beside an archive.
 
-    A connect on an archived run would create an empty database next to the
-    archive, so the run is restored first, and one archived while the
-    connection opened is dropped and opened again: the stray database is
-    deleted under the run lock (``drop_stray_db``), never on a check made
-    outside it. One that stays archived is unreadable: readers fall back to
-    the JSON reports.
+    A run that was never archived or restored has no lock file: it connects
+    unlocked, so reads leave no file behind (a shared clone stays clean). An
+    archive or restore creates the lock file before it touches anything, so
+    one found afterwards means it may have raced the connect: that
+    connection is dropped and the run opened again under the lock.
     """
-    for _attempt in range(2):
-        if not restore_or_warn(run_dir):
-            raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
+    lock = run_dir / LOCK_NAME
+    if not lock.exists() and not is_archived(run_dir):
         conn = _open_mapped(path)
-        if not is_archived(run_dir):
+        if not lock.exists():
             return conn
         conn.close()
-        try:
-            drop_stray_db(run_dir)
-        except OSError as exc:  # a lock wait that timed out included
-            raise SqliteStoreUnreadableError(f"run in {run_dir} is being archived: {exc}") from exc
-    raise SqliteStoreUnreadableError(f"run in {run_dir} was archived while its database opened")
+    return _open_locked(run_dir, path)
+
+
+def _open_locked(run_dir: Path, path: Path) -> sqlite3.Connection:
+    """Restore the run and connect while holding its archive lock.
+
+    No archive or restore can run between the restore and the connect, so
+    the connection reaches the real database; under the lock a database
+    beside an archive is always a stray left by a raced connect, and goes.
+    The lock is released once connected. A lock that cannot be taken in
+    time, or an archive that cannot be restored, makes the run unreadable:
+    readers fall back to the JSON reports. A process that cannot write the
+    run folder can neither archive nor restore it and connects unlocked.
+
+    Accepted residual: a connection opened before an archive starts and still
+    open after it reads the unlinked file; archives only touch runs untouched
+    for the whole warm window.
+    """
+    try:
+        with run_lock_if_writable(run_dir) as locked:
+            if is_archived(run_dir):
+                if not locked:
+                    raise SqliteStoreUnreadableError(f"run archive in {run_dir} cannot be restored here")
+                drop_stray_db_locked(run_dir)
+                if not _restored(run_dir):
+                    raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
+            return _open_mapped(path)
+    except OSError as exc:  # a lock wait that timed out included
+        raise SqliteStoreUnreadableError(f"run in {run_dir} could not be locked: {exc}") from exc
+
+
+def _restored(run_dir: Path) -> bool:
+    try:
+        restore_locked(run_dir)
+    except RunArchiveError:  # restore_locked already warned
+        return False
+    except OSError as exc:
+        warn_once(run_dir, "Could not restore run archive in %s: %s", run_dir, exc)
+        return False
+    return True
 
 
 @contextmanager

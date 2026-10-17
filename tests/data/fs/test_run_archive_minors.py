@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
 
 import pytest
 
@@ -101,25 +102,6 @@ def test_a_run_archived_right_after_its_restore_check_is_restored_again(tmp_path
     assert (run / "events.jsonl").is_file() and not is_archived(run)
 
 
-def test_opening_a_database_while_its_run_is_archived_leaves_no_empty_db(tmp_path, monkeypatch):
-    run = _projected_run(tmp_path)
-    real = connection_mod._connect
-    calls = []
-
-    def archive_then_connect(path):
-        if not calls:
-            archive_run(run)  # archived between the restore and the connect
-        calls.append(path)
-        return real(path)
-
-    monkeypatch.setattr(connection_mod, "_connect", archive_then_connect)
-    with open_evaluation_db(run) as conn:
-        rows = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
-
-    assert rows == 5
-    assert not (is_archived(run) and (run / "evaluation.db").exists())
-
-
 def test_an_evidence_file_created_mid_pack_aborts_the_archive(tmp_path, monkeypatch):
     run = _run_with_files(tmp_path)
     real = run_archive._write_archive
@@ -136,37 +118,6 @@ def test_an_evidence_file_created_mid_pack_aborts_the_archive(tmp_path, monkeypa
     assert not is_archived(run) and not (run / (ARCHIVE_FILENAME + ".tmp")).exists()
     assert late.is_file() and (run / _EVIDENCE).is_file() and (run / "events.jsonl").is_file()
     assert (run / "evaluation.db").is_file()
-
-
-def test_a_stale_archived_check_never_deletes_the_restored_database(tmp_path, monkeypatch):
-    run = _projected_run(tmp_path)
-    real_connect, real_archived = connection_mod._connect, connection_mod.is_archived
-    seen = []
-
-    def archive_connect_restore(path):
-        if not seen:
-            archive_run(run)  # the archive takes the real database
-        conn = real_connect(path)  # a stray, created beside the archive
-        if not seen:
-            run_archive.ensure_restored(run)  # another reader restores the real one over it
-        seen.append(path)
-        return conn
-
-    stale = [True]
-
-    def stale_archived(run_dir):  # this reader saw the archive before that restore removed it
-        if seen and stale:
-            stale.pop()
-            return True
-        return real_archived(run_dir)
-
-    monkeypatch.setattr(connection_mod, "_connect", archive_connect_restore)
-    monkeypatch.setattr(connection_mod, "is_archived", stale_archived)
-    with open_evaluation_db(run) as conn:
-        rows = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
-
-    assert rows == 5
-    assert sqlite3.connect(run / "evaluation.db").execute("SELECT COUNT(*) FROM findings").fetchone() == (5,)
 
 
 def test_vacuum_is_skipped_while_a_reader_holds_the_log(tmp_path, monkeypatch):
@@ -204,3 +155,40 @@ class _Spy:
 
     def close(self):
         self._conn.close()
+
+
+def test_an_archive_and_restore_racing_an_open_never_serve_an_empty_db(tmp_path, monkeypatch):
+    run = _projected_run(tmp_path)
+    real_connect = connection_mod._connect
+    threads, errors = [], []
+
+    def archive():
+        try:
+            archive_run(run)
+        except (RunArchiveError, OSError) as exc:  # an archive that finds the db in use aborts: fine
+            errors.append(exc)
+
+    def connect_amid_archive_and_restore(path):
+        if threads:
+            return real_connect(path)
+        threads.append(threading.Thread(target=archive))
+        threads[0].start()
+        threads[0].join(0.5)  # the archive runs now, or waits for this open to connect
+        conn = real_connect(path)
+        run_archive.ensure_restored(run)  # another reader restores whatever got archived
+        return conn
+
+    monkeypatch.setattr(connection_mod, "_connect", connect_amid_archive_and_restore)
+    with open_evaluation_db(run) as conn:
+        rows = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+    threads[0].join(30)
+
+    assert rows == 5
+    assert not (is_archived(run) and (run / "evaluation.db").exists())
+
+
+def test_reading_a_run_never_archived_leaves_no_lock_file(tmp_path):
+    run = _projected_run(tmp_path)
+    with open_evaluation_db(run) as conn:
+        conn.execute("SELECT 1")
+    assert not (run / ".archive.lock").exists()

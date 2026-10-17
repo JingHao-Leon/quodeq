@@ -208,26 +208,31 @@ def ensure_restored(run_dir: Path) -> bool:
     if not is_archived(run_dir):
         return False
     with run_lock(run_dir):
-        if not is_archived(run_dir):
-            return False
-        _clean_leftovers(run_dir)
-        archive, staging = run_dir / ARCHIVE_FILENAME, run_dir / _RESTORE_DIR
-        try:
-            names = _extract(archive, staging)
-        except RunArchiveError as exc:
-            warn_once(run_dir, "Refusing to restore run archive: %s", exc)
-            raise
-        if DB_NAME in names:  # sidecars beside an archive belong to a stray db; SQLite would replay them
-            for sidecar in DB_SIDECARS:
-                (run_dir / sidecar).unlink(missing_ok=True)
-        for name in names:
-            dest = run_dir / name
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(staging / name, dest)
-        archive.unlink()
-        shutil.rmtree(staging, ignore_errors=True)
-        write_restored_stamp(run_dir)
-        return True
+        return restore_locked(run_dir)
+
+
+def restore_locked(run_dir: Path) -> bool:
+    """``ensure_restored`` for a caller that already holds the run lock (a second lock would wait on itself)."""
+    if not is_archived(run_dir):
+        return False
+    _clean_leftovers(run_dir)
+    archive, staging = run_dir / ARCHIVE_FILENAME, run_dir / _RESTORE_DIR
+    try:
+        names = _extract(archive, staging)
+    except RunArchiveError as exc:
+        warn_once(run_dir, "Refusing to restore run archive: %s", exc)
+        raise
+    if DB_NAME in names:  # sidecars beside an archive belong to a stray db; SQLite would replay them
+        for sidecar in DB_SIDECARS:
+            (run_dir / sidecar).unlink(missing_ok=True)
+    for name in names:
+        dest = run_dir / name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(staging / name, dest)
+    archive.unlink()
+    shutil.rmtree(staging, ignore_errors=True)
+    write_restored_stamp(run_dir)
+    return True
 
 
 def restore_or_warn(run_dir: Path) -> bool:
