@@ -29,6 +29,9 @@ _logger = logging.getLogger(__name__)
 WINDOW_PID_FILE = "window.pid"
 _NOT_RUNNING = 3  # LSB init-script status code for "program is not running"
 API_PID_FILE = "action_api.pid"  # written by dashboard._api_spawn
+LAUNCH_ARGS_FILE = "launch_args.json"  # the running dashboard's flags, for `quodeq restart`
+# One-off build actions; repeating them on every restart would only slow it down.
+_NOT_REPEATED_ON_RESTART = frozenset({"--reinstall"})
 _GRACE_S = 5  # SIGTERM first; SIGKILL whatever is still alive after this
 _POLL_S = 0.1
 
@@ -45,6 +48,31 @@ def record_window_pid(run_dir: Path | None = None) -> Path:
     except OSError:
         _logger.debug("could not record the window PID in %s", path, exc_info=True)
     return path
+
+
+def record_launch_args(args: list[str], run_dir: Path | None = None) -> None:
+    """Remember the flags this dashboard was started with, so ``quodeq restart`` reuses them.
+
+    Fail-soft: without the file a restart opens a plain window, as before.
+    """
+    path = (run_dir or ensure_run_dir()) / LAUNCH_ARGS_FILE
+    kept = [arg for arg in args if arg not in _NOT_REPEATED_ON_RESTART]
+    try:
+        path.write_text(json.dumps(kept), encoding="utf-8")
+    except OSError:
+        _logger.debug("could not record the launch flags in %s", path, exc_info=True)
+
+
+def read_launch_args(run_dir: Path | None = None) -> list[str]:
+    """The flags the last dashboard started with; empty when unknown or unreadable."""
+    path = (run_dir or ensure_run_dir()) / LAUNCH_ARGS_FILE
+    try:
+        args = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if not isinstance(args, list) or not all(isinstance(arg, str) for arg in args):
+        return []
+    return args
 
 
 def clear_window_pid(path: Path) -> None:

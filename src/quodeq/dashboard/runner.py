@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 from quodeq.dashboard._api_health import ApiConfig
 from quodeq.dashboard._config import BuildConfig, DashboardConfig, ServerConfig
+from quodeq.dashboard.instances import record_launch_args
 from quodeq.dashboard._networking import choose_ui_port
 from quodeq.dashboard._probes import ApiProbes, DashboardHooks
 from quodeq.dashboard import _server as _server_mod
@@ -243,17 +244,22 @@ def run_dashboard(
     *,
     probes: ApiProbes | None = None,
     hooks: DashboardHooks | None = None,
+    launch_args: list[str] | None = None,
 ) -> int:
     """Start the dashboard: resolve paths, launch the action API, and serve until exit.
 
     *env* overrides ``os.environ`` when provided (useful for testing).
     *probes* and *hooks* are injection seams for tests: each defaults to the
     production collaborators of the same name (see ``dashboard/_probes.py``).
+    *launch_args* are the command-line flags, recorded for ``quodeq restart``
+    once this process is the one starting the server (None records nothing).
     """
     hooks = hooks or DashboardHooks()
     config = _prepare_launch(config, env, hooks)
     if _launch_preempted(config):
         return 0
+    if launch_args is not None:
+        record_launch_args(launch_args)
     _log_startup_banner(config)
     action_api_url, action_api_process = _start_action_api_for(config, probes, hooks)
     _start_background_tasks()
