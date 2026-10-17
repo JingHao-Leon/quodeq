@@ -257,20 +257,19 @@ def _install_shutdown_handlers() -> None:
     signal.signal(signal.SIGINT, _handle_shutdown)
 
 
-def _start_background_work() -> None:
-    """Warm the score caches and run cache maintenance off the request path.
-
-    After an upgrade the first requests would otherwise recompute inline and
-    estimates would undercount cached files. main() only: create_app callers
-    (tests, embedding) stay thread-free. Never blocks serving.
+def _start_background_work(env: Mapping[str, str] | None = None) -> None:
+    """Warm the score caches, run cache maintenance and opt-in storage cleanup off the request path.
+    main() only: create_app callers (tests, embedding) stay thread-free.
     """
     try:
         from quodeq.api.routes_common import reports_dir  # noqa: PLC0415
         from quodeq.services.warmup import engine as warmup_engine  # noqa: PLC0415
         from quodeq.services.cache_maintenance import start_cache_maintenance  # noqa: PLC0415
+        from quodeq.services.storage_cleanup import start_storage_cleanup  # noqa: PLC0415
         from quodeq.shared.log_sink import SHARED_LOG  # noqa: PLC0415
         warmup_engine.start(reports_dir())
         start_cache_maintenance(log=SHARED_LOG)
+        start_storage_cleanup(reports_dir(), env, log=SHARED_LOG)
     except (ImportError, RuntimeError, OSError):  # pragma: no cover - warm-up must never block serving
         _logger.warning("warm-up start failed", exc_info=True)
 
@@ -292,7 +291,7 @@ def main(env: dict[str, str] | None = None) -> None:
         env=env,
     )
     _install_shutdown_handlers()
-    _start_background_work()
+    _start_background_work(env)
     _serve(app, env)
 
 
