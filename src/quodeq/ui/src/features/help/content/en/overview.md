@@ -2,6 +2,10 @@
 
 The **Overview** tab is a project's landing page: the accumulated quality picture plus the fastest routes into the details.
 
+### Before the first evaluation
+
+A local project that has never been evaluated opens on a panel saying it *has not been evaluated yet* instead of scores, with the three steps to its first grades: *scan*, already done, with the source files and languages it found; *review*, where you pick who reviews it with **choose**; and *score*, where the grades will land. **choose** and **start first evaluation** both open **Evaluate**, which starts with every dimension selected and no time limit and lets you pick the model in place. When that first run finishes while you watch it on Evaluate, the app comes back here. Only a project whose earlier runs all failed or were cancelled says instead that previous attempts didn't finish cleanly, with a way to start a new evaluation.
+
 ### Accumulated scores
 
 Overview shows the latest scored result for each dimension, even when those results come from different runs. Evaluate security today and maintainability tomorrow; both appear side by side, each card labeled with the run that produced it. To inspect a single run instead, open it from *History*.

@@ -7,7 +7,7 @@
 Which AI reads your code, how long it may take, and how findings become grades.
 
 - **AI Provider** picks who runs your evaluations: a CLI you have signed in to (Claude Code, Codex, Gemini, Copilot), a hosted API (OpenRouter or a custom OpenAI-compatible endpoint), or a local model server (Ollama, llama.cpp, oMLX). A provider that is not installed shows how to install it.
-- **Model** is the model for that provider. Claude Code, Codex and GitHub Copilot list the models your account can use (*Other model id* takes one that is not listed); Gemini CLI takes a typed id. A local server lists the models it has; llama.cpp shows the GGUF it has loaded. A local server's own row shows whether it is running, its address (click it to copy) and a console button for its log.
+- **Model** is the model for that provider. Claude Code, Codex and GitHub Copilot list the models your account can use, and the one the CLI picks by default reads *(default)* (*Other model id* takes one that is not listed); Gemini CLI takes a typed id. A local server lists the models it has; llama.cpp shows the GGUF it has loaded. A local server's own row shows whether it is running, its address (click it to copy) and a console button for its log.
 - **API key**, for hosted and some local providers, is write-only: paste a key and press **save key**. quodeq stores it outside the browser, in your system keychain by default, and the row only ever says *key saved*, with **replace** to enter a new one. The key itself is never shown again.
 - **Test** checks the connection to a hosted model and reports its latency.
 - **Evaluation time limit** stops a run after that long. Whatever finished in time is scored, and the next run continues from there.
