@@ -8,6 +8,7 @@ from pathlib import Path
 
 from quodeq.data.fs.run_archive_wal import DB_NAME, WAL_NAME
 
+ARCHIVE_FILENAME = "archive.tar.gz"
 EVENTS_NAME = "events.jsonl"
 EVIDENCE_DIR = "evidence"
 EVIDENCE_PATTERN = "*_evidence.jsonl"

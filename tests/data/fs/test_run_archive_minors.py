@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from quodeq.data.fs import run_archive
+from quodeq.data.fs import run_archive, run_archive_wal
 from quodeq.data.fs.run_archive import (
     ARCHIVE_FILENAME, RunArchiveError, archive_run, is_archived, restore_or_warn, tidy_run,
 )
@@ -136,3 +136,71 @@ def test_an_evidence_file_created_mid_pack_aborts_the_archive(tmp_path, monkeypa
     assert not is_archived(run) and not (run / (ARCHIVE_FILENAME + ".tmp")).exists()
     assert late.is_file() and (run / _EVIDENCE).is_file() and (run / "events.jsonl").is_file()
     assert (run / "evaluation.db").is_file()
+
+
+def test_a_stale_archived_check_never_deletes_the_restored_database(tmp_path, monkeypatch):
+    run = _projected_run(tmp_path)
+    real_connect, real_archived = connection_mod._connect, connection_mod.is_archived
+    seen = []
+
+    def archive_connect_restore(path):
+        if not seen:
+            archive_run(run)  # the archive takes the real database
+        conn = real_connect(path)  # a stray, created beside the archive
+        if not seen:
+            run_archive.ensure_restored(run)  # another reader restores the real one over it
+        seen.append(path)
+        return conn
+
+    stale = [True]
+
+    def stale_archived(run_dir):  # this reader saw the archive before that restore removed it
+        if seen and stale:
+            stale.pop()
+            return True
+        return real_archived(run_dir)
+
+    monkeypatch.setattr(connection_mod, "_connect", archive_connect_restore)
+    monkeypatch.setattr(connection_mod, "is_archived", stale_archived)
+    with open_evaluation_db(run) as conn:
+        rows = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+
+    assert rows == 5
+    assert sqlite3.connect(run / "evaluation.db").execute("SELECT COUNT(*) FROM findings").fetchone() == (5,)
+
+
+def test_vacuum_is_skipped_while_a_reader_holds_the_log(tmp_path, monkeypatch):
+    run = _run_with_files(tmp_path)
+    _with_free_pages(run)
+    writer = sqlite3.connect(run / "evaluation.db")
+    writer.execute("PRAGMA journal_mode=WAL")
+    writer.execute("INSERT INTO findings (file) VALUES ('w.py')")
+    writer.commit()
+    reader = sqlite3.connect(run / "evaluation.db")
+    reader.execute("BEGIN")
+    reader.execute("SELECT COUNT(*) FROM findings").fetchone()  # pins the log
+    vacuumed = []
+    real_execute = sqlite3.Connection.execute
+
+    monkeypatch.setattr(run_archive_wal.sqlite3, "connect", lambda *a, **k: _Spy(real_execute, vacuumed, *a, **k))
+    try:
+        assert run_archive_wal.vacuum_db(run) == 0
+    finally:
+        reader.close()
+        writer.close()
+    assert "VACUUM" not in vacuumed
+
+
+class _Spy:
+    """A sqlite3 connection that records the statements it runs."""
+
+    def __init__(self, real_execute, seen, *args, **kwargs):
+        self._conn = sqlite3.Connection(*args, **kwargs)
+        self._real, self._seen = real_execute, seen
+
+    def execute(self, sql, *params):
+        self._seen.append(sql)
+        return self._real(self._conn, sql, *params)
+
+    def close(self):
+        self._conn.close()

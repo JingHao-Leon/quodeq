@@ -183,6 +183,8 @@ def run_cleanup(
     plan = plan_cleanup(evaluations_root, now, warm_days)
     tidied = archived = freed = 0
     for run_dir in plan.tidy:
+        if project_in_flight(run_dir.parent):  # a run started after the plan was made
+            continue
         got = run_isolated(lambda d=run_dir: max(0, tidy_run(d)), label=f"storage cleanup tidy {run_dir}", log=log)
         if got is not None:
             tidied += 1

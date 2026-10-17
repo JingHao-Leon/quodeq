@@ -177,3 +177,12 @@ def test_the_hook_reads_the_saved_window_when_it_runs(tmp_path):
     thread = storage_cleanup.start_storage_cleanup(tmp_path, env)
     thread.join(10)
     assert not (old / "archive.tar.gz").exists()
+
+
+def test_a_project_that_starts_a_run_after_the_plan_is_not_tidied(tmp_path, monkeypatch):
+    _run(tmp_path, "p", "old", 300)
+    tidied = []
+    monkeypatch.setattr(storage_cleanup, "tidy_run", lambda d: tidied.append(d) or 0)
+    monkeypatch.setattr(storage_cleanup, "project_in_flight", lambda project: True)
+    result = run_cleanup(tmp_path, NOW, warm_days=183)
+    assert tidied == [] and result.tidied == 0

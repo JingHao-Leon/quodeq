@@ -25,26 +25,24 @@ import shutil
 import sqlite3
 import tarfile
 import zlib
-from collections.abc import Iterator
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
-from quodeq.core.utils.file_lock import lock_file, unlock_file
-from quodeq.data.fs.run_archive_guard import RESTORED_STAMP, snapshot, unchanged, warn_once, write_restored_stamp
-from quodeq.data.fs.run_archive_files import (
-    DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars, is_plain_file,
+from quodeq.data.fs.run_archive_guard import (  # noqa: F401 -- run_lock re-exported
+    RESTORED_STAMP, run_lock, snapshot, unchanged, warn_once, write_restored_stamp,
+)
+from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME re-exported
+    ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
+    is_plain_file,
 )
 from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, vacuum_db
 
 _logger = logging.getLogger(__name__)
 
-ARCHIVE_FILENAME = "archive.tar.gz"
 TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
 
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
-_LOCK_NAME = ".archive.lock"
 _CHUNK = 1 << 20
 _READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
 
@@ -69,24 +67,6 @@ def is_archived(run_dir: Path) -> bool:
 def has_event_log(run_dir: Path) -> bool:
     """True when ``events.jsonl`` is a file, or the run is archived."""
     return (run_dir / EVENTS_NAME).is_file() or is_archived(run_dir)
-
-
-@contextmanager
-def _run_lock(run_dir: Path) -> Iterator[None]:
-    """Hold the run's exclusive archive lock for the block.
-
-    The lock file is never deleted: removing it would let a waiter lock an
-    unlinked file while a newcomer locks a fresh one.
-    """
-    fd = os.open(run_dir / _LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o644)
-    try:
-        lock_file(fd)
-        try:
-            yield
-        finally:
-            unlock_file(fd)
-    finally:
-        os.close(fd)
 
 
 def _clean_leftovers(run_dir: Path) -> None:
@@ -140,7 +120,7 @@ def archive_run(run_dir: Path) -> ArchiveResult:
     already archived. Any failure before the archive is renamed into place
     leaves every original untouched and removes the temporary file.
     """
-    with _run_lock(run_dir):
+    with run_lock(run_dir):
         _clean_leftovers(run_dir)
         if is_archived(run_dir):
             raise RunArchiveError(f"run is already archived: {run_dir}")
@@ -223,7 +203,7 @@ def ensure_restored(run_dir: Path) -> bool:
     """
     if not is_archived(run_dir):
         return False
-    with _run_lock(run_dir):
+    with run_lock(run_dir):
         if not is_archived(run_dir):
             return False
         _clean_leftovers(run_dir)
@@ -233,6 +213,9 @@ def ensure_restored(run_dir: Path) -> bool:
         except RunArchiveError as exc:
             warn_once(run_dir, "Refusing to restore run archive: %s", exc)
             raise
+        if DB_NAME in names:  # sidecars beside an archive belong to a stray db; SQLite would replay them
+            for sidecar in DB_SIDECARS:
+                (run_dir / sidecar).unlink(missing_ok=True)
         for name in names:
             dest = run_dir / name
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -276,7 +259,7 @@ def tidy_run(run_dir: Path) -> int:
     A failed checkpoint or VACUUM is logged and tidy carries on.
     """
     freed = 0
-    with _run_lock(run_dir):
+    with run_lock(run_dir):
         evidence = run_dir / EVIDENCE_DIR
         if evidence.is_dir():
             for pattern in TIDY_PATTERNS:

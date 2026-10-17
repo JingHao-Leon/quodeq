@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Iterator
 
 from quodeq.data.fs.run_archive import is_archived, restore_or_warn
+from quodeq.data.fs.run_archive_guard import drop_stray_db
 from quodeq.data.sqlite._db_stamp_memo import db_stamp
 from quodeq.data.sqlite._migrations import SchemaVersionError, apply_evaluation_schema
 from quodeq.data.sqlite._schema import SCHEMA_VERSION
@@ -108,33 +109,27 @@ def _open_mapped(path: Path) -> sqlite3.Connection:
         raise RuntimeError(f"Could not open evaluation database at {path}: {exc}") from exc
 
 
-def _inode(path: Path) -> int | None:
-    try:
-        return path.stat().st_ino
-    except FileNotFoundError:
-        return None
-
-
 def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
     """Restore the run, then connect; never leave a database beside an archive.
 
     A connect on an archived run would create an empty database next to the
     archive, so the run is restored first, and one archived while the
-    connection opened is dropped (with the database it created) and opened
-    again. One that stays archived is unreadable: readers fall back to the
-    JSON reports.
+    connection opened is dropped and opened again: the stray database is
+    deleted under the run lock (``drop_stray_db``), never on a check made
+    outside it. One that stays archived is unreadable: readers fall back to
+    the JSON reports.
     """
     for _attempt in range(2):
         if not restore_or_warn(run_dir):
             raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
-        before = _inode(path)
         conn = _open_mapped(path)
         if not is_archived(run_dir):
             return conn
         conn.close()
-        if _inode(path) != before:  # created here after the archive took the original
-            for stray in (path, *(path.with_name(path.name + s) for s in ("-wal", "-shm"))):
-                stray.unlink(missing_ok=True)
+        try:
+            drop_stray_db(run_dir)
+        except OSError as exc:  # a lock wait that timed out included
+            raise SqliteStoreUnreadableError(f"run in {run_dir} is being archived: {exc}") from exc
     raise SqliteStoreUnreadableError(f"run in {run_dir} was archived while its database opened")
 
 

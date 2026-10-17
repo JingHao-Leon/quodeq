@@ -1,11 +1,13 @@
 """Fold a run database's write-ahead log before the file is archived, and VACUUM it on tidy."""
 from __future__ import annotations
 
+import logging
 import sqlite3
 from pathlib import Path
 
 DB_NAME = "evaluation.db"
 WAL_NAME = "evaluation.db-wal"
+_logger = logging.getLogger(__name__)
 _BUSY_TIMEOUT_S = 5.0
 
 
@@ -45,7 +47,9 @@ def _size(path: Path) -> int:
 def vacuum_db(run_dir: Path) -> int:
     """Rebuild ``evaluation.db`` without its free pages; the bytes freed (0 when none were free).
 
-    Raises ``sqlite3.Error`` when the database is busy or unreadable.
+    Skipped (0) while a reader holds the log, so the checkpoint before it
+    cannot complete. Raises ``sqlite3.Error`` when the database is busy or
+    unreadable.
     """
     db, wal = run_dir / DB_NAME, run_dir / WAL_NAME
     if not db.is_file():
@@ -54,6 +58,9 @@ def vacuum_db(run_dir: Path) -> int:
     conn = sqlite3.connect(db, timeout=_BUSY_TIMEOUT_S)
     try:
         if not conn.execute("PRAGMA freelist_count").fetchone()[0]:
+            return 0
+        if conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]:
+            _logger.debug("Skipping VACUUM of %s: a reader holds its log", db)
             return 0
         conn.execute("VACUUM")
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
