@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { riskAreaInfo } from './riskAreaInfo.js';
+import { riskAreaInfo, riskLabelText } from './riskAreaInfo.js';
 import { t } from '../../../../strings/index.js';
 import { AREA_KIND } from '../../mapVocab.js';
 
@@ -38,4 +38,11 @@ test('the kind shows only for a hotspot or dormant debt, the kinds the sky rings
   assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.DORMANT, 1.2)), 'map.riskKind').value, t('map.riskKindDormant'));
   assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.WATCH, 0.6)), 'map.riskKind'), undefined);
   assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.HEALTHY, 0.1)), 'map.riskKind'), undefined);
+});
+
+test('a label carries the density past the watch line, red in fix first, none when healthy or too small', () => {
+  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.HOTSPOT, 2.37), name: 'Article' }), { title: 'Article', figure: '2.4', figureHot: true });
+  assert.equal(riskLabelText({ ...area(AREA_KIND.WATCH, 0.6), name: 'API' }).figureHot, false);
+  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.HEALTHY, 0.1), name: 'Tests' }), { title: 'Tests' });
+  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.SMALL, 3), name: 'Tiny' }), { title: 'Tiny' });
 });

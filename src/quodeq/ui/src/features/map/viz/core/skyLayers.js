@@ -34,6 +34,8 @@ const BAND_WIDTH_RIM = 1;
 const BAND_WIDTH_WATCH = 1.1;
 const BAND_WIDTH_FIX = 1.3;
 const BUBBLE_STROKE_WIDTH = 1;
+/** Between a label's title and its figure. */
+const FIGURE_SPACE = ' ';
 const CENTRE_RING_PX = 7;
 const CENTRE_DOT_PX = 2.5;
 const CENTRE_RING_ALPHA = 0.55;
@@ -198,8 +200,8 @@ function drawFiles(ctx, b, files) {
   });
 }
 
-/** One area bubble: its fill and outline, its kind ring, and its file dots. */
-function drawBubble(ctx, b, paint, files) {
+/** One area bubble: its fill and outline, and its kind ring (its file dots show on hover and selection). */
+function drawBubble(ctx, b, paint) {
   ctx.beginPath();
   ctx.arc(b.px, b.py, b.R, 0, TAU);
   ctx.globalAlpha = paint.alpha;
@@ -211,21 +213,20 @@ function drawBubble(ctx, b, paint, files) {
   ctx.stroke();
   ctx.globalAlpha = 1;
   drawKindRing(ctx, b, paint);
-  drawFiles(ctx, b, files);
 }
 
 /**
- * The static layer: zone glows, bands, centre mark, bubbles largest first,
- * then the zone labels on top. `rings` are skyRings distances, so the lines
+ * The static layer: zone glows, bands, centre mark, bubbles largest first
+ * (one colour each, no file dots), then the zone labels on top. `rings` are skyRings distances, so the lines
  * and the glows follow the areas on the sky.
  */
-export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width, height, zoneLabels, font, fontScale }) {
+export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, palette, width, height, zoneLabels, font, fontScale }) {
   ctx.clearRect(0, 0, width, height);
   drawZones(ctx, frame, rings, palette);
   drawBands(ctx, frame, rings, palette);
   drawCentre(ctx, frame, palette);
   const order = bubbles.map((_, i) => i).sort((a, b) => bubbles[b].R - bubbles[a].R);
-  for (const i of order) drawBubble(ctx, bubbles[i], paints[i], files[i]);
+  for (const i of order) drawBubble(ctx, bubbles[i], paints[i]);
   drawZoneLabels(ctx, { zoneLabels, palette, font, fontScale });
 }
 
@@ -248,21 +249,38 @@ export function skyTitleFont(font, fontScale) {
   return `${TITLE_WEIGHT} ${TITLE_PX * fontScale}px ${font}`;
 }
 
-function drawLabel(ctx, label, { palette, font, fontScale }) {
-  const halo = rgbCss(palette.bg);
-  ctx.lineWidth = HALO_WIDTH;
-  ctx.strokeStyle = halo;
-  ctx.font = skyTitleFont(font, fontScale);
-  ctx.strokeText(label.title, label.x, label.y);
-  ctx.fillStyle = rgbCss(labelInk(palette));
-  ctx.fillText(label.title, label.x, label.y);
+/** A label's text runs: its title, then (when it has one) its figure in the figure's colour. */
+function labelRuns(label, palette) {
+  const ink = rgbCss(labelInk(palette));
+  const runs = [{ text: label.title, color: ink }];
+  if (label.figure) runs.push({ text: `${FIGURE_SPACE}${label.figure}`, color: label.figureHot ? rgbCss(palette.worse) : ink });
+  return runs;
 }
 
-/** The overlay: one veil around the kept bubble, the hover ring, and the labels. */
-export function drawSkyOverlay(ctx, { bubbles, keepIndex, hoverIndex, labels, palette, font, fontScale, width, height }) {
+function drawLabel(ctx, label, { palette, font, fontScale }) {
+  ctx.lineWidth = HALO_WIDTH;
+  ctx.strokeStyle = rgbCss(palette.bg);
+  ctx.font = skyTitleFont(font, fontScale);
+  const runs = labelRuns(label, palette);
+  const widths = runs.map((r) => ctx.measureText(r.text).width);
+  let x = label.x - widths.reduce((a, w) => a + w, 0) / 2;
+  runs.forEach((r, i) => {
+    ctx.strokeText(r.text, x, label.y);
+    ctx.fillStyle = r.color;
+    ctx.fillText(r.text, x, label.y);
+    x += widths[i];
+  });
+}
+
+/**
+ * The overlay: one veil around the kept bubble, the hover ring, the file dots
+ * of the kept and hovered bubbles (the static layer leaves them out), and the labels.
+ */
+export function drawSkyOverlay(ctx, { bubbles, files = null, keepIndex, hoverIndex, labels, palette, font, fontScale, width, height }) {
   ctx.clearRect(0, 0, width, height);
   if (keepIndex !== null && bubbles[keepIndex]) drawVeil(ctx, bubbles[keepIndex], palette, { width, height });
   if (hoverIndex !== null && bubbles[hoverIndex]) drawHover(ctx, bubbles[hoverIndex], palette);
-  ctx.textAlign = 'center';
+  for (const i of new Set([keepIndex, hoverIndex])) if (i !== null && bubbles[i] && files?.[i]) drawFiles(ctx, bubbles[i], files[i]);
+  ctx.textAlign = 'left';
   for (const label of labels) drawLabel(ctx, label, { palette, font, fontScale });
 }

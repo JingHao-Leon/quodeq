@@ -41,7 +41,7 @@ function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, la
     const shown = (set) => new Set([...set].filter((i) => !placeable[i].absent));
     const must = shown(mustLabelled({ ...picks, showLabels }));
     const wanted = shown(chooseLabelled(picks));
-    const placed = placeSkyLabels({ bubbles, wanted, must, measure, reserved, first: picks.selected });
+    const placed = placeSkyLabels({ bubbles, wanted, must, measure, reserved, first: picks.selected, priority: (i) => areas[i].density || 0 });
     return placed.map((p) => ({ ...p, ...labelText(areas[p.index]) }));
   }, [areas, bubbles, hover, selected, showLabels, measure, labelText, reserved]);
 }

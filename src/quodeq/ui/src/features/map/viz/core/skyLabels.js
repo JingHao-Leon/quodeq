@@ -1,10 +1,13 @@
 // src/quodeq/ui/src/features/map/viz/core/skyLabels.js
-import { RING_KINDS } from '../../mapVocab.js';
+import { RING_KINDS, SKY_ZONE } from '../../mapVocab.js';
+import { zoneOf } from './skyScale.js';
 
 /** Height of a label's line, and of the block it keeps clear (the name). */
 export const LABEL_LINE_PX = 12;
 export const LABEL_BLOCK_PX = 15;
-const TOP_BY_WEIGHT = 10;
+const TOP_BY_WEIGHT = 6;
+const TOP_FIX_FIRST = 7;   // the densest fix-first areas named first
+const TOP_WATCH = 5;
 const BELOW_GAP = 13;
 const ABOVE_GAP = 18;
 const SIDE_GAP = 6;
@@ -14,9 +17,20 @@ const FAR_STEPS = 2;      // how many label steps further out a must label may m
 
 const isIndex = (i) => i !== null && i !== undefined;
 
-/** Indices of the ten heaviest areas by weight. */
+/** Indices of the heaviest areas by weight. */
 function heaviest(areas) {
   return areas.map((a, i) => [a.stats.weight, i]).sort((p, q) => q[0] - p[0]).slice(0, TOP_BY_WEIGHT).map(([, i]) => i);
+}
+
+/** Indices of the densest areas in a zone, densest first. */
+function densestIn(areas, zone, count) {
+  return areas.map((a, i) => [a.density || 0, i]).filter(([d]) => zoneOf(d) === zone)
+    .sort((p, q) => q[0] - p[0]).slice(0, count).map(([, i]) => i);
+}
+
+/** The worst areas, named before the largest: the densest past fix first, then the densest in watch. */
+function worst(areas) {
+  return [...densestIn(areas, SKY_ZONE.FIX_FIRST, TOP_FIX_FIRST), ...densestIn(areas, SKY_ZONE.WATCH, TOP_WATCH)];
 }
 
 /** Action kinds, plus the hovered and selected areas. */
@@ -28,31 +42,32 @@ function alwaysLabelled({ areas, hovered, selected }) {
   return chosen;
 }
 
-/** Which areas show a label: action kinds always, the ten heaviest, hovered and selected. */
+/** Which areas show a label: action kinds always, the worst, the heaviest, hovered and selected. */
 export function chooseLabelled({ areas, hovered, selected }) {
   const chosen = alwaysLabelled({ areas, hovered, selected });
-  heaviest(areas).forEach((i) => chosen.add(i));
+  [...worst(areas), ...heaviest(areas)].forEach((i) => chosen.add(i));
   return chosen;
 }
 
 /**
  * Labels that are kept even without a clear spot (they avoid other labels and
  * may graze bubbles): action kinds, hover and selection, and with labels on,
- * the ten heaviest areas, so a dense sky still names its biggest areas.
+ * the worst and the heaviest areas, so a dense sky still names what matters.
  * @returns {Set<number>}
  */
 export function mustLabelled({ areas, hovered, selected, showLabels }) {
   const must = alwaysLabelled({ areas, hovered, selected });
-  if (showLabels) heaviest(areas).forEach((i) => must.add(i));
+  if (showLabels) [...worst(areas), ...heaviest(areas)].forEach((i) => must.add(i));
   return must;
 }
 
+/** The four near spots, right of the bubble first so labels line up on one side where they can. */
 function candidates(b, w) {
   return [
-    [b.px, b.py + b.R + BELOW_GAP],
-    [b.px, b.py - b.R - ABOVE_GAP],
     [b.px + b.R + SIDE_GAP + w / 2, b.py],
     [b.px - b.R - SIDE_GAP - w / 2, b.py],
+    [b.px, b.py + b.R + BELOW_GAP],
+    [b.px, b.py - b.R - ABOVE_GAP],
   ];
 }
 
@@ -78,7 +93,7 @@ function hitsBubble(box, bubbles, own) {
  * label steps, then the diagonals beside the below and above spots.
  */
 function fartherCandidates(b, w) {
-  const [below, above, right, left] = candidates(b, w);
+  const [right, left, below, above] = candidates(b, w);
   const dy = LABEL_BLOCK_PX + PAD;
   const dx = w + PAD;
   const out = [];
@@ -106,8 +121,8 @@ function spotFor(index, { bubbles, placed, w, must }) {
 }
 
 /**
- * Greedy label placement: must-show labels first, then the rest, larger
- * bubbles first; each takes the first spot (below, above, right, left) clear
+ * Greedy label placement: must-show labels first, then the rest, by
+ * `priority` (higher first; the bubble's size without one); each takes the first spot (right, left, below, above) clear
  * of other bubbles and labels. Must labels may move further out and graze
  * bubbles. No two labels ever overlap: a label without a free spot is
  * dropped (the area keeps its tooltip, keyboard button and panel).
@@ -116,9 +131,10 @@ function spotFor(index, { bubbles, placed, w, must }) {
  * any conflict.
  * @returns {{index: number, x: number, y: number}[]}
  */
-export function placeSkyLabels({ bubbles, wanted, must, measure, reserved = [], first = null }) {
+export function placeSkyLabels({ bubbles, wanted, must, measure, reserved = [], first = null, priority = null }) {
+  const rank = priority || ((i) => bubbles[i].R);
   const order = [...new Set([...must, ...wanted])]
-    .sort((a, b) => Number(b === first) - Number(a === first) || Number(must.has(b)) - Number(must.has(a)) || bubbles[b].R - bubbles[a].R);
+    .sort((a, b) => Number(b === first) - Number(a === first) || Number(must.has(b)) - Number(must.has(a)) || rank(b) - rank(a));
   const placed = reserved.map((box) => ({ index: null, box }));
   for (const index of order) {
     const spot = spotFor(index, { bubbles, placed, w: measure(index), must: must.has(index) });

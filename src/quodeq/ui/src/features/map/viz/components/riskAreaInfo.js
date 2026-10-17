@@ -17,9 +17,17 @@ export function kindLabel(kind) {
   return t(KIND_KEY.get(kind) || 'map.riskKindSmall');
 }
 
-/** The canvas label of an area: its name (its numbers are in the hover card and the panel). */
+/** Decimals of the density figure beside a label. */
+const LABEL_DENSITY_DECIMALS = 1;
+
+/**
+ * The canvas label of an area: its name and, past the watch line, its density
+ * (red in fix first), so the worst areas read their number at a glance (the rest are in the hover card and the panel).
+ */
 export function riskLabelText(area) {
-  return { title: area.name };
+  const zone = zoneOf(area.density || 0);
+  if (zone === SKY_ZONE.HEALTHY || area.kind === AREA_KIND.SMALL) return { title: area.name };
+  return { title: area.name, figure: (area.density || 0).toFixed(LABEL_DENSITY_DECIMALS), figureHot: zone === SKY_ZONE.FIX_FIRST };
 }
 
 /** An area's keyboard-list text: its name and its issue count. */

@@ -45,11 +45,15 @@ describe('drawSkyStatic', () => {
     return { ctx, frame: s.frame };
   };
 
-  it('draws the zones, every bubble, a dashed ring for dormant, and the files inside', () => {
-    const { ctx } = draw();
+  it('draws the zones, every bubble and a dashed ring for dormant, but no file dots (they show on hover)', () => {
+    const ctx = fakeCanvasContext();
+    const styles = [];
+    ctx.fill.mockImplementation(() => { styles.push(ctx.fillStyle); });
+    drawSkyStatic(ctx, { ...scene(), rings: RINGS, palette: PALETTE, width: SIZE, height: SIZE });
     expect(ctx.createRadialGradient).toHaveBeenCalledTimes(2);
     expect(ctx.setLineDash).toHaveBeenCalledWith([]);
     expect(ctx.globalAlpha).toBe(1);
+    expect(styles).not.toContain('rgb(255, 0, 0)');
   });
 
   it('draws the fix-first and watch lines where the layout put them, and each zone glows inside its own ring', () => {
@@ -102,7 +106,19 @@ describe('drawSkyOverlay', () => {
     drawSkyOverlay(ctx, { bubbles, keepIndex: 0, hoverIndex: 0, labels: [{ x: 10, y: 10, title: 'article' }], palette: PALETTE, font: 'sans', fontScale: 1, width: SIZE, height: SIZE });
     expect(ctx.rect).toHaveBeenCalledTimes(1);
     expect(ctx.fills).toEqual([{ rule: 'evenodd' }]);
-    expect(ctx.fillText).toHaveBeenCalledWith('article', 10, 10);
+    expect(ctx.fillText).toHaveBeenCalledWith('article', 10 - ctx.measureText('article').width / 2, 10);
+  });
+
+  it('draws the kept bubble\'s file dots and a label\'s figure after its title', () => {
+    const ctx = fakeCanvasContext();
+    const { bubbles } = scene();
+    const files = bubbles.map(() => ({ dots: [{ x: 0, y: 0, r: 0.3 }], colors: ['rgb(1, 2, 3)'] }));
+    const labels = [{ x: 100, y: 10, title: 'article', figure: '2.4', figureHot: true }];
+    drawSkyOverlay(ctx, { bubbles, files, keepIndex: 0, hoverIndex: null, labels, palette: PALETTE, font: 'sans', fontScale: 1, width: SIZE, height: SIZE });
+    expect(ctx.fills).toHaveLength(2);
+    const [[title, tx], [figure, fx]] = ctx.fillText.mock.calls;
+    expect([title, figure]).toEqual(['article', ' 2.4']);
+    expect(fx).toBe(tx + ctx.measureText('article').width);
   });
 
   it('no veil without a kept bubble', () => {

@@ -19,7 +19,10 @@ function useMeasure(overlayRef, theme, { areas, labelText }) {
       ctx.font = fontOf(theme.font, theme.fontScale);
       return ctx.measureText(text).width;
     };
-    const area = (i) => width(labelText(areas[i]).title, skyTitleFont);
+    const area = (i) => {
+      const { title, figure } = labelText(areas[i]);
+      return width(figure ? `${title} ${figure}` : title, skyTitleFont);
+    };
     return { area, zone: (text) => width(text, skyZoneFont), fontScale: theme.fontScale || 1 };
   }, [overlayRef, theme, areas, labelText]);
 }
@@ -65,21 +68,21 @@ function useZoneText(measure) {
   }, [measure]);
 }
 
-/** Paint both layers: the static bubbles, and the overlay with veil, ring and labels. */
+/** Paint both layers: the static bubbles, and the overlay with veil, ring, the kept bubble's files and labels. */
 function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected }) {
   const { frame, rings, bubbles, paints, files, labels, zoneLabels } = scene;
   const { palette, font, fontScale } = theme;
   useEffect(() => {
     const ctx = prepareLayer(staticRef.current, size);
     if (!ctx || !paints || !palette) return;
-    drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width: size.w, height: size.h, zoneLabels, font, fontScale });
-  }, [staticRef, frame, rings, bubbles, paints, files, palette, size, zoneLabels, font, fontScale]);
+    drawSkyStatic(ctx, { frame, rings, bubbles, paints, palette, width: size.w, height: size.h, zoneLabels, font, fontScale });
+  }, [staticRef, frame, rings, bubbles, paints, palette, size, zoneLabels, font, fontScale]);
   useEffect(() => {
     const ctx = prepareLayer(overlayRef.current, size);
     if (!ctx || !palette) return;
     const keepIndex = validHover(hover ?? selected, bubbles);
-    drawSkyOverlay(ctx, { bubbles, keepIndex, hoverIndex: hover, labels, palette, font, fontScale, width: size.w, height: size.h });
-  }, [overlayRef, bubbles, labels, hover, selected, palette, font, fontScale, size]);
+    drawSkyOverlay(ctx, { bubbles, files, keepIndex, hoverIndex: hover, labels, palette, font, fontScale, width: size.w, height: size.h });
+  }, [overlayRef, bubbles, files, labels, hover, selected, palette, font, fontScale, size]);
 }
 
 /**
