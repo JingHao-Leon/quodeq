@@ -11,7 +11,16 @@ _logger = logging.getLogger(__name__)
 
 
 class ToolError(Exception):
-    """User-facing tool failure (bad input, missing context)."""
+    """User-facing tool failure (bad input, missing context).
+
+    ``public_message`` is the hand-written text the model sees; dispatch reads
+    that attribute rather than ``str(exc)`` so the tool result never depends on
+    exception formatting (same pattern as ``_ZipSizeLimitError.public_message``).
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.public_message = message
 
 
 @dataclass(frozen=True)
@@ -82,6 +91,24 @@ def _invoke_tool(specs: dict[str, ToolSpec], name: str, arguments: dict[str, Any
     try:
         return {"ok": True, "result": spec.handler(**arguments)}
     except ToolError as exc:
-        return {"ok": False, "error": str(exc)}
-    except TypeError as exc:
-        return {"ok": False, "error": f"invalid arguments for {name}: {exc}"}
+        return {"ok": False, "error": exc.public_message}
+    except TypeError:
+        return {"ok": False, "error": _invalid_arguments_message(spec, arguments)}
+
+
+def _invalid_arguments_message(spec: ToolSpec, arguments: dict[str, Any]) -> str:
+    """Name what the call got wrong from the tool's own schema, never from the
+    ``TypeError`` text: ``dispatch``'s result reaches every ``run_isolated``
+    caller in CodeQL's view, so exception text here surfaced as
+    py/stack-trace-exposure on unrelated API routes (alerts #356, #357)."""
+    accepted = spec.parameters.get("properties", {})
+    required = spec.parameters.get("required", [])
+    unknown = sorted(k for k in arguments if k not in accepted)
+    missing = sorted(k for k in required if k not in arguments)
+    parts = [f"invalid arguments for {spec.name}"]
+    if unknown:
+        parts.append(f"unknown: {', '.join(unknown)}")
+    if missing:
+        parts.append(f"missing: {', '.join(missing)}")
+    parts.append(f"accepted: {', '.join(sorted(accepted)) or 'none'}")
+    return "; ".join(parts)

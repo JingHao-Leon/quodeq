@@ -16,7 +16,7 @@ from urllib.parse import parse_qs, urlparse
 import httpx
 
 from quodeq.assistant.tools.registry import ToolError, ToolRegistry, ToolSpec
-from quodeq.shared.url_validation import validate_url_safe
+from quodeq.shared.url_validation import url_safety_error
 from quodeq.core.utils.numbers import clamp
 
 _SEARCH_URL = "https://html.duckduckgo.com/html/"
@@ -215,10 +215,9 @@ def _decode_fetch_body(body: bytes, encoding: str, content_type: str) -> str:
 def _fetch_url(url: str) -> dict:
     if not isinstance(url, str):
         raise ToolError("url must be a string")
-    try:
-        validate_url_safe(url)
-    except ValueError as exc:
-        raise ToolError(str(exc)) from exc
+    unsafe = url_safety_error(url)
+    if unsafe:
+        raise ToolError(unsafe)
     try:
         with httpx.stream("GET", url, headers={"User-Agent": _USER_AGENT},
                           timeout=_TIMEOUT, follow_redirects=False) as resp:

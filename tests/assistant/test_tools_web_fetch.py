@@ -47,7 +47,7 @@ class _FakeStream:
 def no_ssrf(monkeypatch):
     # behavior tests must not resolve DNS; the SSRF path is tested separately
     # below with IP literals (which never hit the network)
-    monkeypatch.setattr(_web_tools, "validate_url_safe", lambda url, **kw: None)
+    monkeypatch.setattr(_web_tools, "url_safety_error", lambda url, **kw: None)
 
 
 def _fake_stream(resp):
