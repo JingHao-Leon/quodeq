@@ -8,9 +8,9 @@ import { PROVIDER } from '../../../vocab/provider.js';
 import { PROVIDER_CLASSIFICATION } from './providerUtils.js';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
 
-export default function CliProviderTab({ providerId, state, update }) {
+export default function CliProviderTab({ providerId, providerConfig, state, update }) {
   const {
-    power, setPower, cmdPathError, validateCmdPath, persistPower, hint, analysisHint, clampSubagents,
+    cmdPathError, validateCmdPath, hint, clampSubagents,
   } = useCliProviderTab({ providerId, state });
 
   return (
@@ -31,8 +31,7 @@ export default function CliProviderTab({ providerId, state, update }) {
       <TimeLimitSetting state={state} update={update} providerType={PROVIDER_CLASSIFICATION.CLI} />
       <RemoteSubagentsRow state={state} update={update} clampSubagents={clampSubagents} />
       <CliAdvancedPanel
-        providerId={providerId} state={state} update={update} analysisHint={analysisHint}
-        power={power} setPower={setPower} persistPower={persistPower}
+        providerId={providerId} providerConfig={providerConfig} state={state} update={update}
         cmdPathError={cmdPathError} validateCmdPath={validateCmdPath}
       />
     </>

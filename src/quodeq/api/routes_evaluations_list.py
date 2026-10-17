@@ -15,6 +15,7 @@ from quodeq.api._evaluation_helpers import (
     sanitize_url,
     validate_ai_cmd,
     validate_ai_cmd_path,
+    validate_ai_effort,
     validate_ai_model,
     clean_scan_conflict_error,
 )
@@ -68,7 +69,7 @@ def _validate_start_payload(payload: dict) -> Response | tuple[Response, int] | 
     )
     if model_error is not None:
         return model_error
-    return None
+    return validate_ai_effort(ai_cmd, payload.get("aiEffort") or None, get_provider_configs())
 
 
 @dataclass(frozen=True)

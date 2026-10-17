@@ -27,6 +27,7 @@ class EvaluationOptions:
     ai_cmd_path: str | None = None
     ai_model: str | None = None
     subagent_model: str | None = None
+    ai_effort: str | None = None
     verify_findings: bool = True
     max_subagents: int = DEFAULT_MAX_SUBAGENTS
     time_limit: int = DEFAULT_TIME_LIMIT

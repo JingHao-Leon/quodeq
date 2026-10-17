@@ -86,6 +86,7 @@ def build_evaluation_options(payload: dict) -> EvaluationOptions:
         ai_cmd_path=payload.get("aiCmdPath") or None,
         ai_model=flags.ai_model,
         subagent_model=flags.subagent_model,
+        ai_effort=payload.get("aiEffort") or None,
         verify_findings=bool_flag(payload, "verifyFindings", True),
         max_subagents=limits.max_subagents,
         time_limit=limits.time_limit,

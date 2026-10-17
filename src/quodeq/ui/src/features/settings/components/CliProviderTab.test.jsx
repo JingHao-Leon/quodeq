@@ -48,11 +48,27 @@ describe('CliProviderTab', () => {
     expect(update).toHaveBeenCalledWith('model', 'claude-test');
   });
 
-  it('changing the Fast model calls update("model-fast", ...)', async () => {
-    const update = renderCopilot();
-    await screen.findAllByRole('option', { name: 'claude-test' });
-    fireEvent.change(screen.getByLabelText('Fast model'), { target: { value: 'claude-test' } });
-    expect(update).toHaveBeenCalledWith('model-fast', 'claude-test');
+  it('offers the provider effort levels and stores the one picked', () => {
+    const Wrapper = makeWrapper();
+    const update = vi.fn();
+    render(
+      <Wrapper>
+        <CliProviderTab providerId="claude" providerConfig={{ effort_levels: ['low', 'xhigh'] }} state={{ model: 'sonnet' }} update={update} />
+      </Wrapper>,
+    );
+    expect(screen.getByRole('button', { name: 'Default' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Extra high' }));
+    expect(update).toHaveBeenCalledWith('effort', 'xhigh');
+  });
+
+  it('hides the effort row for a provider without effort levels', () => {
+    const Wrapper = makeWrapper();
+    render(
+      <Wrapper>
+        <CliProviderTab providerId="gemini" providerConfig={{}} state={{ model: 'gemini-2.5-pro' }} update={() => {}} />
+      </Wrapper>,
+    );
+    expect(screen.queryByRole('group', { name: 'Effort' })).toBeNull();
   });
 
   it('renders a free-text model input pre-populated from state', () => {

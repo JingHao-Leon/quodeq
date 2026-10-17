@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEvaluation, LOCAL_API_PROVIDERS } from '../features/evaluation/hooks/useEvaluation.js';
 import { ACTIVE_PROVIDER_KEY, providerKey } from '../constants.js';
-import { safeGetItem, readAnalysisPower, resolveSubagentModel } from './evaluationLifecycleHelpers.js';
+import { safeGetItem, resolveSubagentModel } from './evaluationLifecycleHelpers.js';
 import { useJobCompletionEffect } from './useJobCompletionEffect.js';
 import { t } from '../strings/index.js';
 import { JOB_STATUS } from '../vocab/jobStatus.js';
@@ -35,8 +35,8 @@ function makeStartEvaluationHandler({ job, setBlockedStartError, storage, startE
     setBlockedStartError(null);
     const activeProvider = safeGetItem(storage, ACTIVE_PROVIDER_KEY);
     const get = (key) => safeGetItem(storage, providerKey(activeProvider, key));
-    // Read per start: Settings writes the level while the app runs.
-    const subagentModel = resolveSubagentModel({ get, analysisPower: readAnalysisPower(storage) });
+    // Read per start: Settings can change the model while the app runs.
+    const subagentModel = resolveSubagentModel({ get });
     // Swallow the rejection on the copy we discard: startMutation's onError
     // already surfaces failures via jobError. Callers get the original
     // promise so they can react to success/failure themselves.
@@ -66,7 +66,7 @@ function makeEvalDismissHandler({ job, startedProject, selectedProject, selectPr
 
 /**
  * Owns starting, cancelling and dismissing an evaluation, and reads the
- * analysis power at each start.
+ * analysis model at each start.
  *
  * A start refused because another run is already in flight surfaces through
  * `jobError` rather than failing silently. On completion the project list and

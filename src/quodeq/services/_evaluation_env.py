@@ -55,6 +55,8 @@ def build_eval_env(
         built_env["AI_MODEL"] = ai_model
     if subagent_model:
         built_env["SUBAGENT_MODEL"] = subagent_model
+    if options.ai_effort:
+        built_env["AI_EFFORT"] = options.ai_effort
     if not options.verify_findings:
         built_env["QUODEQ_NO_VERIFY"] = ENV_TRUTHY
     # Always propagate the limit, including 0 (unlimited). The CLI

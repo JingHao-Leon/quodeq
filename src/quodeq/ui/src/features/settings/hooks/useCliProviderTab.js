@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { DEFAULT_MAX_SUBAGENTS, PROVIDER_SETTING_KEY } from '../../../constants.js';
 import { clampSubagentsTo } from '../components/localApiSubagents.js';
-import { STORAGE_KEY as POWER_KEY } from '../../evaluation/components/powerLevels.js';
 import { tRich } from '../../../strings/rich.jsx';
-import { readString, writeString } from '../../../adapters/storage.js';
-
-const DEFAULT_POWER_LEVEL = 2;
 
 const MODEL_HINTS = {
   claude: tRich('settings.modelHintClaude'),
@@ -15,30 +11,18 @@ const MODEL_HINTS = {
   copilot: tRich('settings.modelHintCopilot'),
 };
 
-const ANALYSIS_MODEL_HINTS = {
-  claude: tRich('settings.analysisModelsHintClaude'),
-  codex: tRich('settings.analysisModelsHintCodex'),
-  gemini: tRich('settings.analysisModelsHintGemini'),
-  copilot: tRich('settings.analysisModelsHintCopilot'),
-};
-
 /**
- * Power level, cmd-path validation and subagent clamping for one CLI
- * provider's settings tab. Power is persisted on every change rather than on
- * save, so it survives a reload even if the tab is never submitted.
+ * Cmd-path validation, model hint and subagent clamping for one CLI
+ * provider's settings tab.
  * @param {object} args
  * @param {string} args.providerId - picks the model-hint copy and is the
  *   baseline the cmd-path override is compared against.
  * @param {object} args.state - the tab's live draft; only `cmd-path` is read.
- * @returns {object} `power`/`setPower`/`persistPower` for the power slider,
- *   `cmdPathError`/`validateCmdPath` for the blur check, `hint` and
- *   `analysisHint` for the provider's model copy, and `clampSubagents`.
+ * @returns {object} `cmdPathError`/`validateCmdPath` for the blur check,
+ *   `hint` for the provider's model copy, and `clampSubagents`.
  */
 export function useCliProviderTab({ providerId, state }) {
   const api = useApi();
-  const [power, setPower] = useState(() => {
-    return Number(readString(POWER_KEY)) || DEFAULT_POWER_LEVEL;
-  });
   const [cmdPathError, setCmdPathError] = useState(null);
 
   // Eager check on blur: the same rules the server applies to aiCmdPath at
@@ -58,15 +42,9 @@ export function useCliProviderTab({ providerId, state }) {
       .catch(() => setCmdPathError(null));
   }
 
-  function persistPower(level) {
-    setPower(level);
-    writeString(POWER_KEY, String(level));
-  }
-
   const hint = MODEL_HINTS[providerId];
-  const analysisHint = ANALYSIS_MODEL_HINTS[providerId];
 
   const clampSubagents = (raw) => clampSubagentsTo(raw, String(DEFAULT_MAX_SUBAGENTS));
 
-  return { power, setPower, cmdPathError, validateCmdPath, persistPower, hint, analysisHint, clampSubagents };
+  return { cmdPathError, validateCmdPath, hint, clampSubagents };
 }

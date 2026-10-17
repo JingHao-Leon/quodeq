@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Callable, Mapping
 
 from quodeq.analysis.run_types import RunConfig
-from quodeq.analysis.cache._key_provenance import content_hash_for
+from quodeq.analysis.cache._key_provenance import content_hash_for, model_id_from
 from quodeq.analysis.cache.backend import CacheBackend
 from quodeq.analysis.cache.dimension_helpers import hash_prompts_combined
 from quodeq.analysis.cache.entry import CacheEntry, build_provenance, quodeq_version
@@ -110,11 +110,7 @@ class CacheWriterSpec:
         scope (see ``_api_runner._build_cache_writer``); left ``None``,
         entries hash their file directly, as before.
         """
-        model_id = (
-            run_config.options.subagent_model
-            or run_config.options.ai_model
-            or "unknown"
-        )
+        model_id = model_id_from(run_config)
         return cls(
             cache_root=cache_root, src_root=run_config.src,
             standards_dir=run_config.standards_dir, prompts_dir=run_config.prompts_dir,
