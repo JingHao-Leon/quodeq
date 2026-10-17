@@ -28,7 +28,7 @@ export const stubSidePane = {
   registerWindowSpec: vi.fn(),
 };
 
-export function renderCard({ project, projectInfo, api, onStart = vi.fn(), disabled = false, preselectDims = [] } = {}) {
+export function renderCard({ project, projectInfo, api, onStart = vi.fn(), disabled = false, preselectDims = [], onGoToSettings } = {}) {
   const QueryWrapper = withQueryClient();
   return render(
     <QueryWrapper>
@@ -40,6 +40,7 @@ export function renderCard({ project, projectInfo, api, onStart = vi.fn(), disab
             onStart={onStart}
             disabled={disabled}
             preselectDims={preselectDims}
+            onGoToSettings={onGoToSettings}
           />
         </SidePaneContext.Provider>
       </ApiProvider>

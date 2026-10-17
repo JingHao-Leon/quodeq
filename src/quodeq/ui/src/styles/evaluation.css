@@ -3014,6 +3014,58 @@ button.eval-provider-badge--clickable:focus-visible {
   border-color: color-mix(in srgb, var(--color-danger) 45%, transparent);
 }
 
+/* ── Model popover (setup card) ──
+   Hangs under the identity strip (which clips its overflow), right-aligned
+   to the model cell; the right offset is set inline from the cell's
+   position. */
+.eval-identity-frame {
+  position: relative;
+}
+.eval-model-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--eval-inner-radius, 8px);
+  box-shadow: var(--shadow-md);
+}
+.eval-model-popover:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: -1px;
+}
+.eval-model-popover__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.eval-model-popover__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* One provider's model and effort fields: the model popover above and the
+   onboarding reviewer step. */
+.reviewer-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--term-space-2);
+}
+.reviewer-fields > .settings-model-field {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.reviewer-fields__effort {
+  flex: 0 1 auto;
+}
+
 /* ── Detected-files line (setup card) ── */
 .eval-detected-line {
   font-family: var(--term-font-mono, ui-monospace, Menlo, monospace);

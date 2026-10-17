@@ -23,7 +23,7 @@ test('readActiveProviderModel reads provider and model from storage', () => {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, v),
   };
-  assert.deepEqual(readActiveProviderModel(storage), { provider: 'openai', model: 'gpt-5' });
+  assert.deepEqual(readActiveProviderModel(storage), { provider: 'openai', model: 'gpt-5', effort: '' });
 });
 
 test('readActiveProviderModel returns null when no provider is active', () => {

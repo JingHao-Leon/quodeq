@@ -7,7 +7,7 @@ const info = { name: 'Spoon-Knife', path: '/u/repos/Spoon-Knife' };
 const scope = { isLocal: true, scopePath: null };
 
 function renderHeader(activeModel) {
-  render(<IdentityHeader info={info} project="p1" scope={scope} branchLabel={null} scopeValue="/u/repos/Spoon-Knife/ · whole project" activeModel={activeModel} onOpenScopeBrowser={vi.fn()} onGoToSettings={vi.fn()} onGoToProjects={vi.fn()} />);
+  render(<IdentityHeader info={info} project="p1" scope={scope} branchLabel={null} scopeValue="/u/repos/Spoon-Knife/ · whole project" activeModel={activeModel} modelPopover={{ open: false, onOpen: vi.fn(), onClose: vi.fn() }} onOpenScopeBrowser={vi.fn()} onGoToSettings={vi.fn()} onGoToProjects={vi.fn()} />);
 }
 
 describe('the model cell', () => {

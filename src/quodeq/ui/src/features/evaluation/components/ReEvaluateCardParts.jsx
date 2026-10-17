@@ -2,7 +2,9 @@
  * ReEvaluateCard's smaller subcomponents: UrlRestoreSection, DetectedLine,
  * BudgetChips, RunBar, and IdentityHeader (ReEvaluateCardView's identity strip).
  */
+import { useRef } from 'react';
 import FolderBrowser from './FolderBrowser.jsx';
+import ModelPopover from './ModelPopover.jsx';
 import { IdentityStrip, IdentityCell } from './IdentityStrip.jsx';
 import { detectedLanguages, BUDGET_CHOICES_S, formatBudgetLabel } from './scanSummary.js';
 import { CLEAN_PERSIST } from './scanModes.js';
@@ -12,6 +14,7 @@ import { createScanSummary } from '../../../models/index.js';
 import { t, LOCALE } from '../../../strings/index.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { pluralKey } from '../../../utils/plural.js';
+import { effortLabel } from '../../settings/effortLabels.js';
 
 const BUTTON_ROW_GAP = '8px';
 const REPO_URL_PLACEHOLDER = 'https://github.com/org/repo';
@@ -158,44 +161,67 @@ export function RunBar({ disabled, canStart, handleScan, selectedDims, estimates
   );
 }
 
-export function IdentityHeader({ info, project, scope, branchLabel, scopeValue, activeModel, onOpenScopeBrowser, onGoToSettings, onGoToProjects }) {
+// The model cell's words: provider · model · effort (the chosen level, or
+// "default effort" when none is set).
+function modelCellValue(activeModel) {
+  if (!activeModel) return t('evaluate.chooseModel');
+  const effort = activeModel.effort
+    ? t('evaluate.modelEffortNamed', { level: effortLabel(activeModel.effort).toLowerCase() })
+    : t('evaluate.modelDefaultEffort');
+  const parts = [activeModel.provider, activeModel.model, activeModel.model && effort].filter(Boolean);
+  return parts.map((part, i) => (
+    <span key={`${i}:${part}`}>
+      {i > 0 && <span className="eval-provider-sep" aria-hidden="true"> · </span>}
+      {part}
+    </span>
+  ));
+}
+
+function ModelCell({ activeModel, popover, cellRef }) {
   return (
-    <IdentityStrip>
-      <IdentityCell label={t('evaluate.idRepository')} title={t('evaluate.openProjectsTitle')} onClick={onGoToProjects}>{info.name || project}</IdentityCell>
-      <IdentityCell
-        label={t('evaluate.idScope')}
-        grow
-        title={scope.isLocal ? t('evaluate.scopeCellTitle') : (scope.scopePath || info.path)}
-        onClick={scope.isLocal ? onOpenScopeBrowser : undefined}
-        trailing={scope.scopePath ? (
-          <button
-            type="button"
-            className="eval-identity__clear"
-            onClick={() => scope.setScopePath(null)}
-            aria-label={t('evaluate.clearScopeAria')}
-          >
-            ×
-          </button>
-        ) : null}
-      >
-        <code className="eval-identity__code">{scopeValue}</code>
-        {branchLabel && <span className="eval-identity__branch">@ {branchLabel}</span>}
-      </IdentityCell>
-      <IdentityCell
-        label={t('evaluate.idModel')}
-        title={t('evaluate.openProviderSettingsTitle')}
-        onClick={onGoToSettings}
-        attention={!activeModel}
-      >
-        {activeModel ? (
-          <>
-            {activeModel.provider}
-            {activeModel.model && <span className="eval-provider-sep" aria-hidden="true"> · </span>}
-            {activeModel.model}
-          </>
-        ) : t('evaluate.chooseModel')}
-      </IdentityCell>
-    </IdentityStrip>
+    <IdentityCell
+      label={t('evaluate.idModel')}
+      title={t('evaluate.modelCellTitle')}
+      onClick={popover.open ? popover.onClose : popover.onOpen}
+      attention={!activeModel?.model}
+      cellRef={cellRef}
+    >
+      {modelCellValue(activeModel)}
+    </IdentityCell>
+  );
+}
+
+// The model popover hangs under the strip, not inside it: the strip clips
+// its overflow to keep its rounded corners.
+export function IdentityHeader({ info, project, scope, branchLabel, scopeValue, activeModel, modelPopover, onOpenScopeBrowser, onGoToSettings, onGoToProjects }) {
+  const modelCellRef = useRef(null);
+  return (
+    <div className="eval-identity-frame">
+      <IdentityStrip>
+        <IdentityCell label={t('evaluate.idRepository')} title={t('evaluate.openProjectsTitle')} onClick={onGoToProjects}>{info.name || project}</IdentityCell>
+        <IdentityCell
+          label={t('evaluate.idScope')}
+          grow
+          title={scope.isLocal ? t('evaluate.scopeCellTitle') : (scope.scopePath || info.path)}
+          onClick={scope.isLocal ? onOpenScopeBrowser : undefined}
+          trailing={scope.scopePath ? (
+            <button
+              type="button"
+              className="eval-identity__clear"
+              onClick={() => scope.setScopePath(null)}
+              aria-label={t('evaluate.clearScopeAria')}
+            >
+              ×
+            </button>
+          ) : null}
+        >
+          <code className="eval-identity__code">{scopeValue}</code>
+          {branchLabel && <span className="eval-identity__branch">@ {branchLabel}</span>}
+        </IdentityCell>
+        <ModelCell activeModel={activeModel} popover={modelPopover} cellRef={modelCellRef} />
+      </IdentityStrip>
+      <ModelPopover open={modelPopover.open} anchorRef={modelCellRef} onClose={modelPopover.onClose} onOpenSettings={onGoToSettings} />
+    </div>
   );
 }
 

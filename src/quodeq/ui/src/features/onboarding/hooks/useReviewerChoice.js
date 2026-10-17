@@ -8,9 +8,15 @@ import { serverProviderId } from '../providerLabels.js';
 // provider is put forward as the better one.
 const REVIEWER_ORDER = Object.freeze(['claude-code', 'codex-cli', 'copilot', 'ollama', 'openai', 'anthropic']);
 
+// Detection or server id: both name the same provider.
 function orderIndex(id) {
-  const index = REVIEWER_ORDER.indexOf(id);
+  const index = REVIEWER_ORDER.findIndex((entry) => serverProviderId(entry) === serverProviderId(id));
   return index === -1 ? REVIEWER_ORDER.length : index;
+}
+
+/** Sort comparator for provider ids (detection or server) in the neutral reviewer order. */
+export function compareReviewerOrder(a, b) {
+  return orderIndex(a) - orderIndex(b);
 }
 
 /**
@@ -22,7 +28,7 @@ function orderIndex(id) {
 export function orderReviewers(detected) {
   return (detected || [])
     .filter((r) => r && r.detected && r.id)
-    .sort((a, b) => orderIndex(a.id) - orderIndex(b.id))
+    .sort((a, b) => compareReviewerOrder(a.id, b.id))
     .map((r) => serverProviderId(r.id));
 }
 
@@ -43,19 +49,19 @@ function effortFor(catalog, model, effort) {
 }
 
 /**
- * The reviewer being chosen on first run: which detected provider, with
- * which model and effort. Picks survive switching provider and back; `save`
- * writes the selected one under the keys Settings reads.
+ * A reviewer being chosen among `providers` (server ids): which one, with
+ * which model and effort. Starts on `initial` when it is listed, else the
+ * first. Picks survive switching provider and back; nothing is stored until
+ * `save` writes the selected one under the keys Settings reads.
  *
- * @param {{detected: object[], storage?: Storage}} options
+ * @param {{providers: string[], initial?: string|null, storage?: Storage}} options
  */
-export function useReviewerChoice({ detected, storage }) {
-  const providers = useMemo(() => orderReviewers(detected), [detected]);
+export function useReviewerDraft({ providers, initial = null, storage }) {
   const stored = useMemo(
     () => Object.fromEntries(providers.map((id) => [id, readReviewerChoice(id, storage)])),
     [providers, storage],
   );
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(initial);
   const [picks, setPicks] = useState({});
   const providerId = providers.includes(selected) ? selected : (providers[0] || null);
   const { data: catalog } = useClientModels(providerId);
@@ -68,6 +74,7 @@ export function useReviewerChoice({ detected, storage }) {
     providerId,
     model,
     effort,
+    catalog,
     choiceFor,
     select: setSelected,
     setModel: (next) => pick({ model: next, effort: effortFor(catalog, next, effort) }),
@@ -75,4 +82,15 @@ export function useReviewerChoice({ detected, storage }) {
     ready: Boolean(providerId && model),
     save: () => writeReviewerChoice({ providerId, model, effort }, storage),
   };
+}
+
+/**
+ * The reviewer being chosen on first run, among the detected providers in
+ * the neutral order.
+ *
+ * @param {{detected: object[], storage?: Storage}} options
+ */
+export function useReviewerChoice({ detected, storage }) {
+  const providers = useMemo(() => orderReviewers(detected), [detected]);
+  return useReviewerDraft({ providers, storage });
 }

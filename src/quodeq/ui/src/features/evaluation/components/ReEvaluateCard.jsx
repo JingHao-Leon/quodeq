@@ -23,7 +23,7 @@ const EVAL_OPTIONS_HINT = (
   </>
 );
 
-function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScopeBrowser, onCloseScopeBrowser, isReadOnlyEphemeral, urlActions, activeModel, branchLabel, scopeValue, estimates, onGoToSettings, onGoToProjects }) {
+function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScopeBrowser, onCloseScopeBrowser, isReadOnlyEphemeral, urlActions, activeModel, modelPopover, branchLabel, scopeValue, estimates, onGoToSettings, onGoToProjects }) {
   const { urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = urlActions;
   return (
     <>
@@ -38,6 +38,7 @@ function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScope
         branchLabel={branchLabel}
         scopeValue={scopeValue}
         activeModel={activeModel}
+        modelPopover={modelPopover}
         onOpenScopeBrowser={onOpenScopeBrowser}
         onGoToSettings={onGoToSettings}
         onGoToProjects={onGoToProjects}
@@ -115,6 +116,9 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
   } = actions;
   const [scopeBrowserOpen, setScopeBrowserOpen] = useState(false);
+  // The popover's open state lives here: closing it after "use" re-renders
+  // this view, which re-reads the active model below.
+  const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
   const activeModel = readActiveProviderModel();
   const { isReadOnlyEphemeral, canStart, dimMetas, upToDateIds, branchLabel, scopeValue } =
     computeReEvalViewState({ info, scope, disabled, cleanScan, estimates });
@@ -131,6 +135,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
         isReadOnlyEphemeral={isReadOnlyEphemeral}
         urlActions={{ urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore }}
         activeModel={activeModel}
+        modelPopover={{ open: modelPopoverOpen, onOpen: () => setModelPopoverOpen(true), onClose: () => setModelPopoverOpen(false) }}
         branchLabel={branchLabel}
         estimates={estimates}
         scopeValue={scopeValue}

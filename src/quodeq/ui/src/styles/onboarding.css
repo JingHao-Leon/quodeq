@@ -462,19 +462,6 @@
   font-size: 12px;
   color: var(--color-text-muted);
 }
-.reviewer-fields {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--term-space-2);
-}
-.reviewer-fields > .settings-model-field {
-  flex: 1 1 240px;
-  min-width: 0;
-}
-.reviewer-fields__effort {
-  flex: 0 1 auto;
-}
 .reviewer-list__footer {
   display: flex;
 }
