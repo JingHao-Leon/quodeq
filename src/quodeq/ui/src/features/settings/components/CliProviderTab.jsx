@@ -1,6 +1,6 @@
 import { TimeLimitSetting } from './ProviderSettings.jsx';
 import { SettingsRowLabel, RemoteSubagentsRow } from './settingsRowParts.jsx';
-import { CliAdvancedPanel, CliModelInput } from './CliAdvancedPanel.jsx';
+import { CliEffortRow, CliModelInput, CmdOverrideRow } from './CliProviderRows.jsx';
 import { useCliProviderTab } from '../hooks/useCliProviderTab.js';
 import { modelEffort, useClientModels } from '../hooks/useClientModels.js';
 import { t } from '../../../strings/index.js';
@@ -40,10 +40,11 @@ export default function CliProviderTab({ providerId, providerConfig, state, upda
           {!state.model && <span className="settings-model-hint">{t('settings.pickModelToStart')}</span>}
         </div>
       </div>
+      <CliEffortRow providerId={providerId} providerConfig={providerConfig} state={state} update={update} />
       <TimeLimitSetting state={state} update={update} providerType={PROVIDER_CLASSIFICATION.CLI} />
       <RemoteSubagentsRow state={state} update={update} clampSubagents={clampSubagents} />
-      <CliAdvancedPanel
-        providerId={providerId} providerConfig={providerConfig} state={state} update={update}
+      <CmdOverrideRow
+        providerId={providerId} state={state} update={update}
         cmdPathError={cmdPathError} validateCmdPath={validateCmdPath}
       />
     </>
