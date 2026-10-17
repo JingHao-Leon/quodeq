@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useProviderDetection } from './useProviderDetection.js';
-import { useReviewerChoice } from './useReviewerChoice.js';
+import { useReviewerChoice } from '../../reviewer/hooks/useReviewerChoice.js';
 import { usePluginDimensions } from '../../evaluation/hooks/usePluginDimensions.js';
 import { createScanSummary } from '../../../models/index.js';
 import { detectedLanguages } from '../../evaluation/components/scanSummary.js';

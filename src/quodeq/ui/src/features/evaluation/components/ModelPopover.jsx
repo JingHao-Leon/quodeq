@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import ReviewerFields from '../../onboarding/components/reviewer/ReviewerFields.jsx';
-import { compareReviewerOrder, useReviewerDraft } from '../../onboarding/hooks/useReviewerChoice.js';
+import ReviewerFields from '../../reviewer/components/ReviewerFields.jsx';
+import { compareReviewerOrder, useReviewerDraft } from '../../reviewer/hooks/useReviewerChoice.js';
 import { ProviderPillGroup } from '../../settings/components/ProviderPillGroup.jsx';
 import { useAiClientList } from '../../settings/hooks/useAiClientList.js';
 import { findCatalogModel } from '../../settings/hooks/useClientModels.js';

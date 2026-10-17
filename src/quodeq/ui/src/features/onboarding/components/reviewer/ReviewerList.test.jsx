@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { withStableQueryApi } from '../../../../test-utils/withQueryClient.jsx';
-import { useReviewerChoice } from '../../hooks/useReviewerChoice.js';
+import { useReviewerChoice } from '../../../reviewer/hooks/useReviewerChoice.js';
 import ReviewerList from './ReviewerList.jsx';
 
 const CATALOG = [

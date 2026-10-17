@@ -1,11 +1,11 @@
 import { useId } from 'react';
-import { CliModelInput } from '../../../settings/components/CliAdvancedPanel.jsx';
-import { ModelPickerSelect } from '../../../settings/components/LocalApiTabLayout.jsx';
-import { modelEffort, useClientModels } from '../../../settings/hooks/useClientModels.js';
-import { useOllamaModels } from '../../../settings/hooks/useOllamaModels.js';
-import { defaultEffortLabel, effortLabel } from '../../../settings/effortLabels.js';
-import { PROVIDER } from '../../../../vocab/provider.js';
-import { t } from '../../../../strings/index.js';
+import { CliModelInput } from '../../settings/components/CliAdvancedPanel.jsx';
+import { ModelPickerSelect } from '../../settings/components/LocalApiTabLayout.jsx';
+import { modelEffort, useClientModels } from '../../settings/hooks/useClientModels.js';
+import { useOllamaModels } from '../../settings/hooks/useOllamaModels.js';
+import { defaultEffortLabel, effortLabel } from '../../settings/effortLabels.js';
+import { PROVIDER } from '../../../vocab/provider.js';
+import { t } from '../../../strings/index.js';
 
 function OllamaModelField({ value, onChange }) {
   const labelId = useId();

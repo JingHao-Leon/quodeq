@@ -1,8 +1,8 @@
-import ReviewerFields from './ReviewerFields.jsx';
-import { orderReviewers } from '../../hooks/useReviewerChoice.js';
+import ReviewerFields from '../../../reviewer/components/ReviewerFields.jsx';
+import { orderReviewers } from '../../../reviewer/hooks/useReviewerChoice.js';
 import { findCatalogModel, useClientModels } from '../../../settings/hooks/useClientModels.js';
 import { effortLabel } from '../../../settings/effortLabels.js';
-import { providerLabel } from '../../providerLabels.js';
+import { providerLabel } from '../../../reviewer/providerLabels.js';
 import { t } from '../../../../strings/index.js';
 
 function summaryText({ catalog, model, effort }) {
