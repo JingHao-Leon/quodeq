@@ -143,3 +143,41 @@ def test_the_packed_database_is_never_handed_to_extractall(repo, monkeypatch):
     monkeypatch.setattr(tarfile.TarFile, "extractall", spy)
     assert ensure_restored(run)
     assert "events.jsonl" in seen and "evaluation.db" not in seen
+
+
+def test_a_reused_inode_without_the_local_token_is_rebuilt(repo, monkeypatch):
+    from quodeq.data.fs import shared_clone_runs
+
+    run = _run(repo, archived=False)
+    _commit_all(repo)
+    with open_evaluation_db(run):
+        pass
+    record = shared_clone_runs._read_marker(local_db_marker(run))
+    assert record and record.get("token")
+    for name in ("evaluation.db", "evaluation.db-wal", "evaluation.db-shm"):
+        (run / name).unlink(missing_ok=True)
+    _sentinel_db(run / "evaluation.db")  # a different file, without the token
+    same = {"dev": record["dev"], "ino": record["ino"]}
+    monkeypatch.setattr(shared_clone_runs, "_db_identity", lambda _run_dir: dict(same))  # the inode came back
+    with open_evaluation_db(run) as conn:
+        assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'sentinel_marker'").fetchone()
+    assert not _has_sentinel(run / "evaluation.db")
+
+
+def test_a_legit_reopen_keeps_the_database(repo, monkeypatch):
+    from quodeq.data.fs import shared_clone_runs
+
+    run = _run(repo, archived=False)
+    _commit_all(repo)
+    with open_evaluation_db(run) as conn:
+        conn.execute("CREATE TABLE kept (v TEXT)")
+        conn.execute("INSERT INTO kept VALUES ('x')")
+        conn.commit()
+    forgets: list[Path] = []
+    real_forget = shared_clone_runs._forget_db
+    monkeypatch.setattr(shared_clone_runs, "_forget_db", lambda d: (forgets.append(d), real_forget(d)))
+    monkeypatch.setattr(shared_clone_runs, "new_token", lambda: pytest.fail("a trusted database got a new token"))
+    for _ in range(2):
+        with open_evaluation_db(run) as conn:
+            assert conn.execute("SELECT v FROM kept").fetchone() == ("x",)
+    assert forgets == []

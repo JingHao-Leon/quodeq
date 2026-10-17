@@ -13,8 +13,9 @@ nothing the repository carries trusted:
 - ``evaluation.db`` is never taken from an archive, and a database is only
   opened when quodeq created it in this clone: the ``local_db`` marker holds
   the file's device and inode, which a checkout writing the file anew
-  changes. Anything else is deleted with its sidecars and rebuilt from the
-  event log;
+  changes, and a random token the database holds too (a file system may
+  hand the freed inode straight back). Anything else is deleted with its
+  sidecars and rebuilt from the event log;
 - both markers live under ``.git/quodeq/runs/<project>/<run>/``, which no
   commit can carry;
 - the run, its project and the evaluations folder must be real folders inside
@@ -31,6 +32,7 @@ import json
 import logging
 import os
 import shutil
+import sqlite3
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
@@ -38,6 +40,7 @@ from quodeq.data.fs.run_archive_files import (
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, is_plain_file, write_json_sidecar,
 )
 from quodeq.data.fs.run_archive_guard import warn_once
+from quodeq.data.fs.shared_clone_db_token import new_token, read_db_token, write_db_token
 from quodeq.data.fs.run_archive_limits import RunArchiveError, check_restore_dirs
 from quodeq.data.fs.run_archive_wal import DB_NAME
 from quodeq.data.fs.shared_repo_git import EVALUATIONS_DIRNAME, run_git
@@ -182,17 +185,27 @@ def _db_identity(run_dir: Path) -> dict | None:
     return {"dev": st.st_dev, "ino": st.st_ino}
 
 
+def _db_trusted(run_dir: Path) -> bool:
+    """True when the database is the file the ``local_db`` record names and holds the record's token."""
+    identity = _db_identity(run_dir)
+    record = _read_marker(local_db_marker(run_dir))
+    if identity is None or record is None or any(record.get(k) != v for k, v in identity.items()):
+        return False
+    token = record.get("token")
+    return isinstance(token, str) and bool(token) and read_db_token(run_dir / DB_NAME) == token
+
+
 def trust_local_db_locked(run_dir: Path, locked: bool) -> bool:
     """Make the clone run's database one quodeq created; False when it cannot (no lock, or a linked run).
 
-    A database whose device and inode differ from the ``local_db`` record
-    (or without one) is deleted with its sidecars, so the connect that
-    follows creates a fresh one; the caller then marks it.
+    A database whose device and inode differ from the ``local_db`` record,
+    or that lacks the record's token (or without a record), is deleted with
+    its sidecars, so the connect that follows creates a fresh one; the
+    caller then marks it.
     """
     if not clone_run_contained(run_dir):
         return False
-    identity = _db_identity(run_dir)
-    if identity is not None and _read_marker(local_db_marker(run_dir)) == identity:
+    if _db_trusted(run_dir):
         return True
     if not locked:
         return False
@@ -200,14 +213,21 @@ def trust_local_db_locked(run_dir: Path, locked: bool) -> bool:
     return True
 
 
-def mark_local_db(run_dir: Path) -> None:
-    """Record the clone run's database as created here; a failed write only costs a rebuild."""
+def mark_local_db(run_dir: Path, conn: sqlite3.Connection) -> None:
+    """Record the clone run's database (open on *conn*) as created here; a failed write only costs a rebuild."""
+    if _db_trusted(run_dir):
+        return
+    token = new_token()
+    try:
+        write_db_token(conn, token)
+    except sqlite3.Error as exc:
+        _logger.warning("Could not mark the database of %s as local: %s", run_dir, exc)
+        return
     identity = _db_identity(run_dir)
-    marker = local_db_marker(run_dir)
-    if identity is None or _read_marker(marker) == identity:
+    if identity is None:
         return
     try:
-        _write_marker(marker, identity)
+        _write_marker(local_db_marker(run_dir), {**identity, "token": token})
     except OSError as exc:
         _logger.warning("Could not mark the database of %s as local: %s", run_dir, exc)
 

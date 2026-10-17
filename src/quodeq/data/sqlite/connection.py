@@ -166,7 +166,7 @@ def _open_clone_db(run_dir: Path, path: Path, locked: bool) -> sqlite3.Connectio
     if not trust_local_db_locked(run_dir, locked):
         raise SqliteStoreUnreadableError(f"the database in {run_dir} was not created here and cannot be rebuilt")
     conn = _open_mapped(path)
-    mark_local_db(run_dir)
+    mark_local_db(run_dir, conn)
     return conn
 
 

@@ -34,12 +34,13 @@ def _done_run(root: Path, *, project_after: bool = True) -> Path:
 def test_publishing_an_archived_run_carries_its_event_log_and_evidence(tmp_path):
     run = _done_run(tmp_path / "local")
     events = (run / "events.jsonl").read_bytes()
+    evidence = (run / _EVIDENCE).read_bytes()  # CRLF on Windows: compare the bytes the run holds
     archive_run(run)
     dest = tmp_path / "clone" / _RUN
     copy_run(run, dest)
     with tarfile.open(dest / "archive.tar.gz", "r:gz") as tar:
         assert tar.extractfile("events.jsonl").read() == events
-        assert tar.extractfile(_EVIDENCE).read() == b'{"snippet": "x"}\n'
+        assert tar.extractfile(_EVIDENCE).read() == evidence
 
 
 def test_the_first_full_read_of_an_archived_run_keeps_its_evidence_metadata(tmp_path):
