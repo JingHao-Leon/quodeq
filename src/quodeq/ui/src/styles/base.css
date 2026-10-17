@@ -1395,48 +1395,6 @@ textarea:focus {
   margin-top: 4px;
 }
 
-.settings-advanced {
-  border-bottom: 1px solid var(--color-border);
-}
-
-.settings-advanced-toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2, 8px);
-  width: 100%;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: var(--space-4, 16px) var(--space-6, 24px);
-  user-select: none;
-  list-style: none;
-  transition: color 150ms ease;
-}
-
-.settings-advanced-toggle:hover {
-  color: var(--color-text);
-}
-
-.settings-advanced-toggle::-webkit-details-marker {
-  display: none;
-}
-
-.settings-advanced-toggle::after {
-  content: '\25B8';
-  font-size: 0.85em;
-  transition: transform 150ms ease;
-  margin-left: auto;
-}
-
-.settings-advanced[open] > .settings-advanced-toggle::after {
-  transform: rotate(90deg);
-}
-
-.settings-advanced-content .settings-row:last-child {
-  border-bottom: none;
-}
-
 .settings-model-input[type="number"] {
   width: 80px;
   text-align: center;
@@ -2479,6 +2437,13 @@ fieldset.gf-tab-body:disabled .gf-boundary-divider { pointer-events: none; curso
   display: flex;
   gap: var(--space-2);
   align-items: stretch;
+}
+
+/* Room for a label like "Opus (recommended)" without clipping; the tab
+   wraps the picker in its own field, so both take the width. */
+.settings-model-field--picker,
+.settings-model-field:has(> .settings-model-field--picker) {
+  min-width: 260px;
 }
 
 .settings-model-select-row .settings-model-input {

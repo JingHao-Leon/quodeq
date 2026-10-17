@@ -49,10 +49,7 @@ function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSha
       </div>
       <div className="settings-group__line">
         <OnboardingSection onShowWelcome={onShowWelcome} />
-        <details className="settings-diagnostics">
-          <summary>{t('settings.diagnostics')}</summary>
-          <ServerSection />
-        </details>
+        <ServerSection />
       </div>
     </>),
     [SETTINGS_GROUP.ABOUT]: (<>

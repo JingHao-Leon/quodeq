@@ -49,11 +49,12 @@ describe('SettingsPage', () => {
     expect(screen.queryByText(/test access/i)).not.toBeInTheDocument();
   });
 
-  it('puts diagnostics and the welcome under App', async () => {
+  it('puts the local server and the welcome under App, the server shown open', async () => {
     renderPage();
     const app = (await screen.findByRole('heading', { level: 2, name: 'App' })).closest('section');
     expect(within(app).getByText(/show the welcome again/i)).toBeInTheDocument();
-    expect(within(app).getByText(/diagnostics/i)).toBeInTheDocument();
+    expect(within(app).getByText('Local server')).toBeInTheDocument();
+    expect(app.querySelector('details')).toBeNull();
   });
 
   it('shows the version once', async () => {
@@ -77,12 +78,12 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('update check unavailable')).toBeInTheDocument();
   });
 
-  it('keeps the welcome and diagnostics on their own line when there is no desktop section', async () => {
+  it('keeps the welcome and the local server on their own line when there is no desktop section', async () => {
     renderPage();
     const welcome = await screen.findByText(/show the welcome again/i);
     const line = welcome.closest('.settings-group__line');
     expect(line).not.toBeNull();
-    expect(within(line).getByText(/diagnostics/i)).toBeInTheDocument();
+    expect(within(line).getByText('Local server')).toBeInTheDocument();
     expect(within(line).queryByText('Toolbar')).toBeNull();
   });
 });

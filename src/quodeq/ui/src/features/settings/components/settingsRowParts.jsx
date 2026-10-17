@@ -108,20 +108,6 @@ export function SettingsOnOffPills({ on, onToggle }) {
 }
 
 /**
- * The collapsed "Advanced" block at the foot of a provider tab.
- */
-export function SettingsAdvanced({ children }) {
-  return (
-    <details className="settings-advanced">
-      <summary className="settings-advanced-toggle">{t('settings.advanced')}</summary>
-      <div className="settings-advanced-content">
-        {children}
-      </div>
-    </details>
-  );
-}
-
-/**
  * A section's on/off switch row. While the feature is off nothing follows it,
  * so it is the section's last row.
  */

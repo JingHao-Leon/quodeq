@@ -167,6 +167,6 @@ describe('CliProviderTab', () => {
     fireEvent.click(screen.getByLabelText('Model help'));
 
     expect(screen.queryByText('gpt-5-mini')).toBeNull();
-    expect(screen.getByText(/leave this blank to use the Codex CLI default/i)).toBeTruthy();
+    expect(screen.getByText(/the list comes from Codex/i)).toBeTruthy();
   });
 });

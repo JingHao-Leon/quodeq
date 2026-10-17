@@ -9,7 +9,7 @@ import ServerStatusRow, { SERVER_ROW_STATUS } from '../../../components/ServerSt
 import { SettingsRowLabel } from './settingsRowParts.jsx';
 import { t } from '../../../strings/index.js';
 import { TimeLimitSetting } from './ProviderSettings.jsx';
-import { LocalApiAdvancedPanel } from './LocalApiAdvancedPanel.jsx';
+import { LocalApiSubagentsRow } from './LocalApiSubagentsRow.jsx';
 
 import { PROVIDER_CLASSIFICATION } from './providerUtils.js';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
@@ -59,7 +59,7 @@ export function LocalApiTabLayout({
       {modelRow}
       {apiKeyRow}
       <TimeLimitSetting state={state} update={update} providerType={PROVIDER_CLASSIFICATION.LOCAL_API} />
-      <LocalApiAdvancedPanel
+      <LocalApiSubagentsRow
         subagentsDescription={subagentsDescription}
         subagentsAriaLabel={subagentsAriaLabel}
         state={state}
