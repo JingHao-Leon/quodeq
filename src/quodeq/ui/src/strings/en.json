@@ -641,7 +641,7 @@
   "evaluate.noNewFindings": "no new findings",
   "evaluate.checksPassed": "{count} checks passed",
   "evaluate.newCount": "{count} new",
-  "evaluate.noProjectHint": "Add or pick a project from Projects to run an evaluation.",
+  "evaluate.noProjectHint": "Add or pick a repository on the Repositories tab to run an evaluation.",
   "evaluate.noProjectSub": "pick or add a project to start",
   "evaluate.noProviderSelected": "No provider selected. Go to Settings to configure one.",
   "evaluate.noStandardsMessage": "Select at least one standard before evaluating.",

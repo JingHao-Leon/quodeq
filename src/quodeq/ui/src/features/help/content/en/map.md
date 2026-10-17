@@ -38,7 +38,7 @@ The switches in the map's corner also turn the **Labels** and the **Legend** on 
 - **Large red blocks** big files with many issues, high-impact refactor targets.
 - **Clusters of red** entire modules drifting from the standard.
 - **Galaxy by standards** reveals which principles are violated most across the project, regardless of where the files live.
-- **Green islands**: well-maintained areas. Protect them when refactoring nearby.
+- **Pale circles**: files with few issues for their size. Protect them when refactoring nearby.
 
 ### Drilling in
 
