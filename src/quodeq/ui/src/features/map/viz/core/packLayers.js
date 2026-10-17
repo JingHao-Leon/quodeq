@@ -156,18 +156,19 @@ export function drawVeilWithHole(ctx, { px, py, r }, palette, size) {
 }
 
 /** The hover ring both vizzes draw: a thin text-coloured circle of radius `r` at (px, py). */
-export function drawHoverRing(ctx, { px, py, r }, palette) {
+export function drawHoverRing(ctx, { px, py, r }, palette, hue = null) {
   ctx.beginPath();
   ctx.arc(px, py, r, 0, TAU);
   ctx.globalAlpha = HOVER_STROKE_ALPHA;
   ctx.lineWidth = HOVER_STROKE_PX;
-  ctx.strokeStyle = rgbCss(palette.text);
+  ctx.strokeStyle = rgbCss(hue || palette.text);
   ctx.stroke();
   ctx.globalAlpha = 1;
 }
 
-function drawHover(ctx, p, palette) {
-  drawHoverRing(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette);
+/** The hover ring in the hovered circle's own hue (as its glow), the text colour without one. */
+function drawHover(ctx, p, palette, hue) {
+  drawHoverRing(ctx, { px: p.px, py: p.py, r: folderRadius(p.r) }, palette, hue);
 }
 
 /**
@@ -246,12 +247,12 @@ function drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverInde
 }
 
 /**
- * The overlay: the hover ring and, with labels on, the labels. Brightness
+ * The overlay: the hover ring (in the hovered circle's hue from `paint`) and, with labels on, the labels. Brightness
  * lives on the static layer (fadesFor). `nameOf(i)`, when given, names circle
  * `i` (the time-lapse names a collapsed chain after its end).
  */
-export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, selectedIndex = null, focusNode, showLabels, palette, font, width, height, fontScale = 1, nameOf = null }) {
+export function drawOverlay(ctx, { circles, screenCoords, viewport, hoverIndex, selectedIndex = null, focusNode, showLabels, palette, font, width, height, fontScale = 1, nameOf = null, paint = null }) {
   ctx.clearRect(0, 0, width, height);
-  if (hoverIndex !== null) drawHover(ctx, toPx(screenCoords[hoverIndex], viewport), palette);
+  if (hoverIndex !== null) drawHover(ctx, toPx(screenCoords[hoverIndex], viewport), palette, paint?.[hoverIndex]?.hue);
   if (showLabels) drawLabels(ctx, { circles, screenCoords, viewport, focusNode, hoverIndex, selectedIndex, palette, font, fontScale, nameOf });
 }

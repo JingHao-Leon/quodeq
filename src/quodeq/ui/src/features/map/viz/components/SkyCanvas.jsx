@@ -70,8 +70,8 @@ function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selec
     const ctx = prepareLayer(overlayRef.current, size);
     if (!ctx || !palette) return;
     const keepIndex = validHover(hover ?? selected, bubbles);
-    drawSkyOverlay(ctx, { bubbles, files, keepIndex, hoverIndex: hover, labels, palette, font, fontScale, width: size.w, height: size.h });
-  }, [overlayRef, bubbles, files, labels, hover, selected, palette, font, fontScale, size]);
+    drawSkyOverlay(ctx, { bubbles, files, paints, keepIndex, hoverIndex: hover, labels, palette, font, fontScale, width: size.w, height: size.h });
+  }, [overlayRef, bubbles, files, paints, labels, hover, selected, palette, font, fontScale, size]);
 }
 
 /**

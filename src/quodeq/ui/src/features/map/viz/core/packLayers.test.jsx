@@ -126,6 +126,19 @@ describe('drawOverlay', () => {
     expect(texts(ctx)).toEqual(['src']);
   });
 
+  it('draws the hover ring in the hovered circle\'s hue, the text colour without one', () => {
+    const strokeOf = (over) => {
+      const ctx = fakeCanvasContext();
+      const styles = [];
+      ctx.stroke.mockImplementation(() => styles.push(ctx.strokeStyle));
+      overlay(ctx, scene(), { hoverIndex: 1, showLabels: false, ...over });
+      return styles[0];
+    };
+    const paint = [null, { hue: { r: 240, g: 80, b: 120 } }];
+    expect(strokeOf({ paint })).toBe('rgb(240, 80, 120)');
+    expect(strokeOf({})).toBe('rgb(255, 255, 255)');
+  });
+
   it('labels show the last segment of the open folder\'s sub-folders, never a file', () => {
     const ctx = fakeCanvasContext();
     const s = scene();

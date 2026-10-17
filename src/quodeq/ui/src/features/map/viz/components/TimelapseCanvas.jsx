@@ -184,7 +184,7 @@ export default function TimelapseCanvas({ scene, paintInputs, interaction }) {
     drawOverlay(ctx, {
       circles: model.nodes, screenCoords: coords.current, viewport, hoverIndex: interaction.hover, selectedIndex: interaction.selected ?? null,
       focusNode: model.nodes[shownFocus], showLabels: interaction.showLabels,
-      nameOf: (i) => model.nodes[chainEnd(ends, i)].data.name,
+      nameOf: (i) => model.nodes[chainEnd(ends, i)].data.name, paint: layer.paint,
       palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
