@@ -67,6 +67,7 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
         <SettingsRowLabel hintSlot={false} label={t('storage.archiveAfter')} description={t('storage.archiveAfterDesc')} />
         <SettingsPillTabs options={ARCHIVE_AFTER} value={data ? data.archiveAfterDays : undefined} onChange={storage.setArchiveAfter} />
       </div>
+      {storage.archiveAfterFailed && <p className="inline-error storage-save-error">{t('storage.saveFailed')}</p>}
       {cleaning && <CleanModal onClean={storage.runClean} onClose={() => setCleaning(false)} />}
       {deleting && data && <DeleteAllModal data={data} onDelete={deleteAll} onClose={() => setDeleting(false)} />}
     </section>

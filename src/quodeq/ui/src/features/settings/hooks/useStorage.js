@@ -97,6 +97,6 @@ export default function useStorage() {
   };
   return {
     data: summary.data ?? null, isLoading: summary.isPending, isError: summary.isError,
-    ...progress, setArchiveAfter: archiveAfter.mutate, runClean, deleteAll,
+    ...progress, setArchiveAfter: archiveAfter.mutate, archiveAfterFailed: archiveAfter.isError, runClean, deleteAll,
   };
 }

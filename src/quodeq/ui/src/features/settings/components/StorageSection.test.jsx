@@ -82,6 +82,19 @@ describe('StorageSection', () => {
     warn.mockRestore();
   });
 
+  it('says under the row that the choice was not saved, until a save works', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const putStorageSettings = vi.fn(async () => { throw new Error('nope'); });
+    const { section } = setup({ putStorageSettings });
+    await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
+    fireEvent.click(section().getByRole('tab', { name: 'never' }));
+    await waitFor(() => expect(section().getByText("Couldn't save. Try again.")).toBeInTheDocument());
+    putStorageSettings.mockImplementation(async (body) => body);
+    fireEvent.click(section().getByRole('tab', { name: '1 year' }));
+    await waitFor(() => expect(section().queryByText("Couldn't save. Try again.")).not.toBeInTheDocument());
+    warn.mockRestore();
+  });
+
   it('previews the clean, then runs it and shows the progress', async () => {
     let finish = () => {};
     const getCleanStatus = vi.fn(() => new Promise((resolve) => { finish = resolve; }));

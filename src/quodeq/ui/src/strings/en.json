@@ -2413,7 +2413,7 @@
   "storage.never": "never",
   "storage.cleanTitle": "Clean now",
   "storage.cleanSummary": "Archives {archive} runs untouched for longer than you chose, freeing about {frees}.",
-  "storage.cleanNote": "Nothing is deleted. Archived runs stay in History and open in a few seconds the first time. After this, old runs are archived on their own.",
+  "storage.cleanNote": "Nothing is deleted. Archived runs stay in History and open in a few seconds the first time. Old runs are also archived on their own after quodeq starts.",
   "storage.cleanConfirm": "clean now",
   "storage.deleteAllTitle": "Delete all evaluation data",
   "storage.typeToConfirmAria": "confirmation",
@@ -2439,6 +2439,7 @@
   "storage.busyCleanRunning": "A clean is running. Try again when it ends.",
   "storage.busyEvaluation": "An evaluation is running in {names}. Wait for it to finish.",
   "storage.cleanDidNotFinish": "The last clean didn't finish.",
+  "storage.saveFailed": "Couldn't save. Try again.",
   "history.archived": "archived",
   "history.archivedTitle": "Stored compressed. Opens in a few seconds the first time.",
   "history.restoringArchived": "restoring archived run…"
