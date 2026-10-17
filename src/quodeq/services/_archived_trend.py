@@ -7,7 +7,8 @@ It is served instead from the grades it had when it was archived. A
 suppression that touches it later (a dismissal made since, a deletion, a
 rule) is applied once the run is opened and restored; the frozen rows are
 served but never written to the score cache, so no persisted grade misses a
-dismissal, and the first read after the restore rescores the run.
+dismissal, and the first read after the restore rescores the run. The same
+holds for a grading-algorithm change: the frozen grades stand until then.
 """
 from __future__ import annotations
 
