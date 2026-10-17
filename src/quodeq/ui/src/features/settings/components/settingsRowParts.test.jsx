@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { SettingsRowLabel, SettingsAdvanced, SettingsEnableRow } from './settingsRowParts.jsx';
+import { SettingsRowLabel, SettingsEnableRow } from './settingsRowParts.jsx';
 
 describe('SettingsRowLabel', () => {
   it('wraps the label in a hint row by default', () => {
@@ -17,16 +17,6 @@ describe('SettingsRowLabel', () => {
     expect(container.innerHTML).toBe(
       '<div class="settings-row-label"><span class="settings-label">Power</span>'
       + '<span class="settings-description">How hard</span></div>',
-    );
-  });
-});
-
-describe('SettingsAdvanced', () => {
-  it('puts its children in the collapsible advanced block', () => {
-    const { container } = render(<SettingsAdvanced><p>inner</p></SettingsAdvanced>);
-    expect(container.innerHTML).toBe(
-      '<details class="settings-advanced"><summary class="settings-advanced-toggle">Advanced</summary>'
-      + '<div class="settings-advanced-content"><p>inner</p></div></details>',
     );
   });
 });

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { t } from '../../strings/index.js';
 import { useUpdateStatus } from './useUpdateStatus.js';
 import { useSelfUpdate } from './useSelfUpdate.js';
+import { useInPlaceUpgrade } from './useInPlaceUpgrade.js';
+import InPlaceUpgradeBanner from './InPlaceUpgradeBanner.jsx';
 import { useUpdateBannerActions } from './useUpdateBannerActions.js';
 import { openExternal } from './openExternal.js';
 
@@ -60,6 +62,7 @@ function UpdateAction({ status, selfUpdate }) {
 export default function UpdateBanner() {
   const { status, adopt } = useUpdateStatus();
   const selfUpdate = useSelfUpdate(status, adopt);
+  const upgrade = useInPlaceUpgrade(status, adopt);
   const { markUpdateDisclosed, dismissUpdate } = useUpdateBannerActions();
   const [dismissed, setDismissed] = useState(false);
 
@@ -79,15 +82,22 @@ export default function UpdateBanner() {
     // request failed, but log the failure so it is diagnosable.
     dismissUpdate(status.latest).catch(warnPersistFailed);
   };
+  const dismissButton = (
+    <button type="button" className="update-banner-dismiss" aria-label={t('updates.dismissAria')} onClick={onDismiss}>
+      ×
+    </button>
+  );
+
+  if (upgrade.supported || upgrade.installed || upgrade.restarting) {
+    return <InPlaceUpgradeBanner status={status} upgrade={upgrade} dismissButton={dismissButton} />;
+  }
 
   return (
     <div className={`update-banner${status.is_security ? ' update-banner--security' : ''}`} role="status">
       <BannerText status={status} selfUpdate={selfUpdate} />
       <span className="update-banner-actions">
         <UpdateAction status={status} selfUpdate={selfUpdate} />
-        <button type="button" className="update-banner-dismiss" aria-label={t('updates.dismissAria')} onClick={onDismiss}>
-          ×
-        </button>
+        {dismissButton}
       </span>
     </div>
   );
