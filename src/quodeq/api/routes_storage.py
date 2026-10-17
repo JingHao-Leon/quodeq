@@ -3,7 +3,8 @@
 GET    /api/storage             -- size, runs, archived runs per project, the setting, clean progress
 PUT    /api/storage/settings    -- {archiveAfterDays: 91|183|365|null}
 GET    /api/storage/preview     -- what a clean would archive now, and about how much it frees
-POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean runs
+GET    /api/storage/clean       -- clean progress only, no disk walk (cheap to poll)
+POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean or the score warm-up runs
 DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while anything runs
 """
 from __future__ import annotations
@@ -29,10 +30,15 @@ CODE_INVALID_VALUE = "INVALID_VALUE"
 CODE_STORAGE_BUSY = "STORAGE_BUSY"
 CODE_CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
 _SETTING_KEY = "archiveAfterDays"
+_WARMUP_BUSY = "The score warm-up is running; try again when it ends"
 
 
-def _busy(message: str) -> tuple[Response, int]:
-    return json_error(message, HTTPStatus.CONFLICT, CODE_STORAGE_BUSY)
+def _busy(message: str, projects: tuple[str, ...] = ()) -> tuple[Response, int]:
+    return jsonify({"error": message, "code": CODE_STORAGE_BUSY, "projects": list(projects)}), HTTPStatus.CONFLICT
+
+
+def _warmup_active() -> bool:
+    return bool((warmup_engine.snapshot() or {}).get("active"))
 
 
 def _summary_payload(env: Mapping[str, str] | None, job: CleanJob) -> dict:
@@ -68,12 +74,12 @@ def _delete_all(provider: ActionProvider) -> Response | tuple[Response, int]:
             "Use ?confirm=true to confirm deleting all evaluation data",
             HTTPStatus.BAD_REQUEST, CODE_CONFIRMATION_REQUIRED,
         )
-    if (warmup_engine.snapshot() or {}).get("active"):
-        return _busy("The score warm-up is running; try again when it ends")
+    if _warmup_active():
+        return _busy(_WARMUP_BUSY)
     try:
         deleted = delete_all_evaluations(provider, Path(reports_dir()))
-    except StorageBusyError:
-        return _busy("An evaluation or a storage clean is running; try again when it ends")
+    except StorageBusyError as exc:
+        return _busy("An evaluation or a storage clean is running; try again when it ends", exc.projects)
     SHARED_LOG.info(f"delete all evaluations: removed {deleted} project folders")
     return jsonify({"deleted": deleted})
 
@@ -96,8 +102,14 @@ def register_storage_routes(app: Flask, provider: ActionProvider, env: Mapping[s
         preview = clean_preview(Path(reports_dir()), datetime.now(timezone.utc), days)
         return jsonify({"archive": preview.archive, "frees": preview.frees})
 
+    @app.get("/api/storage/clean")
+    def get_storage_clean() -> Response:
+        return jsonify({"clean": job.snapshot()})
+
     @app.post("/api/storage/clean")
     def post_storage_clean() -> tuple[Response, int]:
+        if _warmup_active():
+            return _busy(_WARMUP_BUSY)
         if not job.start(reports_dir(), env, SHARED_LOG):
             return _busy("A storage clean is already running")
         return jsonify({"clean": job.snapshot()}), HTTPStatus.ACCEPTED

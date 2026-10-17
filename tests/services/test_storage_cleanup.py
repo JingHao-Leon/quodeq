@@ -2,24 +2,10 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
 
 from quodeq.services import storage_cleanup
 from quodeq.services.storage_cleanup import cleanup_enabled, plan_cleanup, run_cleanup
-
-NOW = datetime(2026, 10, 17, tzinfo=timezone.utc)
-
-
-def _run(root, project, name, days, *, state="done", dims=("quality",), log=True):
-    run_dir = root / project / name
-    (run_dir / "evaluation").mkdir(parents=True)
-    started = (NOW - timedelta(days=days)).isoformat()
-    (run_dir / "status.json").write_text(json.dumps({"state": state, "started_at": started}))
-    for dim in dims:
-        (run_dir / "evaluation" / f"{dim}.json").write_text("{}")
-    if log:
-        (run_dir / "events.jsonl").write_text("{}\n")
-    return run_dir
+from tests.services._storage_fixtures import NOW, make_run as _run
 
 
 class _Log:

@@ -12,8 +12,7 @@ from quodeq.services import storage_cleanup, storage_job
 from quodeq.services.storage_cleanup import CleanupResult
 from quodeq.services.storage_job import CleanJob
 from tests._timeouts import budget
-from tests.services.test_storage_cleanup import _run
-from tests.services.test_storage_report import _Provider
+from tests.services._storage_fixtures import FakeProvider as _Provider, make_run as _run
 
 
 @pytest.fixture
@@ -137,19 +136,34 @@ def test_delete_all_is_409_while_a_run_is_in_flight(client, root, provider):
     _run(root, "p", "live", 1, state="running")
     resp = client.delete("/api/storage?confirm=true")
     assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_BUSY"
+    assert resp.get_json()["projects"] == ["p"]
     assert provider.deleted == []
+
+
+class _BusyWarmup:
+    def snapshot(self):
+        return {"active": True}
 
 
 def test_delete_all_is_409_during_the_score_warmup(client, root, provider, monkeypatch):
     _run(root, "p", "r", 10)
-
-    class _Busy:
-        def snapshot(self):
-            return {"active": True}
-
-    monkeypatch.setattr(routes_storage, "warmup_engine", _Busy())
+    monkeypatch.setattr(routes_storage, "warmup_engine", _BusyWarmup())
     assert client.delete("/api/storage?confirm=true").status_code == 409
     assert provider.deleted == []
+
+
+def test_clean_is_409_during_the_score_warmup(client, monkeypatch):
+    monkeypatch.setattr(routes_storage, "warmup_engine", _BusyWarmup())
+    resp = client.post("/api/storage/clean")
+    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_BUSY"
+    assert storage_cleanup.CLEANUP_LOCK.locked() is False
+
+
+def test_get_clean_returns_only_the_snapshot(client, monkeypatch):
+    monkeypatch.setattr(routes_storage, "storage_summary", lambda _root: pytest.fail("no disk walk"))
+    resp = client.get("/api/storage/clean")
+    assert resp.status_code == 200
+    assert resp.get_json() == {"clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0}}
 
 
 def test_the_app_registers_the_storage_routes(root):

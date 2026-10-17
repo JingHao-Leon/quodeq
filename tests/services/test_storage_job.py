@@ -7,7 +7,7 @@ from quodeq.services import storage_cleanup, storage_job
 from quodeq.services.storage_cleanup import CleanupResult
 from quodeq.services.storage_job import CleanJob
 from tests._timeouts import budget
-from tests.services.test_storage_cleanup import _run
+from tests.services._storage_fixtures import make_run as _run
 
 
 def _env(tmp_path):

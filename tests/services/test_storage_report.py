@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import os
-import shutil
 
 import pytest
 
@@ -17,30 +18,7 @@ from quodeq.services.storage_report import (
     dir_size,
     storage_summary,
 )
-from tests.services.test_storage_cleanup import NOW, _run
-
-
-class _Provider:
-    """Records deletes and removes the project dir with its children, like delete_project."""
-
-    def __init__(self):
-        self.deleted: list[str] = []
-        self.invalidated = False
-
-    def delete_project(self, reports_dir, project):
-        path = os.path.join(reports_dir, project)
-        if not os.path.isdir(path):
-            return False
-        self.deleted.append(project)
-        for entry in os.listdir(reports_dir):
-            info = os.path.join(reports_dir, entry, "repository_info.json")
-            if os.path.isfile(info) and json.load(open(info)).get("parent") == project:
-                shutil.rmtree(os.path.join(reports_dir, entry))
-        shutil.rmtree(path)
-        return True
-
-    def invalidate_projects_cache(self):
-        self.invalidated = True
+from tests.services._storage_fixtures import NOW, FakeProvider as _Provider, make_run as _run
 
 
 def test_dir_size_skips_dotfiles_and_symlinks(tmp_path):
@@ -97,9 +75,27 @@ def test_delete_all_refuses_while_a_run_is_in_flight(tmp_path):
     _run(tmp_path, "p", "old", 300)
     _run(tmp_path, "q", "live", 1, state="running")
     provider = _Provider()
-    with pytest.raises(StorageBusyError):
+    with pytest.raises(StorageBusyError) as caught:
         delete_all_evaluations(provider, tmp_path)
+    assert caught.value.projects == ("q",)
     assert provider.deleted == [] and (tmp_path / "p").is_dir()
+
+
+def test_delete_all_refuses_while_a_live_process_runs(tmp_path):
+    _run(tmp_path, "q", "live", 1, state="running", pid=os.getpid())
+    with pytest.raises(StorageBusyError):
+        delete_all_evaluations(_Provider(), tmp_path)
+
+
+def _dead_pid():
+    proc = subprocess.Popen([sys.executable, "-c", "pass"])
+    proc.wait()
+    return proc.pid
+
+
+def test_a_crashed_run_with_a_dead_pid_does_not_block_delete_all(tmp_path):
+    _run(tmp_path, "q", "crashed", 1, state="running", pid=_dead_pid())
+    assert delete_all_evaluations(_Provider(), tmp_path) == 1
 
 
 def test_delete_all_refuses_while_a_clean_holds_the_lock(tmp_path):

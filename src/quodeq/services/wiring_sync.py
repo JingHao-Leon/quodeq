@@ -22,5 +22,6 @@ from quodeq.data.fs.shared_standards import (  # noqa: F401
     commit_staged, read_shared_standards, restore_shared_standards, shared_standards_dir, stage_standard_paths,
     write_shared_standard,
 )
+from quodeq.data.sqlite.index_sync import run_pid_alive  # noqa: F401
 from quodeq.data.sqlite.run_index import sync_project  # noqa: F401
 from quodeq.data.sqlite.score_cache_db import score_cache_detached  # noqa: F401

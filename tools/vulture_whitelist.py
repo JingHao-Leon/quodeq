@@ -79,6 +79,7 @@ _.get_storage  # api/routes_storage.py: Flask view function; the route decorator
 _.put_storage_settings  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
 _.get_storage_preview  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
 _.post_storage_clean  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.get_storage_clean  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
 _.delete_storage  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
 _.grade_formula_inputs_route  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
 _.fleet_compare  # api/routes_compare.py: Flask view function; the route decorator is its only caller.

@@ -10,10 +10,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
+from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.base import ActionProvider
-from quodeq.services.storage_cleanup import CLEANUP_LOCK, plan_cleanup, project_in_flight
-from quodeq.services.wiring import read_json_object
-from quodeq.services.wiring_sync import is_archived, packable_bytes
+from quodeq.services.storage_cleanup import CLEANUP_LOCK, plan_cleanup
+from quodeq.services.wiring import UnsupportedSchemaError, read_json_object, read_status
+from quodeq.services.wiring_sync import is_archived, packable_bytes, run_pid_alive
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
 ARCHIVE_SAVING = 0.76
@@ -22,7 +23,14 @@ _REPO_INFO_FILE = "repository_info.json"
 
 
 class StorageBusyError(RuntimeError):
-    """A run is in flight or a clean is running, so the evaluations cannot be deleted now."""
+    """A run is in flight or a clean is running, so the evaluations cannot be deleted now.
+
+    ``projects`` names the projects with a live run (empty when a clean is the reason).
+    """
+
+    def __init__(self, message: str, projects: tuple[str, ...] = ()) -> None:
+        super().__init__(message)
+        self.projects = projects
 
 
 @dataclass(frozen=True)
@@ -120,6 +128,37 @@ def clean_preview(root: Path, now: datetime, warm_days: int | None) -> CleanPrev
     return CleanPreview(len(plan.archive), int(ARCHIVE_SAVING * sum(_packable(r) for r in plan.archive)))
 
 
+def _state(status: dict) -> RunState | None:
+    try:
+        return parse_run_state(status.get("state"))
+    except ValueError:
+        return None
+
+
+def _run_is_live(run_dir: Path) -> bool:
+    """A non-terminal run whose process is alive; unreadable or pid-less counts as live (fail safe).
+
+    Unlike cleanup's ``project_in_flight``, a crashed run (dead pid) does not
+    count, so it can never block delete all for good.
+    """
+    if not (run_dir / _STATUS_FILE).is_file():
+        return False
+    try:
+        status = read_status(run_dir)
+    except UnsupportedSchemaError:
+        return True
+    if not isinstance(status, dict):
+        return True
+    if _state(status) in TERMINAL_STATES:
+        return False
+    pid = status.get("pid")
+    return not isinstance(pid, int) or isinstance(pid, bool) or run_pid_alive(run_dir, pid)
+
+
+def _live_projects(projects: list[Path]) -> tuple[str, ...]:
+    return tuple(p.name for p in projects if any(_run_is_live(r) for r in _subdirs(p)))
+
+
 def _is_child(project: Path) -> bool:
     info = read_json_object(project / _REPO_INFO_FILE)
     return bool(info and info.get("parent"))
@@ -136,8 +175,10 @@ def delete_all_evaluations(provider: ActionProvider, root: Path) -> int:
         raise StorageBusyError("a storage clean is running")
     try:
         projects = _subdirs(Path(root))
-        if any(project_in_flight(p) for p in projects):
-            raise StorageBusyError("an evaluation is running")
+        live = _live_projects(projects)
+        if live:
+            raise StorageBusyError("an evaluation is running", live)
+        # Accepted gap: an evaluation that starts after this check is not excluded (it does not take CLEANUP_LOCK).
         for project in sorted(projects, key=_is_child):
             if project.is_dir():
                 provider.delete_project(str(root), project.name)
