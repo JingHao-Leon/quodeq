@@ -4,17 +4,7 @@ import CopilotModelSelect from './CopilotModelSelect.jsx';
 import CliModelPicker from './CliModelPicker.jsx';
 import { CATALOG_PROVIDERS, modelEffort, useClientModels } from '../hooks/useClientModels.js';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
-
-// Display names for effort levels (from the live model catalog or
-// ai_providers.json's `effort_levels`); a level missing here shows its raw id.
-const EFFORT_LABELS = {
-  low: t('settings.effortLow'),
-  medium: t('settings.effortMedium'),
-  high: t('settings.effortHigh'),
-  xhigh: t('settings.effortXhigh'),
-  max: t('settings.effortMax'),
-  ultra: t('settings.effortUltra'),
-};
+import { defaultEffortLabel, effortLabel } from '../effortLabels.js';
 
 // Copilot lists account models through its own RPC (ids only).
 const COPILOT_PROVIDER_ID = 'copilot';
@@ -59,15 +49,9 @@ function EffortPill({ active, onClick, children }) {
   );
 }
 
-function effortLabel(level) {
-  return EFFORT_LABELS[level] || level;
-}
-
 function EffortRow({ levels, defaultEffort, state, update }) {
   const effort = levels.includes(state[PROVIDER_SETTING_KEY.EFFORT]) ? state[PROVIDER_SETTING_KEY.EFFORT] : '';
-  const defaultLabel = defaultEffort
-    ? t('settings.effortDefaultNamed', { level: effortLabel(defaultEffort) })
-    : t('settings.effortDefault');
+  const defaultLabel = defaultEffortLabel(defaultEffort);
   return (
     <div className="settings-row">
       <SettingsRowLabel
