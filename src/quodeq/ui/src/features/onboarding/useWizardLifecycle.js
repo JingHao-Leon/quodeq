@@ -55,22 +55,25 @@ export function buildWizardHandlers({ state, setWizardEntry, navTab, queryClient
     // `landed`: the add panel handed a project over (or started its clone);
     // an add ends on the Repositories tab, where the tile or the new card
     // is: from the header that is where the user already stands, from the
-    // welcome it is where the job can be watched. A saved exit without
-    // `landed` (the X on a resume-setup walk) only refetches.
-    onClose: ({ saved, projectId, cloning = false, landed = false }) => {
+    // welcome it is where the job can be watched. `select`: the reviewer
+    // step's way to Settings selects the added project without moving to
+    // Repositories (onOpenSettings navigates next). A saved exit with
+    // neither (the X on a resume-setup walk) only refetches.
+    onClose: ({ saved, projectId, cloning = false, landed = false, select = false }) => {
       setWizardEntry(null);
       if (saved && (projectId || cloning)) {
         refreshProjects();
         state.refreshDashboard?.();
       }
-      if (landed) {
-        navTab(NAV_TAB.PROJECTS);
-        selectLandedProject({ ...state, activeTab: NAV_TAB.PROJECTS }, projectId);
-      }
+      if (landed) navTab(NAV_TAB.PROJECTS);
+      if (landed || select) selectLandedProject({ ...state, activeTab: NAV_TAB.PROJECTS }, projectId);
     },
     onLaunch: ({ projectId, repo, scopePath, branch, provider, standardIds, totalTimeLimitS }) => {
       setWizardEntry(null);
       refreshProjects();
+      // The launched project becomes the selection, so the run's
+      // completion owns it and its first grades open on the Overview.
+      if (projectId) state.handleProjectChange?.(projectId, PROJECT_SOURCE.LOCAL);
       const payload = {
         repo: repo || projectId,
         dimensions: standardIds,

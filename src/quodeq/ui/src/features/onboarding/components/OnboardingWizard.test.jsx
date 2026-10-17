@@ -113,11 +113,11 @@ describe('OnboardingWizard reviewer step', () => {
     expect(onLaunch).not.toHaveBeenCalled();
   });
 
-  it('other providers and api keys closes onto settings', async () => {
+  it('other providers and api keys closes onto settings with the added project selected', async () => {
     const { onClose, onOpenSettings } = renderWizard(ADD_ENTRY);
     await addRepository('/u/me/billing');
     fireEvent.click(screen.getByRole('button', { name: 'other providers and api keys' }));
-    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: 'uuid-9', cloning: false });
+    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: 'uuid-9', cloning: false, select: true });
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 });

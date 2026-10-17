@@ -6,6 +6,10 @@ import { SKIPPED_KEY, SKIPPED_VALUE, STEP_WELCOME, STEP_ANALYZE } from './wizard
 import { PROJECT_SOURCE } from '../../vocab/projectSource.js';
 import { NAV_TAB } from '../../vocab/navTab.js';
 import { WIZARD_SOURCE } from './onboardingVocab.js';
+import { QueryClient } from '@tanstack/react-query';
+import { projectsKeys } from '../../api/queryKeys.js';
+import { useJobCompletionEffect } from '../../hooks/useJobCompletionEffect.js';
+import { JOB_STATUS } from '../../vocab/jobStatus.js';
 
 // The auto-open is derived from its inputs rather than decided once: it is
 // re-evaluated whenever the project list or the shared signal changes, never
@@ -226,6 +230,54 @@ describe('useWizardLifecycle welcome exits', () => {
     const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
     act(() => { result.current.wizardHandlers.onOpenSettings(); });
     expect(result.current.wizardEntry).toBeNull();
+    expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.SETTINGS);
+  });
+});
+
+// A launch from the reviewer step while another project is selected: the
+// launch selects the new project, so its finished first run owns the
+// selection and opens the Overview.
+describe('useWizardLifecycle launch hand-off', () => {
+  const LAUNCH = { projectId: 'p-new', repo: '/u/me/billing', provider: { id: 'claude', model: 'sonnet' }, standardIds: ['security'], totalTimeLimitS: 0 };
+
+  function launchFrom(selected) {
+    const p = props({ projects: [{ id: 'a' }] });
+    p.state.selectedProject = selected;
+    p.state.handleProjectChange = vi.fn((id) => { p.state.selectedProject = id; });
+    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    act(() => { result.current.wizardHandlers.onLaunch(LAUNCH); });
+    return p;
+  }
+
+  it('a launch selects the launched project as a local one', () => {
+    const p = launchFrom('a');
+    expect(p.state.handleProjectChange).toHaveBeenCalledWith('p-new', PROJECT_SOURCE.LOCAL);
+    expect(p.navTab).toHaveBeenLastCalledWith(NAV_TAB.EVALUATE);
+  });
+
+  it('the launched project\'s finished first run moves Evaluate to Overview', () => {
+    const p = launchFrom('a');
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(projectsKeys.list(), [{ id: 'p-new', runsCount: 0, latestRunId: null }]);
+    const effect = {
+      job: { status: JOB_STATUS.RUNNING, outputProject: 'p-new', outputRunId: null }, navTab: vi.fn(),
+      activeTab: NAV_TAB.EVALUATE, queryClient, selectedProject: p.state.selectedProject, selectProjectAndRun: vi.fn(),
+    };
+    const { rerender } = renderHook((q) => useJobCompletionEffect(q), { initialProps: effect });
+    rerender({ ...effect, job: { status: JOB_STATUS.DONE, outputProject: 'p-new', outputRunId: 'r1' } });
+    expect(effect.selectProjectAndRun).toHaveBeenCalledWith('p-new', 'r1');
+    expect(effect.navTab).toHaveBeenLastCalledWith(NAV_TAB.OVERVIEW);
+  });
+
+  it('opening settings from the reviewer step selects the added project first', () => {
+    const p = props({ projects: [{ id: 'a' }] });
+    p.state.selectedProject = 'a';
+    p.state.handleProjectChange = vi.fn();
+    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    act(() => { result.current.wizardHandlers.onClose({ saved: true, projectId: 'p-new', cloning: false, select: true }); });
+    act(() => { result.current.wizardHandlers.onOpenSettings(); });
+    expect(p.state.handleProjectChange).toHaveBeenCalledWith('p-new', PROJECT_SOURCE.LOCAL);
+    expect(p.navTab).toHaveBeenCalledTimes(1);
     expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.SETTINGS);
   });
 });

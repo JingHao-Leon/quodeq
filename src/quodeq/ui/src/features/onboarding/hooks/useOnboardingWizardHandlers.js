@@ -69,11 +69,12 @@ function reviewerExits({ wizard, onClose, onLaunch, onOpenSettings }) {
     });
   }
 
-  // The added project is saved (the list refetches), then Settings opens.
+  // The added project is saved (the list refetches) and selected, then
+  // Settings opens.
   function handleOpenSettings() {
     clearDraft();
     const { projectId, cloning } = added();
-    onClose({ saved: true, projectId, cloning });
+    onClose({ saved: true, projectId, cloning, select: true });
     onOpenSettings?.();
   }
 
