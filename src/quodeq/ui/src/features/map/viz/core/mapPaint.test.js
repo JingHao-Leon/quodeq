@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength, fileConcentrationColor,
-  activityScale, activityFileStrength, activityFolderStrength, labelInk, folderGlow,
+  activityScale, activityFileStrength, activityFolderStrength, labelInk, folderGlow, activityGlow,
 } from './mapPaint.js';
 
 const RED = { r: 240, g: 80, b: 120 };
@@ -51,8 +51,8 @@ test('activity scale is the 90th percentile of edited files, at least 2', () => 
 test('activity strengths', () => {
   assert.equal(activityFileStrength(0, 4), 0);
   assert.ok(close(activityFileStrength(4, 4), 1));
-  assert.ok(activityFolderStrength(1, true) > activityFolderStrength(0.1, true));
-  assert.ok(close(activityFolderStrength(0, false), 0.05));
+  assert.ok(activityFolderStrength(1) > activityFolderStrength(0.1));
+  assert.ok(close(activityFolderStrength(0), 0.04));
 });
 
 test('label ink: the theme text pushed toward white on dark, toward black on light', () => {
@@ -64,15 +64,24 @@ test('label ink: the theme text pushed toward white on dark, toward black on lig
   assert.deepEqual(labelInk({ dark: true, text: WHITE }), WHITE);
 });
 
-test('folderGlow: in dark only, worse folders up to 1, better ones less, about average none', () => {
-  assert.equal(folderGlow(0.8, false), 0);
-  assert.equal(folderGlow(0, true), 0);
-  assert.ok(folderGlow(-0.6, true) > 0);
-  assert.ok(folderGlow(-0.6, true) < folderGlow(0.6, true));
-  assert.ok(folderGlow(-0.3, true) < folderGlow(-0.9, true));
-  assert.equal(folderGlow(-1, true), 0.8);
-  assert.ok(folderGlow(0.3, true) > 0);
-  assert.ok(folderGlow(0.3, true) < folderGlow(0.9, true));
-  assert.equal(folderGlow(1, true), 1);
+test('folderGlow: worse folders up to 1, about average none', () => {
+  assert.equal(folderGlow(0), 0);
+  assert.ok(folderGlow(0.3) > 0);
+  assert.ok(folderGlow(0.3) < folderGlow(0.9));
+  assert.equal(folderGlow(1), 1);
+});
+
+test('folderGlow: better folders glow less, up to 0.8', () => {
+  assert.ok(folderGlow(-0.6) > 0);
+  assert.ok(folderGlow(-0.6) < folderGlow(0.6));
+  assert.ok(folderGlow(-0.3) < folderGlow(-0.9));
+  assert.equal(folderGlow(-1), 0.8);
   assert.equal(folderGlow(3, true), 1);
+});
+
+test('activityGlow: busy folders glow, growing with heat; quiet ones never', () => {
+  assert.equal(activityGlow(0.1), 0);
+  assert.ok(activityGlow(0.4) > 0);
+  assert.ok(activityGlow(0.4) < activityGlow(0.9));
+  assert.equal(activityGlow(1), 1);
 });

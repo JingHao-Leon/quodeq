@@ -28,7 +28,7 @@ const GLOW_MIN_R_PX = 8;
 const rgba = ({ r, g, b }, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 
 /**
- * Dark glass: a soft glow in the folder's own hue inside its rim, sized by
+ * A soft glow in the folder's own hue inside its rim, sized by
  * `paint.glow` (0 draws nothing). Leaves the alpha at 1.
  * @param {{px: number, py: number}} p circle centre in pixels
  * @param {number} r folder radius in pixels
@@ -76,7 +76,7 @@ function traceCutOut(ctx, { c, at, index, paints }) {
   }
 }
 
-/** Dark glass: a share of the folder's tint under its cut-out sub-folders (fillStyle already set). */
+/** Glass: a share of the folder's tint under its cut-out sub-folders (fillStyle already set). */
 function fillHoles(ctx, scene, alpha) {
   ctx.beginPath();
   traceCutOut(ctx, scene);
