@@ -111,3 +111,45 @@ def test_a_project_in_a_repo_subfolder_counts_its_own_paths_relative_to_it(tmp_p
     _git(tmp_path, "add", ".")
     _git(tmp_path, "commit", "-qm", "c", date="2026-09-10T10:00:00+00:00")
     assert _between(tmp_path / "ui", "2026-09-05", "2026-09-12") == {"src/a.js": 1}
+
+
+def _repo_with_commit(tmp_path: Path) -> Path:
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "a.py").write_text("1")
+    _git(tmp_path, "add", "a.py")
+    _git(tmp_path, "commit", "-qm", "1", date="2026-09-03T10:00:00+00:00")
+    return tmp_path
+
+
+def _counting_logs(monkeypatch):
+    from quodeq.services.wiring import git_stdout
+    from quodeq.shared.stamp_memo import StampCache
+    logs = []
+
+    def spy(args, **kw):
+        if "log" in args:
+            logs.append(args)
+        return git_stdout(args, **kw)
+    monkeypatch.setattr("quodeq.services._map_git.git_stdout", spy)
+    monkeypatch.setattr("quodeq.services._map_git._ACTIVITY", StampCache(name="test"))
+    return logs
+
+
+def test_an_unchanged_repo_is_read_from_git_once(tmp_path, monkeypatch):
+    repo = _repo_with_commit(tmp_path)
+    logs = _counting_logs(monkeypatch)
+    first = git_commits_per_transition(repo, ["2026-09-01", "2026-09-05"])
+    assert git_commits_per_transition(repo, ["2026-09-01", "2026-09-05"]) == first
+    assert len(logs) == 1
+
+
+def test_a_new_commit_or_new_days_read_git_again(tmp_path, monkeypatch):
+    repo = _repo_with_commit(tmp_path)
+    logs = _counting_logs(monkeypatch)
+    git_commits_per_transition(repo, ["2026-09-01", "2026-09-05"])
+    (repo / "b.py").write_text("1")
+    _git(repo, "add", "b.py")
+    _git(repo, "commit", "-qm", "2", date="2026-09-04T10:00:00+00:00")
+    assert git_commits_per_transition(repo, ["2026-09-01", "2026-09-05"])[1] == {"a.py": 1, "b.py": 1}
+    git_commits_per_transition(repo, ["2026-09-01", "2026-09-06"])
+    assert len(logs) == 3

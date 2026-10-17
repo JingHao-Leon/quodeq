@@ -8,11 +8,18 @@ from pathlib import Path
 from quodeq.core.map_history.git_log import LOG_FORMAT, commits_per_transition, parse_commit_log
 from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.services.wiring import git_stdout
+from quodeq.shared.stamp_memo import StampCache
 
 # A run's day is inclusive: commits up to the end of that day count.
 _ONE_DAY = timedelta(days=1)
 # git must answer quickly; a slow repo falls back to the estimate.
 _TIMEOUT_S = 20
+# The refs git log walks (--branches --remotes): unchanged tips mean an unchanged log.
+_REF_TIPS = ["for-each-ref", "--format=%(objectname)", "refs/heads", "refs/remotes"]
+_REF_TIPS_TIMEOUT_S = 5
+# Every Map open asked git for the whole run span again (up to _TIMEOUT_S on a
+# big repo); the answer only changes when a branch moves or a run day is added.
+_ACTIVITY = StampCache(max_entries=64, name="map.git_activity")
 
 
 def _midnight(day: date) -> int:
@@ -34,10 +41,26 @@ def git_commits_per_transition(repo: Path, days: list[str]) -> list[Counter[str]
     call per transition would give. Item 0 is empty. *repo* may be a
     subfolder of its repository: git finds the repository, and only that
     folder's paths count, relative to it like the reports' paths. None when
-    git is unavailable or *repo* is not inside a repository.
+    git is unavailable or *repo* is not inside a repository. Cached until a
+    branch tip moves or the days change.
     """
     if not days:
         return None
+    tips = git_stdout(["-C", str(repo), *_REF_TIPS], timeout=_REF_TIPS_TIMEOUT_S)
+    if tips is None:
+        return None
+    stamp = (tips, tuple(days))
+    cached = _ACTIVITY.get(str(repo), stamp)
+    if cached is None:
+        cached = _read_activity(repo, days)
+        if cached is None:
+            return None
+        _ACTIVITY.put(str(repo), stamp, cached)
+    return [Counter(c) for c in cached]
+
+
+def _read_activity(repo: Path, days: list[str]) -> list[Counter[str]] | None:
+    """One git log over the run span, split per transition; None when git cannot answer."""
     parsed = [date.fromisoformat(d[:ISO_DAY_LEN]) for d in days]
     try:
         out = git_stdout(
