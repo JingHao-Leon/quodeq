@@ -9,12 +9,12 @@ const INSET_MAX_PX = 2.5;
 export const STROKE_PX = 1;
 const EVEN_ODD = 'evenodd';
 /** Widest glow, in CSS pixels, for the worst folder. */
-const GLOW_BLUR_PX = 22;
-const GLOW_ALPHA_BASE = 0.25;
-const GLOW_ALPHA_SPAN = 0.55;
-const RIM_ALPHA_BASE = 0.2;
-const RIM_ALPHA_SPAN = 0.3;
-const RIM_PX = 1.5;
+const GLOW_BLUR_PX = 16;
+const GLOW_ALPHA_BASE = 0.15;
+const GLOW_ALPHA_SPAN = 0.4;
+const RIM_ALPHA_BASE = 0.1;
+const RIM_ALPHA_SPAN = 0.2;
+const RIM_PX = 1;
 
 const rgba = ({ r, g, b }, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 
