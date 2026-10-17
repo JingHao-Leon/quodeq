@@ -4,7 +4,6 @@ import { AssistantModeRows } from './AssistantModeRows.jsx';
 import { ProviderPillGroup } from './ProviderPillGroup.jsx';
 import { SettingsRowLabel, SettingsEnableRow } from './settingsRowParts.jsx';
 import AssistantModelPicker from './AssistantModelPicker.jsx';
-import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { t } from '../../../strings/index.js';
 import { CopilotModelStatus } from './CopilotModelSelect.jsx';
 import { PROVIDER } from '../../../vocab/provider.js';
@@ -47,9 +46,9 @@ export function AssistantEnableRow() {
 }
 
 /**
- * Which model the assistant uses: the analysis one by default, or its own.
+ * Which model the assistant uses: the evaluation one by default, or its own.
  * Shown whether or not the assistant is switched on; the switch lives in the
- * Toolbar section.
+ * Toolbar section. The Assistant group's gutter names it, so no section label.
  */
 export default function AssistantProviderTabs({ providerConfigs }) {
   const { clients, clientsError } = useAiClientList(providerConfigs);
@@ -59,9 +58,6 @@ export default function AssistantProviderTabs({ providerConfigs }) {
 
   return (
     <section className="panel settings-section">
-      <div className="panel-header">
-        <SectionLabel marker="▶">{t('settings.assistantLabel')}</SectionLabel>
-      </div>
       {clientsError && <div className="settings-row"><span className="settings-error" role="alert">{clientsError}</span></div>}
       <AssistantModeRows mode={mode} setMode={setMode} />
       {mode === ASSISTANT_MODE.CUSTOM && (
