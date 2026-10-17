@@ -1,6 +1,6 @@
 import { formatRunWhen } from '../../../utils/dateFormatting.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { t } from '../../../strings/index.js';
 
@@ -43,6 +43,10 @@ vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({
 
 import ExplorerPage from './ExplorerPage.jsx';
 
+// The header's tiles. Queries stay inside them: the since row may show a random loading tip, and a tip
+// can bold the same word as a tile ("On the Map's **Risk** tab"), so a page-wide query would flake.
+const headTiles = () => within(document.querySelector('section.findings-head .findings-head__stats'));
+
 const scope = (s) => ['violations', { scope: s, asOf: null }];
 const page = (props = {}) => render(
   <ExplorerPage project="demo" dimension="security" granularity="day" scopedFindings={{ latestRunId: null }} filesRead={40} {...props} />,
@@ -71,7 +75,7 @@ describe('ExplorerPage header', () => {
     expect(screen.getByText(t('violations.scopeStatFilesRead', { count: 40 }))).toBeInTheDocument();
     expect(screen.getByText('5.0')).toBeInTheDocument();
     expect(screen.getByText('80%')).toBeInTheDocument();
-    expect(screen.queryByText(t('violations.scopeStatRisk'))).toBeNull();
+    expect(headTiles().queryByText(t('violations.scopeStatRisk'))).toBeNull();
   });
 
   it('its own report\'s files read win over the borrowed count', () => {

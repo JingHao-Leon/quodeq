@@ -34,7 +34,7 @@ class TestEffortOnTheCommandLine:
         assert args[args.index("-c", args.index("m")) + 1] == 'model_reasoning_effort="high"'
 
     @pytest.mark.parametrize(("provider", "effort"), [
-        ("claude", None), ("claude", "bogus"), ("codex", "max"), ("gemini", "high"),
+        ("claude", None), ("claude", "bogus"), ("codex", "bogus"), ("gemini", "high"),
     ])
     def test_unset_unlisted_or_unsupported_passes_nothing(self, provider: str, effort: str | None) -> None:
         # An unlisted level logs a warning (headless AI_EFFORT) and falls back.
@@ -117,7 +117,7 @@ class TestEvaluateRoute:
         assert status == HTTPStatus.ACCEPTED
         assert captured["options"].ai_effort == "xhigh"
 
-    @pytest.mark.parametrize(("provider", "effort"), [("codex", "max"), ("gemini", "high")])
+    @pytest.mark.parametrize(("provider", "effort"), [("codex", "bogus"), ("gemini", "high")])
     def test_effort_the_provider_lacks_is_rejected_without_echo(self, tmp_path: Path, provider: str, effort: str) -> None:
         status, captured, body = self._post(tmp_path, {"aiCmd": provider, "aiEffort": effort})
         assert status == HTTPStatus.BAD_REQUEST
@@ -125,5 +125,5 @@ class TestEvaluateRoute:
         assert "options" not in captured
 
     def test_rejection_lists_the_accepted_levels(self, tmp_path: Path) -> None:
-        _, _, body = self._post(tmp_path, {"aiCmd": "codex", "aiEffort": "max"})
-        assert body["error"] == "Unsupported effort. This provider accepts: low, medium, high, xhigh."
+        _, _, body = self._post(tmp_path, {"aiCmd": "codex", "aiEffort": "bogus"})
+        assert body["error"] == "Unsupported effort. This provider accepts: low, medium, high, xhigh, max, ultra."

@@ -42,7 +42,10 @@ function renderScope(props = {}) {
 
 const rowTitles = (container) => [...container.querySelectorAll('.wb-row__t')].map((n) => n.textContent.replace('✓ ', ''));
 const cardTitles = (container) => [...container.querySelectorAll('.findings-card__title, .findings-check__title')].map((n) => n.textContent);
-const tileValue = (label) => screen.getByText(label).closest('.findings-head__stat').querySelector('.findings-head__value');
+// The header's tiles. Queries stay inside them: the since row may show a random loading tip, and a tip
+// can bold the same word as a tile ("On the Map's **Risk** tab"), so a page-wide query would flake.
+const headTiles = () => within(document.querySelector('section.findings-head .findings-head__stats'));
+const tileValue = (label) => headTiles().getByText(label).closest('.findings-head__stat').querySelector('.findings-head__value');
 const segment = (group, name) => within(screen.getByRole('group', { name: group })).getByRole('button', { name: new RegExp(`^${name}`) });
 const toCards = () => fireEvent.click(segment(t('violations.scopeViewAria'), t('violations.scopeViewCards')));
 
@@ -53,7 +56,7 @@ describe('ScopedFindings', () => {
     expect(tileValue(t('violations.scopeStatViolations'))).toHaveTextContent('3');
     expect(tileValue(t('violations.scopeStatPass'))).toHaveTextContent('25%');
     expect(screen.queryByText(t('violations.scopeStatPer100'))).toBeNull();
-    expect(screen.queryByText(t('violations.scopeStatRisk'))).toBeNull();
+    expect(headTiles().queryByText(t('violations.scopeStatRisk'))).toBeNull();
   });
 
   it('opens as the list, its first view, with the first finding in full beside it', () => {

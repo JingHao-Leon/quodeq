@@ -123,3 +123,14 @@ def test_cmd_path_check_empty_path_is_valid(client):
     resp = client.get("/api/ai-clients/claude/cmd-path-check")
     assert resp.status_code == 200
     assert resp.get_json() == {"ok": True, "error": None, "code": None}
+
+
+@pytest.mark.parametrize(("query", "refresh"), [("", False), ("?refresh=1", True)])
+def test_client_models_refresh_flag_reaches_the_provider(query, refresh):
+    app = Flask(__name__)
+    provider = FilesystemActionProvider()
+    register_discovery_routes(app, provider)
+    with patch.object(provider, "get_client_models", return_value={"models": ["opus"]}) as get_models:
+        response = app.test_client().get(f"/api/ai-clients/claude/models{query}")
+    assert response.status_code == 200
+    get_models.assert_called_once_with("claude", refresh=refresh)

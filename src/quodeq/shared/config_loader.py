@@ -31,16 +31,6 @@ def _lazy_constant(key: str, config: Config | None = None) -> str:
         ) from None
 
 
-def get_anthropic_api_url(config: Config | None = None) -> str:
-    """Return the Anthropic API URL from configuration."""
-    return _lazy_constant("anthropic_api_url", config)
-
-
-def get_anthropic_api_version(config: Config | None = None) -> str:
-    """Return the Anthropic API version from configuration."""
-    return _lazy_constant("anthropic_api_version", config)
-
-
 def get_default_host(config: Config | None = None) -> str:
     """Return the default host from configuration."""
     return _lazy_constant("default_host", config)
@@ -49,8 +39,6 @@ def get_default_host(config: Config | None = None) -> str:
 # Keep module-level names for backward compatibility, but now they are
 # computed lazily on first attribute access via __getattr__.
 _ATTR_MAP = {
-    "ANTHROPIC_API_URL": "anthropic_api_url",
-    "ANTHROPIC_API_VERSION": "anthropic_api_version",
     "DEFAULT_HOST": "default_host",
 }
 

@@ -33,7 +33,7 @@ A headless run takes its provider and model from the environment when they are s
 | --- | --- |
 | AI_PROVIDER | One of `claude`, `codex`, `gemini`, `copilot`, `openrouter`, `custom`, `ollama`, `llamacpp`. |
 | AI_MODEL | The model id for that provider. `QUODEQ_MODEL_LIGHT`, `QUODEQ_MODEL_MEDIUM`, `QUODEQ_MODEL_HIGH` and `QUODEQ_MODEL_ORCHESTRATOR` pin a model per tier and take precedence. |
-| AI_EFFORT | Reasoning effort for Claude Code (`low`, `medium`, `high`, `xhigh`, `max`) or Codex (`low`, `medium`, `high`, `xhigh`). Unset leaves the CLI default. |
+| AI_EFFORT | Reasoning effort for Claude Code (`low`, `medium`, `high`, `xhigh`, `max`) or Codex (`low`, `medium`, `high`, `xhigh`, `max`, `ultra`; which ones a model takes depends on the model). Unset leaves the CLI default. |
 | API keys | `ANTHROPIC_API_KEY`, `CODEX_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, or `AI_API_KEY` for a custom endpoint. The CLI providers use the CLI's own sign-in; Ollama and llama.cpp need no key. |
 | QUODEQ_REPOS_DIR | Where clones of remote repositories go. Default `~/quodeq/repos`. |
 | QUODEQ_NO_UPDATE_NOTIFIER | Set to `1` to silence the update check. It is already silent when `CI` is set. |

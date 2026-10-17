@@ -1060,9 +1060,7 @@ tests/services/test_standards_queries_list_builtin.py:6:private-module:quodeq.se
 tests/services/test_suppression.py:168:private-name:quodeq.services._violations_jsonl._jsonl_parser
 tests/services/test_suppression_coherence.py:18:private-module:quodeq.analysis._report_io.write_dimension_report
 tests/services/test_suppression_coherence.py:23:private-module:quodeq.ci._suppressions.filter_suppressed_violations
-tests/services/test_tooling_mixin.py:10:private-name:quodeq.services.tooling_mixin._DEFAULT_CLIENT_IDS
-tests/services/test_tooling_mixin.py:10:private-name:quodeq.services.tooling_mixin._fetch_anthropic_models
-tests/services/test_tooling_mixin.py:10:private-name:quodeq.services.tooling_mixin._load_fallback_claude_models
+tests/services/test_tooling_mixin.py:9:private-name:quodeq.services.tooling_mixin._DEFAULT_CLIENT_IDS
 tests/services/test_violations_coverage.py:6:private-name:quodeq.services.violations._max_violation_files
 tests/services/test_violations_jsonl_coverage.py:124:private-name:quodeq.services._violations_jsonl._build_resolver
 tests/services/test_violations_jsonl_coverage.py:151:private-name:quodeq.services._violations_jsonl._build_resolver
