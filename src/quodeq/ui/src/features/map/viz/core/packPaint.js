@@ -11,8 +11,13 @@ import { isPackFolder } from './packNode.js';
 
 const STROKE_ALPHA = 0.22;
 const STROKE_ALPHA_TOP = 0.3;    // light: the first ring of folders reads a little stronger
+// Dark: a glowing folder's outline leans to its own hue and fades with the glow, so it stays close to the fill.
+const GLOW_STROKE_MIX = 0.7;
+const GLOW_STROKE_FADE = 0.5;
 
 const isLeaf = (n) => !isPackFolder(n);
+/** A folder whose only content is one sub-folder. */
+const isPassThrough = (n) => n.children?.length === 1 && isPackFolder(n.children[0]);
 
 function kindOf(n) {
   if (isLeaf(n)) return NODE_KIND.FILE;
@@ -58,8 +63,11 @@ function pageBg(palette) {
   return palette.dark ? palette.bg : palette.surfaceAlt;
 }
 
-function strokeFor(n, hue, palette) {
-  if (palette.dark) return { stroke: rgbCss(mixRgb(palette.glassParent, hue, STROKE_MIX)), strokeAlpha: STROKE_ALPHA };
+function strokeFor(n, hue, palette, glow = 0) {
+  if (palette.dark) {
+    const mix = glow > 0 ? GLOW_STROKE_MIX : STROKE_MIX;
+    return { stroke: rgbCss(mixRgb(palette.glassParent, hue, mix)), strokeAlpha: STROKE_ALPHA * (1 - GLOW_STROKE_FADE * glow) };
+  }
   return { stroke: rgbCss(palette.text), strokeAlpha: n.depth === 1 ? STROKE_ALPHA_TOP : STROKE_ALPHA };
 }
 
@@ -83,7 +91,9 @@ function concentrationPaint(n, ctx) {
   }
   const strength = badnessStrength(b, ctx.palette.dark);
   const fill = folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette });
-  return { ...fill, file: false, badness: b, hue, glow: folderGlow(b, ctx.palette.dark) };
+  // A folder that only wraps one sub-folder (src/main/java/...) is packaging: no glow, or a chain reads as an onion.
+  const glow = isPassThrough(n) ? 0 : folderGlow(b, ctx.palette.dark);
+  return { ...fill, file: false, badness: b, hue, glow };
 }
 
 function activityPaint(n, ctx) {
@@ -121,6 +131,6 @@ export function buildPackPaint({ root, circles, mode, palette, weights, editsByP
     if (n === root) return rootPaint(palette);
     const p = paintOf(n, ctx);
     const outlineOnly = !isLeaf(n) && n.children.length === 1 && isLeaf(n.children[0]);
-    return { ...p, ...strokeFor(n, p.hue, palette), outlineOnly, edits: agg.get(n).edits };
+    return { ...p, ...strokeFor(n, p.hue, palette, p.glow), outlineOnly, edits: agg.get(n).edits };
   });
 }
