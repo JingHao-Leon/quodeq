@@ -5,6 +5,7 @@
 import { lazy } from 'react';
 import { PROJECT_SOURCE } from '../vocab/projectSource.js';
 import { NAV_TAB } from '../vocab/navTab.js';
+import { SCOPE_KIND, openScope } from '../features/violations/scope/scopeModel.js';
 
 const ComparePage = lazy(() => import('../features/compare/components/ComparePage.jsx'));
 
@@ -28,9 +29,15 @@ export function compareRoute(params, props) {
       // dimensions so tab-hopping doesn't grow history.
       onOpenDimension={(key) => props.navigation.handleNavigate(NAV_TAB.COMPARE, { dimension: key })}
       onSwitchDimension={(key) => props.navigation.handleNavigateReplace(NAV_TAB.COMPARE, { dimension: key })}
-      // Cross-project principle jump: the evalPrincipal carries its own
-      // project, so the selection doesn't change and back pops to Compare.
-      onOpenEvalPrincipal={(evalPrincipal) => props.navigation.handleNavigate(NAV_TAB.EVAL_PRINCIPLE, { evalPrincipal, sourceTab: NAV_TAB.COMPARE })}
+      // A project's principle (matrix cell, principle health, attention
+      // item) -> that project's findings on it, the view its own dimension
+      // page opens. The project becomes the selection first, as the
+      // Findings views read the selected project; pushed, so back pops to
+      // Compare. The cell's run is the dimension's latest, so it opens today.
+      onOpenProjectPrinciple={(target) => {
+        props.navigation.handleProjectChange(target.id, PROJECT_SOURCE.LOCAL);
+        openScope(props.navigation.handleNavigate, { kind: SCOPE_KIND.PRINCIPLE, dimension: target.dimName, principle: target.principle });
+      }}
       // Standings row -> that project's own screen of the SAME dimension,
       // pushed for the same back-pops-to-Compare contract. The project
       // becomes the selection first, like a fleet row does: the explorer
