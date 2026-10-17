@@ -48,7 +48,7 @@ function ReviewerActions({ step, cloning }) {
   if (cloning) {
     return (
       <div className="onboarding-step__actions onboarding-step__actions--end">
-        <button type="button" className="term-btn term-btn--primary term-btn--filled" onClick={step.later}>
+        <button type="button" className="term-btn term-btn--primary term-btn--filled" onClick={step.saveAndClose}>
           {t('onboarding.reviewerSaveClose')}
         </button>
       </div>

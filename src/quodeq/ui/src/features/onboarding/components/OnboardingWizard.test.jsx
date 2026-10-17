@@ -87,7 +87,7 @@ describe('OnboardingWizard reviewer step', () => {
     });
   });
 
-  it('later saves the reviewer and lands on repositories with the project selected', async () => {
+  it('later on a first reviewer (nothing stored yet) saves it and lands on repositories with the project selected', async () => {
     const { onClose, onLaunch } = renderWizard(ADD_ENTRY);
     await addRepository('/u/me/billing');
     await screen.findByRole('option', { name: 'Sonnet (default)' });

@@ -36,8 +36,9 @@ export function addedSummary(state) {
 /**
  * The reviewer step's state: provider detection, the choice being made over
  * the detected providers, and every visible dimension (a first evaluation
- * runs them all). `start` and `later` save the choice first; `later` only
- * when it is complete, so a half pick never overwrites Settings.
+ * runs them all). `start` and `saveAndClose` (a clone) save the choice
+ * first; `later` only when it is complete and the user changed something,
+ * so neither a half pick nor an untouched preselection overwrites Settings.
  *
  * @param {{ onStart: Function, onLater: Function }} args
  */
@@ -60,6 +61,10 @@ export function useReviewerStep({ onStart, onLater }) {
       onStart({ provider: { id: choice.providerId, model: choice.model }, standardIds });
     },
     later: () => {
+      if (choice.ready && choice.changed) choice.save();
+      onLater();
+    },
+    saveAndClose: () => {
       if (choice.ready) choice.save();
       onLater();
     },

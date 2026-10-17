@@ -8,7 +8,10 @@ import ReviewerStep from './ReviewerStep.jsx';
 const detection = vi.hoisted(() => ({ value: null }));
 vi.mock('../../hooks/useProviderDetection.js', () => ({ useProviderDetection: () => detection.value }));
 
-const CATALOG = [{ id: 'sonnet', label: 'Sonnet', efforts: [], defaultEffort: '', isDefault: true, pinned: false }];
+const CATALOG = [
+  { id: 'sonnet', label: 'Sonnet', efforts: [], defaultEffort: '', isDefault: true, pinned: false },
+  { id: 'opus', label: 'Opus', efforts: [], defaultEffort: '', isDefault: false, pinned: false },
+];
 const FOLDER_ADD = { projectId: 'p1', cloning: false, name: 'billing', fileCount: 42, languages: ['python', 'typescript'] };
 const CLONE_ADD = { projectId: null, cloning: true, name: 'billing', fileCount: null, languages: [] };
 
@@ -98,5 +101,28 @@ describe('ReviewerStep', () => {
     detection.value = { status: 'detecting', results: [] };
     renderStep();
     expect(screen.getByText('looking for models on this machine…')).toBeInTheDocument();
+  });
+
+  it('later for a returning user without changes leaves the stored reviewer untouched', async () => {
+    localStorage.setItem('cc-active-provider', 'codex');
+    detection.value = detected(['claude-code', 'codex-cli']);
+    const { onLater } = renderStep();
+    await screen.findByRole('option', { name: 'Sonnet (default)' });
+    expect(screen.getByRole('radio', { name: 'Codex CLI' })).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'later, take me to the project' }));
+    expect(onLater).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('cc-active-provider')).toBe('codex');
+    expect(localStorage.getItem('cc-codex-model')).toBeNull();
+  });
+
+  it('later after picking a model saves it', async () => {
+    localStorage.setItem('cc-active-provider', 'codex');
+    detection.value = detected(['claude-code', 'codex-cli']);
+    renderStep();
+    await screen.findByRole('option', { name: 'Sonnet (default)' });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'opus' } });
+    fireEvent.click(screen.getByRole('button', { name: 'later, take me to the project' }));
+    expect(localStorage.getItem('cc-active-provider')).toBe('codex');
+    expect(localStorage.getItem('cc-codex-model')).toBe('opus');
   });
 });

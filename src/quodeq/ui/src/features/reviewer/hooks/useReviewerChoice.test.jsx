@@ -73,4 +73,28 @@ describe('useReviewerChoice', () => {
     const { result } = renderChoice(detectedOf('claude-code'), fakeStorage({ 'cc-claude-model': 'opus' }));
     await waitFor(() => expect(result.current.model).toBe('opus'));
   });
+
+  it('a returning user starts on the stored active provider when it is detected', () => {
+    const { result } = renderChoice(detectedOf('claude-code', 'codex-cli'), fakeStorage({ 'cc-active-provider': 'codex' }));
+    expect(result.current.providerId).toBe('codex');
+    expect(result.current.changed).toBe(false);
+  });
+
+  it('a stored active provider that was not detected falls back to the neutral first', () => {
+    const { result } = renderChoice(detectedOf('ollama', 'claude-code'), fakeStorage({ 'cc-active-provider': 'gemini' }));
+    expect(result.current.providerId).toBe('claude');
+  });
+
+  it('a model picked on the stored provider counts as a change', async () => {
+    const { result } = renderChoice(detectedOf('claude-code'), fakeStorage({ 'cc-active-provider': 'claude' }));
+    await waitFor(() => expect(result.current.model).toBe('sonnet'));
+    expect(result.current.changed).toBe(false);
+    act(() => result.current.setModel('opus'));
+    expect(result.current.changed).toBe(true);
+  });
+
+  it('a first reviewer (nothing stored) counts as a change', () => {
+    const { result } = renderChoice(detectedOf('claude-code'));
+    expect(result.current.changed).toBe(true);
+  });
 });

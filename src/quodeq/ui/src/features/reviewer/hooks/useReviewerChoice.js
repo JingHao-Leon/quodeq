@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { ACTIVE_PROVIDER_KEY } from '../../../constants.js';
+import { readString } from '../../../adapters/storage.js';
 import { modelEffort, useClientModels } from '../../settings/hooks/useClientModels.js';
 import { initialModel, readReviewerChoice, writeReviewerChoice } from '../reviewerChoice.js';
 import { serverProviderId } from '../providerLabels.js';
@@ -52,7 +54,10 @@ function effortFor(catalog, model, effort) {
  * A reviewer being chosen among `providers` (server ids): which one, with
  * which model and effort. Starts on `initial` when it is listed, else the
  * first. Picks survive switching provider and back; nothing is stored until
- * `save` writes the selected one under the keys Settings reads.
+ * `save` writes the selected one under the keys Settings reads. `changed`
+ * says whether a save would alter that: a pick made here for the selected
+ * provider, or a selected provider other than `initial` (the stored active
+ * one in both callers).
  *
  * @param {{providers: string[], initial?: string|null, storage?: Storage}} options
  */
@@ -80,17 +85,20 @@ export function useReviewerDraft({ providers, initial = null, storage }) {
     setModel: (next) => pick({ model: next, effort: effortFor(catalog, next, effort) }),
     setEffort: (next) => pick({ effort: next }),
     ready: Boolean(providerId && model),
+    changed: Boolean(picks[providerId]) || providerId !== initial,
     save: () => writeReviewerChoice({ providerId, model, effort }, storage),
   };
 }
 
 /**
- * The reviewer being chosen on first run, among the detected providers in
- * the neutral order.
+ * The reviewer being chosen after an add, among the detected providers in
+ * the neutral order. A returning user starts on the provider Settings
+ * already has active, when it is detected; otherwise the neutral first.
  *
  * @param {{detected: object[], storage?: Storage}} options
  */
 export function useReviewerChoice({ detected, storage }) {
   const providers = useMemo(() => orderReviewers(detected), [detected]);
-  return useReviewerDraft({ providers, storage });
+  const [initial] = useState(() => readString(ACTIVE_PROVIDER_KEY, '', storage) || null);
+  return useReviewerDraft({ providers, initial, storage });
 }
