@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from quodeq.data.fs.run_archive import ARCHIVE_FILENAME, RESTORED_STAMP, archive_run, is_archived
-from quodeq.data.fs.shared_repo import shared_repo_path
+from quodeq.data.fs.shared_repo import ensure_shared_clone, shared_repo_path
 from quodeq.services import shared_publish
 from quodeq.services.shared_publish import PublishError, publish_project
 from tests.services._archive_fixtures import PROJECT, corrupt, make_run
@@ -120,3 +120,51 @@ def test_a_corrupt_local_archive_fails_the_publish_and_stays_as_it_was(setup):
     with pytest.raises(PublishError):
         publish_project(PROJECT, url, evaluations_root=root)
     assert (run / ARCHIVE_FILENAME).read_bytes() == before
+
+
+def test_runs_publish_when_git_would_ignore_their_files(setup):
+    url, root = setup
+    archive_run(_run(root, "run-a"))
+    _run(root, "run-b", days=200)
+    repo = ensure_shared_clone(url)
+    exclude = repo / ".git" / "info" / "exclude"
+    exclude.write_text(exclude.read_text() + "*.gz\n*.jsonl\n")
+    _publish(url, root)
+    files = _head_files(repo)
+    assert {_rel("run-a", ARCHIVE_FILENAME), _rel("run-b", "events.jsonl"), _rel("run-b", _EVIDENCE)} <= set(files)
+
+
+def test_a_linked_project_folder_in_the_clone_is_refused_before_any_write(setup, tmp_path, monkeypatch):
+    url, root = setup
+    _run(root, "run-a")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    real = shared_publish.stage_project
+
+    def link_then_stage(project_dir, dest):
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.symlink_to(outside, target_is_directory=True)
+        return real(project_dir, dest)
+
+    monkeypatch.setattr(shared_publish, "stage_project", link_then_stage)
+    with pytest.raises(PublishError, match="link"):
+        publish_project(PROJECT, url, evaluations_root=root)
+    assert list(outside.iterdir()) == []
+
+
+def test_a_linked_run_folder_in_the_clone_is_refused_before_any_write(setup, tmp_path, monkeypatch):
+    url, root = setup
+    _run(root, "run-a")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    real = shared_publish.stage_project
+
+    def link_then_stage(project_dir, dest):
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "run-a").symlink_to(outside, target_is_directory=True)
+        return real(project_dir, dest)
+
+    monkeypatch.setattr(shared_publish, "stage_project", link_then_stage)
+    with pytest.raises(PublishError, match="link"):
+        publish_project(PROJECT, url, evaluations_root=root)
+    assert list(outside.iterdir()) == []

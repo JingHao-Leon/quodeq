@@ -41,6 +41,8 @@ from quodeq.services.wiring_sync import (
     ARCHIVE_FILENAME,
     PRECEDENTS_NAME,
     SCALARS_NAME,
+    RunArchiveError,
+    clone_run_contained,
     extract_members_to,
     is_archived,
     pack_run_logs,
@@ -106,7 +108,10 @@ def _copy_logs(run_dir: Path, dest_run_dir: Path, written: list[Path]) -> None:
     elif is_archived(run_dir):
         written.extend(extract_members_to(archive, dest_run_dir))
     else:
+        expected = (run_dir / EVENTS_FILENAME).is_file()
         _copy(run_dir / EVENTS_FILENAME, dest_run_dir / EVENTS_FILENAME, written)
+        if expected and dest_run_dir / EVENTS_FILENAME not in written:
+            raise RunArchiveError(f"run {run_dir.name} changed while publishing, retry")
         _copy_matching(run_dir / EVIDENCE_DIRNAME, dest_run_dir / EVIDENCE_DIRNAME, _EVIDENCE_PATTERN, written)
 
 
@@ -119,7 +124,10 @@ def copy_run(run_dir: Path, dest_run_dir: Path) -> list[Path]:
     """
     ensure_dir(dest_run_dir)
     written: list[Path] = []
-    _copy_logs(run_dir, dest_run_dir, written)
+    try:
+        _copy_logs(run_dir, dest_run_dir, written)
+    except FileNotFoundError as exc:  # archived or restored meanwhile: the file it was reading went
+        raise RunArchiveError(f"run {run_dir.name} changed while publishing, retry") from exc
     for name in _RUN_FILES:
         _copy(run_dir / name, dest_run_dir / name, written)
     evidence = run_dir / EVIDENCE_DIRNAME
@@ -167,7 +175,18 @@ class StagedProject:
     paths: list[Path] = field(default_factory=list)
 
 
+def _check_clone_dirs(dest_project_dir: Path, runs: list[Path]) -> None:
+    """Refuse a project or run folder in the clone that is a link, before anything is written."""
+    if dest_project_dir.is_symlink() or dest_project_dir.parent.is_symlink():
+        raise RunArchiveError(f"{dest_project_dir.name} is a link in the shared clone, refusing to publish into it")
+    for run_dir in runs:
+        if not clone_run_contained(dest_project_dir / run_dir.name):
+            raise RunArchiveError(f"run {run_dir.name} is a link in the shared clone, refusing to publish into it")
+
+
 def stage_project(project_dir: Path, dest_project_dir: Path) -> StagedProject:
+    runs = list_completed_runs(project_dir)
+    _check_clone_dirs(dest_project_dir, runs)
     ensure_dir(dest_project_dir)
     written: list[Path] = []
     _copy(project_dir / "repository_info.json", dest_project_dir / "repository_info.json", written)
@@ -181,7 +200,6 @@ def stage_project(project_dir: Path, dest_project_dir: Path) -> StagedProject:
     merge_actions_log(project_dir / ACTIONS_LOG_FILENAME, actions, actions)
     if actions.is_file():
         written.append(actions)
-    runs = list_completed_runs(project_dir)
     for run_dir in runs:
         written.extend(copy_run(run_dir, dest_project_dir / run_dir.name))
 

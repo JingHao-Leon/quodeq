@@ -117,3 +117,18 @@ def test_a_corrupt_archive_never_reaches_a_full_form_destination(tmp_path):
     with pytest.raises(run_archive.RunArchiveError):
         copy_run(run, dest)
     assert (dest / "events.jsonl").read_bytes() == events
+
+
+def test_a_run_archived_while_it_is_copied_fails_the_publish(tmp_path, monkeypatch):
+    from quodeq.services.wiring import copy_file_if_exists as real
+
+    run = _run(tmp_path / "local")
+
+    def archive_first(src, dest):
+        if src.name == "events.jsonl" and not is_archived(src.parent):
+            archive_run(src.parent)
+        return real(src, dest)
+
+    monkeypatch.setattr("quodeq.services._publish_staging.copy_file_if_exists", archive_first)
+    with pytest.raises(run_archive.RunArchiveError, match="retry"):
+        copy_run(run, tmp_path / "clone" / "run-old")

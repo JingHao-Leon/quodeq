@@ -268,7 +268,8 @@ def stage_publish_paths(repo: Path, paths: Iterable[Path]) -> tuple[bool, str]:
     ignore file and the evaluations/.gitkeep placeholder when the layout has
     one. Never the rest of the project folder: a database, a restore stamp or
     a log unpacked in the clone stays out of the commit. Literal pathspecs, in
-    batches. Returns ``run_git``'s ``(ok, output)`` of the first failure, or
+    batches, forced: an ignore rule (a global ``*.gz``, a ``*.jsonl`` in the
+    shared .gitignore) must not fail a publish of files it wrote itself. Returns ``run_git``'s ``(ok, output)`` of the first failure, or
     of the last batch.
     """
     add_paths = [MARKER_FILENAME, _GITIGNORE_FILENAME]
@@ -277,7 +278,7 @@ def stage_publish_paths(repo: Path, paths: Iterable[Path]) -> tuple[bool, str]:
     add_paths.extend(sorted({p.relative_to(repo).as_posix() for p in paths}))
     result = (True, "")
     for start in range(0, len(add_paths), _ADD_BATCH):
-        result = run_git(["--literal-pathspecs", "add", "--", *add_paths[start:start + _ADD_BATCH]], cwd=repo)
+        result = run_git(["--literal-pathspecs", "add", "-f", "--", *add_paths[start:start + _ADD_BATCH]], cwd=repo)
         if not result[0]:
             return result
     return result
