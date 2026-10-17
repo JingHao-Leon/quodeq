@@ -78,7 +78,7 @@ def test_summary_is_memoized_until_the_run_or_suppressions_change(tmp_path: Path
     calls = []
     original = module.diff_runs
     module.since_baseline_summary.cache_clear()
-    with patch.object(module, "diff_runs", side_effect=lambda *a: calls.append(a) or original(*a)):
+    with patch.object(module, "diff_runs", side_effect=lambda *a, **k: calls.append(a) or original(*a, **k)):
         module.since_baseline_summary(tmp_path, _PROJECT, _CURR)
         module.since_baseline_summary(tmp_path, _PROJECT, _CURR)
     assert len(calls) == 1

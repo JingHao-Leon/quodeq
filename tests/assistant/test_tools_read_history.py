@@ -124,7 +124,7 @@ def _diff_payload():
 def diffed(monkeypatch):
     calls = []
 
-    def fake_diff(root, project, run_id, against):
+    def fake_diff(root, project, run_id, against, *, repo_root=None):
         calls.append((root, project, run_id, against))
         if run_id == "missing":
             raise FileNotFoundError(run_id)
@@ -171,3 +171,35 @@ def test_compare_runs_hides_hidden_standards(tmp_path, diffed):
 def test_compare_runs_errors_are_tool_errors(tmp_path, diffed, args, fragment):
     out = build_registry(_project_ctx(tmp_path)).dispatch("compare_runs", args)
     assert out["ok"] is False and fragment in out["error"]
+
+
+def _local_project(root, sha_base, sha_head):
+    """Two finished runs of project ``p`` under *root*, its repo path naming an existing folder."""
+    import json
+
+    for run_id, started, sha in (("run1", "2026-10-01T00:00:00Z", sha_base), ("run2", "2026-10-02T00:00:00Z", sha_head)):
+        run_dir = root / "p" / run_id
+        (run_dir / "evaluation").mkdir(parents=True)
+        (run_dir / "evaluation" / "security.json").write_text(json.dumps({
+            "dimension": "security", "principles": [], "compliance": [],
+            "violations": [{"req": "S-1", "file": "a.py", "line": 1, "snippet": "x", "severity": "minor"}]}))
+        (run_dir / "status.json").write_text(json.dumps(
+            {"state": "done", "started_at": started, "commit_sha": sha, "commit_dirty": False}))
+    (root / "p" / "repository_info.json").write_text(json.dumps({"name": "p", "path": str(root), "location": "local"}))
+
+
+@pytest.mark.parametrize("read_only,git_calls", [(True, 0), (False, 1)])
+def test_compare_runs_in_a_read_only_session_runs_no_git(tmp_path, monkeypatch, read_only, git_calls):
+    import dataclasses
+
+    import quodeq.services.run_changes as run_changes
+
+    calls = []
+    monkeypatch.setattr(run_changes, "git_stdout", lambda argv, **_: calls.append(argv) or "a.py\n")
+    run_changes.changed_files.cache_clear()
+    _local_project(tmp_path / "reports", "a" * 40, "b" * 40)
+    ctx = dataclasses.replace(_project_ctx(tmp_path), read_only=read_only)
+
+    out = build_registry(ctx).dispatch("compare_runs", {"run_id": "run2"})
+
+    assert out["ok"] is True and len(calls) == git_calls

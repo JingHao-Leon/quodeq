@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from quodeq.core.run.state import TERMINAL_STATES, parse_run_state
+from quodeq.services._fs_project_primitives import trusted_repo_root
 from quodeq.services.run_diff import diff_runs
 from quodeq.services.wiring import read_status
 from quodeq.shared.log_throttle import LogThrottle
@@ -74,9 +75,11 @@ def _version(project_dir: Path, run_dir: Path) -> tuple:
 
 
 @lru_cache(maxsize=_MEMO_SIZE)
-def _cached_summary(reports_root: str, project: str, run_id: str, version: tuple) -> dict[str, Any]:
+def _cached_summary(
+    reports_root: str, project: str, run_id: str, repo_root: Path | None, version: tuple,
+) -> dict[str, Any]:
     del version  # part of the key only
-    diff = diff_runs(Path(reports_root), project, run_id, None)
+    diff = diff_runs(Path(reports_root), project, run_id, None, repo_root=repo_root)
     return {dim: _reduce(entry) for dim, entry in diff.get("dimensions", {}).items()}
 
 
@@ -89,7 +92,9 @@ def since_baseline_summary(reports_root: Path, project: str, run_id: str) -> dic
         state = (read_status(run_dir) or {}).get(_KEY_STATE)
         if not state or parse_run_state(state) not in TERMINAL_STATES:
             return {}
-        return _cached_summary(str(reports_root), project, run_id, _version(project_dir, run_dir))
+        # None under a shared clone: its recorded repo path never reaches git.
+        repo_root = trusted_repo_root(reports_root, project)
+        return _cached_summary(str(reports_root), project, run_id, repo_root, _version(project_dir, run_dir))
     except _UNREADABLE:
         if _unreadable_log_throttle.should_emit(time.monotonic()):
             _logger.warning("since-baseline summary unavailable for %s/%s", project, run_id, exc_info=True)

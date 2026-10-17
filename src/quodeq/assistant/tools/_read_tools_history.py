@@ -15,6 +15,7 @@ from quodeq.assistant.tools.registry import ToolError, ToolRegistry, ToolSpec
 from quodeq.core.standards.visibility import partition_visible
 from quodeq.core.utils.io import validate_path_segment
 from quodeq.core.utils.numbers import clamp
+from quodeq.services.fs_projects import trusted_repo_root
 from quodeq.services.run_diff import diff_runs
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.wiring import list_runs
@@ -135,8 +136,10 @@ def compare_runs(ctx: ToolContext, run_id: str | None = None,
     reports_root, project = project_location(ctx)
     run = _validate_run_id(run_id, "run_id") if run_id else _default_run_id(ctx, reports_root, project)
     base = _validate_run_id(against, "against") if against else None
+    # A shared session's recorded repo path was written by someone else: never run git on it.
+    repo_root = None if ctx.read_only else trusted_repo_root(reports_root, project)
     try:
-        diff = diff_runs(reports_root, project, run, base)
+        diff = diff_runs(reports_root, project, run, base, repo_root=repo_root)
     except FileNotFoundError as exc:
         raise ToolError(f"run not found in project {project}: {exc}") from exc
     except (OSError, ValueError, KeyError) as exc:

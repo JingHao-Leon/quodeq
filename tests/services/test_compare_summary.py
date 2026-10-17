@@ -223,7 +223,7 @@ def test_summary_carries_commits_since_last_scored_run(monkeypatch, rows_stub):
         seen["since"] = since_iso
         return 7
 
-    monkeypatch.setattr(compare, "local_repo_root", lambda root, project: Path("/tmp/repo"))
+    monkeypatch.setattr(compare, "trusted_repo_root", lambda root, project: Path("/tmp/repo"))
     monkeypatch.setattr(compare, "_commits_since", fake_commits)
     result = compare.build_compare_summary(rows_stub, "proj-a")
     assert result["commitsSinceLastRun"] == 7
