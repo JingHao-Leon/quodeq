@@ -46,6 +46,12 @@ function ScopeLine({ cloning, count }) {
   return <p className="analyze-block__hint">{t('onboarding.reviewerScope', { count })}</p>;
 }
 
+// Why start stays disabled when the dimensions could not load.
+function DimensionError({ message }) {
+  if (!message) return null;
+  return <p className="reviewer-step__error" role="alert">{message}</p>;
+}
+
 // A folder starts its first evaluation here; a clone (no project until it
 // lands) only saves the reviewer for it and closes.
 function ReviewerActions({ step, cloning }) {
@@ -88,6 +94,7 @@ export default function ReviewerStep({ added, onStart, onLater, onOpenSettings }
         <ReviewerChoices step={step} onOpenSettings={onOpenSettings} />
       </section>
       <ScopeLine cloning={added.cloning} count={step.dimensionCount} />
+      {!added.cloning && <DimensionError message={step.dimLoadError} />}
       <ReviewerActions step={step} cloning={added.cloning} />
     </div>
   );

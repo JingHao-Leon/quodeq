@@ -25,9 +25,9 @@ function makeApi() {
   };
 }
 
-function renderStep(added = FOLDER_ADD) {
+function renderStep(added = FOLDER_ADD, api = makeApi()) {
   const props = { added, onStart: vi.fn(), onLater: vi.fn(), onOpenSettings: vi.fn() };
-  const Wrapper = withStableQueryApi(makeApi());
+  const Wrapper = withStableQueryApi(api);
   render(<Wrapper><ReviewerStep {...props} /></Wrapper>);
   return props;
 }
@@ -136,5 +136,15 @@ describe('ReviewerStep', () => {
     detection.value = detected(['claude-code']);
     renderStep({ ...FOLDER_ADD, fileCount: 1, languages: [] });
     expect(screen.getByText('✓ billing added · 1 source file')).toBeInTheDocument();
+  });
+
+  it('a dimension load failure says why start stays disabled', async () => {
+    detection.value = detected(['claude-code']);
+    // Each list degrades to empty on its own; a malformed plugin list is
+    // what makes the dimension load itself fail.
+    const api = { ...makeApi(), listPlugins: vi.fn().mockResolvedValue([{ dimensions: null }]) };
+    renderStep(FOLDER_ADD, api);
+    expect(await screen.findByText(/Failed to load dimensions/)).toHaveAttribute('role', 'alert');
+    expect(screen.getByRole('button', { name: 'start first evaluation' })).toBeDisabled();
   });
 });

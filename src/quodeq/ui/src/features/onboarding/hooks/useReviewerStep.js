@@ -36,7 +36,8 @@ export function addedSummary(state) {
 /**
  * The reviewer step's state: provider detection, the choice being made over
  * the detected providers, and every visible dimension (a first evaluation
- * runs them all). `start` and `saveAndClose` (a clone) save the choice
+ * runs them all; `dimLoadError` says why start stays disabled when they
+ * could not load). `start` and `saveAndClose` (a clone) save the choice
  * first; `later` only when it is complete and the user changed something,
  * so neither a half pick nor an untouched preselection overwrites Settings.
  *
@@ -47,7 +48,7 @@ export function useReviewerStep({ onStart, onLater }) {
   // One array per detection result: the choice's memos key on its identity.
   const detected = useMemo(() => (results || []).filter((r) => r && r.detected), [results]);
   const choice = useReviewerChoice({ detected });
-  const { allDimensions } = usePluginDimensions();
+  const { allDimensions, dimLoadError } = usePluginDimensions();
   const standardIds = allDimensions.map((d) => d.id);
 
   return {
@@ -55,6 +56,7 @@ export function useReviewerStep({ onStart, onLater }) {
     detected,
     choice,
     dimensionCount: standardIds.length,
+    dimLoadError,
     canStart: choice.ready && standardIds.length > 0,
     start: () => {
       choice.save();
