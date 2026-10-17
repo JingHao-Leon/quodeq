@@ -21,7 +21,6 @@ import logging
 import os
 import posixpath
 import shutil
-import sqlite3
 import tarfile
 import zlib
 from collections.abc import Iterator
@@ -30,6 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.core.utils.file_lock import lock_file, unlock_file
+from quodeq.data.fs.run_archive_wal import DB_NAME, WAL_NAME, WalNotFoldedError, fold_wal
 
 _logger = logging.getLogger(__name__)
 
@@ -39,12 +39,11 @@ TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolida
 _EVENTS = "events.jsonl"
 _EVIDENCE_DIR = "evidence"
 _EVIDENCE_PATTERN = "*_evidence.jsonl"
-_DB, _DB_SIDECARS = "evaluation.db", ("evaluation.db-wal", "evaluation.db-shm")
+_DB_SIDECARS = (WAL_NAME, "evaluation.db-shm")
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
 _LOCK_NAME = ".archive.lock"
 _CHUNK = 1 << 20
-_DB_BUSY_TIMEOUT_S = 5.0
 _READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
 
 
@@ -104,7 +103,9 @@ def _is_plain_file(path: Path) -> bool:
 
 def _archive_sources(run_dir: Path) -> list[tuple[str, Path]]:
     """(member name, source path) for every file that moves into the archive."""
-    sources = [(_EVENTS, run_dir / _EVENTS)] + [(_DB, run_dir / _DB)] * _is_plain_file(run_dir / _DB)
+    sources = [(_EVENTS, run_dir / _EVENTS)]
+    if _is_plain_file(run_dir / DB_NAME):
+        sources.append((DB_NAME, run_dir / DB_NAME))
     evidence = run_dir / _EVIDENCE_DIR
     if evidence.is_dir():
         for path in sorted(evidence.glob(_EVIDENCE_PATTERN)):
@@ -160,7 +161,10 @@ def archive_run(run_dir: Path) -> ArchiveResult:
             raise RunArchiveError(f"run is already archived: {run_dir}")
         if not _is_plain_file(run_dir / _EVENTS):
             raise RunArchiveError(f"run has no event log: {run_dir}")
-        _checkpoint_wal(run_dir)
+        try:
+            fold_wal(run_dir)
+        except WalNotFoldedError as exc:
+            raise RunArchiveError(str(exc)) from exc
         sources = _archive_sources(run_dir)
         dropped = [run_dir / name for name in _DB_SIDECARS if (run_dir / name).is_file()]
         bytes_before = sum(p.stat().st_size for p in [*(p for _, p in sources), *dropped])
@@ -179,7 +183,7 @@ def archive_run(run_dir: Path) -> ArchiveResult:
 
 def _allowed_name(name: str) -> bool:
     """True for ``events.jsonl``, ``evaluation.db`` and ``evidence/<x>_evidence.jsonl`` only."""
-    if name in (_EVENTS, _DB):
+    if name in (_EVENTS, DB_NAME):
         return True
     folder, _, base = name.partition("/")
     return folder == _EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, _EVIDENCE_PATTERN)
@@ -265,25 +269,6 @@ def restore_or_warn(run_dir: Path) -> bool:
     return True
 
 
-def _checkpoint_wal(run_dir: Path) -> int:
-    """Fold ``evaluation.db-wal`` into the database; the WAL bytes freed."""
-    db, wal = run_dir / _DB, run_dir / "evaluation.db-wal"
-    if not db.is_file() or not wal.is_file():
-        return 0
-    before = wal.stat().st_size
-    try:
-        conn = sqlite3.connect(db, timeout=_DB_BUSY_TIMEOUT_S)
-        try:
-            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-        finally:
-            conn.close()
-    except sqlite3.Error as exc:
-        _logger.warning("Could not checkpoint %s: %s", db, exc)
-        return 0
-    after = wal.stat().st_size if wal.exists() else 0
-    return max(before - after, 0)
-
-
 def tidy_run(run_dir: Path) -> int:
     """Remove scratch sidecars from ``evidence/`` and fold the WAL; the bytes freed."""
     freed = 0
@@ -295,5 +280,8 @@ def tidy_run(run_dir: Path) -> int:
                     if _is_plain_file(path):
                         freed += path.stat().st_size
                         path.unlink()
-        freed += _checkpoint_wal(run_dir)
+        try:
+            freed += fold_wal(run_dir)
+        except WalNotFoldedError as exc:
+            _logger.warning("Could not checkpoint: %s", exc)
     return freed

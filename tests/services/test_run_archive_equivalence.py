@@ -178,14 +178,33 @@ def test_opening_an_archived_run_database_restores_before_connecting(tmp_path):
     assert (old / "events.jsonl").is_file() and not is_archived(old)
 
 
-def test_apply_and_preview_after_a_restore_that_did_not_project(tmp_path, formula_path):  # noqa: F811
+def test_apply_and_preview_after_a_restore_without_a_database(tmp_path, formula_path):  # noqa: F811
     archived_root, plain_root = tmp_path / "archived", tmp_path / "plain"
     old, _ = _seed_project(archived_root)
     shutil.copytree(archived_root, plain_root)
     archive_run(old)
     dimension_evidence_file(old, "security")  # restores, never projects
-    (old / "evaluation.db").unlink()  # the archive carries the database; drop it to force a rebuild
+    (old / "evaluation.db").unlink()  # no-db variant: force a rebuild from the event log
     assert not is_archived(old) and not (old / "evaluation.db").exists()
+
+    explained = [explain_dimension(root, _PROJECT, _OLD, "security", params=_TUNED)
+                 for root in (archived_root, plain_root)]
+    assert explained[0]["principles"] and explained[0] == explained[1]
+
+    grade_formula.save_params(_TUNED)
+    for root in (archived_root, plain_root):
+        assert grade_formula.apply_to_all_runs(root).failed == []
+    archived = SQLiteStateStore(old).read_dimension_scores()
+    assert archived and archived == SQLiteStateStore(plain_root / _PROJECT / _OLD).read_dimension_scores()
+
+
+def test_apply_and_preview_after_a_restore_with_the_archived_database(tmp_path, formula_path):  # noqa: F811
+    archived_root, plain_root = tmp_path / "archived", tmp_path / "plain"
+    old, _ = _seed_project(archived_root)
+    shutil.copytree(archived_root, plain_root)
+    archive_run(old)
+    dimension_evidence_file(old, "security")  # restores, never projects
+    assert not is_archived(old) and (old / "evaluation.db").is_file()
 
     explained = [explain_dimension(root, _PROJECT, _OLD, "security", params=_TUNED)
                  for root in (archived_root, plain_root)]

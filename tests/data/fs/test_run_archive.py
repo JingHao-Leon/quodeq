@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from quodeq.data.fs import run_archive
+from quodeq.data.fs import run_archive, run_archive_wal
 from quodeq.data.fs.run_archive import (
     ARCHIVE_FILENAME,
     RunArchiveError,
@@ -31,8 +31,6 @@ def _run_with_files(tmp_path: Path) -> Path:
         _EVENTS: '{"type": "finding", "file": "a.py"}\n' * 400,
         _EVIDENCE: '{"principle": "P1", "snippet": "x = 1"}\n' * 400,
         "evidence/manifest.json": '{"files": 3}',
-        "evaluation.db": "x" * 4096,
-        "evaluation.db-wal": "w" * 1024,
         "evaluation/security.json": '{"grade": "B"}',
         "status.json": '{"status": "completed"}',
         "dimensions.json": '["security"]',
@@ -41,14 +39,39 @@ def _run_with_files(tmp_path: Path) -> Path:
         path = run / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
+    conn = sqlite3.connect(run / "evaluation.db")
+    conn.execute("CREATE TABLE findings (id INTEGER PRIMARY KEY, file TEXT)")
+    conn.executemany("INSERT INTO findings (file) VALUES (?)", [(f"f{i}.py",) for i in range(300)])
+    conn.commit()
+    conn.close()
     return run
 
 
+def _wal_run(tmp_path: Path):
+    """A run whose 200 rows live only in the WAL; the open connection keeps the WAL alive."""
+    run = _run_with_files(tmp_path)
+    conn = sqlite3.connect(run / "evaluation.db")
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA wal_autocheckpoint=0")
+    conn.executemany("INSERT INTO findings (file) VALUES (?)", [(f"w{i}.py",) for i in range(200)])
+    conn.commit()
+    assert (run / "evaluation.db-wal").stat().st_size > 0
+    return run, conn
+
+
+def _rows(run: Path) -> list[tuple]:
+    conn = sqlite3.connect(run / "evaluation.db")
+    try:
+        return conn.execute("SELECT id, file FROM findings ORDER BY id").fetchall()
+    finally:
+        conn.close()
+
+
 def _bytes(run: Path) -> dict[str, bytes]:
-    """File bytes by name; the WAL sidecar is left out because opening the database may fold it."""
+    """File bytes by name; the WAL and shm sidecars are left out because opening the database may fold it."""
     return {
         p.relative_to(run).as_posix(): p.read_bytes()
-        for p in run.rglob("*") if p.is_file() and not p.name.startswith(".") and p.name != "evaluation.db-wal"
+        for p in run.rglob("*") if p.is_file() and not p.name.startswith(".") and p.name not in ("evaluation.db-wal", "evaluation.db-shm")
     }
 
 
@@ -70,6 +93,39 @@ def test_round_trip_restores_identical_bytes(tmp_path):
     for name in (_EVENTS, _EVIDENCE, "evaluation.db", *_KEPT):
         assert restored[name] == before[name]
     assert not (run / "evaluation.db-wal").exists()
+
+
+def test_rows_only_in_the_wal_survive_archive_and_restore(tmp_path):
+    run, conn = _wal_run(tmp_path)
+    conn.close()  # a reader that quit; the WAL may or may not be folded by the close
+    expected = _rows(run)
+    assert len(expected) == 500
+    archive_run(run)
+    assert not (run / "evaluation.db").exists() and not (run / "evaluation.db-wal").exists()
+    assert ensure_restored(run) is True
+    assert _rows(run) == expected
+
+
+def test_a_busy_checkpoint_refuses_the_archive_and_keeps_everything(tmp_path, monkeypatch):
+    run, conn = _wal_run(tmp_path)
+    reader = sqlite3.connect(run / "evaluation.db")
+    reader.execute("BEGIN")
+    reader.execute("SELECT count(*) FROM findings").fetchone()
+    writer_rows = conn.execute("SELECT count(*) FROM findings").fetchone()[0]
+    conn.execute("INSERT INTO findings (file) VALUES ('late.py')")
+    conn.commit()
+    before = _bytes(run)
+    wal_size = (run / "evaluation.db-wal").stat().st_size
+    monkeypatch.setattr(run_archive_wal, "_BUSY_TIMEOUT_S", 0.05)
+    try:
+        with pytest.raises(RunArchiveError):
+            archive_run(run)
+        assert not is_archived(run) and not (run / ARCHIVE_FILENAME).exists()
+        assert _bytes(run) == before and (run / "evaluation.db-wal").stat().st_size >= wal_size
+    finally:
+        reader.close()
+        conn.close()
+    assert writer_rows == 500
 
 
 def test_restoring_a_live_run_is_a_no_op(tmp_path):
@@ -210,7 +266,6 @@ def test_corrupt_archive_is_refused(tmp_path):
 def test_tidy_removes_only_scratch_sidecars(tmp_path):
     run = _run_with_files(tmp_path)
     (run / "evaluation.db").unlink()
-    (run / "evaluation.db-wal").unlink()
     scratch = {"security_queue.json": "q" * 100, "security_dispatch_keys.json": "k" * 50,
                "security_replayed_unconsolidated_keys.json": "r" * 25}
     for name, text in scratch.items():
