@@ -202,7 +202,7 @@ describe('GradeFormulaPage', () => {
     it('blocks boundary-bar drags: update is not called', () => {
       const state = mockHook({ busy: true, isDirty: true });
       mount(<GradeFormulaPage navigation={NAVIGATION} />);
-      fireEvent.pointerDown(screen.getByLabelText('Boundary 1'), { clientX: 30 });
+      fireEvent.pointerDown(screen.getByLabelText('Where Poor starts'), { clientX: 30 });
       fireEvent.pointerMove(window, { clientX: 70 });
       fireEvent.pointerUp(window);
       expect(state.update).not.toHaveBeenCalled();
@@ -211,7 +211,7 @@ describe('GradeFormulaPage', () => {
     it('a boundary-bar drag calls update once the request is done', () => {
       const state = mockHook({ busy: false });
       mount(<GradeFormulaPage navigation={NAVIGATION} />);
-      fireEvent.pointerDown(screen.getByLabelText('Boundary 1'), { clientX: 30 });
+      fireEvent.pointerDown(screen.getByLabelText('Where Poor starts'), { clientX: 30 });
       fireEvent.pointerMove(window, { clientX: 50 });
       fireEvent.pointerUp(window);
       expect(state.update).toHaveBeenCalled();

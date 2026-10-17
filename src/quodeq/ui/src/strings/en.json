@@ -2311,6 +2311,7 @@
   "gradeFormula.bandGood": "Good from",
   "gradeFormula.bandAdequate": "Adequate from",
   "gradeFormula.bandPoor": "Poor from",
+  "gradeFormula.boundaryAria": "Where {grade} starts",
   "gradeFormula.reachMoves": "moves {count} of {total} principles",
   "gradeFormula.reachLabels": "changes {count} of {total} principle grades",
   "gradeFormula.reachNone": "unchanged",

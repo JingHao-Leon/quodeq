@@ -2215,7 +2215,7 @@ textarea:focus {
 .gf-boundary-bar { display: flex; height: 28px; border-radius: 4px; overflow: hidden;
   border: 1px solid var(--color-border); user-select: none; }
 .gf-boundary-seg { display: flex; align-items: center; justify-content: center;
-  font-size: 9px; letter-spacing: 0.5px; font-weight: 700; color: var(--color-bg, #000); min-width: 0;
+  font-size: 9px; letter-spacing: 0.5px; font-weight: 700; text-transform: uppercase; color: var(--color-bg, #000); min-width: 0;
   container-type: inline-size; overflow: hidden; white-space: nowrap; }
 /* Each segment sizes its own label: the name when it fits, else the initial (the name stays readable to screen readers). */
 .gf-boundary-seg__initial { display: none; }
