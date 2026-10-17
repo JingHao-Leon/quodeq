@@ -23,9 +23,9 @@ function renderTab({ state, update = vi.fn(), getClientModels }) {
 }
 
 describe('CliProviderTab with a live model catalog', () => {
-  it('lists the account models, marks the recommended one and describes the selection', async () => {
+  it('lists the account models, marks the default one and describes the selection', async () => {
     renderTab({ state: { model: 'sol' } });
-    expect(await screen.findByRole('option', { name: 'GPT Sol (recommended)' })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: 'GPT Sol (default)' })).toBeInTheDocument();
     expect(screen.getByText('Workhorse')).toBeInTheDocument();
   });
 

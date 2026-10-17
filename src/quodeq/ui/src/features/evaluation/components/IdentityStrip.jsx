@@ -23,8 +23,10 @@ export function IdentityStrip({ children }) {
  * @param {boolean} [props.attention] Marks a cell the user must act on
  *   before a scan can start (the model cell with no model chosen): red
  *   label, red underline under the words
+ * @param {{current: Element|null}} [props.cellRef] Ref to the cell itself
+ *   (a popover anchors under it)
  */
-export function IdentityCell({ label, grow = false, title, onClick, trailing, attention = false, children }) {
+export function IdentityCell({ label, grow = false, title, onClick, trailing, attention = false, cellRef, children }) {
   const value = onClick ? (
     <button type="button" className="eval-identity__value eval-identity__value--action" onClick={onClick}>
       {children}
@@ -34,7 +36,7 @@ export function IdentityCell({ label, grow = false, title, onClick, trailing, at
   );
   const cellClass = `eval-identity__cell${grow ? ' eval-identity__cell--grow' : ''}${onClick ? ' eval-identity__cell--action' : ''}${attention ? ' eval-identity__cell--attention' : ''}`;
   return (
-    <div className={cellClass} title={title}>
+    <div ref={cellRef} className={cellClass} title={title}>
       <span className="eval-identity__label">{label}</span>
       {trailing != null ? <span className="eval-identity__value-row">{value}{trailing}</span> : value}
     </div>

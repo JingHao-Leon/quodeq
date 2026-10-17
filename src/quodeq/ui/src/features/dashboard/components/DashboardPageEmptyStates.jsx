@@ -1,9 +1,11 @@
 import IncompleteSetupCard from './IncompleteSetupCard.jsx';
+import NeverEvaluatedPanel from './NeverEvaluatedPanel.jsx';
 import LoadingScreen from '../../../components/LoadingScreen.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import { NoEvalsEmptyState } from '../../../components/ProjectEmptyStates.jsx';
 import { t } from '../../../strings/index.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
+import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 
 // These render only the *contents* of DashboardPage's `.dashboard-page` div
 // for each early-return branch -- never the `<>{null}<div className=...>`
@@ -65,12 +67,16 @@ export function LoadingProjectContent({ projectName }) {
 // visually blank .dashboard-page with no dim and no loader), plus the
 // post-eval selectedRun flip while the sticky latch is active (loading
 // true, dashboard still null): stay here, dimmed, until the payload lands
-// rather than swapping to the full inline loader and back.
-export function NoRunsEmptyContent({ projectInfo, onComplete, projectName, onNavigate }) {
+// rather than swapping to the full inline loader and back. A local project
+// gets the same never-evaluated steps DashboardContent shows, so the page
+// reads one way whichever payload settles first.
+export function NoRunsEmptyContent({ projectInfo, onComplete, projectName, onNavigate, selectedSource }) {
   return (
     <>
       <IncompleteSetupCard projectInfo={projectInfo} onComplete={onComplete} />
-      <NoEvalsEmptyState projectName={projectName} onNavigate={onNavigate} />
+      {selectedSource === PROJECT_SOURCE.SHARED
+        ? <NoEvalsEmptyState projectName={projectName} onNavigate={onNavigate} />
+        : <NeverEvaluatedPanel projectName={projectName} projectInfo={projectInfo} onNavigate={onNavigate} />}
     </>
   );
 }

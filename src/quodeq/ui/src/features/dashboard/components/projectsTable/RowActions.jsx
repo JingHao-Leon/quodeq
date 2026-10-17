@@ -66,6 +66,25 @@ export function RowAction({ action, name, publishActions, pull, onRelocate }) {
 }
 
 /**
+ * A never-evaluated row's action: `evaluate` selects the project and opens
+ * Evaluate, where the first-run defaults apply.
+ */
+export function EvaluateAction({ name, label, onEvaluate }) {
+  return (
+    <div className="projects-row__action" role="cell">
+      <button
+        type="button"
+        className="term-btn term-btn--secondary"
+        aria-label={t('projects.evaluateProjectAria', { name: label })}
+        onClick={stop(() => onEvaluate?.(name))}
+      >
+        {t('projects.evaluateProject')}
+      </button>
+    </div>
+  );
+}
+
+/**
  * The row's ⋯ menu: the rare actions. Fetch latest code (only for a
  * project with a git remote and its folder), export the reports, delete
  * (confirmed inline under the row).

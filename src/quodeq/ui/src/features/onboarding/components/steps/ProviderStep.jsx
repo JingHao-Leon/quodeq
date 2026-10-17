@@ -2,7 +2,7 @@ import ProviderTabs from '../../../settings/components/ProviderTabs.jsx';
 import { TermHeader } from '../../../../components/terminal/index.js';
 import { t } from '../../../../strings/index.js';
 import { useActiveProviderState, readActiveProviderState } from '../../hooks/useActiveProviderState.js';
-import { providerLabel } from '../../providerLabels.js';
+import { providerLabel } from '../../../reviewer/providerLabels.js';
 
 function ProviderSummary({ activeProvider }) {
   if (!activeProvider.id) {

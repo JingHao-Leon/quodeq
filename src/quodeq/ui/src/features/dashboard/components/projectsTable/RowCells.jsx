@@ -62,6 +62,31 @@ export function LastRunCell({ project }) {
   return <div className="projects-row__num projects-row__last" role="cell">{formatDate(project.latestDate) ?? EMPTY_CELL}</div>;
 }
 
+// The grade, files and last-run columns a never-evaluated row has nothing
+// for: one muted cell across all three keeps the grid aligned.
+const RUN_COLUMNS = 3;
+
+/**
+ * The grade, files and last-run cells, or, for a project never evaluated,
+ * one quiet "not evaluated yet" across the three.
+ */
+export function RunCells({ project, notEvaluated, grade }) {
+  if (notEvaluated) {
+    return (
+      <div className="projects-row__not-evaluated projects-row__muted" role="cell" aria-colspan={RUN_COLUMNS}>
+        {t('projects.notEvaluatedYet')}
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="projects-row__grade" role="cell">{grade}</div>
+      <FilesCell project={project} />
+      <LastRunCell project={project} />
+    </>
+  );
+}
+
 const LOCATION_LABEL = {
   [ROW_LOCATION.LOCAL]: () => t('projects.locationLocal'),
   [ROW_LOCATION.REMOTE]: () => t('projects.locationRemote'),

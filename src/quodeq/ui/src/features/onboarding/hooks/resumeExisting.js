@@ -6,18 +6,17 @@ const RESUME_SCAN_TIMEOUT_MS = 120000;
 
 /**
  * 409 + existingProjectId means a project was already registered for this
- * repo. If it has no evaluations yet, silently resume into it: the user most
- * likely abandoned an earlier onboarding attempt. If it does have
- * evaluations, the caller falls through to its normal error UI.
+ * repo: resume into it (an abandoned earlier onboarding, or a repository
+ * added again) and say whether it already has evaluations, so the reviewer
+ * step offers a plain evaluation rather than a first one.
  *
  * @param {{ getProjectInfo: Function, getProjectScan: Function, actions: { succeedScan: Function } }} deps
- * @returns {(existingProjectId: string) => Promise<boolean>} true when resumed
+ * @returns {(existingProjectId: string) => Promise<{hasRuns: boolean}|null>} null when it could not resume
  */
 export function makeTryResumeExisting({ getProjectInfo, getProjectScan, actions }) {
   return async function tryResumeExisting(existingProjectId) {
     try {
       const info = await getProjectInfo(existingProjectId);
-      if (info.runsCount > 0) return false;
       // Timeout so a backend that accepts but never responds cannot stall
       // the resume flow; the catch below falls back to the normal error UI
       // (the adapter rejects on non-2xx too, landing in the same catch).
@@ -26,11 +25,11 @@ export function makeTryResumeExisting({ getProjectInfo, getProjectScan, actions 
         signal: AbortSignal.timeout(RESUME_SCAN_TIMEOUT_MS),
         timeout: RESUME_SCAN_TIMEOUT_MS,
       });
-      actions.succeedScan(existingProjectId, scanData);
-      return true;
+      actions.succeedScan(existingProjectId, scanData, info.path);
+      return { hasRuns: info.runsCount > 0 };
     } catch (err) {
       console.warn('[resumeExisting] resume existing project failed:', err);
-      return false;
+      return null;
     }
   };
 }
@@ -40,10 +39,10 @@ export function makeTryResumeExisting({ getProjectInfo, getProjectScan, actions 
  * existing project id: resuming it is the right answer, not a failure.
  *
  * @param {{ status?: number, existingProjectId?: string }} err
- * @param {(id: string) => Promise<boolean>} tryResumeExisting
- * @returns {Promise<boolean>} true when the existing project was resumed
+ * @param {(id: string) => Promise<{hasRuns: boolean}|null>} tryResumeExisting
+ * @returns {Promise<{hasRuns: boolean}|null>} the resume, or null when it did not resume
  */
 export async function resumedExisting(err, tryResumeExisting) {
-  if (err.status !== HTTP_STATUS.CONFLICT || !err.existingProjectId) return false;
-  return Boolean(await tryResumeExisting(err.existingProjectId));
+  if (err.status !== HTTP_STATUS.CONFLICT || !err.existingProjectId) return null;
+  return (await tryResumeExisting(err.existingProjectId)) || null;
 }

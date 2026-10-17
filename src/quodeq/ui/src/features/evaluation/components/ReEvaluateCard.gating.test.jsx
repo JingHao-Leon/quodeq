@@ -8,9 +8,17 @@ import { makeFakeApi, renderCard } from './_reEvaluateCard.fixtures.jsx';
  * consumption, and the getProjectInfo error state.
  */
 
+// Scan stays disabled until a model is chosen; the gating tests below are
+// about other blockers, so they run with one.
+function chooseModel() {
+  localStorage.setItem('cc-active-provider', 'claude');
+  localStorage.setItem('cc-claude-model', 'opus');
+}
+
 describe('ReEvaluateCard ephemeral gating', () => {
   beforeEach(() => {
     invalidateDimensionCache();
+    chooseModel();
   });
 
   it('disables re-evaluation when projectInfo.evaluable is false (ephemeral completed)', async () => {
@@ -50,9 +58,9 @@ describe('ReEvaluateCard ephemeral gating', () => {
     });
     renderCard({ project: 'uuid-2', projectInfo, api });
 
-    // Wait for info to render (path appears in the identity strip's scope cell)
+    // Wait for info to render (the identity strip's scope cell)
     await waitFor(() => {
-      expect(screen.getByText(/\/repos\/myproj/)).toBeInTheDocument();
+      expect(screen.getByText('whole project')).toBeInTheDocument();
     });
 
     // No ephemeral note
@@ -67,7 +75,7 @@ describe('ReEvaluateCard ephemeral gating', () => {
 });
 
 describe('ReEvaluateCard clean-scan once consumption', () => {
-  beforeEach(() => { invalidateDimensionCache(); });
+  beforeEach(() => { invalidateDimensionCache(); chooseModel(); });
 
   const localInfo = { name: 'demo', path: '/repos/myproj', location: 'local', ephemeral: false, evaluable: true };
   const apiWithDims = () => makeFakeApi({
@@ -175,3 +183,86 @@ describe('ReEvaluateCard error state', () => {
   });
 
 });
+
+describe('ReEvaluateCard first-run defaults', () => {
+  beforeEach(() => {
+    invalidateDimensionCache();
+    localStorage.clear();
+    // A CLI provider whose Settings cap is 10 minutes: a first run ignores it.
+    localStorage.setItem('cc-active-provider', 'claude');
+    localStorage.setItem('cc-claude-time-limit', '600');
+  });
+
+  const firstRunInfo = { name: 'demo', path: '/repos/myproj', location: 'local', ephemeral: false, evaluable: true, runsCount: 0, latestRunId: null };
+  const apiWithTwoDims = () => makeFakeApi({
+    getProjectInfo: vi.fn().mockResolvedValue({ ...firstRunInfo, runsCount: 0 }),
+    listPlugins: vi.fn().mockResolvedValue([{ dimensions: [
+      { id: 'security', label: 'Security' },
+      { id: 'maintainability', label: 'Maintainability' },
+    ] }]),
+  });
+
+  it('first run selects every dimension with the neutral checked style', async () => {
+    renderCard({ project: 'p-first', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'true'));
+    const maint = screen.getByRole('button', { name: /maintainability/i });
+    expect(maint).toHaveAttribute('aria-pressed', 'true');
+    expect(maint).toHaveClass('eval-dim-card--neutral');
+  });
+
+  it('a project with runs starts with none selected and the usual style', async () => {
+    renderCard({ project: 'p-ran', projectInfo: { ...firstRunInfo, runsCount: 3, latestRunId: 'r3' }, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /security/i })).not.toHaveClass('eval-dim-card--neutral');
+  });
+
+  it('first run budget is no limit', async () => {
+    renderCard({ project: 'p-first-budget', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByText(/2 dimensions · no time limit/)).toBeInTheDocument());
+  });
+
+  it('scope cell reads whole project without the absolute path', async () => {
+    renderCard({ project: 'p-first-scope', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    const scopeCode = await screen.findByText('whole project');
+    expect(scopeCode).toHaveTextContent(/^whole project$/);
+    expect(screen.queryByText(/\/repos\/myproj/)).not.toBeInTheDocument();
+    expect(scopeCode.closest('[title]')).toHaveAttribute('title', expect.stringContaining('/repos/myproj'));
+  });
+
+  it('an active provider with no model keeps scan disabled and asks for one', async () => {
+    localStorage.clear();
+    localStorage.setItem('cc-active-provider', 'ollama');
+    renderCard({ project: 'p-first-emptymodel', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByText('pick a model to start')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^▸\s*scan|^scan/i })).toBeDisabled();
+  });
+
+  it('scan is disabled and names the missing model', async () => {
+    localStorage.clear();
+    renderCard({ project: 'p-first-nomodel', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByText('pick a model to start')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: /^▸\s*scan|^scan/i })).toBeDisabled();
+  });
+
+  it('an entry that arrives after mount still applies both first-run defaults', async () => {
+    const { rerenderCard } = renderCard({ project: 'p-late', projectInfo: undefined, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toBeInTheDocument());
+    rerenderCard({ projectInfo: firstRunInfo });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByRole('button', { name: /maintainability/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/2 dimensions · no time limit/)).toBeInTheDocument();
+  });
+
+  it('toggles made after the first-run seed survive a re-render', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const { rerenderCard } = renderCard({ project: 'p-toggle', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'true'));
+    await user.click(screen.getByRole('button', { name: /security/i }));
+    rerenderCard({ projectInfo: { ...firstRunInfo } });
+    expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /maintainability/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+

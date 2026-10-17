@@ -6,6 +6,7 @@ import { scopeMetrics, tileChanges } from '../../../models/findingMetrics.js';
 import { scoreChangeShows } from '../../../utils/trendUtils.js';
 import { headActions } from './heroSectionParts.jsx';
 import { partialDimensionCount } from '../overviewHeadModel.js';
+import { projectFileCount, topLanguageStats } from '../projectSize.js';
 import { extDisplayName } from '../../../utils/formatters.js';
 import { pluralKey } from '../../../utils/plural.js';
 import { useRunModel } from '../hooks/useOverviewPeriod.js';
@@ -19,10 +20,9 @@ const SIZE_SEP = '  ·  ';
 
 /** The project's size first ("3,925 files"), then its top languages; null when neither is known. */
 export function languageSub(projectInfo) {
-  const files = projectInfo?.filesCount;
+  const files = projectFileCount(projectInfo);
   const total = files != null ? t('overview.filesTotal', { count: files.toLocaleString(LOCALE) }) : null;
-  const stats = projectInfo?.languageStats;
-  const sorted = stats ? Object.entries(stats).sort(([, a], [, b]) => b - a).slice(0, MAX_LANGS_IN_SUB) : [];
+  const sorted = topLanguageStats(projectInfo, MAX_LANGS_IN_SUB);
   const langs = sorted.map(([lang, count]) => `${count} ${extDisplayName(lang).toLowerCase()}`).join(LANGS_SEP);
   if (!total) return langs || null;
   return langs ? `${total}${SIZE_SEP}${langs}` : total;

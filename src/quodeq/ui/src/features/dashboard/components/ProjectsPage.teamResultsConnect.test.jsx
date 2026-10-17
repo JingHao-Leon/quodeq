@@ -61,17 +61,17 @@ describe('ProjectsPage — closing a failed connect', () => {
     expect(urlField()).toHaveValue(foreign.url);
   });
 
-  it('on an empty page the failure shows above the empty line, and close leaves just the line', async () => {
+  it('on an empty page the failure shows above the ways in, and close leaves just them', async () => {
     const user = userEvent.setup();
     const { api } = makeApi({ slots: { connect: foreign } });
     renderPage(api, <ProjectsPage projects={[]} actions={pageActions} />);
     expect(await screen.findByText(FOREIGN_COPY)).toBeInTheDocument();
-    expect(screen.getByText(/No repositories yet\./)).toBeInTheDocument();
+    expect(screen.getByText('A repository')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'close' }));
     expect(screen.queryByText(FOREIGN_COPY)).not.toBeInTheDocument();
     expect(urlField()).not.toBeInTheDocument();
-    expect(screen.getByText(/No repositories yet\./)).toBeInTheDocument();
+    expect(screen.getByText('A repository')).toBeInTheDocument();
   });
 });
 

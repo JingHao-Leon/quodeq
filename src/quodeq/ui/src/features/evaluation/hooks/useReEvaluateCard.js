@@ -14,7 +14,7 @@ import { ACTIVE_PROVIDER_KEY } from '../../../constants.js';
 import { resolveProviderSettings } from '../../../utils/effectiveProviderSettings.js';
 import { useReEvalInfo } from './useReEvalInfo.js';
 import { useDimensionSelection } from './useDimensionSelection.js';
-import { PROJECT_LOCATION } from '../../../models/project.js';
+import { PROJECT_LOCATION, isFirstRunProject } from '../../../models/project.js';
 
 // The chips pre-select from the same resolution the start payload and the
 // Settings screen use, so the form can never claim a budget the run
@@ -25,16 +25,33 @@ function initialBudgetSeconds(storage = localStorage) {
   return resolveProviderSettings(provider, storage).timeLimitS;
 }
 
-// Scan scope the user picks on the card (branch, sub-path, time budget);
-// branch and path reset when the project changes.
-function useReEvalScope(project) {
+// Whether the project was never evaluated, read once from the first
+// projects-list entry the card sees: null until one arrives, then fixed for
+// the mount, so a refetch that counts the run never flips the defaults.
+function useFirstRunLatch(projectInfo) {
+  const [latched, setLatched] = useState(() => (projectInfo ? isFirstRunProject(projectInfo) : null));
+  useEffect(() => {
+    if (latched === null && projectInfo) setLatched(isFirstRunProject(projectInfo));
+  }, [latched, projectInfo]);
+  return latched;
+}
+
+// Scan scope the user picks on the card (branch, sub-path, time budget),
+// and whether this is a first run (latched); branch and path reset when the
+// project changes. A first run starts with
+// no time limit whatever the provider's Settings say, applied once when the
+// latch settles (even when the entry arrives after mount); the chips still
+// let the user pick one.
+function useReEvalScope(project, projectInfo) {
+  const firstRun = useFirstRunLatch(projectInfo) === true;
   const [branch, setBranch] = useState(null);
   const [scopePath, setScopePath] = useState(null);
-  const [timeLimitS, setTimeLimitS] = useState(() => initialBudgetSeconds());
+  const [timeLimitS, setTimeLimitS] = useState(() => (firstRun ? 0 : initialBudgetSeconds()));
 
   useEffect(() => { setScopePath(null); setBranch(null); }, [project]);
+  useEffect(() => { if (firstRun) setTimeLimitS(0); }, [firstRun]);
 
-  return { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS };
+  return { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS, isFirstRun: firstRun };
 }
 
 // Local-project-only data: the scan preview and the pre-run estimates.
@@ -59,17 +76,17 @@ export function useReEvaluateCard(project, onStart, projectInfo, preselectDims) 
   const { info, error, retry, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = useReEvalInfo(project, projectInfo, { getProjectInfo, relocateProject });
   const { allDimensions } = usePluginDimensions();
   const { showToast } = useSidePane();
-  const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS } = useReEvalScope(project);
+  const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS, isFirstRun } = useReEvalScope(project, projectInfo);
   const { isLocal, scanData, estimates, estimatesLoading } = useReEvalScan(project, info);
 
   const { selectedDims, toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan } =
-    useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail: showToast, preselectDims, project, timeLimitS });
+    useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail: showToast, preselectDims, isFirstRun, project, timeLimitS });
 
   return {
     info, error, retry, allDimensions, selectedDims,
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
     isLocal, scanData, estimates, estimatesLoading, branch, setBranch, scopePath, setScopePath,
-    timeLimitS, setTimeLimitS,
+    timeLimitS, setTimeLimitS, isFirstRun,
   };
 }

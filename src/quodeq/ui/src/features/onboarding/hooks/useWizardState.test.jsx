@@ -30,6 +30,15 @@ describe('useWizardState', () => {
     expect(result.current.state.scan.total_files).toBe(42);
   });
 
+  it('a scan records the local folder, and an add moves to the reviewer step', () => {
+    const { result } = renderHook(() => useWizardState());
+    act(() => result.current.succeedScan('uuid-1', { total_files: 42 }, '/u/me/billing'));
+    act(() => result.current.markAdded({ projectId: 'uuid-1', cloning: false }));
+    expect(result.current.state.projectPath).toBe('/u/me/billing');
+    expect(result.current.state.added).toEqual({ projectId: 'uuid-1', cloning: false });
+    expect(result.current.state.step).toBe('reviewer');
+  });
+
   it('scan error transitions to error sub-state and preserves repo input', () => {
     const { result } = renderHook(() => useWizardState());
     act(() => result.current.setRepo({ source: 'local', value: '/path' }));
