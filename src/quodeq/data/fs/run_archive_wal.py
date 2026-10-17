@@ -68,3 +68,24 @@ def vacuum_db(run_dir: Path) -> int:
     finally:
         conn.close()
     return max(0, before - _size(db) - _size(wal))
+
+
+def needs_db_tidy(run_dir: Path) -> bool:
+    """True when the database has a log to fold or free pages to drop (or cannot be probed).
+
+    Probes the main file only (``immutable``), with no log beside it, so the
+    probe creates no file and takes no lock.
+    """
+    db = run_dir / DB_NAME
+    if not db.is_file():
+        return False
+    if _size(run_dir / WAL_NAME):
+        return True
+    try:
+        conn = sqlite3.connect(f"{db.resolve().as_uri()}?mode=ro&immutable=1", uri=True)
+        try:
+            return bool(conn.execute("PRAGMA freelist_count").fetchone()[0])
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return True  # the locked pass reports it

@@ -39,7 +39,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
 )
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
-from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, vacuum_db
+from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, needs_db_tidy, vacuum_db
 
 _logger = logging.getLogger(__name__)
 
@@ -269,17 +269,21 @@ def restore_for_read(run_dir: Path, path: Path) -> bool:
 def tidy_run(run_dir: Path) -> int:
     """Remove scratch sidecars from ``evidence/``, fold the WAL and VACUUM the database; the bytes freed.
 
+    The scratch files are never packed nor restored, so they go without the
+    run lock. The database work takes it, and only when there is some: a run
+    without a lock file keeps it that way, and its readers the lock-free open.
     A failed checkpoint or VACUUM is logged and tidy carries on.
     """
     freed = 0
+    evidence = run_dir / EVIDENCE_DIR
+    if evidence.is_dir():
+        for path in (p for pattern in TIDY_PATTERNS for p in evidence.glob(pattern)):
+            if is_plain_file(path):
+                freed += path.stat().st_size
+                path.unlink(missing_ok=True)
+    if is_archived(run_dir) or not needs_db_tidy(run_dir):
+        return freed
     with run_lock(run_dir):
-        evidence = run_dir / EVIDENCE_DIR
-        if evidence.is_dir():
-            for pattern in TIDY_PATTERNS:
-                for path in evidence.glob(pattern):
-                    if is_plain_file(path):
-                        freed += path.stat().st_size
-                        path.unlink()
         try:
             freed += fold_wal(run_dir)
         except WalNotFoldedError as exc:
