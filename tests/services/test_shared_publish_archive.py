@@ -132,3 +132,23 @@ def test_a_run_archived_while_it_is_copied_fails_the_publish(tmp_path, monkeypat
     monkeypatch.setattr("quodeq.services._publish_staging.copy_file_if_exists", archive_first)
     with pytest.raises(run_archive.RunArchiveError, match="retry"):
         copy_run(run, tmp_path / "clone" / "run-old")
+
+
+def test_evidence_vanishing_while_the_run_is_copied_fails_the_publish(tmp_path, monkeypatch):
+    import shutil
+
+    from quodeq.services.wiring import copy_file_if_exists as real
+
+    run = _run(tmp_path / "local")
+
+    def drop_evidence_after_events(src, dest):
+        copied = real(src, dest)
+        if src.name == "events.jsonl":
+            for path in (run / "evidence").glob("*_evidence.jsonl"):
+                path.unlink()
+            shutil.rmtree(run / "evidence", ignore_errors=True)
+        return copied
+
+    monkeypatch.setattr("quodeq.services._publish_staging.copy_file_if_exists", drop_evidence_after_events)
+    with pytest.raises(run_archive.RunArchiveError, match="changed while publishing"):
+        copy_run(run, tmp_path / "clone" / "run-old")

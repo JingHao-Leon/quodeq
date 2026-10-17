@@ -108,11 +108,16 @@ def _copy_logs(run_dir: Path, dest_run_dir: Path, written: list[Path]) -> None:
     elif is_archived(run_dir):
         written.extend(extract_members_to(archive, dest_run_dir))
     else:
+        evidence = run_dir / EVIDENCE_DIRNAME
         expected = (run_dir / EVENTS_FILENAME).is_file()
+        expected_evidence = evidence.is_dir() and any(evidence.glob(_EVIDENCE_PATTERN))
         _copy(run_dir / EVENTS_FILENAME, dest_run_dir / EVENTS_FILENAME, written)
         if expected and dest_run_dir / EVENTS_FILENAME not in written:
             raise RunArchiveError(f"run {run_dir.name} changed while publishing, retry")
-        _copy_matching(run_dir / EVIDENCE_DIRNAME, dest_run_dir / EVIDENCE_DIRNAME, _EVIDENCE_PATTERN, written)
+        before = len(written)
+        _copy_matching(evidence, dest_run_dir / EVIDENCE_DIRNAME, _EVIDENCE_PATTERN, written)
+        if expected_evidence and len(written) == before:
+            raise RunArchiveError(f"run {run_dir.name} changed while publishing, retry")
 
 
 def copy_run(run_dir: Path, dest_run_dir: Path) -> list[Path]:
