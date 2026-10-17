@@ -244,4 +244,25 @@ describe('ReEvaluateCard first-run defaults', () => {
     await waitFor(() => expect(screen.getByText('pick a model to start')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /^▸\s*scan|^scan/i })).toBeDisabled();
   });
+
+  it('an entry that arrives after mount still applies both first-run defaults', async () => {
+    const { rerenderCard } = renderCard({ project: 'p-late', projectInfo: undefined, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toBeInTheDocument());
+    rerenderCard({ projectInfo: firstRunInfo });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByRole('button', { name: /maintainability/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/2 dimensions · no time limit/)).toBeInTheDocument();
+  });
+
+  it('toggles made after the first-run seed survive a re-render', async () => {
+    const { default: userEvent } = await import('@testing-library/user-event');
+    const user = userEvent.setup();
+    const { rerenderCard } = renderCard({ project: 'p-toggle', projectInfo: firstRunInfo, api: apiWithTwoDims() });
+    await waitFor(() => expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'true'));
+    await user.click(screen.getByRole('button', { name: /security/i }));
+    rerenderCard({ projectInfo: { ...firstRunInfo } });
+    expect(screen.getByRole('button', { name: /security/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /maintainability/i })).toHaveAttribute('aria-pressed', 'true');
+  });
 });
+

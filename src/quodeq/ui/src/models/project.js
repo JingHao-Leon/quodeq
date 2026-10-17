@@ -79,9 +79,11 @@ export function createProject(raw) {
 
 /**
  * True when the project was never evaluated. Reads a projects-list entry
- * (`runsCount`, `latestRunId`): the /info payload carries no run data. An
- * entry missing or without a numeric count is not a first run, so nothing
- * flips on a guess.
+ * (`runsCount`, `latestRunId`): the /info payload carries no run data. A
+ * missing entry, or a raw one without a numeric count, is not a first run.
+ * Note that createProject defaults a missing `runsCount` to 0, so an entry
+ * that went through it without run data does read as never evaluated; the
+ * callers pass the local projects-list entry, where the server sets it.
  */
 export function isFirstRunProject(listEntry) {
   return typeof listEntry?.runsCount === 'number' && listEntry.runsCount === 0 && !listEntry.latestRunId;

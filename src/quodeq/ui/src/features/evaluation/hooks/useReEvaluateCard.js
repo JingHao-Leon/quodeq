@@ -25,16 +25,29 @@ function initialBudgetSeconds(storage = localStorage) {
   return resolveProviderSettings(provider, storage).timeLimitS;
 }
 
+// Whether the project was never evaluated, read once from the first
+// projects-list entry the card sees: null until one arrives, then fixed for
+// the mount, so a refetch that counts the run never flips the defaults.
+function useFirstRunLatch(projectInfo) {
+  const [latched, setLatched] = useState(() => (projectInfo ? isFirstRunProject(projectInfo) : null));
+  useEffect(() => {
+    if (latched === null && projectInfo) setLatched(isFirstRunProject(projectInfo));
+  }, [latched, projectInfo]);
+  return latched;
+}
+
 // Scan scope the user picks on the card (branch, sub-path, time budget);
 // branch and path reset when the project changes. A first run starts with
-// no time limit whatever the provider's Settings say; the chips still let
-// the user pick one.
-function useReEvalScope(project, isFirstRun) {
+// no time limit whatever the provider's Settings say, applied once when the
+// latch settles (even when the entry arrives after mount); the chips still
+// let the user pick one.
+function useReEvalScope(project, firstRun) {
   const [branch, setBranch] = useState(null);
   const [scopePath, setScopePath] = useState(null);
-  const [timeLimitS, setTimeLimitS] = useState(() => (isFirstRun ? 0 : initialBudgetSeconds()));
+  const [timeLimitS, setTimeLimitS] = useState(() => (firstRun ? 0 : initialBudgetSeconds()));
 
   useEffect(() => { setScopePath(null); setBranch(null); }, [project]);
+  useEffect(() => { if (firstRun) setTimeLimitS(0); }, [firstRun]);
 
   return { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS };
 }
@@ -61,7 +74,7 @@ export function useReEvaluateCard(project, onStart, projectInfo, preselectDims) 
   const { info, error, retry, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = useReEvalInfo(project, projectInfo, { getProjectInfo, relocateProject });
   const { allDimensions } = usePluginDimensions();
   const { showToast } = useSidePane();
-  const isFirstRun = isFirstRunProject(projectInfo);
+  const isFirstRun = useFirstRunLatch(projectInfo) === true;
   const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS } = useReEvalScope(project, isFirstRun);
   const { isLocal, scanData, estimates, estimatesLoading } = useReEvalScan(project, info);
 

@@ -28,9 +28,8 @@ export const stubSidePane = {
   registerWindowSpec: vi.fn(),
 };
 
-export function renderCard({ project, projectInfo, api, onStart = vi.fn(), disabled = false, preselectDims = [], onGoToSettings } = {}) {
-  const QueryWrapper = withQueryClient();
-  return render(
+function cardTree({ project, projectInfo, api, onStart = vi.fn(), disabled = false, preselectDims = [], onGoToSettings }, QueryWrapper) {
+  return (
     <QueryWrapper>
       <ApiProvider value={api}>
         <SidePaneContext.Provider value={stubSidePane}>
@@ -44,6 +43,13 @@ export function renderCard({ project, projectInfo, api, onStart = vi.fn(), disab
           />
         </SidePaneContext.Provider>
       </ApiProvider>
-    </QueryWrapper>,
+    </QueryWrapper>
   );
+}
+
+/** Renders the card; `rerenderCard(changes)` re-renders it with `changes` over the first props. */
+export function renderCard(props = {}) {
+  const QueryWrapper = withQueryClient();
+  const utils = render(cardTree(props, QueryWrapper));
+  return { ...utils, rerenderCard: (changes) => utils.rerender(cardTree({ ...props, ...changes }, QueryWrapper)) };
 }
