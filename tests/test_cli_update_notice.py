@@ -89,3 +89,11 @@ def test_disclosure_prints_once_then_marks() -> None:
         cli.maybe_emit_cli_notice(stream=stream, env={})
     assert "checks" in stream.getvalue().lower()
     setn.assert_called_once_with(disclosed=True)
+
+
+def test_upgrade_subcommand_dispatches_without_notice(restore_environ) -> None:
+    with patch("quodeq.update.upgrade.run_upgrade", return_value=0) as run_upgrade, \
+         patch("quodeq.cli.maybe_emit_cli_notice") as notice:
+        assert cli.main(["upgrade", "--dry-run"]) == 0
+    run_upgrade.assert_called_once_with(dry_run=True)
+    notice.assert_not_called()

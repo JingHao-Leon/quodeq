@@ -60,6 +60,7 @@ class Command(StrEnum):
     CI = "ci"
     REVIEW = "review"
     EXPORT = "export"
+    UPGRADE = "upgrade"
 
 
 _COMMAND_HANDLERS: dict[str, Callable] = {
@@ -96,7 +97,8 @@ def maybe_emit_cli_notice(stream=None, env: dict[str, str] | None = None) -> Non
             set_settings(disclosed=True)
         if status.get("update_available"):
             tag = "Security update" if status.get("is_security") else "Update available"
-            action = status.get("action_command") or "see the releases page"
+            command = status.get("action_command")
+            action = f"quodeq upgrade ({command})" if command else "see the releases page"
             print(
                 f"{tag}: {status['current']} → {status['latest']}. Run: {action}",
                 file=out,
@@ -167,6 +169,10 @@ def main(argv: list[str] | None = None) -> int:
     elif command == Command.EXPORT:
         from quodeq.ci.export_cli import handle_export
         code = handle_export(args)
+    elif command == Command.UPGRADE:
+        from quodeq.update.upgrade import run_upgrade
+        # No notice afterwards: this process still reports the old version.
+        return run_upgrade(dry_run=args.dry_run)
     else:
         handler = _COMMAND_HANDLERS.get(command)
         code = handler(argv) if handler else 1
