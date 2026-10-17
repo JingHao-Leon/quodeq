@@ -93,3 +93,10 @@ describe('KnobGroups severity sliders', () => {
     expect(screen.getByLabelText('minor')).toHaveAttribute('aria-valuetext', '0.25');
   });
 });
+
+describe('KnobGroups default tick', () => {
+  it('describes each slider with its Q² default', () => {
+    mount();
+    expect(screen.getByLabelText('major')).toHaveAccessibleDescription('Q² default 2');
+  });
+});
