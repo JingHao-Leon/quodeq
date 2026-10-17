@@ -115,8 +115,13 @@ def overlay_sql_grades(
     sql_result = _read_sql_grade_tables(run_dir)
     if sql_result is None:
         return dimensions
-    dim_rows, principle_rows = sql_result
+    return overlay_grade_rows(dimensions, *sql_result)
 
+
+def overlay_grade_rows(
+    dimensions: list[DimensionResult], dim_rows: list[dict], principle_rows: list[dict],
+) -> list[DimensionResult]:
+    """Overlay grade-table rows (from the database, or an archive's ``scalars.json``) onto *dimensions*."""
     sql_by_dim = {r["dimension"]: r for r in dim_rows}
     principles_by_dim: dict[str, list[dict]] = {}
     for r in principle_rows:

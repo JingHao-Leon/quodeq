@@ -4,6 +4,8 @@
 """
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 
 from quodeq.data.fs.run_archive_wal import DB_NAME, WAL_NAME
@@ -42,3 +44,13 @@ def packable_bytes(run_dir: Path) -> int:
     """Bytes the archive would pack or drop: event log, evidence logs, database and sidecars."""
     paths = [p for _, p in archive_sources(run_dir) if is_plain_file(p)] + dropped_sidecars(run_dir)
     return sum(p.stat().st_size for p in paths)
+
+
+def write_json_sidecar(sidecar: Path, payload: dict) -> None:
+    """Write *payload* to *sidecar* atomically, never through a leftover temp file or a planted symlink."""
+    tmp = sidecar.with_name(sidecar.name + ".tmp")
+    tmp.unlink(missing_ok=True)
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o644)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload))
+    os.replace(tmp, sidecar)

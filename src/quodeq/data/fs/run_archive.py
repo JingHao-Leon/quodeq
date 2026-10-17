@@ -5,7 +5,8 @@ An archived run keeps its reports, ``status.json``, ``dimensions.json`` and
 ``evidence/*_evidence.jsonl`` files and ``evaluation.db`` (WAL folded in
 first) move into ``archive.tar.gz`` inside the run folder; the ``-wal`` and
 ``-shm`` sidecars are dropped, and the run's dismissals are kept beside the
-archive in ``precedents.json`` (see ``run_precedents``). Keeping the database spares a restore the
+archive in ``precedents.json`` (see ``run_precedents``), its grades and counts in
+``scalars.json`` (see ``run_scalars``). Keeping the database spares a restore the
 multi-second rebuild measured on the biggest real runs.
 
 Safety rules: originals are deleted only after the archive is written,
@@ -37,6 +38,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     is_plain_file,
 )
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
+from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, vacuum_db
 
 _logger = logging.getLogger(__name__)
@@ -139,6 +141,7 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in DB_SIDECARS)])
         try:
             write_precedents(run_dir)  # precedent matching reads these without a restore
+            write_scalars(run_dir)  # and the run list, trend and warm-up read these
             _write_archive(tmp, sources)
             _verify_archive(tmp, sources)
             os.replace(tmp, final)
@@ -148,7 +151,8 @@ def archive_run(run_dir: Path) -> ArchiveResult:
                 raise RunArchiveError(f"run changed while it was archived: {run_dir}")
         except BaseException:
             tmp.unlink(missing_ok=True)
-            (run_dir / PRECEDENTS_NAME).unlink(missing_ok=True)
+            for sidecar in (PRECEDENTS_NAME, SCALARS_NAME):
+                (run_dir / sidecar).unlink(missing_ok=True)
             raise
         for path in [*(p for _, p in sources), *dropped, run_dir / RESTORED_STAMP]:
             path.unlink(missing_ok=True)

@@ -6,6 +6,7 @@ principle's violations, without loading the findings themselves.
 """
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -70,11 +71,16 @@ def read_dimension_counts(run_dir: Path) -> dict[str, DimensionCounts]:
 
 
 def _read_counts(run_dir: Path) -> dict[str, DimensionCounts]:
+    with open_evaluation_db(run_dir) as conn:
+        return counts_from_connection(conn)
+
+
+def counts_from_connection(conn: sqlite3.Connection) -> dict[str, DimensionCounts]:
+    """``read_dimension_counts`` on a connection the caller owns (the archive's ``scalars.json``)."""
     by_dim: dict[str, dict[str, int]] = {}
     by_principle: dict[str, dict[str, dict[str, int]]] = {}
-    with open_evaluation_db(run_dir) as conn:
-        rows = conn.execute(_SELECT_COUNTS).fetchall()
-        type_rows = conn.execute(_SELECT_TYPES).fetchall()
+    rows = conn.execute(_SELECT_COUNTS).fetchall()
+    type_rows = conn.execute(_SELECT_TYPES).fetchall()
     for dimension, principle, verdict, severity, count in rows:
         key = FindingType.COMPLIANCE if verdict == FindingType.COMPLIANCE else _bucket_for(severity)
         _add(by_dim.setdefault(dimension, {}), key, int(count))

@@ -23,7 +23,8 @@ def test_formula_apply_still_counts_an_archived_run(tmp_path):
     assert grade_formula.count_rescorable_runs(tmp_path) == 1
 
 
-def test_dismiss_projection_still_visits_an_archived_run(tmp_path):
+def test_dismiss_projection_leaves_an_archived_run_packed(tmp_path):
+    """It catches up from the action log when it is next opened (test_run_archive_frozen_reads)."""
     run = _archived(tmp_path)
     archive_run(run)
     seen: list[Path] = []
@@ -36,7 +37,7 @@ def test_dismiss_projection_still_visits_an_archived_run(tmp_path):
             pass
 
     mutation_rescore.project_all_runs(tmp_path / "proj", repo_factory=Repo)
-    assert seen == [run]
+    assert seen == []
 
 
 def test_run_listing_keeps_an_archived_run(tmp_path):

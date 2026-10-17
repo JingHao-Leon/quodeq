@@ -18,7 +18,9 @@ from pathlib import Path
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.run_keys import read_run_key_sets
-from quodeq.services.wiring import ScoreCacheError, UnsupportedSchemaError, has_evaluation_db, read_status, save_run_keys
+from quodeq.services.wiring import (
+    ScoreCacheError, SqliteFindingsRepository, UnsupportedSchemaError, has_evaluation_db, read_status, save_run_keys,
+)
 from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring_sync import archive_run, has_event_log, is_archived, restored_at, tidy_run
 from quodeq.shared.env_resolve import resolve_env
@@ -154,13 +156,17 @@ def _keep_run_keys(run_dir: Path, log: LogSink) -> None:
         log.debug(f"storage cleanup: could not keep the run keys of {run_dir}: {exc}")
 
 
-def _archive_keeping_keys(run_dir: Path, log: LogSink):
+def archive_keeping_keys(run_dir: Path, log: LogSink):
+    """Archive *run_dir* as cleanup does: projected first, its finding keys kept in the score cache."""
+    # Fold any pending action-log delta in first: the archive's scalars.json
+    # freezes the grades the run list and the trend show until it is restored.
+    SqliteFindingsRepository(run_dir).ensure_projected()
     _keep_run_keys(run_dir, log)
     return archive_run(run_dir)
 
 
 def _archive_one(run_dir: Path, log: LogSink):
-    return run_isolated(lambda: _archive_keeping_keys(run_dir, log), label=f"storage cleanup archive {run_dir}", log=log)
+    return run_isolated(lambda: archive_keeping_keys(run_dir, log), label=f"storage cleanup archive {run_dir}", log=log)
 
 
 def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> CleanupResult | None:

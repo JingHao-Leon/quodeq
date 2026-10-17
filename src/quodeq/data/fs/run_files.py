@@ -28,7 +28,7 @@ _FINGERPRINT_DIRS = ("evaluation", EVIDENCE_DIRNAME)
 # SQL grade tables that overlay_sql_grades reads back, so the fingerprint has
 # to cover the database (and its write-ahead log, which absorbs writes long
 # before a checkpoint touches the main file) alongside the JSON.
-_FINGERPRINT_FILES = ("evaluation.db", "evaluation.db-wal", "events.jsonl", "archive.tar.gz")
+_FINGERPRINT_FILES = ("evaluation.db", "evaluation.db-wal", "events.jsonl", "archive.tar.gz", "scalars.json")
 _EVIDENCE_SUFFIX = "_evidence.jsonl"
 
 

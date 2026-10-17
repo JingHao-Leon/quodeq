@@ -13,11 +13,10 @@ disagree on what a dismissal is.
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 from pathlib import Path
 
-from quodeq.data.fs.run_archive_files import is_plain_file
+from quodeq.data.fs.run_archive_files import is_plain_file, write_json_sidecar
 from quodeq.data.fs.run_archive_wal import DB_NAME
 
 PRECEDENTS_NAME = "precedents.json"
@@ -53,12 +52,7 @@ def write_precedents(run_dir: Path) -> Path | None:
     except sqlite3.DatabaseError:
         sidecar.unlink(missing_ok=True)
         return None
-    tmp = sidecar.with_name(sidecar.name + ".tmp")
-    tmp.unlink(missing_ok=True)  # never write through a leftover, or a planted symlink
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o644)
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(json.dumps({"version": _VERSION, **data}))
-    os.replace(tmp, sidecar)
+    write_json_sidecar(sidecar, {"version": _VERSION, **data})
     return sidecar
 
 
