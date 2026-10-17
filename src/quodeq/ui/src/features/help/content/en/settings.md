@@ -11,7 +11,7 @@ Which AI reads your code, how long it may take, and how findings become grades.
 - **API key**, for hosted and some local providers, is write-only: paste a key and press **save key**. quodeq stores it outside the browser, in your system keychain by default, and the row only ever says *key saved*, with **replace** to enter a new one. The key itself is never shown again.
 - **Test** checks the connection to a hosted model and reports its latency.
 - **Evaluation time limit** stops a run after that long. Whatever finished in time is scored, and the next run continues from there.
-- **Subagents** is how many work side by side; local servers can measure what your hardware can serve.
+- **Max parallel agents** is how many subagents work side by side, from 1 to 10; local servers can measure what your hardware can serve.
 - **Effort**, right under the model for Claude Code and Codex, is how hard the model thinks about each file. It offers the levels the chosen model takes; **Default** leaves it to the CLI, and a change re-analyses every file on the next run.
 - **Command**, on a CLI provider, is the command that launches the CLI, checked as you leave the field.
 

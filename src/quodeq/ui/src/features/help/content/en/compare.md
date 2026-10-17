@@ -8,7 +8,7 @@ The header carries the screen's launchers: **duel** starts a head-to-head, **dim
 
 - **Stat cards** the scope-wide picture: average score with its 30-day delta, violations by severity, compliance percentage, and the spread between the best and worst project.
 - **Needs attention** the actionable summary, ranked by *consequence*: how bad a score is, weighted by project size and staleness. The strip leads with the top three; anything else that qualifies waits behind the **more** toggle, below a divider and slightly dimmed. Each card names the reason (weakest dimension, decline over 30 days, code moved since the scan, thin coverage) and links straight into the relevant dimension. The marker colour is the project's grade colour.
-- **Score matrix** every score at a glance: one row per project, one column per dimension, each cell a chip in its grade colour. Per column the best score wears a solid border and the worst a dashed one. Clicking a column header ranks the fleet by that column (again to flip, a third time to restore); the rank numbers follow. A cell opens that project's own screen of that dimension; the project name opens the project. Columns that do not fit the panel distribute into stacked groups instead of scrolling.
+- **Score matrix** every score at a glance: one row per project, one column per dimension, each cell a chip in its grade colour. Per column the best score wears a solid border and the worst a dashed one. Clicking a column header ranks the fleet by that column (again to flip, a third time to restore); the rank numbers follow. A cell opens that project's own screen of that dimension (a principle cell opens its Findings for that principle); the project name opens the project. Columns that do not fit the panel distribute into stacked groups instead of scrolling.
 - **Dimensions board** the scope average per dimension with its 30-day delta and violation count; a row opens the drill-down.
 - **Projects table** one line per project: rank, score in its grade colour, the 30-day trend as a spark line with its delta, the violations total with the severity split, the compliance ratio, and the last evaluation with the commits-behind count. A dimmed delta means every run predates the 30-day window; it then shows the change at the last evaluation instead. Clicking the name opens the project. On narrow windows the columns shed by importance: the spark and ratio go first, then freshness, and the severity split folds into the bare total.
 
@@ -21,14 +21,14 @@ A grade is *stale* when commits landed after the run that produced it, not when 
 Open it from the header's **dimension** button, the dimensions board, or a score-matrix column: one dimension across the whole scope. The dimension tabs in the header switch sideways; the breadcrumb walks back.
 
 - **Needs attention** dimension-scoped triage: principles where one project sits far under the rest, and hard 30-day drops.
-- **Principle matrix** the score matrix again, one column per principle. Headers rank, and a cell opens that project's own principle page.
-- **Standings** projects ranked on this dimension. Clicking a row opens *that project's own screen of the same dimension*; your selected project never changes.
+- **Principle matrix** the score matrix again, one column per principle. Headers rank, and a cell opens that project's Findings for the principle.
+- **Standings** projects ranked on this dimension. Clicking a row selects that project and opens its own screen of the same dimension, the page its Overview opens; back returns to Compare.
 - **Radar** overlays the leader, the trailer, and the scope average across the dimension's principles. Hovering a standings row draws that project's shape on top.
 - **Principle cards** the scope average per principle with the leader and trailer named. The small bars follow the standings order and carry the standings rank, so the same slot is the same project in every card.
 
-### The principle page
+### Opening a principle
 
-Principle cards and matrix cells go one level deeper than the drill-down itself: clicking a bar, a cell, or the leader/trailer entry opens *that project's own principle page*, the same screen its explorer shows, violations and passing checks included. The jump is a detour, not a switch: your selected project stays what it was, and back pops straight to the drill-down. Actions taken there, like dismissing a violation, belong to the project being viewed, not the one selected in the sidebar.
+A bar, a matrix cell or an attention item for a principle selects that project and opens its Findings scoped to that principle, the same view its dimension page opens. The project you had selected changes to the one you opened, and back returns to Compare.
 
 ### The duel
 
@@ -48,4 +48,4 @@ The project picker narrows every number on the screen to a chosen subset; **flag
 
 ### Remote projects
 
-When a shared repository is connected, its published projects join the fleet as ordinary rows tagged **remote**. They rank, count toward the scope score, appear in the attention strip and matrices, and can duel local projects. A published project you also have locally is the *same* project, matched exactly as the Projects screen matches it, and your local copy prevails: one row, no remote duplicate. Only projects that exist solely in the shared repository appear as remote rows. Opening a remote row switches to its shared, read-only view; deep links into dimension and principle pages stay local-only, so a remote row's matrix cells open the shared project instead.
+When a shared repository is connected, its published projects join the fleet as ordinary rows tagged **remote**. They rank, count toward the scope score, appear in the attention strip and matrices, and can duel local projects. A published project you also have locally is the *same* project, matched exactly as the Repositories screen matches it, and your local copy prevails: one row, no remote duplicate. Only projects that exist solely in the shared repository appear as remote rows. Opening a remote row switches to its shared, read-only view.
