@@ -3777,13 +3777,17 @@
 @media (max-width: 600px) {
   .findings-head__who { flex-basis: 200px; }
 }
-/* a divider reads only between two things on one row: none on a tile that starts a row (hooks/useRowStarts) */
+/* a divider reads only between two things on one row: none on a tile that starts a row (hooks/useRowStarts).
+   The marks only change how the tiles look, never their size: a size that changed with the mark would move the
+   wrap point, so the tiles would flip between beside and under the name at the same width. The tile keeps its
+   border and padding and the row is shifted left over them (translate does not touch layout). */
+.findings-head__stats { --head-tile-indent: 17px; } /* the tile's 1px border and 16px padding */
 .findings-head__stats[data-row-start] > .findings-head__stat:first-child,
-.findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; padding-left: 0; }
-/* the Violations tile's severity pills wrap inside the tile while the tiles share the name's row;
-   once the tiles have their own row there is room, so the pills stay on one line */
+.findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; }
+.findings-head__stats[data-row-start],
+.findings-head__stats:not([data-row-start]) > .findings-head__stat[data-row-start]:not(:first-child) { translate: calc(-1 * var(--head-tile-indent)) 0; }
+/* the Violations tile's severity pills wrap inside the tile; one width in both layouts, for the same reason */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
-.findings-head__stats[data-row-start] > .findings-head__stat:first-child .findings-head__sub { max-width: none; }
 
 /* a principle's score per period, under its description */
 .score-spark { display: flex; align-items: center; gap: 12px; margin-top: 8px; max-width: 520px; }
