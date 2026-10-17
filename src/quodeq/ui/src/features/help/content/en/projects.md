@@ -6,6 +6,7 @@ The **Repositories** tab is your home base. Every codebase you evaluate becomes 
 
 - **Grade and score** from the latest run, on a 0 to 10 scale. After an update the grade can show a pulsing placeholder for a while: the score is recomputing in the background and lands on its own.
 - **File and line counts** of the analyzed scope.
+- **Size** of the project's evaluations on this machine, in its own column.
 - **Last run timestamp** and the model that produced it.
 - **Setup state**: projects with an interrupted onboarding show a *Resume setup* action.
 
@@ -20,7 +21,7 @@ The **Repositories** tab is your home base. Every codebase you evaluate becomes 
 | Resume setup | Pick up an interrupted wizard with the same draft. |
 | Relocate | Update the local path if the repo moved on disk. |
 | Export | Download the project as a .zip with all its runs and history. It imports again with *import project*, on this machine or another. |
-| Delete | Remove the project and all its runs. Not reversible. |
+| Delete | Remove the project and all its runs. The confirmation states how many runs and how much space it deletes, subprojects included, and that the repository itself is not touched. Not reversible. |
 | Publish / update | Send completed runs to the connected evaluations repository. |
 | Pull local copy | Import a shared project someone else published into your local list. |
 
