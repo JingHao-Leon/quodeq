@@ -61,14 +61,14 @@ function DimensionChip({ dim, isSelected, onToggle }) {
   );
 }
 
-function DimensionCard({ dim, isSelected, onToggle, meta, metaLoading, upToDate }) {
+function DimensionCard({ dim, isSelected, onToggle, meta, metaLoading, upToDate, neutral }) {
   const info = typeInfo(dim);
   return (
     <DimensionToggle
       dim={dim}
       isSelected={isSelected}
       onToggle={onToggle}
-      className={`eval-dim-card${isSelected ? ' eval-dim-card--selected' : ''}${upToDate ? ' eval-dim-card--uptodate' : ''}`}
+      className={`eval-dim-card${isSelected ? ' eval-dim-card--selected' : ''}${neutral ? ' eval-dim-card--neutral' : ''}${upToDate ? ' eval-dim-card--uptodate' : ''}`}
     >
       <span className="eval-dim-card__check" aria-hidden="true">{isSelected ? '✓' : ''}</span>
       <span className="eval-dim-card__body">
@@ -95,7 +95,7 @@ function DimensionCard({ dim, isSelected, onToggle, meta, metaLoading, upToDate 
   );
 }
 
-function DimensionSelectorTerminal({ sorted, selectedDims, onToggle, onSelectAll, onClearAll, dimMetas, upToDateIds, metasLoading }) {
+function DimensionSelectorTerminal({ sorted, selectedDims, onToggle, onSelectAll, onClearAll, dimMetas, upToDateIds, metasLoading, neutral }) {
   return (
     <div className="form-group eval-dims-section">
       <div className="dimension-label-row dimension-label-row--terminal">
@@ -121,6 +121,7 @@ function DimensionSelectorTerminal({ sorted, selectedDims, onToggle, onSelectAll
             meta={dimMetas?.[dim.id] ?? null}
             metaLoading={metasLoading}
             upToDate={upToDateIds?.has(dim.id) ?? false}
+            neutral={neutral}
           />
         ))}
       </div>
@@ -156,8 +157,11 @@ function DimensionSelectorChips({ sorted, selectedDims, onToggle, onSelectAll, o
  *   with nothing to analyze; their cards are muted.
  * @param {boolean} [props.metasLoading] terminal variant only: estimates are
  *   still being computed — cards show a small placeholder instead of nothing.
+ * @param {boolean} [props.neutral] terminal variant only: ticked cards use the
+ *   neutral checked style (first run, everything pre-ticked) instead of the
+ *   accent fill, which stays for the scan button and attention states.
  */
-export default function DimensionSelector({ allDimensions, selectedDims, onToggle, onSelectAll, onClearAll, variant, dimMetas = null, upToDateIds = null, metasLoading = false }) {
+export default function DimensionSelector({ allDimensions, selectedDims, onToggle, onSelectAll, onClearAll, variant, dimMetas = null, upToDateIds = null, metasLoading = false, neutral = false }) {
   const sorted = useMemo(() => [...allDimensions].sort((a, b) => {
     const oa = typeConfig(a).order;
     const ob = typeConfig(b).order;
@@ -168,6 +172,6 @@ export default function DimensionSelector({ allDimensions, selectedDims, onToggl
   const shared = { sorted, selectedDims, onToggle, onSelectAll, onClearAll };
 
   return variant === DIMENSION_SELECTOR_VARIANT_TERMINAL
-    ? <DimensionSelectorTerminal {...shared} dimMetas={dimMetas} upToDateIds={upToDateIds} metasLoading={metasLoading} />
+    ? <DimensionSelectorTerminal {...shared} dimMetas={dimMetas} upToDateIds={upToDateIds} metasLoading={metasLoading} neutral={neutral} />
     : <DimensionSelectorChips {...shared} />;
 }

@@ -119,7 +119,7 @@ function runBarLine1({ picked, budgetPart }) {
 // a missing model (the strip's model cell is marked for it), no dimension,
 // or nothing to analyze in an incremental scan.
 function runBarLine2({ hasModel, picked, nothingToDo }) {
-  if (!hasModel) return t('evaluate.noModelHint');
+  if (!hasModel) return t('evaluate.pickModelToStart');
   if (picked === 0) return t('evaluate.pickOneDim');
   return nothingToDo ? t('evaluate.pickCleanScan') : null;
 }
@@ -148,7 +148,7 @@ export function RunBar({ disabled, canStart, handleScan, selectedDims, estimates
         {runBarLine1({ picked, budgetPart })}
         {line2 && <><br /><span className="eval-run-bar__summary-sub">{line2}</span></>}
       </span>
-      <button type="button" className="eval-scan-pill" disabled={!canStart || nothingToDo} onClick={handleScan}>
+      <button type="button" className="eval-scan-pill" disabled={!canStart || nothingToDo || !hasModel} onClick={handleScan}>
         {disabled ? t('evaluate.running') : (
           <>
             <span className="eval-scan-pill__glyph" aria-hidden="true">▶</span>
@@ -191,6 +191,14 @@ function ModelCell({ activeModel, popover, cellRef }) {
   );
 }
 
+// The scope cell's tooltip: always carries the repository's absolute path
+// (the cell itself shows only "whole project" or the sub-path), plus the
+// subfolder hint where the cell opens the folder browser.
+function scopeCellTitle(info, scope) {
+  if (!scope.isLocal) return scope.scopePath || info.path;
+  return t('evaluate.scopeCellTitle', { path: info.path });
+}
+
 // The model popover hangs under the strip, not inside it: the strip clips
 // its overflow to keep its rounded corners.
 export function IdentityHeader({ info, project, scope, branchLabel, scopeValue, activeModel, modelPopover, onOpenScopeBrowser, onGoToSettings, onGoToProjects }) {
@@ -202,7 +210,7 @@ export function IdentityHeader({ info, project, scope, branchLabel, scopeValue, 
         <IdentityCell
           label={t('evaluate.idScope')}
           grow
-          title={scope.isLocal ? t('evaluate.scopeCellTitle') : (scope.scopePath || info.path)}
+          title={scopeCellTitle(info, scope)}
           onClick={scope.isLocal ? onOpenScopeBrowser : undefined}
           trailing={scope.scopePath ? (
             <button

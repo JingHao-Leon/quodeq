@@ -3344,6 +3344,18 @@ button.eval-provider-badge--clickable:focus-visible {
   color: var(--color-text-muted);
 }
 .eval-dim-card--selected .eval-dim-card__name { color: var(--color-text); }
+/* First run: every card starts ticked, so the tick reads as a plain default,
+   not a call to action. Border and text tokens only; the accent stays for
+   the scan button and attention states. */
+.eval-dim-card--selected.eval-dim-card--neutral {
+  background: color-mix(in srgb, var(--color-bg) 70%, var(--color-surface));
+  border-color: var(--color-border);
+}
+.eval-dim-card--selected.eval-dim-card--neutral .eval-dim-card__check {
+  background: transparent;
+  border-color: var(--color-text-muted);
+  color: var(--color-text);
+}
 .eval-dim-card__std {
   display: inline-block;
   margin-left: 7px;

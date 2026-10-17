@@ -29,8 +29,9 @@ describe('the run bar', () => {
 
   it('says a model is missing before anything else', () => {
     render(<RunBar {...base} selectedDims={new Set()} hasModel={false} />);
-    expect(screen.getByText('no model selected · choose one to start a scan')).toBeInTheDocument();
+    expect(screen.getByText('pick a model to start')).toBeInTheDocument();
     expect(screen.queryByText('pick at least one dimension to start a scan')).toBeNull();
+    expect(screen.getByRole('button', { name: /scan/i })).toBeDisabled();
   });
 
   it('then asks for a dimension', () => {

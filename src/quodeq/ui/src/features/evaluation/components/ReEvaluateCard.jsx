@@ -61,7 +61,7 @@ function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScope
   );
 }
 
-function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, allDimensions, selectedDims, toggleDim, selectAll, clearAll, dimMetas, upToDateIds, estimatesLoading, handleScan, estimates, budget, hasModel }) {
+function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, allDimensions, selectedDims, toggleDim, selectAll, clearAll, dimMetas, upToDateIds, estimatesLoading, handleScan, estimates, budget, hasModel, isFirstRun }) {
   return (
     <>
       <ScanModeCards value={cleanScan} onChange={setCleanScan} disabled={!canStart} />
@@ -77,6 +77,7 @@ function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, a
           dimMetas={dimMetas}
           upToDateIds={upToDateIds}
           metasLoading={estimatesLoading}
+          neutral={isFirstRun}
         />
       )}
 
@@ -103,13 +104,13 @@ function computeReEvalViewState({ info, scope, disabled, cleanScan, estimates })
   const dimMetas = buildDimMetas(estimates, isClean);
   const upToDateIds = buildUpToDateIds(estimates, isClean);
   const branchLabel = scope.isLocal ? (scope.scanData?.currentBranch || scope.branch) : null;
-  const scopeValue = scope.scopePath
-    ? `${scope.scopePath}/`
-    : `${info.path}/ · ${t('evaluate.wholeProject')}`;
+  // No sub-path: just "whole project"; the absolute path lives in the
+  // cell's tooltip (IdentityHeader), never in the cell itself.
+  const scopeValue = scope.scopePath ? `${scope.scopePath}/` : t('evaluate.wholeProject');
   return { isReadOnlyEphemeral, canStart, dimMetas, upToDateIds, branchLabel, scopeValue };
 }
 
-function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scope, estimates, estimatesLoading, budget, onGoToSettings, onGoToProjects }) {
+function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scope, estimates, estimatesLoading, budget, isFirstRun, onGoToSettings, onGoToProjects }) {
   const { all: allDimensions, selected: selectedDims } = dimensions;
   const {
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
@@ -160,6 +161,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
         estimates={estimates}
         budget={budget}
         hasModel={Boolean(activeModel)}
+        isFirstRun={isFirstRun}
       />
     </div>
   );
@@ -171,7 +173,7 @@ export default function ReEvaluateCard({ project, projectInfo, onStart, disabled
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
     isLocal, scanData, estimates, estimatesLoading, branch, setBranch, scopePath, setScopePath,
-    timeLimitS, setTimeLimitS,
+    timeLimitS, setTimeLimitS, isFirstRun,
   } = useReEvaluateCard(project, onStart, projectInfo, preselectDims);
 
   if (error) return (
@@ -209,6 +211,7 @@ export default function ReEvaluateCard({ project, projectInfo, onStart, disabled
       estimates={estimates}
       estimatesLoading={estimatesLoading}
       budget={{ timeLimitS, setTimeLimitS }}
+      isFirstRun={isFirstRun}
       onGoToSettings={onGoToSettings}
       onGoToProjects={onGoToProjects}
     />

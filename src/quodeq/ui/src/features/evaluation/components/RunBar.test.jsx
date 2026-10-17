@@ -49,6 +49,7 @@ describe('RunBar', () => {
     const { rerender } = renderBar({ selectedDims: new Set(), hasModel: true });
     expect(screen.getByText(/pick at least one dimension/)).toBeInTheDocument();
     rerender(<RunBar disabled={false} canStart handleScan={vi.fn()} timeLimitS={600} hasModel={false} cleanScan="off" estimates={est} selectedDims={new Set(['security'])} />);
-    expect(screen.getByText(/no model selected/)).toBeInTheDocument();
+    expect(screen.getByText('pick a model to start')).toBeInTheDocument();
+    expect(scan()).toBeDisabled();
   });
 });

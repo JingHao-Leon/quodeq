@@ -25,12 +25,24 @@ function initialBudgetSeconds(storage = localStorage) {
   return resolveProviderSettings(provider, storage).timeLimitS;
 }
 
+/**
+ * True when the project was never evaluated. Reads the projects-list entry
+ * the card is handed (`runsCount`, `latestRunId`): the /info payload the
+ * card fetches carries no run data. An entry missing or without a numeric
+ * count is not a first run, so the defaults never flip on a guess.
+ */
+export function isFirstRunProject(listEntry) {
+  return typeof listEntry?.runsCount === 'number' && listEntry.runsCount === 0 && !listEntry.latestRunId;
+}
+
 // Scan scope the user picks on the card (branch, sub-path, time budget);
-// branch and path reset when the project changes.
-function useReEvalScope(project) {
+// branch and path reset when the project changes. A first run starts with
+// no time limit whatever the provider's Settings say; the chips still let
+// the user pick one.
+function useReEvalScope(project, isFirstRun) {
   const [branch, setBranch] = useState(null);
   const [scopePath, setScopePath] = useState(null);
-  const [timeLimitS, setTimeLimitS] = useState(() => initialBudgetSeconds());
+  const [timeLimitS, setTimeLimitS] = useState(() => (isFirstRun ? 0 : initialBudgetSeconds()));
 
   useEffect(() => { setScopePath(null); setBranch(null); }, [project]);
 
@@ -59,17 +71,18 @@ export function useReEvaluateCard(project, onStart, projectInfo, preselectDims) 
   const { info, error, retry, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = useReEvalInfo(project, projectInfo, { getProjectInfo, relocateProject });
   const { allDimensions } = usePluginDimensions();
   const { showToast } = useSidePane();
-  const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS } = useReEvalScope(project);
+  const isFirstRun = isFirstRunProject(projectInfo);
+  const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS } = useReEvalScope(project, isFirstRun);
   const { isLocal, scanData, estimates, estimatesLoading } = useReEvalScan(project, info);
 
   const { selectedDims, toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan } =
-    useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail: showToast, preselectDims, project, timeLimitS });
+    useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail: showToast, preselectDims, isFirstRun, project, timeLimitS });
 
   return {
     info, error, retry, allDimensions, selectedDims,
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
     isLocal, scanData, estimates, estimatesLoading, branch, setBranch, scopePath, setScopePath,
-    timeLimitS, setTimeLimitS,
+    timeLimitS, setTimeLimitS, isFirstRun,
   };
 }
