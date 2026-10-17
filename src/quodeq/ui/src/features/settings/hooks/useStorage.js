@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../../../api/ApiContext.jsx';
-import { storageKeys } from '../../../api/queryKeys.js';
+import { projectKeys, storageKeys } from '../../../api/queryKeys.js';
+import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { invalidateProjects } from '../../../hooks/invalidateProjects.js';
 
 // GET /api/storage walks the disk, so it is never polled; the cheap clean
@@ -23,9 +24,9 @@ function newerClean(poll, summary) {
 
 /**
  * The clean snapshot to show. Polls GET /storage/clean while it says running
- * and, when it leaves running, refetches the summary once. `finishedHere` is
- * true once this session saw a pass go from running to done, so a done left
- * over from an earlier pass is never announced as fresh.
+ * and, when it leaves running, refetches the summary once. `endedHere` is the
+ * state ('done' or 'failed') a pass this session watched ended in, so a result
+ * left over from an earlier pass is never announced as fresh.
  */
 function useCleanProgress(summary) {
   const { getCleanStatus } = useApi();
@@ -38,16 +39,16 @@ function useCleanProgress(summary) {
   const clean = newerClean({ state: { data: poll.data, dataUpdatedAt: poll.dataUpdatedAt } }, summary);
   const running = clean?.state === CLEAN_STATE.RUNNING;
   const wasRunning = useRef(false);
-  const [finishedHere, setFinishedHere] = useState(false);
+  const [endedHere, setEndedHere] = useState(null);
   useEffect(() => {
     if (wasRunning.current && !running) {
-      setFinishedHere(clean?.state === CLEAN_STATE.DONE);
+      setEndedHere(clean?.state ?? null);
       queryClient.invalidateQueries({ queryKey: storageKeys.summary(), exact: true });
     }
-    if (running) setFinishedHere(false);
+    if (running) setEndedHere(null);
     wasRunning.current = running;
   }, [running, clean?.state, queryClient]);
-  return { clean, running, finishedHere: finishedHere && clean?.state === CLEAN_STATE.DONE };
+  return { clean, running, endedHere: endedHere === clean?.state ? endedHere : null };
 }
 
 function useArchiveAfter() {
@@ -88,6 +89,8 @@ export default function useStorage() {
   const deleteAll = async () => {
     const result = await deleteAllEvaluations();
     queryClient.invalidateQueries({ queryKey: storageKeys.summary(), exact: true });
+    // Every local project's cached payloads describe evaluations that are gone; shared ones are not on this machine.
+    queryClient.removeQueries({ queryKey: projectKeys.all(), predicate: (q) => q.queryKey[2] === PROJECT_SOURCE.LOCAL });
     invalidateProjects(queryClient).catch((err) => console.warn('[useStorage] project list refetch failed:', err));
     return result;
   };

@@ -4,7 +4,7 @@ GET    /api/storage             -- size, runs, archived runs per project, the se
 PUT    /api/storage/settings    -- {archiveAfterDays: 91|183|365|null}
 GET    /api/storage/preview     -- what a clean would archive now, and about how much it frees
 GET    /api/storage/clean       -- clean progress only, no disk walk (cheap to poll)
-POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean or the score warm-up runs
+POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean (STORAGE_BUSY) or the score warm-up (STORAGE_WARMUP) runs
 DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while anything runs
 """
 from __future__ import annotations
@@ -28,13 +28,16 @@ from quodeq.shared.log_sink import SHARED_LOG
 
 CODE_INVALID_VALUE = "INVALID_VALUE"
 CODE_STORAGE_BUSY = "STORAGE_BUSY"
+CODE_STORAGE_WARMUP = "STORAGE_WARMUP"
 CODE_CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
 _SETTING_KEY = "archiveAfterDays"
 _WARMUP_BUSY = "The score warm-up is running; try again when it ends"
 
 
-def _busy(message: str, projects: tuple[str, ...] = ()) -> tuple[Response, int]:
-    return jsonify({"error": message, "code": CODE_STORAGE_BUSY, "projects": list(projects)}), HTTPStatus.CONFLICT
+def _busy(
+    message: str, projects: tuple[str, ...] = (), code: str = CODE_STORAGE_BUSY,
+) -> tuple[Response, int]:
+    return jsonify({"error": message, "code": code, "projects": list(projects)}), HTTPStatus.CONFLICT
 
 
 def _warmup_active() -> bool:
@@ -75,7 +78,7 @@ def _delete_all(provider: ActionProvider) -> Response | tuple[Response, int]:
             HTTPStatus.BAD_REQUEST, CODE_CONFIRMATION_REQUIRED,
         )
     if _warmup_active():
-        return _busy(_WARMUP_BUSY)
+        return _busy(_WARMUP_BUSY, code=CODE_STORAGE_WARMUP)
     try:
         deleted = delete_all_evaluations(provider, Path(reports_dir()))
     except StorageBusyError as exc:
@@ -109,7 +112,7 @@ def register_storage_routes(app: Flask, provider: ActionProvider, env: Mapping[s
     @app.post("/api/storage/clean")
     def post_storage_clean() -> tuple[Response, int]:
         if _warmup_active():
-            return _busy(_WARMUP_BUSY)
+            return _busy(_WARMUP_BUSY, code=CODE_STORAGE_WARMUP)
         if not job.start(reports_dir(), env, SHARED_LOG):
             return _busy("A storage clean is already running")
         return jsonify({"clean": job.snapshot()}), HTTPStatus.ACCEPTED

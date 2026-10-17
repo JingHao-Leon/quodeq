@@ -2437,5 +2437,6 @@
   "storage.busyWarmup": "The scores are still loading. Try again in a moment.",
   "storage.busyClean": "A clean is already running.",
   "storage.busyCleanRunning": "A clean is running. Try again when it ends.",
-  "storage.busyEvaluation": "An evaluation is running in {names}. Wait for it to finish."
+  "storage.busyEvaluation": "An evaluation is running in {names}. Wait for it to finish.",
+  "storage.cleanDidNotFinish": "The last clean didn't finish."
 }

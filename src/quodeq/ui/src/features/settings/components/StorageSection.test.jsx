@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent, within } from '@testing-library/rea
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
-import { projectsKeys } from '../../../api/queryKeys.js';
+import { projectKeys, projectsKeys } from '../../../api/queryKeys.js';
 import StorageSection from './StorageSection.jsx';
 
 const GB = 1024 ** 3;
@@ -15,8 +15,8 @@ const SUMMARY = {
   projects: { p1: { bytes: 1, runs: 1, archived: 0 }, p2: { bytes: 1, runs: 1, archived: 0 } },
 };
 
-function busy(message, projects = []) {
-  return Object.assign(new Error(message), { status: 409, code: 'STORAGE_BUSY', body: { error: message, code: 'STORAGE_BUSY', projects } });
+function busy(message, projects = [], code = 'STORAGE_BUSY') {
+  return Object.assign(new Error(message), { status: 409, code, body: { error: message, code, projects } });
 }
 
 function setup(overrides = {}, props = {}) {
@@ -107,6 +107,14 @@ describe('StorageSection', () => {
     await waitFor(() => expect(section().getByText(/Freed 2\.0 GB\./)).toBeInTheDocument(), POLL_WAIT);
   });
 
+  it('says when the pass it watched did not finish', async () => {
+    const failed = { state: 'failed', done: 3, total: 10, archived: 2, bytesFreed: 0 };
+    const getStorage = vi.fn().mockResolvedValueOnce(SUMMARY).mockResolvedValue({ ...SUMMARY, clean: failed });
+    const { section } = setup({ getStorage, getCleanStatus: vi.fn(async () => ({ clean: failed })) });
+    fireEvent.click((await openClean(section)).getByRole('button', { name: 'clean now' }));
+    await waitFor(() => expect(section().getByText(/The last clean didn't finish\./)).toBeInTheDocument(), POLL_WAIT);
+  });
+
   it('reads quietly while loading and never announces an earlier pass', async () => {
     let answer = () => {};
     const leftover = { ...SUMMARY, clean: { state: 'done', done: 4, total: 4, archived: 4, bytesFreed: GB } };
@@ -127,7 +135,7 @@ describe('StorageSection', () => {
   });
 
   it('shows a busy clean inline in the modal', async () => {
-    const startClean = vi.fn(async () => { throw busy('The score warm-up is running; try again when it ends'); });
+    const startClean = vi.fn(async () => { throw busy('busy', [], 'STORAGE_WARMUP'); });
     const { section } = setup({ startClean });
     const dialog = await openClean(section);
     fireEvent.click(dialog.getByRole('button', { name: 'clean now' }));
@@ -136,7 +144,9 @@ describe('StorageSection', () => {
 
   it('deletes all only once the phrase is typed, in any case', async () => {
     const onEvaluationsDeleted = vi.fn();
-    const { api, section } = setup({}, { onEvaluationsDeleted });
+    const { api, qc, section } = setup({}, { onEvaluationsDeleted });
+    qc.setQueryData(projectKeys.scores('p1'), { stale: true });
+    qc.setQueryData(projectKeys.scores('p1', null, 'shared'), { kept: true });
     const dialog = await openDeleteAll(section);
     expect(dialog.getByText('470 runs across 2 projects, 6.5 GB')).toBeInTheDocument();
     const confirm = dialog.getByRole('button', { name: 'delete' });
@@ -147,6 +157,8 @@ describe('StorageSection', () => {
     await waitFor(() => expect(onEvaluationsDeleted).toHaveBeenCalled());
     expect(api.deleteAllEvaluations).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(qc.getQueryData(projectKeys.scores('p1'))).toBeUndefined();
+    expect(qc.getQueryData(projectKeys.scores('p1', null, 'shared'))).toEqual({ kept: true });
   });
 
   it('names the projects whose evaluation blocks delete all', async () => {

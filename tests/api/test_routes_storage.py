@@ -148,14 +148,15 @@ class _BusyWarmup:
 def test_delete_all_is_409_during_the_score_warmup(client, root, provider, monkeypatch):
     _run(root, "p", "r", 10)
     monkeypatch.setattr(routes_storage, "warmup_engine", _BusyWarmup())
-    assert client.delete("/api/storage?confirm=true").status_code == 409
+    resp = client.delete("/api/storage?confirm=true")
+    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_WARMUP"
     assert provider.deleted == []
 
 
 def test_clean_is_409_during_the_score_warmup(client, monkeypatch):
     monkeypatch.setattr(routes_storage, "warmup_engine", _BusyWarmup())
     resp = client.post("/api/storage/clean")
-    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_BUSY"
+    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_WARMUP"
     assert storage_cleanup.CLEANUP_LOCK.locked() is False
 
 

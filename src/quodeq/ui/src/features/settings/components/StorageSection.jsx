@@ -2,7 +2,7 @@ import { useState } from 'react';
 import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { SettingsPillTabs, SettingsRowLabel } from './settingsRowParts.jsx';
 import { CleanModal, DeleteAllModal } from './StorageModals.jsx';
-import useStorage from '../hooks/useStorage.js';
+import useStorage, { CLEAN_STATE } from '../hooks/useStorage.js';
 import { formatBytes } from '../../../utils/formatSize.js';
 import { t } from '../../../strings/index.js';
 
@@ -27,13 +27,15 @@ function Menu({ open, disabled, onToggle, onDeleteAll }) {
 
 // The Space used row's line: loading and error keep the row's height, a
 // running pass replaces the facts with its progress, and a pass this session
-// finished says what it freed.
-function factsLine({ data, isLoading, isError, clean, running, finishedHere }) {
+// watched says what it freed, or that it did not finish.
+function factsLine({ data, isLoading, isError, clean, running, endedHere }) {
   if (running) return t('storage.cleaning', { done: clean.done, total: clean.total });
   if (isError && !data) return t('storage.factsError');
   if (isLoading || !data) return t('storage.factsLoading');
   const facts = t('storage.facts', { size: formatBytes(data.bytes), archived: data.archived, runs: data.runs });
-  return finishedHere ? `${facts}. ${t('storage.freed', { size: formatBytes(clean.bytesFreed) })}` : facts;
+  if (endedHere === CLEAN_STATE.DONE) return `${facts}. ${t('storage.freed', { size: formatBytes(clean.bytesFreed) })}`;
+  if (endedHere === CLEAN_STATE.FAILED) return `${facts}. ${t('storage.cleanDidNotFinish')}`;
+  return facts;
 }
 
 /**
