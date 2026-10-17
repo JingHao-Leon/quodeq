@@ -94,7 +94,7 @@ def _get_worktree_diff(ctx: ToolContext) -> dict:
         text = diff_text(worktree_dir)
         stats = diff_stats(worktree_dir)
     except WorktreeError as exc:
-        raise ToolError(str(exc)) from exc
+        raise ToolError("could not read the worktree diff") from exc
     return {"diff": text[:_MAX_DIFF_CHARS],
             "truncated": len(text) > _MAX_DIFF_CHARS, "stats": stats}
 

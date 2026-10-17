@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { settingsKeys } from '../../../api/queryKeys.js';
 import { classifyProvider, PROVIDER_CLASSIFICATION } from './providerUtils.js';
-import { CliModelInput } from './CliAdvancedPanel.jsx';
+import { CliModelInput } from './CliProviderRows.jsx';
 import { t } from '../../../strings/index.js';
 
 const LOCAL_API_CONFIG = {

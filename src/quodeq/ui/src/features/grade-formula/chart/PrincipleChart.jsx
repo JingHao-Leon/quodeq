@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { t } from '../../../strings/index.js';
 import { pluralKey } from '../../../utils/plural.js';
 import { chartScale, maxSavedWeight, principleDots, DIR } from './chartScale.js';
@@ -7,6 +7,9 @@ import { Backdrop, Curves } from './ChartBackdrop.jsx';
 const DOT_RADIUS = 4;
 const FLIP_DOT_RADIUS = 6;
 const HIT_RADIUS = 9;
+// Past this many viewBox units per pixel (a phone-width chart) the text stops growing in viewBox
+// terms, so the band labels still fit the right margin.
+const MAX_UNITS_PER_PX = 2.6;
 
 function Dots({ dots, litProject, onHoverProject }) {
   return (
@@ -38,8 +41,18 @@ export default function PrincipleChart({ inputs, saved, draft, highlight, litPro
   const dots = useMemo(() => principleDots(inputs, saved, draft), [inputs, saved, draft]);
   const moved = dots.filter((d) => d.dir !== DIR.SAME).length;
   const flips = dots.filter((d) => d.flip).length;
+  // viewBox units per screen pixel, so chart text keeps one pixel size at any width.
+  const figRef = useRef(null);
+  const [k, setK] = useState(1);
+  useLayoutEffect(() => {
+    const el = figRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([e]) => setK(e.contentRect.width ? scale.width / e.contentRect.width : 1));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [scale.width]);
   return (
-    <figure className="gf-chart-wrap">
+    <figure className="gf-chart-wrap" ref={figRef} style={{ '--gf-k': Math.min(k, MAX_UNITS_PER_PX) }}>
       <svg className={`gf-chart${highlight ? ` gf-chart--hl-${highlight}` : ''}`} viewBox={`0 0 ${scale.width} ${scale.height}`}
         role="img" aria-label={t('gradeFormula.chartAria')}>
         <Backdrop scale={scale} draft={draft} />

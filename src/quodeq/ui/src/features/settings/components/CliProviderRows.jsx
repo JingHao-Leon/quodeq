@@ -1,5 +1,5 @@
 import { t } from '../../../strings/index.js';
-import { SettingsRowLabel, SettingsAdvanced } from './settingsRowParts.jsx';
+import { SettingsRowLabel } from './settingsRowParts.jsx';
 import CopilotModelSelect from './CopilotModelSelect.jsx';
 import CliModelPicker from './CliModelPicker.jsx';
 import { CATALOG_PROVIDERS, modelEffort, useClientModels } from '../hooks/useClientModels.js';
@@ -72,7 +72,7 @@ function EffortRow({ levels, defaultEffort, state, update }) {
   );
 }
 
-function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPath }) {
+export function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPath }) {
   return (
     <div className="settings-row">
       <SettingsRowLabel
@@ -106,19 +106,13 @@ function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPa
 }
 
 /**
- * A CLI provider tab's advanced settings: the reasoning effort and the
- * launch-command override. Effort offers what the selected model takes (live
- * catalog), else the provider's `effort_levels`; it hides when there are none.
+ * The reasoning-effort row, right under the model. It offers what the
+ * selected model takes (live catalog), else the provider's `effort_levels`,
+ * and renders nothing when there are none.
  */
-export function CliAdvancedPanel({
-  providerId, providerConfig, state, update, cmdPathError, validateCmdPath,
-}) {
+export function CliEffortRow({ providerId, providerConfig, state, update }) {
   const { data: catalog } = useClientModels(providerId);
   const { levels, defaultEffort } = modelEffort(catalog, state[PROVIDER_SETTING_KEY.MODEL], providerConfig?.effort_levels);
-  return (
-    <SettingsAdvanced>
-      {levels.length > 0 && <EffortRow levels={levels} defaultEffort={defaultEffort} state={state} update={update} />}
-      <CmdOverrideRow providerId={providerId} state={state} update={update} cmdPathError={cmdPathError} validateCmdPath={validateCmdPath} />
-    </SettingsAdvanced>
-  );
+  if (!levels.length) return null;
+  return <EffortRow levels={levels} defaultEffort={defaultEffort} state={state} update={update} />;
 }

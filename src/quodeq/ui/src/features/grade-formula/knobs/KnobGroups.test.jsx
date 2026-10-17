@@ -55,3 +55,28 @@ describe('KnobGroups', () => {
     expect(screen.getByRole('region', { name: 'Where each grade starts' })).not.toHaveClass('gf-group--reaching');
   });
 });
+
+describe('KnobGroups hint line', () => {
+  const QUESTION = 'How much each open rule weighs, by its severity.';
+  const MAJOR_HINT = 'weight of a major rule; the knob that moves grades most';
+
+  it('swaps the group question for the hint of the knob under the pointer', () => {
+    mount();
+    fireEvent.mouseEnter(screen.getByLabelText('major').closest('.gf-knob'));
+    expect(screen.getByText(MAJOR_HINT)).toHaveClass('gf-group__question--hint');
+    expect(screen.queryByText(QUESTION)).toBeNull();
+  });
+
+  it('puts the question back when the pointer leaves the group', () => {
+    mount();
+    fireEvent.mouseEnter(screen.getByLabelText('major').closest('.gf-knob'));
+    fireEvent.mouseLeave(screen.getByText('What a finding costs').closest('section'));
+    expect(screen.getByText(QUESTION)).not.toHaveClass('gf-group__question--hint');
+  });
+
+  it('shows the hint for a knob reached by keyboard', () => {
+    mount();
+    fireEvent.focus(screen.getByLabelText('major'));
+    expect(screen.getByText(MAJOR_HINT)).toBeInTheDocument();
+  });
+});

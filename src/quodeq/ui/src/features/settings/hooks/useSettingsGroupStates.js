@@ -4,9 +4,9 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { ACTIVE_PROVIDER_KEY, providerKey, PROVIDER_SETTINGS_CHANGED_EVENT, PROVIDER_SETTING_KEY } from '../../../constants.js';
 import { GITHUB_ACCOUNT_QUERY_KEY } from '../../github-access/accessVocab.js';
 import { useAiClientList } from './useAiClientList.js';
-import useLiveFeedSettings from './useLiveFeedSettings.js';
+import useAssistantProvider from './useAssistantProvider.js';
 import { useSettingsChangeSync } from './settingsSync.js';
-import { modelState, evaluationState, connectionsState, appState, aboutState, SETTINGS_GROUP } from '../settingsGroups.js';
+import { evaluationState, assistantState, connectionsState, appState, aboutState, SETTINGS_GROUP } from '../settingsGroups.js';
 
 const MODEL_EVENTS = [PROVIDER_SETTINGS_CHANGED_EVENT];
 
@@ -36,12 +36,12 @@ export default function useSettingsGroupStates({ providerConfigs, theme, update,
   useSettingsChangeSync(MODEL_EVENTS, { load, setState: setStored, storage });
   const { clients } = useAiClientList(providerConfigs);
   const provider = shownProvider(stored.provider, clients);
-  const { newOnly } = useLiveFeedSettings();
+  const assistant = useAssistantProvider();
   const { getGithubAccount } = useApi();
   const { data: account } = useQuery({ queryKey: GITHUB_ACCOUNT_QUERY_KEY, queryFn: getGithubAccount });
   return {
-    [SETTINGS_GROUP.MODEL]: modelState({ provider, model: provider ? stored.modelOf(provider) : '' }),
-    [SETTINGS_GROUP.EVALUATION]: evaluationState({ newOnly }),
+    [SETTINGS_GROUP.EVALUATION]: evaluationState({ provider, model: provider ? stored.modelOf(provider) : '' }),
+    [SETTINGS_GROUP.ASSISTANT]: assistantState({ ...assistant, provider: assistant.activeProvider }),
     [SETTINGS_GROUP.CONNECTIONS]: connectionsState({ account }),
     [SETTINGS_GROUP.APP]: appState({ mode: theme.mode, family: theme.family }),
     [SETTINGS_GROUP.ABOUT]: aboutState({ status: update.status, failed: update.failed }),

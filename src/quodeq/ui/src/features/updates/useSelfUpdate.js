@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useApi } from '../../api/ApiContext.jsx';
 import { useVisibleInterval } from '../../hooks/useVisibleInterval.js';
+import { useAdoptClearingFailure } from './useAdoptClearingFailure.js';
 
 // The self-update flow's own phase vocabulary, not the run/job/dim
 // vocabulary -- kept local rather than forced into vocab/*.js.
@@ -30,10 +31,7 @@ export function useSelfUpdate(status, adoptStatus) {
   const phase = selfUpdate?.phase || SELF_UPDATE_PHASE.IDLE;
   const active = ACTIVE_PHASES.has(phase);
 
-  const adopt = useCallback((next) => {
-    if ((next?.self_update?.phase || SELF_UPDATE_PHASE.IDLE) !== SELF_UPDATE_PHASE.ERROR) setStartFailed(false);
-    adoptStatus(next);
-  }, [adoptStatus]);
+  const adopt = useAdoptClearingFailure({ field: 'self_update', errorPhase: SELF_UPDATE_PHASE.ERROR, adoptStatus, setStartFailed });
 
   useVisibleInterval(() => {
     getUpdateStatus().then(adopt).catch((e) => console.warn('self-update status poll failed:', e));

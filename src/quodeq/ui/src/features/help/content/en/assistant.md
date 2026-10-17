@@ -32,4 +32,4 @@ Skills are guided workflows. The welcome screen suggests the ones relevant to th
 
 ### Provider and privacy
 
-By default the assistant uses your evaluation provider; pick a separate provider or model in the *Assistant* section of **Settings → Model** (choose **Custom**). Cloud providers bill each message like any other call. Web search is off by default and only offered on local providers. Closing the drawer keeps the conversation; reloading the page starts a fresh one.
+By default the assistant uses your evaluation provider; pick a separate provider or model in the *Assistant* group of **Settings** (choose **Custom**). Cloud providers bill each message like any other call. Web search is off by default and only offered on local providers. Closing the drawer keeps the conversation; reloading the page starts a fresh one.

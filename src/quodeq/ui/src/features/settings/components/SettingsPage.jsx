@@ -30,33 +30,33 @@ const _SETTINGS_PHRASE_KEYS = [
 // behaviour; the group panel only frames them.
 function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase }) {
   return {
-    [SETTINGS_GROUP.MODEL]: (<>
+    [SETTINGS_GROUP.EVALUATION]: (<>
       <ProviderTabs providerConfigs={providerConfigs} />
-      <AssistantProviderTabs providerConfigs={providerConfigs} />
+      <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} />
     </>),
-    [SETTINGS_GROUP.EVALUATION]: <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} />,
+    [SETTINGS_GROUP.ASSISTANT]: <AssistantProviderTabs providerConfigs={providerConfigs} />,
+    // Two explicit lines: GitHub and the shared repository side by side, the
+    // local server under them.
     [SETTINGS_GROUP.CONNECTIONS]: (<>
-      <GitHubAccessSection />
-      <SharedRepoSection onDisconnected={onSharedDisconnected} />
+      <div className="settings-group__line">
+        <GitHubAccessSection />
+        <SharedRepoSection onDisconnected={onSharedDisconnected} />
+      </div>
+      <div className="settings-group__line">
+        <ServerSection />
+      </div>
     </>),
-    // Two explicit lines, so a missing Desktop section (not macOS) only
-    // narrows the first line instead of reshuffling the second.
-    [SETTINGS_GROUP.APP]: (<>
+    // A missing Desktop section (not macOS) only narrows the line.
+    [SETTINGS_GROUP.APP]: (
       <div className="settings-group__line">
         <AppearanceSection themeMode={theme.mode} themeFamily={theme.family} onApplyMode={theme.onApplyMode} onApplyFamily={theme.onApplyFamily} />
         <ToolbarSection />
         <DesktopSection />
       </div>
-      <div className="settings-group__line">
-        <OnboardingSection onShowWelcome={onShowWelcome} />
-        <details className="settings-diagnostics">
-          <summary>{t('settings.diagnostics')}</summary>
-          <ServerSection />
-        </details>
-      </div>
-    </>),
+    ),
     [SETTINGS_GROUP.ABOUT]: (<>
       <UpdatesSection update={update} />
+      <OnboardingSection onShowWelcome={onShowWelcome} />
       <AboutSection settingsPhrase={settingsPhrase} />
     </>),
   };

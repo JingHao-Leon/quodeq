@@ -112,8 +112,10 @@ _.unverify  # api/routes_findings.py: Flask view function; the route decorator i
 _.update_check  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_dismiss  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_selfupdate  # api/routes_update.py: Flask view function; the route decorator is its only caller.
+_.update_restart  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_settings  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_status  # api/routes_update.py: Flask view function; the route decorator is its only caller.
+_.update_upgrade  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 
 # Dataclass and TypedDict fields. The value travels as a dict key or a keyword argument, which vulture does not resolve.
 _.JudgmentPayload  # core/events/models.py: Judgment field; read by name through serialization or a dict key (89 refs).

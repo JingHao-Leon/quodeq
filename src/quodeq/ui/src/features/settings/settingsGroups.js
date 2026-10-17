@@ -6,27 +6,29 @@
 import { t } from '../../strings/index.js';
 import { ACCOUNT_METHOD } from '../github-access/accessVocab.js';
 
-export const SETTINGS_GROUP = { MODEL: 'model', EVALUATION: 'evaluation', CONNECTIONS: 'connections', APP: 'app', ABOUT: 'about' };
+export const SETTINGS_GROUP = { EVALUATION: 'evaluation', ASSISTANT: 'assistant', CONNECTIONS: 'connections', APP: 'app', ABOUT: 'about' };
 export const STATE_TONE = { OK: 'ok', WARN: 'warn', NONE: 'none' };
 
 export const SETTINGS_GROUPS = [
-  { id: SETTINGS_GROUP.MODEL, labelKey: 'settings.groupModel', descKey: 'settings.groupModelDesc' },
   { id: SETTINGS_GROUP.EVALUATION, labelKey: 'settings.groupEvaluation', descKey: 'settings.groupEvaluationDesc' },
+  { id: SETTINGS_GROUP.ASSISTANT, labelKey: 'settings.groupAssistant', descKey: 'settings.groupAssistantDesc' },
   { id: SETTINGS_GROUP.CONNECTIONS, labelKey: 'settings.groupConnections', descKey: 'settings.groupConnectionsDesc' },
   { id: SETTINGS_GROUP.APP, labelKey: 'settings.groupApp', descKey: 'settings.groupAppDesc' },
   { id: SETTINGS_GROUP.ABOUT, labelKey: 'settings.groupAbout', descKey: 'settings.groupAboutDesc' },
 ];
 
-/** The model group's line: ready, missing a model, or missing a provider. */
-export function modelState({ provider, model }) {
+/** The evaluation group's line: the model ready, missing a model, or missing a provider. */
+export function evaluationState({ provider, model }) {
   if (!provider) return { tone: STATE_TONE.WARN, text: t('settings.stateNoProvider') };
   if (!model) return { tone: STATE_TONE.WARN, text: t('settings.stateModelMissing', { provider }) };
   return { tone: STATE_TONE.OK, text: t('settings.stateModelReady', { provider, model }) };
 }
 
-/** The evaluation group's line: which findings the live feed shows. */
-export function evaluationState({ newOnly }) {
-  return { tone: STATE_TONE.NONE, text: t(newOnly ? 'settings.stateLiveNewOnly' : 'settings.stateLiveAll') };
+/** The assistant group's line: off, following the evaluation model, or its own model. */
+export function assistantState({ enabled, followsAnalysis, provider, model }) {
+  if (!enabled) return { tone: STATE_TONE.NONE, text: t('settings.stateAssistantOff') };
+  if (followsAnalysis) return { tone: STATE_TONE.NONE, text: t('settings.stateAssistantFollows') };
+  return evaluationState({ provider, model });
 }
 
 /** The connections group's line: how quodeq reaches GitHub. */

@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { CliModelInput } from '../../settings/components/CliAdvancedPanel.jsx';
+import { CliModelInput } from '../../settings/components/CliProviderRows.jsx';
 import { ModelPickerSelect } from '../../settings/components/LocalApiTabLayout.jsx';
 import { modelEffort, useClientModels } from '../../settings/hooks/useClientModels.js';
 import { useOllamaModels } from '../../settings/hooks/useOllamaModels.js';

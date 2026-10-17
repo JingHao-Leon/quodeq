@@ -20,8 +20,12 @@ import { usePageFocus } from '../../hooks/usePageFocus.js';
 function FormulaBody({ editor, inputs, view }) {
   return (
     <>
-      {inputs && <PrincipleChart inputs={inputs} saved={editor.saved} draft={editor.draft} highlight={view.hoverGroup}
-        litProject={view.litProject} onHoverProject={view.setLitProject} />}
+      {inputs && (
+        <div className="gf-chart-pin">
+          <PrincipleChart inputs={inputs} saved={editor.saved} draft={editor.draft} highlight={view.hoverGroup}
+            litProject={view.litProject} onHoverProject={view.setLitProject} />
+        </div>
+      )}
       <KnobGroups draft={editor.draft} saved={editor.saved} defaults={editor.defaults} inputs={inputs}
         update={editor.update} onHoverGroup={view.setHoverGroup} />
     </>
@@ -55,7 +59,7 @@ function tabButtonId(tabId) {
 
 function TabButtons({ tab, setTab }) {
   return (
-    <div className="gf-tabs" role="tablist" aria-label={t('gradeFormula.tabsAria')}>
+    <div className="term-seg" role="tablist" aria-label={t('gradeFormula.tabsAria')}>
       {TABS.map((tabDef) => (
         <button
           key={tabDef.id}
@@ -64,7 +68,7 @@ function TabButtons({ tab, setTab }) {
           role="tab"
           aria-selected={tab === tabDef.id}
           aria-controls={TAB_PANEL_ID}
-          className={`gf-tab${tab === tabDef.id ? ' gf-tab--active' : ''}`}
+          className={`term-btn${tab === tabDef.id ? ' term-btn--on' : ''}`}
           onClick={() => setTab(tabDef.id)}
         >
           {t(tabDef.labelKey)}
@@ -177,8 +181,9 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
   const bodyProps = { editor, inputs, view, draft: editor.draft, update: editor.update, ...types };
   return (
     <div className="settings-page settings-page--terminal">
-      <PageToolbar title={t('gradeFormula.headerName')} facts={headerFacts(editor, inputs?.projects?.length ?? (projects || []).length)} />
-      <TabButtons tab={view.tab} setTab={view.setTab} />
+      <PageToolbar title={t('gradeFormula.headerName')} facts={headerFacts(editor, inputs?.projects?.length ?? (projects || []).length)}>
+        <TabButtons tab={view.tab} setTab={view.setTab} />
+      </PageToolbar>
       <div className="gf-split">
         <TabBody busy={editor.busy} ActiveBody={ActiveBody} activeTabId={view.tab} bodyProps={bodyProps} />
         <ImpactPanel inputs={inputs} loading={loading} failed={failed} names={names} saved={editor.saved} draft={editor.draft}
