@@ -54,9 +54,13 @@ export function overviewSub(args) {
   return overviewSubParts(args).join(t('violations.wbDot')) || null;
 }
 
+// Joins a closing dot to the last word of its part, so a part that wraps
+// inside itself carries the dot along instead of leaving it alone on a line.
+const NO_BREAK_SPACE = ' ';
+
 /** Each part with the dot that closes it, the last one bare. */
 export function subPartTexts(parts) {
-  const dot = t('violations.wbDot').trimEnd();
+  const dot = NO_BREAK_SPACE + t('violations.wbDot').trim();
   return parts.map((part, i) => (i < parts.length - 1 ? part + dot : part));
 }
 

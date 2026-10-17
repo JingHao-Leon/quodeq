@@ -89,7 +89,13 @@ describe('the Overview\'s sub line', () => {
   it('keeps each part whole, the dot closing the part before it, so a narrow header wraps between parts', () => {
     const { container } = render(<SubParts parts={['61 files', 'evaluated 14 Oct 2026', 'by qwen']} />);
     const parts = [...container.querySelectorAll('.overview-sub__part')].map((el) => el.textContent);
-    expect(parts).toEqual(['61 files ·', 'evaluated 14 Oct 2026 ·', 'by qwen']);
-    expect(container.textContent).toBe('61 files · evaluated 14 Oct 2026 · by qwen');
+    expect(parts).toEqual(['61 files ·', 'evaluated 14 Oct 2026 ·', 'by qwen']);
+    expect(container.textContent).toBe('61 files · evaluated 14 Oct 2026 · by qwen');
+  });
+
+  it('glues each closing dot to the word before it, so a part that wraps never leaves the dot alone on a line', () => {
+    const { container } = render(<SubParts parts={['4,433 files · 2515 python 9 shell', 'by qwen']} />);
+    const first = container.querySelector('.overview-sub__part').textContent;
+    expect(first.endsWith('shell ·')).toBe(true);
   });
 });
