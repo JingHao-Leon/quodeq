@@ -64,7 +64,15 @@ function traceCutOut(ctx, { c, at, index, paints }) {
   }
 }
 
-/** A folder: its fill (cut out under drawn sub-folders), outline and, in dark, its glow. */
+/** Dark glass: a share of the folder's tint under its cut-out sub-folders (fillStyle already set). */
+function fillHoles(ctx, scene, alpha) {
+  ctx.beginPath();
+  traceCutOut(ctx, scene);
+  ctx.globalAlpha = alpha;
+  ctx.fill();
+}
+
+/** A folder: its fill (cut out under drawn sub-folders, which keep `holeShare` of it), outline and, in dark, its glow. */
 export function drawFolder(ctx, { c, p, paint, at, index, paints, fade = 1 }) {
   const r = folderRadius(p.r);
   ctx.beginPath();
@@ -74,6 +82,7 @@ export function drawFolder(ctx, { c, p, paint, at, index, paints, fade = 1 }) {
     ctx.globalAlpha = paint.alpha * fade;
     ctx.fillStyle = paint.fill;
     ctx.fill(paint.cutOut ? EVEN_ODD : undefined);
+    if (paint.cutOut && paint.holeShare > 0) fillHoles(ctx, { c, at, index, paints }, paint.alpha * paint.holeShare * fade);
   }
   ctx.beginPath();
   ctx.arc(p.px, p.py, r, 0, TAU);

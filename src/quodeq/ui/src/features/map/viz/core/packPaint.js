@@ -1,7 +1,7 @@
 import { badness, nodeWeight } from './mapBadness.js';
 import {
   mixRgb, rgbCss, badnessHue, badnessStrength, folderGlow, fileSeverityColor, fileSeverityHue, activityScale, activityFileStrength,
-  activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE,
+  activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, GLASS_HOLE_SHARE, ACTIVITY_IDLE_SHARE,
   ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
 import { NODE_KIND, PACK_COLOR_MODE } from '../../mapVocab.js';
@@ -67,8 +67,8 @@ function strokeFor(n, hue, palette) {
 function folderFill({ n, hue, strength, glassStrength, palette }) {
   if (!palette.dark) return { fill: rgbCss(mixRgb(pageBg(palette), hue, strength)), alpha: 1, cutOut: true };
   const holdsFiles = n.children.some(isLeaf);
-  if (!holdsFiles) return { fill: rgbCss(palette.glassParent), alpha: GLASS_PARENT_ALPHA, cutOut: true };
-  return { fill: rgbCss(hue), alpha: glassStrength, cutOut: true };
+  if (!holdsFiles) return { fill: rgbCss(palette.glassParent), alpha: GLASS_PARENT_ALPHA, cutOut: true, holeShare: GLASS_HOLE_SHARE };
+  return { fill: rgbCss(hue), alpha: glassStrength, cutOut: true, holeShare: GLASS_HOLE_SHARE };
 }
 
 function concentrationPaint(n, ctx) {

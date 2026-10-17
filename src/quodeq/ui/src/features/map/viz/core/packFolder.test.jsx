@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
-import { drawFolderGlow } from './packFolder.js';
+import { drawFolderGlow, drawFolder } from './packFolder.js';
 
 const RED = { r: 240, g: 80, b: 120 };
 const AT = { px: 50, py: 60 };
@@ -32,5 +32,28 @@ describe('drawFolderGlow', () => {
     drawFolderGlow(plain, AT, 20, { glow: 1, hue: RED });
     expect(ctx.shadowBlur).toBe(plain.shadowBlur * 2);
     expect(ctx.restore).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('drawFolder', () => {
+  const child = { children: [{ children: [] }] };
+  const parent = { children: [child] };
+  const index = new Map([[parent, 0], [child, 1]]);
+  const at = (i) => (i === 0 ? { px: 50, py: 50, r: 40 } : { px: 50, py: 50, r: 10 });
+  const glass = { fill: 'rgb(240, 80, 120)', alpha: 0.4, stroke: 'rgb(1, 1, 1)', strokeAlpha: 0.2, cutOut: true };
+  const fillAlphas = (paint) => {
+    const ctx = fakeCanvasContext();
+    const alphas = [];
+    ctx.fill = vi.fn(() => alphas.push(ctx.globalAlpha));
+    drawFolder(ctx, { c: parent, p: at(0), paint, at, index, paints: [paint, { ...glass }] });
+    return alphas;
+  };
+
+  it('keeps holeShare of its tint under a cut-out sub-folder', () => {
+    expect(fillAlphas({ ...glass, holeShare: 0.35 })).toEqual([0.4, 0.4 * 0.35]);
+  });
+
+  it('leaves the sub-folders clear without a holeShare', () => {
+    expect(fillAlphas(glass)).toEqual([0.4]);
   });
 });
