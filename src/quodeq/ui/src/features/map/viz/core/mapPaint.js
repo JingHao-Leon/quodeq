@@ -24,6 +24,11 @@ const ACT_FOLDER = {
 export const GLASS_FOLDER_SCALE = 0.85;
 /** Dark glass: a folder holding only sub-folders gets this faint neutral veil. */
 export const GLASS_PARENT_ALPHA = 0.05;
+/**
+ * Dark glass: the share of a folder's tint that still shows under its sub-folders. Full (1) let tints
+ * stack with depth; none (0) left bad parents' sub-folders looking hollow. A little keeps them inside.
+ */
+export const GLASS_HOLE_SHARE = 0.35;
 /** A folder whose share of changed files is below this reads as idle in Activity. */
 export const ACTIVITY_IDLE_SHARE = 0.02;
 /** Activity: a folder with sub-folders shows at most this heat, a tint and never a flood. */

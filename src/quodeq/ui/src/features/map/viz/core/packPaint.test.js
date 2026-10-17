@@ -54,6 +54,8 @@ test('dark glass: folders holding files carry the hue, parents a faint veil, cut
   assert.equal(at('src').fill, 'rgb(200, 195, 216)');
   assert.equal(at('src').cutOut, true);
   assert.equal(at('src/bad').cutOut, true);
+  assert.ok(at('src').holeShare > 0 && at('src').holeShare < 1);
+  assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, false).at('src').holeShare, undefined);
 });
 
 test('dark: a worse folder glows, a better one does not; light never glows', () => {
