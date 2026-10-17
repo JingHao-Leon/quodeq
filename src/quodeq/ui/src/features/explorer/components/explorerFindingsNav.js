@@ -67,7 +67,7 @@ function filePageNav({ dimFile, onNavigate, project, activeRunId, activeDateLabe
  * principle, a Fix first row its requirement, a folder the findings list on
  * that folder and the dimension, an area its findings over the dimension
  * (its map icon the Map's Risk tab filtered to the dimension with that area
- * selected, the panel's foot the whole filtered sky). A cross-project explorer (Compare) keeps the File page with the
+ * selected, the panel's foot the whole filtered sky). A cross-project explorer (another project than the selection) keeps the File page with the
  * snapshot it is handed, and the principle page, and its requirements,
  * folders and areas open nothing, as the Violations tab and the Map only
  * read the selected project.
