@@ -9,6 +9,7 @@ DB_NAME = "evaluation.db"
 WAL_NAME = "evaluation.db-wal"
 _logger = logging.getLogger(__name__)
 _BUSY_TIMEOUT_S = 5.0
+_CHECKPOINT = "PRAGMA wal_checkpoint(TRUNCATE)"
 
 
 class WalNotFoldedError(RuntimeError):
@@ -27,7 +28,7 @@ def fold_wal(run_dir: Path) -> int:
     try:
         conn = sqlite3.connect(db, timeout=_BUSY_TIMEOUT_S)
         try:
-            busy = conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]
+            busy = conn.execute(_CHECKPOINT).fetchone()[0]
         finally:
             conn.close()
     except sqlite3.Error as exc:
@@ -59,11 +60,11 @@ def vacuum_db(run_dir: Path) -> int:
     try:
         if not conn.execute("PRAGMA freelist_count").fetchone()[0]:
             return 0
-        if conn.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]:
+        if conn.execute(_CHECKPOINT).fetchone()[0]:
             _logger.debug("Skipping VACUUM of %s: a reader holds its log", db)
             return 0
         conn.execute("VACUUM")
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        conn.execute(_CHECKPOINT)
     finally:
         conn.close()
     return max(0, before - _size(db) - _size(wal))
