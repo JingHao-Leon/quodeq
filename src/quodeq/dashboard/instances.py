@@ -1,4 +1,4 @@
-"""``quodeq status`` and ``quodeq stop``: see and stop the running dashboard.
+"""``quodeq status``, ``quodeq stop`` and the launch record ``quodeq restart`` replays.
 
 The way out once the launcher has handed the terminal back: a hung window
 has no Ctrl+C. Every process is found through a PID file (the run dir's
@@ -6,10 +6,13 @@ has no Ctrl+C. Every process is found through a PID file (the run dir's
 its command line shows it still is that quodeq process, so a stale file whose
 PID the OS has since reused never names, or takes down, a stranger.
 ``stop`` never touches evaluations: they run in their own sessions and keep going.
+The launcher that starts the server also records its flags and working
+directory (``launch_args.json``) so a restart reopens Quodeq the same way.
 """
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass, field
 import logging
 import os
 import signal
@@ -50,29 +53,41 @@ def record_window_pid(run_dir: Path | None = None) -> Path:
     return path
 
 
-def record_launch_args(args: list[str], run_dir: Path | None = None) -> None:
-    """Remember the flags this dashboard was started with, so ``quodeq restart`` reuses them.
+@dataclass(frozen=True)
+class LaunchRecord:
+    """How the running dashboard was started: its flags and the directory they are relative to."""
 
-    Fail-soft: without the file a restart opens a plain window, as before.
+    args: list[str] = field(default_factory=list)
+    cwd: Path | None = None
+
+
+def record_launch_args(args: list[str], run_dir: Path | None = None, cwd: Path | None = None) -> None:
+    """Remember this dashboard's flags and working directory, so ``quodeq restart`` reuses them.
+
+    The directory travels along because flags such as ``--evaluations ./reports``
+    are relative to it. Fail-soft: without the file a restart opens a plain window.
     """
     path = (run_dir or ensure_run_dir()) / LAUNCH_ARGS_FILE
     kept = [arg for arg in args if arg not in _NOT_REPEATED_ON_RESTART]
+    record = {"args": kept, "cwd": str(cwd or Path.cwd())}
     try:
-        path.write_text(json.dumps(kept), encoding="utf-8")
+        path.write_text(json.dumps(record), encoding="utf-8")
     except OSError:
         _logger.debug("could not record the launch flags in %s", path, exc_info=True)
 
 
-def read_launch_args(run_dir: Path | None = None) -> list[str]:
-    """The flags the last dashboard started with; empty when unknown or unreadable."""
+def read_launch_args(run_dir: Path | None = None) -> LaunchRecord:
+    """The last dashboard's launch record; empty (a plain launch) when unknown or unreadable."""
     path = (run_dir or ensure_run_dir()) / LAUNCH_ARGS_FILE
     try:
-        args = json.loads(path.read_text(encoding="utf-8"))
+        record = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return []
+        return LaunchRecord()
+    args = record.get("args") if isinstance(record, dict) else None
     if not isinstance(args, list) or not all(isinstance(arg, str) for arg in args):
-        return []
-    return args
+        return LaunchRecord()
+    cwd = record.get("cwd")
+    return LaunchRecord(args=args, cwd=Path(cwd) if isinstance(cwd, str) and cwd else None)
 
 
 def clear_window_pid(path: Path) -> None:

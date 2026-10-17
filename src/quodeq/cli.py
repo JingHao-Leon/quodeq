@@ -8,6 +8,7 @@ this module re-exports their entry points under public spellings, so
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from enum import StrEnum
 from typing import Callable
@@ -76,9 +77,11 @@ def _restart() -> int:
 
     The new process loads the code installed now, so this is also how an upgrade takes effect.
     """
-    launch_args = read_launch_args()
+    launch = read_launch_args()
     stop_dashboard()
-    return dashboard_main(launch_args)
+    if launch.cwd is not None and launch.cwd.is_dir():
+        os.chdir(launch.cwd)  # relative flags such as --evaluations ./reports mean what they meant
+    return dashboard_main(launch.args)
 
 
 def maybe_emit_cli_notice(stream=None, env: dict[str, str] | None = None) -> None:
@@ -167,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     command = getattr(args, "handler_command", None) or args.command
     # Default to dashboard when no subcommand is given — skip the notice (dashboard has its own banner)
     if command is None:
-        return dashboard_main(argv[1:] if argv is not None else sys.argv[1:])
+        return dashboard_main(argv if argv is not None else sys.argv[1:])
 
     if command == Command.EVALUATE:
         code = run_evaluate(args)
