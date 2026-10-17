@@ -6,32 +6,28 @@ const RED = { r: 240, g: 80, b: 120 };
 const AT = { px: 50, py: 60 };
 
 describe('drawFolderGlow', () => {
-  it('strokes the rim with a shadow in the folder hue, wider for a stronger glow', () => {
-    const blurs = [0.3, 1].map((glow) => {
-      const ctx = fakeCanvasContext();
-      drawFolderGlow(ctx, AT, 20, { glow, hue: RED });
-      expect(ctx.stroke).toHaveBeenCalledTimes(1);
-      expect(ctx.shadowColor).toMatch(/^rgba\(240, 80, 120, /);
-      return ctx.shadowBlur;
-    });
-    expect(blurs[0]).toBeLessThan(blurs[1]);
+  const strokes = (glow, extra = {}, r = 20) => {
+    const ctx = fakeCanvasContext();
+    const widths = [];
+    ctx.stroke.mockImplementation(() => widths.push(ctx.lineWidth));
+    drawFolderGlow(ctx, AT, r, { glow, hue: RED, ...extra });
+    return { ctx, widths };
+  };
+
+  it('strokes soft rings on the rim in the folder hue, widest first, wider for a stronger glow, without a blur', () => {
+    const weak = strokes(0.3);
+    const strong = strokes(1);
+    expect(strong.widths.length).toBeGreaterThan(1);
+    expect(strong.widths[0]).toBeGreaterThan(strong.widths[1]);
+    expect(strong.widths[0]).toBeGreaterThan(weak.widths[0]);
+    expect(strong.ctx.strokeStyle).toMatch(/^rgba\(240, 80, 120, /);
+    expect([strong.ctx.shadowBlur, strong.ctx.globalAlpha]).toEqual([0, 1]);
   });
 
-  it('draws nothing without glow, without a hue, or while the folder fades in', () => {
-    for (const paint of [{ glow: 0, hue: RED }, { glow: 0.5 }, { glow: 0.5, hue: RED, arriving: true }]) {
-      const ctx = fakeCanvasContext();
-      drawFolderGlow(ctx, AT, 20, paint);
-      expect(ctx.stroke).not.toHaveBeenCalled();
+  it('draws nothing without glow, without a hue, while the folder fades in, or when it is too small to see', () => {
+    for (const [glow, extra, r] of [[0, {}, 20], [0.5, { hue: undefined }, 20], [0.5, { arriving: true }, 20], [1, {}, 3]]) {
+      expect(strokes(glow, extra, r).ctx.stroke).not.toHaveBeenCalled();
     }
-  });
-
-  it('scales the blur by the device-pixel ratio and restores the context', () => {
-    const ctx = { ...fakeCanvasContext(), getTransform: () => ({ a: 2 }) };
-    drawFolderGlow(ctx, AT, 20, { glow: 1, hue: RED });
-    const plain = fakeCanvasContext();
-    drawFolderGlow(plain, AT, 20, { glow: 1, hue: RED });
-    expect(ctx.shadowBlur).toBe(plain.shadowBlur * 2);
-    expect(ctx.restore).toHaveBeenCalledTimes(1);
   });
 });
 
