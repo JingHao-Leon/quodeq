@@ -1121,6 +1121,11 @@
   opacity: 0.88;
 }
 
+.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ── Chip Badges for Evaluate Tab ────────────────────────── */
 
 .dimension-chip-btn {

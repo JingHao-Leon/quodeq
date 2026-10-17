@@ -1,5 +1,6 @@
 import { t, LOCALE } from '../../../../strings/index.js';
 import { relativeTime } from '../../../../utils/relativeTime.js';
+import { formatBytes } from '../../../../utils/formatSize.js';
 import Badge from '../../../../components/Badge.jsx';
 import { formatDate, formatPath } from '../projectCards/projectDisplayHelpers.js';
 import { PROJECT_LOCATION } from '../../../../models/project.js';
@@ -58,19 +59,26 @@ export function FilesCell({ project }) {
   return <div className="projects-row__num projects-row__files" role="cell">{files != null ? files.toLocaleString(LOCALE) : EMPTY_CELL}</div>;
 }
 
+// `stored` is the project's storage summary entry ({bytes, runs, archived}):
+// null before the summary loads and for a project that is not on this machine.
+export function SizeCell({ stored }) {
+  const bytes = stored?.bytes;
+  return <div className="projects-row__num projects-row__size" role="cell">{bytes != null ? formatBytes(bytes) : EMPTY_CELL}</div>;
+}
+
 export function LastRunCell({ project }) {
   return <div className="projects-row__num projects-row__last" role="cell">{formatDate(project.latestDate) ?? EMPTY_CELL}</div>;
 }
 
 // The grade, files and last-run columns a never-evaluated row has nothing
 // for: one muted cell across all three keeps the grid aligned.
-const RUN_COLUMNS = 3;
+const RUN_COLUMNS = 4;
 
 /**
  * The grade, files and last-run cells, or, for a project never evaluated,
  * one quiet "not evaluated yet" across the three.
  */
-export function RunCells({ project, notEvaluated, grade }) {
+export function RunCells({ project, notEvaluated, grade, size }) {
   if (notEvaluated) {
     return (
       <div className="projects-row__not-evaluated projects-row__muted" role="cell" aria-colspan={RUN_COLUMNS}>
@@ -83,6 +91,7 @@ export function RunCells({ project, notEvaluated, grade }) {
       <div className="projects-row__grade" role="cell">{grade}</div>
       <FilesCell project={project} />
       <LastRunCell project={project} />
+      {size}
     </>
   );
 }

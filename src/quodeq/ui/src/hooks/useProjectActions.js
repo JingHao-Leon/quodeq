@@ -22,6 +22,7 @@ import { HTTP_STATUS } from '../constants.js';
 import { DIALOG_VARIANT } from '../vocab/dialogVariant.js';
 import { findProject, projectIdOrSelf } from '../utils/projectIdentity.js';
 import { projectPath } from '../api/paths.js';
+import { storageKeys } from '../api/queryKeys.js';
 
 // Strip filesystem-unfriendly characters so a project name like
 // "foo/bar" or "..\\evil" can't influence the download path.
@@ -192,10 +193,16 @@ export function useProjectActions(
   { onError = () => {} } = {},
 ) {
   const { deleteProject, getProjectExportUrl, relocateProject, importProject } = useApi();
-  const refreshProjects = makeRefreshProjects(useQueryClient());
+  const queryClient = useQueryClient();
+  const refreshProjects = makeRefreshProjects(queryClient);
   const fail = makeFail(onError);
+  // A deleted project's evaluations leave the storage summary's totals too.
+  const refreshAfterDelete = () => {
+    refreshProjects();
+    queryClient.invalidateQueries({ queryKey: storageKeys.summary(), exact: true });
+  };
 
-  const handleDeleteProject = makeHandleDeleteProject({ deleteProject, projects, selectedProject, handleProjectChange, refreshProjects, fail });
+  const handleDeleteProject = makeHandleDeleteProject({ deleteProject, projects, selectedProject, handleProjectChange, refreshProjects: refreshAfterDelete, fail });
   const handleExportProject = makeHandleExportProject({ projects, getProjectExportUrl });
   const handleRelocateProject = makeHandleRelocateProject({ relocateProject, refreshProjects, fail });
   const handleImportProject = makeHandleImportProject({ importProject, refreshProjects, fail });

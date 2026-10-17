@@ -257,20 +257,20 @@ def _install_shutdown_handlers() -> None:
     signal.signal(signal.SIGINT, _handle_shutdown)
 
 
-def _start_background_work(env: Mapping[str, str] | None = None) -> None:
-    """Warm the score caches, run cache maintenance and opt-in storage cleanup off the request path.
-    main() only: create_app callers (tests, embedding) stay thread-free.
-    """
+def _start_background_work(app: Flask, env: Mapping[str, str] | None = None) -> None:
+    """Warm the score caches, run cache maintenance and storage cleanup (as the app's clean job) off the request path.
+    main() only: create_app callers (tests, embedding) stay thread-free."""
     try:
         from quodeq.api.routes_common import reports_dir  # noqa: PLC0415
         from quodeq.services.warmup import engine as warmup_engine  # noqa: PLC0415
         from quodeq.services.cache_maintenance import start_cache_maintenance  # noqa: PLC0415
-        from quodeq.services.storage_cleanup import start_storage_cleanup  # noqa: PLC0415
+        from quodeq.services import storage_cleanup  # noqa: PLC0415
         from quodeq.shared.log_sink import SHARED_LOG  # noqa: PLC0415
         warmup_engine.start(reports_dir())
         start_cache_maintenance(log=SHARED_LOG)
-        start_storage_cleanup(
-            reports_dir(), env, log=SHARED_LOG, warmup_idle=lambda: not (warmup_engine.snapshot() or {}).get("active"))
+        storage_cleanup.start_storage_cleanup(
+            reports_dir(), env, log=SHARED_LOG, warmup_idle=lambda: not (warmup_engine.snapshot() or {}).get("active"),
+            start_pass=app.extensions["storage_clean"].start)
     except (ImportError, RuntimeError, OSError):  # pragma: no cover - warm-up must never block serving
         _logger.warning("warm-up start failed", exc_info=True)
 
@@ -292,7 +292,7 @@ def main(env: dict[str, str] | None = None) -> None:
         env=env,
     )
     _install_shutdown_handlers()
-    _start_background_work(env)
+    _start_background_work(app, env)
     _serve(app, env)
 
 

@@ -34,6 +34,7 @@ export function ProjectsTableHead({ filters, onSort, configured }) {
   return (
     <div className="projects-row projects-row--head" role="row">
       {SORT_COLUMNS.map((column) => <SortHeader key={column.key} column={column} filters={filters} onSort={onSort} />)}
+      <div className="projects-row__num" role="columnheader">{t('projects.colSize')}</div>
       {configured && <div className="projects-row__location" role="columnheader">{t('projects.colLocation')}</div>}
       {configured && <div className="projects-row__sync" role="columnheader">{t('projects.colSync')}</div>}
       <div className="projects-row__action" role="columnheader"><span className="sr-only">{t('projects.colAction')}</span></div>

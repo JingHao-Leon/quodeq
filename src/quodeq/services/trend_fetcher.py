@@ -37,6 +37,7 @@ from typing import Callable
 from quodeq.core.scoring.params import DEFAULT_PARAMS, ScoringParams
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import read_scalar_dimensions
+from quodeq.services._archived_trend import cacheable_unless_frozen, serve_archived_runs_frozen
 from quodeq.services.scoring_deps import ScoringDeps, NO_DEPS
 from quodeq.services.deleted import deleted_keys as _default_deleted_keys
 from quodeq.services.dismissed import dismissed_keys as _default_dismissed_keys
@@ -168,13 +169,13 @@ def _make_row_trend_fetcher(
         base_fetcher=deps.base_fetcher_factory(reports_root, project), deps=deps,
     )
     base = _read_untouched_runs_as_scalars(reports_root, project, base, deps)
+    frozen: set[str] = set()
+    base = serve_archived_runs_frozen(
+        reports_root, project, base, deps.read_run_scalars or _default_read_run_scalars, frozen, log=SHARED_LOG)
     version_for = _suppression_version_for(
         reports_root / project, project, params, cacheable_run_ids, deps,
     )
-    is_cacheable = (
-        None if cacheable_run_ids is None
-        else (lambda rid: rid in cacheable_run_ids)
-    )
+    is_cacheable = cacheable_unless_frozen(cacheable_run_ids, frozen)
     return make_cache_backed_fetcher(
         project, version_for, base, is_cacheable=is_cacheable, log=SHARED_LOG,
     )

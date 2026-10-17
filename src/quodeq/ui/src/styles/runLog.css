@@ -172,3 +172,7 @@
 .rl-card-moves { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 11px; }
 /* the card's text column is fixed (rings line up across cards): a line too wide for it puts its severities under the count */
 .rl-card-move { display: inline-flex; flex-wrap: wrap; gap: 0 10px; align-items: baseline; white-space: nowrap; }
+
+/* An archived run: a quiet muted tag (dot + word), never an alert colour. */
+.rl-row__archived { display: inline-flex; align-items: center; gap: 5px; color: var(--color-text-muted); }
+.rl-row__archived-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; flex: none; }

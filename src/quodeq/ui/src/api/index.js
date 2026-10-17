@@ -77,3 +77,4 @@ export { probeGit, getGithubAccount, startDeviceFlow, getDeviceFlow, pasteGithub
 export { getRunLog } from './runLog.js';
 export { getMapHistory, sharedGetMapHistory } from './mapHistory.js';
 export { getPrincipleSeries, sharedGetPrincipleSeries } from './principleSeries.js';
+export { getStorage, getCleanStatus, putStorageSettings, getCleanPreview, startClean, deleteAllEvaluations } from './storage.js';

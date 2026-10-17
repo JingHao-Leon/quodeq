@@ -14,8 +14,8 @@ const RUNS = [
 ];
 const DIFF = { dimensions: { security: { counts: { new: 0, resolved: 1 }, new: [], resolved: [{ severity: 'minor', title: 'Old', principle: 'P', file: 'b.py', line: 1 }] } } };
 
-function renderPage(props = {}) {
-  const api = { getRunLog: vi.fn(async () => ({ runs: RUNS, running: null })), getRunDiff: vi.fn(async () => DIFF), getEvaluationProgress: vi.fn(async () => ({ dimensions: [] })) };
+function renderPage(props = {}, runs = RUNS) {
+  const api = { getRunLog: vi.fn(async () => ({ runs, running: null })), getRunDiff: vi.fn(async () => DIFF), getEvaluationProgress: vi.fn(async () => ({ dimensions: [] })) };
   const cb = { onRunClick: vi.fn(), onDimensionClick: vi.fn(), onNavigate: vi.fn(), onRunChange: vi.fn(), ...props };
   const Wrapper = withStableQueryApi(api);
   render(<Wrapper><RunLogPage project="p1" {...cb} /></Wrapper>);
@@ -32,7 +32,7 @@ describe('RunLogPage', () => {
     fireEvent.keyDown(document.body, { key: 'ArrowDown' });
     await waitFor(() => expect(cb.onRunChange).toHaveBeenLastCalledWith('b'));
     fireEvent.keyDown(document.body, { key: 'Enter' });
-    expect(cb.onRunClick).toHaveBeenCalledWith('b', expect.any(String));
+    expect(cb.onRunClick).toHaveBeenCalledWith('b', expect.any(String), { archived: false });
     const input = document.createElement('input');
     document.body.appendChild(input);
     fireEvent.keyDown(input, { key: 'ArrowUp' });
@@ -76,5 +76,12 @@ describe('RunLogPage', () => {
     dialog.remove();
     expect(cb.onRunChange.mock.calls.length).toBe(calls);
     expect(cb.onRunClick).not.toHaveBeenCalled();
+  });
+
+  it('opening an archived run says it is archived, so the run page can say it is restoring', async () => {
+    const cb = renderPage({}, [{ ...RUNS[0], archived: true }, RUNS[1]]);
+    await screen.findByText(/comparison|vs /);
+    fireEvent.keyDown(document.body, { key: 'Enter' });
+    expect(cb.onRunClick).toHaveBeenCalledWith('a', expect.any(String), { archived: true });
   });
 });

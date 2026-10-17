@@ -1,10 +1,20 @@
 import { it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ApiProvider } from '../../../api/ApiContext.jsx';
 import EvaluationSection from './EvaluationSection.jsx';
 import { NEW_FINDINGS_ONLY_KEY } from '../hooks/useLiveFeedSettings.js';
 
 beforeEach(() => { localStorage.clear(); });
+
+// The storage section below the results rows reads its summary through the API.
+const api = { getStorage: () => new Promise(() => {}), getCleanStatus: () => new Promise(() => {}) };
+
+function render(ui) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return rtlRender(<QueryClientProvider client={qc}><ApiProvider value={api}>{ui}</ApiProvider></QueryClientProvider>);
+}
 
 it('defaults to New only', () => {
   render(<EvaluationSection />);

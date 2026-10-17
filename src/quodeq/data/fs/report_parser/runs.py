@@ -20,7 +20,7 @@ from quodeq.data.sqlite.dimension_counts import read_dimension_counts
 from quodeq.data.fs.report_parser._evaluations import load_evaluations
 from quodeq.data.fs.report_parser.external_pid import resolve_external_pid
 from quodeq.data.fs.report_parser._evidence import load_evidence_map
-from quodeq.data.fs.report_parser._evidence_sqlite import manifest_metadata
+from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db, manifest_metadata
 from quodeq.data.fs.report_parser._run_scalars import scalars_to_dimension_results
 from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX, MANIFEST_FILENAME
 from quodeq.data.fs.report_parser._repository import (
@@ -32,7 +32,8 @@ from quodeq.data.fs.report_parser._run_info import (
     safe_read_dir as safe_read_dir,
 )
 from quodeq.data.fs.report_parser.run_dates import remember_run_dates, remembered_run_dates
-from quodeq.data.fs.run_archive import restore_or_warn
+from quodeq.data.fs.run_archive import is_archived, restore_or_warn
+from quodeq.data.fs.run_scalars import read_scalars
 from quodeq.shared.validation import validate_path_segment
 
 _DEFAULT_RUN_LIMIT = 100
@@ -55,22 +56,7 @@ def read_run_data(reports_root: Path, project: str, run_id: str) -> list[Dimensi
         raise FileNotFoundError(f"Run not found: {project}/{run_id}")
     run_dir = Path(resolved_run)
     restore_or_warn(run_dir)  # the evidence read below needs an archived run's database back
-    evaluations = load_evaluations(run_dir / "evaluation")
-    evidence_map = load_evidence_map(run_dir / EVIDENCE_DIRNAME)
-
-    dimensions: list[DimensionResult] = []
-    for evaluation in evaluations:
-        dimension = evaluation.get("dimension")
-        evidence = evidence_map.get(dimension, {})
-        merged = {
-            **evaluation,
-            "sourceFileCount": evidence.get("sourceFileCount"),
-            "evidenceDate": evidence.get("date"),
-            "discipline": evidence.get("discipline"),
-        }
-        dimensions.append(parse_dimension_result(merged))
-
-    dimensions.sort(key=lambda item: item.dimension)
+    dimensions = _report_dimensions(run_dir, load_evidence_map(run_dir / EVIDENCE_DIRNAME))
     # For event-log runs, the SQL grade tables (rewritten on dismiss and on a
     # grade-formula Apply) are the source of truth; overlay them so every
     # read-side consumer — run detail, accumulated overview, trend, project
@@ -102,15 +88,12 @@ def _read_run_scalars_from_sql(run_dir: Path) -> "tuple[list[dict], list[dict]] 
     the SQL dim count != the on-disk ``evaluation/*.json`` count (partial
     projection). None signals the caller to use its fallback reader.
     """
-    from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db  # noqa: PLC0415
-    from quodeq.data.fs.run_archive import has_event_log, is_archived  # noqa: PLC0415
+    from quodeq.data.fs.run_archive import has_event_log  # noqa: PLC0415
     from quodeq.shared.env import sqlite_disabled  # noqa: PLC0415
 
-    if (
-        sqlite_disabled()
-        or not has_event_log(run_dir)
-        or not (has_evaluation_db(run_dir) or is_archived(run_dir))
-    ):
+    # An archived run never comes here (read_archived_run_scalars); one
+    # archived after that check is restored by ensure_projected, a rare race.
+    if sqlite_disabled() or not has_event_log(run_dir) or not has_evaluation_db(run_dir):
         return None
 
     import sqlite3  # noqa: PLC0415
@@ -166,12 +149,60 @@ def read_run_scalars(
     """
     validate_path_segment(project, run_id)
     run_dir = reports_root / project / run_id
+    if is_archived(run_dir):
+        return read_archived_run_scalars(run_dir)
 
     sql_result = _read_run_scalars_from_sql(run_dir)
     if sql_result is None:
         return fallback_reader(reports_root, project, run_id)
     dim_rows, principle_rows, counts = sql_result
     return scalars_to_dimension_results(dim_rows, principle_rows, counts, manifest_metadata(run_dir))
+
+
+def read_archived_run_data(run_dir: Path) -> list[DimensionResult]:
+    """An archived run's reports with the grades of its ``scalars.json``, without restoring it.
+
+    What the walks that would read a run in full get for an archived run:
+    the findings stay packed, so only the reports' bodies come back. With no
+    sidecar the reports' eval-time grades stand, as for a legacy run.
+    """
+    from quodeq.data.fs.report_parser._sql_grade_overlay import overlay_grade_rows  # noqa: PLC0415
+
+    # A database beside an archive is a stray; opening it would restore the run.
+    evidence = {} if has_evaluation_db(run_dir) else load_evidence_map(run_dir / EVIDENCE_DIRNAME)
+    dimensions = _report_dimensions(run_dir, evidence)
+    frozen = read_scalars(run_dir)
+    return overlay_grade_rows(dimensions, frozen[0], frozen[1]) if frozen else dimensions
+
+
+def read_archived_run_scalars(run_dir: Path) -> list[DimensionResult]:
+    """An archived run's scalars without restoring it: ``scalars.json``, else its reports.
+
+    The routine readers (run list, trend, warm-up, accumulated walk) come here
+    for every run of a project; a restore would undo the archive. The sidecar
+    holds what the grade tables held at archive time. An archive written
+    before the sidecar existed reads like a legacy run: the eval-time grades
+    of its reports, without counts.
+    """
+    frozen = read_scalars(run_dir)
+    if frozen is not None:
+        return scalars_to_dimension_results(*frozen, manifest_metadata(run_dir))
+    return read_archived_run_data(run_dir)
+
+
+def _report_dimensions(run_dir: Path, evidence_map: dict) -> list[DimensionResult]:
+    """The run's evaluation reports merged with their evidence metadata, sorted by dimension."""
+    dimensions: list[DimensionResult] = []
+    for evaluation in load_evaluations(run_dir / "evaluation"):
+        evidence = evidence_map.get(evaluation.get("dimension"), {})
+        dimensions.append(parse_dimension_result({
+            **evaluation,
+            "sourceFileCount": evidence.get("sourceFileCount"),
+            "evidenceDate": evidence.get("date"),
+            "discipline": evidence.get("discipline"),
+        }))
+    dimensions.sort(key=lambda item: item.dimension)
+    return dimensions
 
 
 def _read_run_status(run_dir: Path) -> str | None:

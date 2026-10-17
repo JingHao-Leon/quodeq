@@ -17,6 +17,7 @@ from pathlib import Path
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
+from quodeq.services.ports import StoreUnreadableError
 from quodeq.services.wiring_sync import has_event_log, has_retired_formula, is_archived  # noqa: F401 -- re-exported API
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
     SQLiteStateStore, SqliteFindingsRepository, has_evaluation_db,
@@ -127,6 +128,7 @@ def _recompute_with_retries(run_dir: Path, params: ScoringParams) -> bool:
 
     Returns True on success. On exhausting the retries, logs the failure
     itself and returns False -- the caller decides what to do with that.
+    An unreadable store is permanent, so it fails at once without a retry.
     """
     last_exc: Exception | None = None
     for attempt in range(_APPLY_RETRIES + 1):
@@ -134,6 +136,9 @@ def _recompute_with_retries(run_dir: Path, params: ScoringParams) -> bool:
             project_run(run_dir)
             recompute_grades(run_dir, params=params)
             return True
+        except StoreUnreadableError as exc:  # permanent (corrupt, newer schema, unrestorable archive)
+            _logger.warning("Rescore skipped for %s: %s; it keeps the old formula's grades.", run_dir, exc)
+            return False
         except (sqlite3.Error, OSError, ValueError, RuntimeError) as exc:
             last_exc = exc
             if attempt == _APPLY_RETRIES:

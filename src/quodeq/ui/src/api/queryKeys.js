@@ -214,3 +214,12 @@ export const gradeFormulaKeys = {
   current: () => [GRADE_FORMULA, "current"],
   inputs: () => [GRADE_FORMULA, "inputs"],
 };
+
+// Settings › Storage. The clean progress and the preview sit OUTSIDE the
+// summary's prefix on purpose: invalidating ['storage'] after a change must
+// not refetch the poll or re-run the preview's disk walk.
+export const storageKeys = {
+  summary: () => ["storage"],
+  clean: () => ["storageClean"],
+  preview: () => ["storagePreview"],
+};

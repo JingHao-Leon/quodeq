@@ -36,6 +36,11 @@ describe('RunDetail', () => {
     expect(screen.queryByText(/scope/)).not.toBeInTheDocument();
   });
 
+  it('an archived run says so as the identity line\'s last quiet part', () => {
+    renderDetail({ run: { ...run, archived: true } });
+    expect(screen.getByText('6d62f65 · took 3h 30m · archived')).toBeInTheDocument();
+  });
+
   it('other-model comparison is labelled; no baseline says nothing to compare', () => {
     renderDetail({ run: { ...run, baselineKind: 'other-model' } });
     expect(screen.getByText(/different model \(gpt-6-luna\)/)).toBeInTheDocument();

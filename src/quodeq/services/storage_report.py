@@ -1,0 +1,194 @@
+"""Storage facts for Settings: sizes, run counts, the clean preview and delete all.
+
+Sizes come from a plain ``os.scandir`` walk that skips dotfiles (the archive
+lock, the restore stamp) and follows no symlinks.
+"""
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
+from quodeq.services.base import ActionProvider
+from quodeq.services.storage_cleanup import CLEANUP_LOCK
+from quodeq.services.storage_plan import plan_cleanup
+from quodeq.services.wiring import UnsupportedSchemaError, read_json_object, read_status
+from quodeq.services.wiring_sync import is_archived, packable_bytes, run_pid_alive
+
+# Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
+ARCHIVE_SAVING = 0.76
+_STATUS_FILE = "status.json"
+_REPO_INFO_FILE = "repository_info.json"
+
+
+class StorageBusyError(RuntimeError):
+    """A run is in flight or a clean is running, so the evaluations cannot be deleted now.
+
+    ``projects`` names the projects with a live run (empty when a clean is the reason).
+    """
+
+    def __init__(self, message: str, projects: tuple[str, ...] = ()) -> None:
+        super().__init__(message)
+        self.projects = projects
+
+
+@dataclass(frozen=True)
+class ProjectStorage:
+    """One project's folder: its size, its runs and how many of them are archived."""
+
+    project_id: str
+    bytes: int
+    runs: int
+    archived: int
+
+
+@dataclass(frozen=True)
+class StorageSummary:
+    """The whole evaluations root."""
+
+    bytes: int
+    runs: int
+    archived: int
+    projects: tuple[ProjectStorage, ...]
+
+
+@dataclass(frozen=True)
+class CleanPreview:
+    """How many runs a clean would archive and about how many bytes it would free."""
+
+    archive: int
+    frees: int
+
+
+def _children(path: Path) -> list[os.DirEntry]:
+    try:
+        with os.scandir(path) as entries:
+            return [e for e in entries if not e.name.startswith(".")]
+    except OSError:
+        return []
+
+
+def _entry_size(entry: os.DirEntry, stack: list[Path]) -> int:
+    try:
+        if entry.is_symlink():
+            return 0
+        if entry.is_dir(follow_symlinks=False):
+            stack.append(Path(entry.path))
+            return 0
+        return entry.stat(follow_symlinks=False).st_size if entry.is_file(follow_symlinks=False) else 0
+    except OSError:
+        return 0
+
+
+def dir_size(path: Path) -> int:
+    """Bytes under *path*, skipping dotfiles and symlinks; unreadable entries count as 0."""
+    total, stack = 0, [Path(path)]
+    while stack:
+        for entry in _children(stack.pop()):
+            total += _entry_size(entry, stack)
+    return total
+
+
+def _is_real_dir(entry: os.DirEntry) -> bool:
+    try:
+        return entry.is_dir(follow_symlinks=False)
+    except OSError:
+        return False
+
+
+def _subdirs(path: Path) -> list[Path]:
+    return sorted(Path(e.path) for e in _children(path) if _is_real_dir(e))
+
+
+def _project_storage(project: Path) -> ProjectStorage:
+    runs = [r for r in _subdirs(project) if (r / _STATUS_FILE).is_file()]
+    return ProjectStorage(project.name, dir_size(project), len(runs), sum(1 for r in runs if is_archived(r)))
+
+
+def storage_summary(root: Path) -> StorageSummary:
+    """Size, runs and archived runs per project; a missing root gives zeros."""
+    projects = tuple(_project_storage(p) for p in _subdirs(Path(root)))
+    return StorageSummary(
+        bytes=sum(p.bytes for p in projects), runs=sum(p.runs for p in projects),
+        archived=sum(p.archived for p in projects), projects=projects,
+    )
+
+
+def _packable(run_dir: Path) -> int:
+    try:
+        return packable_bytes(run_dir)
+    except OSError:
+        return 0
+
+
+def clean_preview(root: Path, now: datetime, warm_days: int | None) -> CleanPreview:
+    """Runs a clean would archive now and the bytes it would free, estimated with ARCHIVE_SAVING."""
+    plan = plan_cleanup(root, now, warm_days)
+    return CleanPreview(len(plan.archive), int(ARCHIVE_SAVING * sum(_packable(r) for r in plan.archive)))
+
+
+def _state(status: dict) -> RunState | None:
+    try:
+        return parse_run_state(status.get("state"))
+    except ValueError:
+        return None
+
+
+def _run_is_live(run_dir: Path) -> bool:
+    """A non-terminal run whose process is alive; unreadable or pid-less counts as live (fail safe).
+
+    Unlike cleanup's ``project_in_flight``, a crashed run (dead pid) does not
+    count, so it can never block delete all for good.
+    """
+    if not (run_dir / _STATUS_FILE).is_file():
+        return False
+    try:
+        status = read_status(run_dir)
+    except UnsupportedSchemaError:
+        return True
+    if not isinstance(status, dict):
+        return True
+    if _state(status) in TERMINAL_STATES:
+        return False
+    pid = status.get("pid")
+    return not isinstance(pid, int) or isinstance(pid, bool) or run_pid_alive(run_dir, pid)
+
+
+def _live_projects(projects: list[Path]) -> tuple[str, ...]:
+    return tuple(p.name for p in projects if any(_run_is_live(r) for r in _subdirs(p)))
+
+
+def _is_child(project: Path) -> bool:
+    info = read_json_object(project / _REPO_INFO_FILE)
+    return bool(info and info.get("parent"))
+
+
+def delete_all_evaluations(provider: ActionProvider, root: Path) -> int:
+    """Delete every project folder under *root* through ``delete_project``; the folders removed.
+
+    Raises ``StorageBusyError`` while a clean holds the lock or any project
+    has a run in flight; nothing is deleted then. A project whose run starts
+    during the deletion is kept. Parents go first, so a child their cascade
+    removed is skipped instead of deleted twice.
+    """
+    if not CLEANUP_LOCK.acquire(blocking=False):
+        raise StorageBusyError("a storage clean is running")
+    try:
+        projects = _subdirs(Path(root))
+        live = _live_projects(projects)
+        if live:
+            raise StorageBusyError("an evaluation is running", live)
+        # Evaluations do not take CLEANUP_LOCK, and deleting every project can
+        # take a while: each project is checked again right before it goes, and
+        # one whose run started meanwhile is kept. The gap left is one
+        # project's check-to-delete.
+        for project in sorted(projects, key=_is_child):
+            if project.is_dir() and not any(_run_is_live(r) for r in _subdirs(project)):
+                provider.delete_project(str(root), project.name)
+        if projects:
+            provider.invalidate_projects_cache()
+        return sum(1 for p in projects if not p.exists())
+    finally:
+        CLEANUP_LOCK.release()

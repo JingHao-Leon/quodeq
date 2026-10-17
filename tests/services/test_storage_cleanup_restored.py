@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
 
 from quodeq.data.fs.run_archive import archive_run, ensure_restored
@@ -17,6 +18,8 @@ def _run(root, name, days, *, state="done"):
     (run_dir / "evaluation").mkdir(parents=True)
     started = (NOW - timedelta(days=days)).isoformat()
     (run_dir / "status.json").write_text(json.dumps({"state": state, "started_at": started}))
+    settled = (NOW - timedelta(days=days)).timestamp()  # finished long enough ago to tidy
+    os.utime(run_dir / "status.json", (settled, settled))
     (run_dir / "evaluation" / "quality.json").write_text("{}")
     (run_dir / "events.jsonl").write_text("{}\n")
     return run_dir
@@ -32,16 +35,16 @@ def _archived_then_restored(tmp_path):
 
 def test_a_run_restored_today_is_not_archived_again(tmp_path):
     old = _archived_then_restored(tmp_path)
-    assert old not in plan_cleanup(tmp_path, NOW).archive
-    assert run_cleanup(tmp_path, NOW).archived == 0
+    assert old not in plan_cleanup(tmp_path, NOW, 183).archive
+    assert run_cleanup(tmp_path, NOW, warm_days=183).archived == 0
     assert not (old / "archive.tar.gz").exists()
 
 
 def test_a_run_restored_long_ago_is_archived_again(tmp_path):
     old = _archived_then_restored(tmp_path)
     (old / RESTORED_STAMP).write_text((NOW - timedelta(days=200)).isoformat())
-    assert plan_cleanup(tmp_path, NOW).archive == (old,)
-    assert run_cleanup(tmp_path, NOW).archived == 1
+    assert plan_cleanup(tmp_path, NOW, 183).archive == (old,)
+    assert run_cleanup(tmp_path, NOW, warm_days=183).archived == 1
     assert (old / "archive.tar.gz").is_file() and not (old / RESTORED_STAMP).exists()
 
 
@@ -56,6 +59,6 @@ def test_a_run_that_starts_after_planning_stops_the_archive(tmp_path, monkeypatc
         return real_tidy(run_dir)
 
     monkeypatch.setattr(storage_cleanup, "tidy_run", tidy_while_a_run_starts)
-    assert plan_cleanup(tmp_path, NOW).archive == (old,)
-    assert run_cleanup(tmp_path, NOW).archived == 0
+    assert plan_cleanup(tmp_path, NOW, 183).archive == (old,)
+    assert run_cleanup(tmp_path, NOW, warm_days=183).archived == 0
     assert (old / "events.jsonl").is_file() and not (old / "archive.tar.gz").exists()

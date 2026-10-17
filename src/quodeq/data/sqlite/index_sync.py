@@ -65,7 +65,7 @@ ON CONFLICT(job_id) DO UPDATE SET
 """
 
 
-def _run_pid_alive(run_dir: Path, pid: int) -> bool:
+def run_pid_alive(run_dir: Path, pid: int) -> bool:
     """True while *pid* is still the run's own process, not a reuse of its number.
 
     The run writes ``.pid`` from inside that process, so a live *pid* that
@@ -257,7 +257,7 @@ def check_stale_and_promote(
     heartbeat_stale = heartbeat_mtime is None or (time.time() - heartbeat_mtime) > stale_seconds
 
     pid = status.get("pid")
-    pid_alive = isinstance(pid, int) and _run_pid_alive(run_dir, pid)
+    pid_alive = isinstance(pid, int) and run_pid_alive(run_dir, pid)
 
     if heartbeat_stale and not pid_alive:
         # from_status_dict needs a known "state"; fall back if status.json

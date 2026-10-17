@@ -87,13 +87,13 @@ function SkeletonTile({ index }) {
   );
 }
 
-function SkeletonHead({ title, projectName, lastKnown }) {
+function SkeletonHead({ title, projectName, lastKnown, sub }) {
   return (
     <section className="findings-head qd-cards-panel">
       <SkeletonRing lastKnown={lastKnown} />
       <div className="findings-head__body">
         <div className="findings-head__who">
-          <TermHeader name={title} sub={skeletonSub(projectName, lastKnown)} />
+          <TermHeader name={title} sub={sub ?? skeletonSub(projectName, lastKnown)} />
         </div>
         <div className="findings-head__stats" aria-hidden="true">
           {placeholders(HEAD_TILE_COUNT).map((index) => <SkeletonTile key={index} index={index} />)}
@@ -207,15 +207,16 @@ export function SkeletonBottom({ run = false, height = null }) {
  *   formula or version, shown dimmed in the ring's place while it rebuilds.
  * @param {boolean} [props.run] the run page's footprint (History's "open run"):
  *   the run's header, no score history or radial, folders in the Where panel
+ * @param {string} [props.sub] the header's sub line in place of the loading one (an archived run being restored)
  * @param {string} [props.title] the header's name in place of the Overview's (a dimension page's dimension)
  * @param {string} [props.cardsLabel] the cards' section label in place of "quality dimensions" (a dimension's principles)
  * @param {{cards: number, notEvaluated: boolean}} [props.shape] the project's last drawn footprint (overviewShape.js)
  */
-export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, title, cardsLabel, shape = DEFAULT_SHAPE }) {
+export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, sub, title, cardsLabel, shape = DEFAULT_SHAPE }) {
   return (
     <div className="overview-skeleton" aria-busy="true">
       <SkeletonSince />
-      <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} />
+      <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} sub={sub} />
       <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} shape={shape} />
       {!run && <SkeletonTopGrid />}
       <SkeletonBottom run={run} height={run ? null : shape?.bottom} />

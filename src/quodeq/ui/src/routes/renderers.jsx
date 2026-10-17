@@ -23,7 +23,7 @@ import { NAV_TAB } from '../vocab/navTab.js';
 import { WIZARD_SOURCE } from '../features/onboarding/onboardingVocab.js';
 import {
   EvaluateCase, SettingsCase, renderEvalPrincipleDetail,
-  resolveSelectionAfterSharedDisconnect,
+  resolveSelectionAfterSharedDisconnect, reselectAfterDeleteAll,
 } from './routeCases.jsx';
 
 const DashboardPage = lazy(() => import('../features/dashboard/components/DashboardPage.jsx'));
@@ -61,12 +61,13 @@ const SELF_HANDLED_EMPTY = new Set([NAV_TAB.OVERVIEW, NAV_TAB.MAP, NAV_TAB.VIOLA
  * The dashboard page for a route. Every dashboard route navigates and
  * retries; `callbacks` adds the route's own.
  */
-function dashboardElement(props, runMode, callbacks = {}) {
+function dashboardElement(props, runMode, callbacks = {}, archivedRun = false) {
   return (
     <DashboardPage
       data={props.dashboardData}
       callbacks={{ onNavigate: props.navigation.handleNavigate, onRetry: props.dashboardData.onRetry, ...callbacks }}
       runMode={runMode}
+      archivedRun={archivedRun}
     />
   );
 }
@@ -117,7 +118,7 @@ export const ROUTE_RENDERERS = {
   map: mapRoute,
   run: (params, props) => dashboardElement(props, true, { onProjectsRetry: props.dashboardData.onProjectsRetry }),
   history: historyRoute,
-  [NAV_TAB.HISTORY_RUN]: (params, props) => dashboardElement(props, true),
+  [NAV_TAB.HISTORY_RUN]: (params, props) => dashboardElement(props, true, {}, params.archived === true),
   explorer: (params, props) => (
     <ExplorerPage
       project={params.fromProject || props.navigation.selectedProject}
@@ -200,6 +201,7 @@ export const ROUTE_RENDERERS = {
     settings={props.settings}
     onOpenGradeFormula={() => props.navigation.handleNavigate(NAV_TAB.GRADE_FORMULA)}
     onSharedDisconnected={() => reselectAfterSharedDisconnect(props.navigation)}
+    onEvaluationsDeleted={() => reselectAfterDeleteAll(props.navigation)}
     onShowWelcome={() => props.navigation.onTakeTour(WIZARD_SOURCE.SETTINGS, () => reselectAfterSharedDisconnect(props.navigation))}
   />,
   [NAV_TAB.GRADE_FORMULA]: (params, props) => (

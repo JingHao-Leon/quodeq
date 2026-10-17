@@ -35,6 +35,7 @@ from quodeq.services._accumulated_data import read_run_data
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.grade_formula import count_rescorable_runs, has_event_log, load_params, project_run
+from quodeq.services.ports import StoreUnreadableError
 from quodeq.services.rescore import filter_excluded_violations, rescore_dimension
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
@@ -53,12 +54,15 @@ class SourceDimension:
     project has suppressions, since only then can the evidence rescore apply.
     ``saved_score`` is set when an apply cannot rescore the run (no event log
     or no grade database): the dimension then keeps that score under any
-    formula, and the run is never opened.
+    formula, and the run is never opened. ``stored_score`` is the score on
+    record, kept when the run turns out unreadable (an archive that cannot be
+    restored), so one broken run costs only its own dimension.
     """
     name: str
     run_dir: Path
     full: DimensionResult | None
     saved_score: float | None = None
+    stored_score: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,8 +103,8 @@ def project_sources(reports_root: Path, project: str) -> ProjectSources | None:
             continue
         full = _full_dimension(reports_root, project, row.from_run_id, lower, by_run) if keys else None
         run_dir = reports_root / project / row.from_run_id
-        frozen = None if _rescorable(run_dir) else parse_numeric_score(row.overall_score)
-        dims.append(SourceDimension(lower, run_dir, full, frozen))
+        stored = parse_numeric_score(row.overall_score)
+        dims.append(SourceDimension(lower, run_dir, full, None if _rescorable(run_dir) else stored, stored))
     return ProjectSources(project, tuple(dims), keys) if dims else None
 
 
@@ -118,7 +122,19 @@ def is_touched(src: SourceDimension, keys: SuppressionKeys | None) -> bool:
 
 def _dimension_score(
     src: SourceDimension, keys: SuppressionKeys | None, params: ScoringParams,
-    tables: dict[Path, list[dict]],
+    tables: dict[Path, list[dict] | None],
+) -> float | None:
+    """The dimension's score under *params*; its stored score when its run cannot be read."""
+    try:
+        return _rescored_score(src, keys, params, tables)
+    except StoreUnreadableError:
+        tables[src.run_dir] = None  # one attempt per run per preview
+        return src.stored_score
+
+
+def _rescored_score(
+    src: SourceDimension, keys: SuppressionKeys | None, params: ScoringParams,
+    tables: dict[Path, list[dict] | None],
 ) -> float | None:
     if is_touched(src, keys):
         rescored = rescore_dimension(src.full, keys, params=params, run_dir=src.run_dir)
@@ -128,6 +144,8 @@ def _dimension_score(
     if src.run_dir not in tables:
         project_run(src.run_dir)
         tables[src.run_dir] = compute_run_grades(src.run_dir, params)[1]
+    if tables[src.run_dir] is None:
+        return src.stored_score
     return next(
         (row["score"] for row in tables[src.run_dir] if (row["dimension"] or "").lower() == src.name),
         None,
@@ -140,7 +158,7 @@ def _grade(score: float | None, params: ScoringParams) -> str | None:
 
 def score_project(sources: ProjectSources, params: ScoringParams) -> dict[str, Any]:
     """The project's overall and per-dimension scores under *params*."""
-    tables: dict[Path, list[dict]] = {}
+    tables: dict[Path, list[dict] | None] = {}
     dims = sorted(
         ({"dimension": s.name, "score": _dimension_score(s, sources.keys, params, tables)} for s in sources.dims),
         key=lambda d: d["dimension"],
