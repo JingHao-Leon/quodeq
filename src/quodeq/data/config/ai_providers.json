@@ -58,7 +58,7 @@
     "supports_tools": false,
     "supports_budget": false,
     "supports_turns": false,
-    "effort_levels": ["low", "medium", "high", "xhigh"],
+    "effort_levels": ["low", "medium", "high", "xhigh", "max", "ultra"],
     "effort_args": ["-c", "model_reasoning_effort=\"{effort}\""],
     "mcp_permission_args": [],
     "env_set_if_missing": {},

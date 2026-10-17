@@ -176,9 +176,8 @@ from quodeq.data.fs.report_parser.external_pid import (  # noqa: F401
 )
 
 # AI client discovery: CLI ``/models`` subprocess + Anthropic HTTP API.
-from quodeq.data.cli_models import run_cli_models_command  # noqa: F401
+from quodeq.data.cli_models import CatalogUnavailable, fetch_cli_model_catalog, run_cli_models_command, supports_model_catalog  # noqa: F401,E501
 from quodeq.data.copilot_models import fetch_copilot_models  # noqa: F401
-from quodeq.data.anthropic_models import fetch_anthropic_models  # noqa: F401
 
 # Run discovery + report aggregation (filesystem report parser).
 from quodeq.data.fs.report_parser.runs import (  # noqa: F401

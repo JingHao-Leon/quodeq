@@ -4,53 +4,37 @@ Repo browsing lives in ``_browse_mixin.py`` and is inherited from there."""
 
 from __future__ import annotations
 
-import json
 import logging
 import platform as _platform_module
 import shutil
 import sys
-from pathlib import Path
+import threading
+import time
 from typing import Any, Callable
 
 from quodeq.analysis.provider_cache import get_provider_configs
 from quodeq.config.provider import Provider, ProviderType
 from quodeq.services._browse_mixin import FsBrowseMixin
-from quodeq.services.wiring import fetch_anthropic_models, fetch_copilot_models, run_cli_models_command
+from quodeq.services.wiring import (
+    CatalogUnavailable, fetch_cli_model_catalog, fetch_copilot_models, run_cli_models_command,
+    supports_model_catalog,
+)
 from quodeq.shared.constants import MACHINE_ARM64, PLATFORM_DARWIN
 from quodeq.shared.csv_values import split_csv
 from quodeq.shared.env_resolve import resolve_env
-from quodeq.shared.config_loader import get_anthropic_api_url, get_anthropic_api_version
 from quodeq.shared.log_sink import SHARED_LOG
-from quodeq.shared.utils import get_anthropic_api_key, read_json
 
 _logger = logging.getLogger(__name__)
 
 _CLI_MODEL_TIMEOUT_S = 8
 _CLI_OUTPUT_IGNORE_PREFIXES = {"#", "=", "-", "[", "("}
-_ANTHROPIC_API_TIMEOUT_S = 8
+_CATALOG_TIMEOUT_S = 15
+# A catalog changes when the account or the CLI does, not between page loads;
+# Settings asks for a refresh explicitly when the user wants one.
+_CATALOG_TTL_S = 600
+_CATALOG_ERROR_CODE = "CLIENT_MODELS_UNAVAILABLE"
 _DEFAULT_CLIENT_SORT_ORDER = 50  # ai_providers.json's "order" default when unset
-_PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-_AI_DEFAULTS_PATH = _PACKAGE_ROOT / "config" / "ai_defaults.json"
 _REQUIRES_PLATFORM_DARWIN_ARM64 = "darwin-arm64"  # ai_providers.json's "requires_platform" value
-
-
-def _load_fallback_claude_models() -> list[str]:
-    """Load fallback Claude model list from config/ai_defaults.json."""
-    try:
-        data = read_json(_AI_DEFAULTS_PATH)
-        return data.get("fallback_claude_models", [])
-    except (OSError, json.JSONDecodeError, ValueError):
-        return []
-
-
-def _fetch_anthropic_models(api_key: str) -> list[str] | None:
-    """Fetch model list from the Anthropic API. Returns None on failure."""
-    return fetch_anthropic_models(
-        api_key,
-        url=get_anthropic_api_url(),
-        version=get_anthropic_api_version(),
-        timeout_s=_ANTHROPIC_API_TIMEOUT_S,
-    )
 
 
 _DEFAULT_CLIENT_IDS = frozenset({Provider.CLAUDE, Provider.CODEX, Provider.GEMINI, Provider.COPILOT})
@@ -99,6 +83,9 @@ class FsToolingMixin(FsBrowseMixin):
 
     def __init__(self) -> None:
         self._model_fetchers: dict[str, Callable] = {}
+        # client id -> (monotonic time stored, payload); successes only.
+        self._catalog_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+        self._catalog_lock = threading.Lock()
         # Bind the inherited browse half's sink: FsBrowseMixin cannot import a
         # logger of its own (SEP-06), and a silent mkdir failure is unhelpful.
         self._browse_log = SHARED_LOG
@@ -109,7 +96,9 @@ class FsToolingMixin(FsBrowseMixin):
         Opt-in rather than done in ``__init__``: a bare mixin (tests, callers
         that register their own fetchers) keeps the plain CLI behaviour.
         """
-        self._model_fetchers["claude"] = self._get_claude_models
+        for client_id in (Provider.CLAUDE, Provider.CODEX):
+            if supports_model_catalog(client_id):
+                self._model_fetchers[client_id] = self._get_catalog_models
 
     def get_ai_clients(self, env: dict[str, str] | None = None) -> dict[str, list[dict[str, str]]]:
         """Return available AI clients (CLI tools that are installed + API providers).
@@ -170,24 +159,46 @@ class FsToolingMixin(FsBrowseMixin):
                 models.append(token)
         return {"models": models}
 
-    def get_client_models(self, client_id: str) -> dict[str, Any]:
-        """Return available models for a specific AI client."""
+    def get_client_models(self, client_id: str, *, refresh: bool = False) -> dict[str, Any]:
+        """Return available models for a specific AI client.
+
+        *refresh* drops a cached catalog first, so the CLI is asked again.
+        """
+        if refresh:
+            with self._catalog_lock:
+                self._catalog_cache.pop(client_id, None)
         fetcher = self._model_fetchers.get(client_id, self._get_cli_models)
         return fetcher(client_id)
 
-    def _get_claude_models(
-        self, _client_id: str = "claude", api_key: str | None = None,
-        key_fn: Callable[[], str | None] | None = None,
-    ) -> dict[str, list[str]]:
-        """Fetch Claude model list from the Anthropic API, with fallback.
+    def _get_catalog_models(self, client_id: str, env: dict[str, str] | None = None) -> dict[str, Any]:
+        """The live catalog the CLI reports for its signed-in account, cached.
 
-        Pass *api_key* to supply a concrete key directly, or *key_fn* to
-        override the global ``get_anthropic_api_key()`` accessor (e.g. for
-        testing or per-request credential injection).
+        ``models`` keeps the plain id list older callers read; ``catalog``
+        carries labels, descriptions and the efforts each model supports.
         """
-        key = api_key or (key_fn or get_anthropic_api_key)()
-        if key:
-            models = _fetch_anthropic_models(key)
-            if models:
-                return {"models": models}
-        return {"models": _load_fallback_claude_models()}
+        with self._catalog_lock:
+            cached = self._catalog_cache.get(client_id)
+        if cached and time.monotonic() - cached[0] < _CATALOG_TTL_S:
+            return cached[1]
+        try:
+            catalog = fetch_cli_model_catalog(
+                client_id, env=self._catalog_env(client_id, env), timeout_s=_CATALOG_TIMEOUT_S,
+            )
+        except CatalogUnavailable as exc:
+            _logger.warning("Model list for %s unavailable: %s", client_id, exc)
+            return {
+                "models": [], "error_code": _CATALOG_ERROR_CODE,
+                "error": f"Could not list {client_id} models. Check that it is installed and signed in, then retry.",
+            }
+        payload = {"models": [entry["id"] for entry in catalog], "catalog": catalog}
+        with self._catalog_lock:
+            self._catalog_cache[client_id] = (time.monotonic(), payload)
+        return payload
+
+    @staticmethod
+    def _catalog_env(client_id: str, env: dict[str, str] | None) -> dict[str, str]:
+        """The process env minus what the provider config says the CLI must not see."""
+        environ = dict(resolve_env(env))
+        for key in get_provider_configs().get(client_id, {}).get("env_remove", []):
+            environ.pop(key, None)
+        return environ
