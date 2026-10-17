@@ -246,6 +246,23 @@ def ensure_restored(run_dir: Path) -> bool:
         return True
 
 
+def restore_or_warn(run_dir: Path) -> bool:
+    """``ensure_restored`` for readers: False, with a warning, when the archive stays.
+
+    A refused archive, a timed-out lock wait or a failed move reads as a run
+    without an event log, never as an error. ``ensure_restored`` already logs
+    its refusals, so only OS errors are logged here.
+    """
+    try:
+        ensure_restored(run_dir)
+    except RunArchiveError:
+        return False
+    except OSError as exc:
+        _logger.warning("Could not restore run archive in %s: %s", run_dir, exc)
+        return False
+    return True
+
+
 def _checkpoint_wal(run_dir: Path) -> int:
     """Fold ``evaluation.db-wal`` into the database; the WAL bytes freed."""
     db, wal = run_dir / "evaluation.db", run_dir / "evaluation.db-wal"

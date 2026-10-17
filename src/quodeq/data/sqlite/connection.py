@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.data.sqlite._db_stamp_memo import db_stamp
 from quodeq.data.sqlite._migrations import SchemaVersionError, apply_evaluation_schema
 from quodeq.data.sqlite._schema import SCHEMA_VERSION
@@ -96,6 +97,9 @@ def open_evaluation_db(run_dir: Path) -> Iterator[sqlite3.Connection]:
     except OSError:
         if not run_dir.is_dir():
             raise
+    # Restore before connecting: a connect on an archived run would create
+    # an empty database next to the archive.
+    restore_or_warn(run_dir)
     path = run_dir / EVALUATION_DB_FILENAME
     conn: sqlite3.Connection | None = None
     try:

@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
+from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.data.projection.engine import ProjectionEngine
 from quodeq.data.sqlite.read_only import is_read_only
 from quodeq.data.sqlite.state_store import SQLiteStateStore
@@ -260,7 +261,12 @@ class Projector:
         *,
         project_dir: Path | None = None,
     ) -> ProjectionResult:
-        """Fast no-op if both event and action logs are fresh; else project deltas."""
+        """Fast no-op if both event and action logs are fresh; else project deltas.
+
+        Restores an archived run first; an unrestorable one projects nothing.
+        """
+        if not restore_or_warn(run_dir):
+            return ProjectionResult(events_projected=0, rebuilt=False)
         if not events_path.is_file():
             raise FileNotFoundError(f"Event log not found: {events_path}")
 

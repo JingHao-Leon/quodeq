@@ -319,7 +319,6 @@ _.mapping_stamp  # core/admission/index.py: StandardIndex stamp, recorded per ru
 _.load_standard_catalog  # data/fs/standard_index_loader.py: admission catalog loader, called by the writers once they admit findings.
 _.clear_partial_memo  # services/_run_log_partials.py: test reset hook for the in-process partial-entry memo.
 _.archive_run  # data/fs/run_archive.py: run archive entry point, called by the storage cleanup service once it lands.
-_.ensure_restored  # data/fs/run_archive.py: run archive restore, called by the run readers once they open archived runs.
 _.tidy_run  # data/fs/run_archive.py: run sidecar tidy, called by the storage cleanup service once it lands.
 _.bytes_after  # data/fs/run_archive.py: ArchiveResult field, read by the storage cleanup service once it lands.
 

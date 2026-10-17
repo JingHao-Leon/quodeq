@@ -16,6 +16,7 @@ from quodeq.core.scoring.params import ScoringParams
 from quodeq.core.types.finding import Finding
 from quodeq.core.types.finding_type import FindingType
 from quodeq.data.fs.grade_formula_store import load_params
+from quodeq.data.fs.run_archive import is_archived
 from quodeq.data.fs.report_parser.finding_details import iter_readable_eval_reports
 from quodeq.data.fs.run_files import read_run_manifest
 from quodeq.data.sqlite.row_mappers import row_to_finding
@@ -112,8 +113,12 @@ def load_grade_inputs(run_dir: Path) -> GradeInputs:
 
     Every stored finding names its principle: projection places findings
     through admission, and one the standard cannot place is kept in
-    ``unmapped_findings``, which is never graded.
+    ``unmapped_findings``, which is never graded. An archived run's findings
+    live only in its event log, so it is restored and projected first.
     """
+    if is_archived(run_dir):
+        from quodeq.data.projection.projector import Projector  # noqa: PLC0415 -- it imports this module
+        Projector().ensure_projected(run_dir / "events.jsonl", run_dir, project_dir=run_dir.parent)
     with open_evaluation_db(run_dir) as conn:
         conn.row_factory = _dict_row
         rows = conn.execute(_SELECT_NON_DISMISSED).fetchall()

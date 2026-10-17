@@ -9,6 +9,7 @@ from collections.abc import Generator
 
 from quodeq.core.events.models import BaseEvent, EVENT_MODEL_MAP, EventType
 from quodeq.data.events.codec import EventDecodeError, event_from_dict
+from quodeq.data.fs.run_archive import restore_or_warn
 
 
 _logger = logging.getLogger(__name__)
@@ -97,6 +98,7 @@ class EventLogReader:
         Yields:
             An instance of a BaseEvent.
         """
+        restore_or_warn(self.log_path.parent)
         if not self.log_path.exists():
             _logger.warning(f"Event log file not found: {self.log_path}")
             return
