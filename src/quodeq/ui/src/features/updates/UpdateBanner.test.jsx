@@ -6,8 +6,12 @@ vi.mock('../../api/index.js', () => ({
   dismissUpdate: vi.fn(() => Promise.resolve({ ok: true })),
   markUpdateDisclosed: vi.fn(() => Promise.resolve({ ok: true })),
   startSelfUpdate: vi.fn(() => Promise.resolve({ ok: true })),
+  startUpgrade: vi.fn(() => Promise.resolve({ ok: true })),
+  restartAfterUpgrade: vi.fn(() => Promise.resolve({ ok: true })),
 }));
-import { getUpdateStatus, dismissUpdate, markUpdateDisclosed, startSelfUpdate } from '../../api/index.js';
+import {
+  getUpdateStatus, dismissUpdate, markUpdateDisclosed, startSelfUpdate, startUpgrade, restartAfterUpgrade,
+} from '../../api/index.js';
 import UpdateBanner from './UpdateBanner.jsx';
 
 const AVAILABLE = {
@@ -93,5 +97,39 @@ describe('UpdateBanner', () => {
     fireEvent.click(screen.getByRole('button', { name: /dismiss/i }));
     await waitFor(() => expect(dismissUpdate).toHaveBeenCalledWith('1.5.0'));
     expect(screen.queryByText(/1\.5\.0/)).not.toBeInTheDocument();
+  });
+
+  describe('in-place upgrade', () => {
+    const inPlace = (fields) => ({ ...AVAILABLE, in_place_upgrade: { supported: true, phase: 'idle', evaluations_running: 0, ...fields } });
+
+    it('offers Install and starts the upgrade', async () => {
+      getUpdateStatus.mockResolvedValue(inPlace({}));
+      render(<UpdateBanner />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Install' }));
+      await waitFor(() => expect(startUpgrade).toHaveBeenCalled());
+    });
+
+    it('holds Install while evaluations run', async () => {
+      getUpdateStatus.mockResolvedValue(inPlace({ evaluations_running: 1 }));
+      render(<UpdateBanner />);
+      expect(await screen.findByRole('button', { name: 'Install' })).toBeDisabled();
+      expect(screen.getByText(/running evaluations finish/)).toBeInTheDocument();
+    });
+
+    it('asks to restart once installed', async () => {
+      getUpdateStatus.mockResolvedValue(inPlace({ phase: 'installed', version: '1.5.0' }));
+      render(<UpdateBanner />);
+      expect(screen.queryByText(/Restarting/)).toBeNull();
+      fireEvent.click(await screen.findByRole('button', { name: 'Restart now' }));
+      await waitFor(() => expect(restartAfterUpgrade).toHaveBeenCalled());
+      expect(await screen.findByText(/Restarting Quodeq/)).toBeInTheDocument();
+    });
+
+    it('keeps the command after a failed upgrade', async () => {
+      getUpdateStatus.mockResolvedValue(inPlace({ phase: 'error', error: 'pipx exited with code 1.' }));
+      render(<UpdateBanner />);
+      expect(await screen.findByText('pipx upgrade quodeq')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
+    });
   });
 });

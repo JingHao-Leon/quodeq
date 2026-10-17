@@ -2357,6 +2357,22 @@ fieldset.gf-tab-body:disabled .gf-boundary-divider { pointer-events: none; curso
   padding: 2px 6px;
 }
 .update-banner-dismiss:hover { opacity: 1; }
+/* The upgrade tool's output, folded under a failed in-place upgrade. */
+.update-output { align-self: stretch; border-bottom: none; }
+.update-output pre {
+  margin: var(--space-2) 0;
+  max-height: 16em;
+  overflow: auto;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.update-output p { margin: 0; font-size: var(--text-xs); color: var(--color-text-muted); }
 
 /* Keyboard/screen-reader access layer for charts without per-datapoint DOM
    (Recharts bars, canvas). Each data point gets a focusable button, visually

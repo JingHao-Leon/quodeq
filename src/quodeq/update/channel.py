@@ -21,11 +21,11 @@ CHANNEL_WHEEL = "wheel"  # pip-style install
 
 _TOOL_PIPX = "pipx"
 _TOOL_UV = "uv"
-_TOOL_BREW = "brew"
+TOOL_BREW = "brew"
 _TOOL_ARGV = {
     _TOOL_PIPX: ("pipx", "upgrade", _PACKAGE),
     _TOOL_UV: ("uv", "tool", "upgrade", _PACKAGE),
-    _TOOL_BREW: ("brew", "upgrade", _PACKAGE),
+    TOOL_BREW: ("brew", "upgrade", _PACKAGE),
 }
 
 
@@ -34,7 +34,7 @@ def detect_channel() -> str:
     return CHANNEL_FROZEN if getattr(sys, "frozen", False) else CHANNEL_WHEEL
 
 
-def _detect_tool(environ: Mapping[str, str], package_file: str | None) -> str | None:
+def detect_tool(environ: Mapping[str, str], package_file: str | None = None) -> str | None:
     """The tool that owns this install ("pipx", "uv", "brew"), None when unrecognised."""
     try:
         path = str(Path(package_file or __file__).resolve()).replace("\\", "/")
@@ -47,8 +47,8 @@ def _detect_tool(environ: Mapping[str, str], package_file: str | None) -> str | 
         (environ.get("UV_TOOL_DIR"), _TOOL_UV),
         (str(Path.home() / ".local" / "share" / "uv" / "tools"), _TOOL_UV),
         ("/uv/tools", _TOOL_UV),
-        ("/Cellar/", _TOOL_BREW),
-        ("/homebrew/", _TOOL_BREW),
+        ("/Cellar/", TOOL_BREW),
+        ("/homebrew/", TOOL_BREW),
     ]
     for root, tool in roots:
         if root and root.replace("\\", "/") in path:
@@ -68,7 +68,7 @@ def upgrade_command(
     """
     if detect_channel() == CHANNEL_FROZEN:
         return ""
-    tool = _detect_tool(resolve_env(env), package_file)
+    tool = detect_tool(resolve_env(env), package_file)
     return " ".join(_TOOL_ARGV[tool]) if tool else _FALLBACK
 
 
@@ -85,7 +85,7 @@ def upgrade_argv(
     """
     if detect_channel() == CHANNEL_FROZEN:
         return None
-    tool = _detect_tool(resolve_env(env), package_file)
+    tool = detect_tool(resolve_env(env), package_file)
     if tool:
         return list(_TOOL_ARGV[tool])
     return [executable or sys.executable, "-m", "pip", "install", "-U", _PACKAGE]

@@ -47,7 +47,7 @@ The last group holds the version, updates and links: the *Updates* section, then
 
 ### Updates
 
-quodeq checks PyPI and GitHub once a day for a newer version. When one exists, a banner appears at the top of the dashboard and the *Updates* section shows the version jump plus the way to get it: the exact upgrade command for your install (pipx, uv, or Homebrew) or a download. Dismissing the banner silences that version; the next release brings it back.
+quodeq checks PyPI and GitHub once a day for a newer version. When one exists, a banner appears at the top of the dashboard and the *Updates* section shows the version jump plus the way to get it: the exact upgrade command for your install (pipx, uv, or Homebrew) or a download. When Quodeq knows how it was installed, an *Install* button runs that command for you, then *Restart now* loads the new version when you are ready. Install waits while evaluations run, because the upgrade replaces code they still use. Dismissing the banner silences that version; the next release brings it back.
 
 - **check now** asks immediately, ignoring the daily throttle.
 - **Automatic checks** turns the daily background check on or off.

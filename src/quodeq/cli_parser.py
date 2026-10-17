@@ -263,6 +263,10 @@ def build_parser() -> argparse.ArgumentParser:
         "status", help="Show the dashboard window, its API and the running evaluations",
     )
     status_parser.set_defaults(handler_command="status")
+    restart_parser = subparsers.add_parser(
+        "restart", help="Stop the dashboard window and its API, then open them again",
+    )
+    restart_parser.set_defaults(handler_command="restart")
     upgrade_parser = subparsers.add_parser(
         "upgrade", help="Upgrade quodeq with the tool it was installed with (pip, pipx, uv or Homebrew)",
     )
