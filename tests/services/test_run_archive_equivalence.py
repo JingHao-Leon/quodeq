@@ -184,6 +184,7 @@ def test_apply_and_preview_after_a_restore_that_did_not_project(tmp_path, formul
     shutil.copytree(archived_root, plain_root)
     archive_run(old)
     dimension_evidence_file(old, "security")  # restores, never projects
+    (old / "evaluation.db").unlink()  # the archive carries the database; drop it to force a rebuild
     assert not is_archived(old) and not (old / "evaluation.db").exists()
 
     explained = [explain_dimension(root, _PROJECT, _OLD, "security", params=_TUNED)

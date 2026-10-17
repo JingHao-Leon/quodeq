@@ -45,9 +45,10 @@ def _run_with_files(tmp_path: Path) -> Path:
 
 
 def _bytes(run: Path) -> dict[str, bytes]:
+    """File bytes by name; the WAL sidecar is left out because opening the database may fold it."""
     return {
         p.relative_to(run).as_posix(): p.read_bytes()
-        for p in run.rglob("*") if p.is_file() and not p.name.startswith(".")
+        for p in run.rglob("*") if p.is_file() and not p.name.startswith(".") and p.name != "evaluation.db-wal"
     }
 
 
@@ -61,12 +62,14 @@ def test_round_trip_restores_identical_bytes(tmp_path):
     result = archive_run(run)
     assert is_archived(run) and has_event_log(run)
     assert not (run / _EVENTS).exists() and not (run / "evaluation.db").exists()
+    assert not (run / "evaluation.db-wal").exists()
     assert all((run / name).exists() for name in _KEPT)
     assert result.bytes_after < result.bytes_before
     assert ensure_restored(run) is True and not is_archived(run)
     restored = _bytes(run)
-    for name in (_EVENTS, _EVIDENCE, *_KEPT):
+    for name in (_EVENTS, _EVIDENCE, "evaluation.db", *_KEPT):
         assert restored[name] == before[name]
+    assert not (run / "evaluation.db-wal").exists()
 
 
 def test_restoring_a_live_run_is_a_no_op(tmp_path):

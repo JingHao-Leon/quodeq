@@ -1,10 +1,11 @@
 """Pack a finished run's event log and evidence into one file, restore it on demand.
 
 An archived run keeps its reports, ``status.json``, ``dimensions.json`` and
-``evidence/manifest.json`` in place. ``events.jsonl`` and the
-``evidence/*_evidence.jsonl`` files move into ``archive.tar.gz`` inside the
-run folder, and ``evaluation.db`` (with its ``-wal``/``-shm``) is dropped
-because it is rebuilt from the event log.
+``evidence/manifest.json`` in place. ``events.jsonl``, the
+``evidence/*_evidence.jsonl`` files and ``evaluation.db`` (WAL folded in
+first) move into ``archive.tar.gz`` inside the run folder; the ``-wal`` and
+``-shm`` sidecars are dropped. Keeping the database spares a restore the
+multi-second rebuild measured on the biggest real runs.
 
 Safety rules: originals are deleted only after the archive is written,
 fsynced, verified and renamed into place; a restore extracts into a temporary
@@ -38,7 +39,7 @@ TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolida
 _EVENTS = "events.jsonl"
 _EVIDENCE_DIR = "evidence"
 _EVIDENCE_PATTERN = "*_evidence.jsonl"
-_DB_FILES = ("evaluation.db", "evaluation.db-wal", "evaluation.db-shm")
+_DB, _DB_SIDECARS = "evaluation.db", ("evaluation.db-wal", "evaluation.db-shm")
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
 _LOCK_NAME = ".archive.lock"
@@ -103,7 +104,7 @@ def _is_plain_file(path: Path) -> bool:
 
 def _archive_sources(run_dir: Path) -> list[tuple[str, Path]]:
     """(member name, source path) for every file that moves into the archive."""
-    sources = [(_EVENTS, run_dir / _EVENTS)]
+    sources = [(_EVENTS, run_dir / _EVENTS)] + [(_DB, run_dir / _DB)] * _is_plain_file(run_dir / _DB)
     evidence = run_dir / _EVIDENCE_DIR
     if evidence.is_dir():
         for path in sorted(evidence.glob(_EVIDENCE_PATTERN)):
@@ -159,8 +160,9 @@ def archive_run(run_dir: Path) -> ArchiveResult:
             raise RunArchiveError(f"run is already archived: {run_dir}")
         if not _is_plain_file(run_dir / _EVENTS):
             raise RunArchiveError(f"run has no event log: {run_dir}")
+        _checkpoint_wal(run_dir)
         sources = _archive_sources(run_dir)
-        dropped = [run_dir / name for name in _DB_FILES if (run_dir / name).is_file()]
+        dropped = [run_dir / name for name in _DB_SIDECARS if (run_dir / name).is_file()]
         bytes_before = sum(p.stat().st_size for p in [*(p for _, p in sources), *dropped])
         tmp, final = run_dir / _TMP_ARCHIVE, run_dir / ARCHIVE_FILENAME
         try:
@@ -176,8 +178,8 @@ def archive_run(run_dir: Path) -> ArchiveResult:
 
 
 def _allowed_name(name: str) -> bool:
-    """True for ``events.jsonl`` and ``evidence/<x>_evidence.jsonl`` only."""
-    if name == _EVENTS:
+    """True for ``events.jsonl``, ``evaluation.db`` and ``evidence/<x>_evidence.jsonl`` only."""
+    if name in (_EVENTS, _DB):
         return True
     folder, _, base = name.partition("/")
     return folder == _EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, _EVIDENCE_PATTERN)
@@ -265,7 +267,7 @@ def restore_or_warn(run_dir: Path) -> bool:
 
 def _checkpoint_wal(run_dir: Path) -> int:
     """Fold ``evaluation.db-wal`` into the database; the WAL bytes freed."""
-    db, wal = run_dir / "evaluation.db", run_dir / "evaluation.db-wal"
+    db, wal = run_dir / _DB, run_dir / "evaluation.db-wal"
     if not db.is_file() or not wal.is_file():
         return 0
     before = wal.stat().st_size
