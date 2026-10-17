@@ -9,15 +9,19 @@ import { t } from '../../../strings/index.js';
 // The delete-all modal is deliberately the same box as deleting a standard.
 import Modal from '../../standards/components/StandardsModal.jsx';
 
-// The 409 code for "the score warm-up is running" (api/routes_storage.py).
+// The 409 codes for "the score warm-up is running" and "runs are being
+// rescored with the grade formula" (api/routes_storage.py).
 const WARMUP_CODE = 'STORAGE_WARMUP';
+const RESCORE_CODE = 'STORAGE_RESCORE';
 
 /** The modal line for a failed clean or delete all; `fallbackKey` for anything that is not a busy 409. */
 export function busyMessage(err, { fallbackKey, cleanKey, nameOf }) {
   if (err?.status !== HTTP_STATUS.CONFLICT) return t(fallbackKey);
   const blocking = err.body?.projects ?? [];
   if (blocking.length) return t('storage.busyEvaluation', { names: blocking.map(nameOf).join(', ') });
-  if ((err.code ?? err.body?.code) === WARMUP_CODE) return t('storage.busyWarmup');
+  const code = err.code ?? err.body?.code;
+  if (code === WARMUP_CODE) return t('storage.busyWarmup');
+  if (code === RESCORE_CODE) return t('storage.busyRescore');
   return t(cleanKey);
 }
 

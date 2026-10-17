@@ -1,7 +1,8 @@
 """Unified scoring API endpoints.
 
 /api/projects/{project}/scores          -- full dashboard payload (accumulated + trend)
-/api/projects/{project}/scores/{runId}  -- single run detail (for Explorer)
+/api/projects/{project}/scores/{runId}  -- single run detail (for Explorer); ``?archived=keep`` reads an
+                                           archived run without restoring it (a comparison, not an open)
 /api/projects/{project}/compliance-detail -- finding detail /scores and /scores/{runId} defer
 
 All rescore logic happens server-side. The frontend never calls /api/rescore
@@ -30,6 +31,8 @@ _logger = logging.getLogger(__name__)
 
 KIND_PARAM = "kind"
 RUN_PARAM = "run"
+ARCHIVED_PARAM = "archived"
+KEEP_ARCHIVED = "keep"
 
 
 def _load_scores(project: str) -> tuple[dict | None, tuple[Response, int] | None]:
@@ -143,7 +146,8 @@ def register_scores_routes(app: Flask) -> None:
             return err
         eval_dir = reports_dir()
         try:
-            result = get_scores_slim(Path(eval_dir), project, run_id)
+            keep = request.args.get(ARCHIVED_PARAM) == KEEP_ARCHIVED
+            result = get_scores_slim(Path(eval_dir), project, run_id, keep_archived=keep)
         except FileNotFoundError:
             return json_error("Run not found", HTTPStatus.NOT_FOUND, CODE_NOT_FOUND)
         except (OSError, sqlite3.Error, ValueError):

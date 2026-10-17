@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import enum
 import threading
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,19 +32,39 @@ class CleanState(enum.StrEnum):
 
 
 class CleanJob:
-    """Runs one storage clean on a daemon thread and reports its progress."""
+    """Runs one storage clean on a daemon thread and reports its progress.
 
-    def __init__(self) -> None:
+    *rescore_busy* (default: never) says a grade-formula rescore is running
+    or owed: a pass neither starts then nor carries on once one starts, since
+    the rescore restores the runs a pass archives. *warmup_active* (default:
+    never) is the score warm-up, which a pass waits for at start only.
+    """
+
+    def __init__(
+        self, *, rescore_busy: Callable[[], bool] | None = None, warmup_active: Callable[[], bool] | None = None,
+    ) -> None:
+        self._rescore_busy = rescore_busy or (lambda: False)
+        self._warmup_active = warmup_active or (lambda: False)
         self._mu = threading.Lock()
         self._state = CleanState.IDLE
         self._done = self._total = self._archived = self._freed = 0
 
-    def start(self, root: Path | str, env: Mapping[str, str] | None = None, log: LogSink = NULL_LOG) -> bool:
-        """Start a pass over *root*; False when a clean (this job's or the startup one) is running."""
-        if not CLEANUP_LOCK.acquire(blocking=False):
+    def ready(self) -> bool:
+        """True when nothing a pass must wait for runs: the score warm-up and a grade-formula rescore."""
+        return not self._warmup_active() and not self._rescore_busy()
+
+    def start(
+        self, root: Path | str, env: Mapping[str, str] | None = None, log: LogSink = NULL_LOG, *, archive: bool = True,
+    ) -> bool:
+        """Start a pass over *root*, tidy only when *archive* is False.
+
+        False when a clean (this job's or the startup one) is running, or a
+        grade-formula rescore is running or owed.
+        """
+        if self._rescore_busy() or not CLEANUP_LOCK.acquire(blocking=False):
             return False
         try:
-            days = read_storage_settings(env).archive_after_days
+            days = read_storage_settings(env).archive_after_days if archive else None
             with self._mu:
                 self._state = CleanState.RUNNING
                 self._done = self._total = self._archived = self._freed = 0
@@ -80,7 +100,9 @@ class CleanJob:
 
     def _pass(self, root: Path, days: int | None, log: LogSink) -> None:
         now = datetime.now(timezone.utc)
-        result = run_cleanup(root, now, warm_days=days, log=log, on_progress=self._on_progress)
+        result = run_cleanup(
+            root, now, warm_days=days, log=log, on_progress=self._on_progress, should_stop=self._rescore_busy,
+        )
         self._finish(CleanState.DONE, result)
 
     def _finish(self, state: CleanState, result: CleanupResult | None = None) -> None:

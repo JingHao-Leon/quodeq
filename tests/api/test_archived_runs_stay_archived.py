@@ -5,6 +5,7 @@ other read serves an archived run from its sidecars and leaves it packed.
 """
 from __future__ import annotations
 
+import json
 import re
 import threading
 
@@ -122,3 +123,27 @@ def test_dismiss_and_restore_all_leave_archived_runs_packed(env):
     assert client.post("/api/findings/restore-all", json={"project": PROJECT}, headers=_LOCALHOST).status_code == 200
     project_all_runs(root / PROJECT)
     _assert_still_archived(old, "restore-all")
+
+
+def test_the_run_log_change_fill_leaves_archived_runs_packed(env):
+    """History and the Overview header fill each run's change data; that read never restores a run."""
+    _root, old, client = env
+    for run in old:  # a run that names its dimensions has a per-dimension progress row to fill
+        status = json.loads((run / "status.json").read_text())
+        (run / "status.json").write_text(json.dumps({**status, "dimensions": ["security"]}))
+    _archive(old)
+    assert client.get(f"/api/projects/{PROJECT}/runs/log").status_code == 200
+    assert client.application.extensions["run_change_filler"].wait_idle(budget(10))
+    _assert_still_archived(old, "the run log change fill")
+
+
+def test_the_previous_period_scores_read_leaves_an_archived_run_packed(env):
+    """The dimension page compares with the run that closed the previous period: a comparison, not an open."""
+    _root, old, client = env
+    _archive(old)
+
+    resp = client.get(f"/api/projects/{PROJECT}/scores/{old[0].name}?archived=keep")
+
+    assert resp.status_code == 200
+    assert [d["dimension"] for d in resp.get_json()["dimensions"]] == ["security"]
+    _assert_still_archived(old, "the previous-period scores read")

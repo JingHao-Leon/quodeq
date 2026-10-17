@@ -11,6 +11,20 @@ const ARCHIVE_AFTER = [
   { v: 91, l: t('storage.months', { count: 3 }) }, { v: 183, l: t('storage.months', { count: 6 }) },
   { v: 365, l: t('storage.year') }, { v: null, l: t('storage.never') },
 ];
+const AUTO_CLEANUP = [{ v: true, l: t('settings.on') }, { v: false, l: t('settings.off') }];
+
+// The first start after the archive arrived held it back; this says what the
+// next start archives, under the settings that change it.
+function ArchiveNotice({ data }) {
+  const notice = data?.archiveNotice;
+  if (!notice) return null;
+  const period = ARCHIVE_AFTER.find((o) => o.v === data.archiveAfterDays)?.l ?? '';
+  return (
+    <p className="storage-notice" role="status">
+      {t('storage.archiveNotice', { runs: notice.runs, period, size: formatBytes(notice.bytes) })}
+    </p>
+  );
+}
 
 function Menu({ open, disabled, onToggle, onDeleteAll }) {
   return (
@@ -40,7 +54,8 @@ function factsLine({ data, isLoading, isError, clean, running, endedHere }) {
 
 /**
  * Settings › Evaluation › STORAGE: space used with clean now and delete all
- * (behind ⋯), and when old runs are archived. `onEvaluationsDeleted` runs
+ * (behind ⋯), whether cleanup runs after start, and when old runs are
+ * archived; above them, the first-start notice while one is pending. `onEvaluationsDeleted` runs
  * after delete all, so the app can leave a project that no longer exists.
  */
 export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
@@ -56,6 +71,7 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
   return (
     <section className="panel settings-section storage-section">
       <div className="panel-header"><SectionLabel marker="▶">{t('storage.sectionLabel')}</SectionLabel></div>
+      <ArchiveNotice data={data} />
       <div className="settings-row">
         <SettingsRowLabel hintSlot={false} label={t('storage.spaceUsed')} description={factsLine(storage)} />
         <div className="storage-row__controls">
@@ -63,11 +79,15 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
           <Menu open={menu} disabled={!data} onToggle={() => setMenu(!menu)} onDeleteAll={() => { setMenu(false); setDeleting(true); }} />
         </div>
       </div>
+      <div className="settings-row">
+        <SettingsRowLabel hintSlot={false} label={t('storage.autoCleanup')} description={t('storage.autoCleanupDesc')} />
+        <SettingsPillTabs options={AUTO_CLEANUP} value={data ? data.autoCleanup : undefined} onChange={storage.setAutoCleanup} />
+      </div>
       <div className="settings-row settings-row--last">
         <SettingsRowLabel hintSlot={false} label={t('storage.archiveAfter')} description={t('storage.archiveAfterDesc')} />
         <SettingsPillTabs options={ARCHIVE_AFTER} value={data ? data.archiveAfterDays : undefined} onChange={storage.setArchiveAfter} />
       </div>
-      {storage.archiveAfterFailed && <p className="inline-error storage-save-error">{t('storage.saveFailed')}</p>}
+      {storage.saveFailed && <p className="inline-error storage-save-error">{t('storage.saveFailed')}</p>}
       {cleaning && <CleanModal onClean={storage.runClean} onClose={() => setCleaning(false)} />}
       {deleting && data && <DeleteAllModal data={data} onDelete={deleteAll} onClose={() => setDeleting(false)} />}
     </section>

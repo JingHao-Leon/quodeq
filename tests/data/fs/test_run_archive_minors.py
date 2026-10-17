@@ -71,12 +71,12 @@ def test_tidy_vacuums_the_database_and_counts_the_gain(tmp_path):
 def test_a_failed_vacuum_is_logged_and_tidy_carries_on(tmp_path, caplog):
     run = _run_with_files(tmp_path)
     (run / "evaluation.db").write_bytes(b"not a database" * 100)
-    (run / "evidence" / "security_queue.json").write_text("[]")
+    (run / "evidence" / "security_dispatch_keys.json").write_text("[]")
 
     with caplog.at_level(logging.WARNING, logger="quodeq.data.fs"):
         freed = tidy_run(run)
 
-    assert freed == 2 and not (run / "evidence" / "security_queue.json").exists()
+    assert freed == 2 and not (run / "evidence" / "security_dispatch_keys.json").exists()
     assert "vacuum" in caplog.text.lower()
 
 

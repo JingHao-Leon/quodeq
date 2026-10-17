@@ -51,6 +51,7 @@ def test_get_storage_on_an_empty_root_is_zeros(client):
     assert resp.status_code == 200
     assert resp.get_json() == {
         "bytes": 0, "runs": 0, "archived": 0, "projects": {}, "archiveAfterDays": 183,
+        "autoCleanup": True, "archiveNotice": None,
         "clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0},
     }
 
@@ -69,7 +70,7 @@ def test_put_settings_persists_every_choice(client):
     for choice in (91, 365, None, 183):
         resp = client.put("/api/storage/settings", json={"archiveAfterDays": choice})
         assert resp.status_code == 200
-        assert resp.get_json() == {"archiveAfterDays": choice}
+        assert resp.get_json() == {"archiveAfterDays": choice, "autoCleanup": True}
         assert client.get("/api/storage").get_json()["archiveAfterDays"] == choice
 
 
@@ -177,12 +178,8 @@ def test_the_app_registers_the_storage_routes(root):
 
 
 class _RunningRescore:
-    def snapshot(self):
-        from quodeq.services.grade_formula_job import RescoreState  # noqa: PLC0415
-
-        class _Snap:
-            state = RescoreState.RUNNING
-        return _Snap()
+    def owes_pass(self):
+        return True
 
 
 def test_delete_all_is_409_while_the_grade_formula_rescore_runs(root, provider):
@@ -191,5 +188,5 @@ def test_delete_all_is_409_while_the_grade_formula_rescore_runs(root, provider):
     register_storage_routes(app, provider)
     _run(root, "p", "r", 10)
     resp = app.test_client().delete("/api/storage?confirm=true")
-    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_BUSY"
+    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_RESCORE"
     assert provider.deleted == []

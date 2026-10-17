@@ -221,10 +221,11 @@ def test_corrupt_archive_is_refused(tmp_path):
 def test_tidy_removes_only_scratch_sidecars(tmp_path):
     run = _run_with_files(tmp_path)
     (run / "evaluation.db").unlink()
-    scratch = {"security_queue.json": "q" * 100, "security_dispatch_keys.json": "k" * 50,
-               "security_replayed_unconsolidated_keys.json": "r" * 25}
+    scratch = {"security_dispatch_keys.json": "k" * 50, "security_replayed_unconsolidated_keys.json": "r" * 25}
     for name, text in scratch.items():
         (run / "evidence" / name).write_text(text)
-    assert tidy_run(run) == 175
+    (run / "evidence" / "security_queue.json").write_text("q" * 100)
+    assert tidy_run(run) == 75
     assert not any((run / "evidence" / name).exists() for name in scratch)
     assert (run / _EVIDENCE).is_file() and (run / "evidence" / "manifest.json").is_file()
+    assert (run / "evidence" / "security_queue.json").is_file()  # files analysed is read from it

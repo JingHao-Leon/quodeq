@@ -14,7 +14,8 @@ from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.base import ActionProvider
 from quodeq.services.storage_cleanup import CLEANUP_LOCK
 from quodeq.services.storage_plan import plan_cleanup
-from quodeq.services.wiring import UnsupportedSchemaError, read_json_object, read_status
+from quodeq.services.storage_settings import ArchiveNotice, StorageSettings
+from quodeq.services.wiring import UnsupportedSchemaError, list_runs, read_json_object, read_status, repository_info_exists
 from quodeq.services.wiring_sync import is_archived, packable_bytes, run_pid_alive
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
@@ -160,6 +161,29 @@ def _live_projects(projects: list[Path]) -> tuple[str, ...]:
     return tuple(p.name for p in projects if any(_run_is_live(r) for r in _subdirs(p)))
 
 
+def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, cleanup_on: bool) -> CleanPreview | None:
+    """What the next start archives while the first-start notice is pending; None when there is nothing to say.
+
+    Read with the settings as they are now, so changing the window or
+    turning cleanup off changes (or clears) the notice at once.
+    """
+    days = settings.archive_after_days
+    if settings.archive_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or days is None:
+        return None
+    preview = clean_preview(root, now, days)
+    return preview if preview.archive else None
+
+
+def _is_project(root: Path, folder: Path) -> bool:
+    """A folder the project listing would show: it has a project record or at least one run."""
+    if repository_info_exists(folder):
+        return True
+    try:
+        return bool(list_runs(root, folder.name, limit=1))
+    except ValueError:  # a name no project can have
+        return False
+
+
 def _is_child(project: Path) -> bool:
     info = read_json_object(project / _REPO_INFO_FILE)
     return bool(info and info.get("parent"))
@@ -168,6 +192,8 @@ def _is_child(project: Path) -> bool:
 def delete_all_evaluations(provider: ActionProvider, root: Path) -> int:
     """Delete every project folder under *root* through ``delete_project``; the folders removed.
 
+    Only folders the project listing would show go: any other folder (an
+    evaluations folder pointed at a general place) is left alone.
     Raises ``StorageBusyError`` while a clean holds the lock or any project
     has a run in flight; nothing is deleted then. A project whose run starts
     during the deletion is kept. Parents go first, so a child their cascade
@@ -176,7 +202,7 @@ def delete_all_evaluations(provider: ActionProvider, root: Path) -> int:
     if not CLEANUP_LOCK.acquire(blocking=False):
         raise StorageBusyError("a storage clean is running")
     try:
-        projects = _subdirs(Path(root))
+        projects = [p for p in _subdirs(Path(root)) if _is_project(Path(root), p)]
         live = _live_projects(projects)
         if live:
             raise StorageBusyError("an evaluation is running", live)

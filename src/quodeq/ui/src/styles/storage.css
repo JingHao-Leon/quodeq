@@ -17,3 +17,11 @@
 
 /* A failed archive-after save, quietly under its row. */
 .storage-save-error { margin: calc(-1 * var(--space-2)) 0 0; padding: 0 var(--space-5) var(--space-4); }
+
+/* The first-start notice: what the next start archives, above the settings that change it. */
+.storage-notice {
+  margin: 0; padding: var(--space-4) var(--space-5);
+  border-left: 2px solid var(--color-accent); border-bottom: 1px solid var(--color-border);
+  background: var(--color-accent-soft);
+  color: var(--color-text); font-size: var(--text-sm);
+}

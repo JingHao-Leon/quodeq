@@ -16,7 +16,7 @@ def _settled_run(tmp_path):
     conn.close()
     (run / "evaluation.db-wal").unlink(missing_ok=True)
     (run / "evidence").mkdir(exist_ok=True)
-    (run / "evidence" / "security_queue.json").write_text("q" * 10)
+    (run / "evidence" / "security_dispatch_keys.json").write_text("q" * 10)
     return run
 
 
@@ -26,7 +26,7 @@ def test_tidy_without_database_work_creates_no_lock_file(tmp_path):
     assert tidy_run(run) == 10
 
     assert not (run / LOCK_NAME).exists()
-    assert not (run / "evidence" / "security_queue.json").exists()
+    assert not (run / "evidence" / "security_dispatch_keys.json").exists()
 
 
 def test_tidy_with_free_pages_vacuums_under_the_lock(tmp_path):

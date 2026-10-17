@@ -1,9 +1,13 @@
 """Limits every run archive must meet before anything is extracted, wherever it came from."""
 from __future__ import annotations
 
+import fnmatch
+import posixpath
 import tarfile
 from pathlib import Path
 
+from quodeq.data.fs.run_archive_files import EVIDENCE_PATTERN
+from quodeq.data.fs.run_archive_wal import DB_NAME
 from quodeq.shared.env import env_int
 
 EVENTS_NAME = "events.jsonl"
@@ -51,6 +55,19 @@ def check_archive_limits(members: list[tarfile.TarInfo]) -> None:
         raise RunArchiveError(f"archive has no {EVENTS_NAME}")
 
 
+def check_packable(sizes: list[int]) -> None:
+    """Raise ``RunArchiveError`` when files of these *sizes* would make an archive no restore accepts.
+
+    The same member and size caps a restore enforces, checked before packing:
+    a run archived past them could never be opened again.
+    """
+    if len(sizes) > MAX_MEMBERS:
+        raise RunArchiveError(f"run has {len(sizes)} files to pack, more than the {MAX_MEMBERS} a restore allows")
+    total, cap = sum(sizes), max_archive_bytes()
+    if total > cap:
+        raise RunArchiveError(f"run is larger than the {cap // _MB} MB a restore allows ({total} bytes), left unpacked")
+
+
 def check_restore_dirs(run_dir: Path) -> None:
     """Raise ``RunArchiveError`` when a restore would write through a link: the run or its evidence folder."""
     evidence = run_dir / EVIDENCE_DIR
@@ -59,3 +76,30 @@ def check_restore_dirs(run_dir: Path) -> None:
             raise RunArchiveError(f"{folder} is a symbolic link, refusing to restore into it")
     if evidence.exists() and not evidence.is_dir():
         raise RunArchiveError(f"{evidence} is not a folder, refusing to restore into it")
+
+
+def _allowed_name(name: str) -> bool:
+    """True for ``events.jsonl``, ``evaluation.db`` and ``evidence/<x>_evidence.jsonl`` only."""
+    if name in (EVENTS_NAME, DB_NAME):
+        return True
+    folder, _, base = name.partition("/")
+    return folder == EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, EVIDENCE_PATTERN)
+
+
+def check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
+    """Member names when every member is a safe regular file, else raise ``RunArchiveError``."""
+    check_archive_limits(members)
+    root = staging.resolve()
+    names: list[str] = []
+    for member in members:
+        name = member.name
+        if not member.isreg():
+            raise RunArchiveError(f"archive member {name!r} is not a regular file")
+        if "\\" in name or posixpath.isabs(name) or posixpath.normpath(name) != name:
+            raise RunArchiveError(f"archive member {name!r} has an unsafe path")
+        if not (root / name).resolve().is_relative_to(root) or not _allowed_name(name):
+            raise RunArchiveError(f"archive member {name!r} is not an archived run file")
+        if name in names:
+            raise RunArchiveError(f"archive member {name!r} appears twice")
+        names.append(name)
+    return names

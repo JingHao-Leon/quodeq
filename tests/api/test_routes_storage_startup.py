@@ -48,7 +48,7 @@ def test_the_startup_pass_shows_as_running_and_clean_now_is_busy(app, tmp_path, 
     monkeypatch.setattr(storage_job, "run_cleanup", slow)
     client = app.test_client()
     job = app.extensions["storage_clean"]
-    thread = storage_cleanup.start_storage_cleanup(tmp_path / "evals", {}, start_pass=job.start)
+    thread = storage_cleanup.start_storage_cleanup(tmp_path / "evals", {"QUODEQ_DIR": str(tmp_path / "qdir")}, start_pass=job.start)
     try:
         thread.join(budget(10))
         assert entered.wait(budget(10))

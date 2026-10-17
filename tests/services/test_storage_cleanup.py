@@ -5,6 +5,7 @@ import json
 
 from quodeq.services import storage_cleanup
 from quodeq.services.storage_cleanup import cleanup_enabled, plan_cleanup, run_cleanup
+from quodeq.services.storage_notice import mark_archive_notice_done
 from tests.services._storage_fixtures import NOW, make_run as _run
 
 
@@ -20,6 +21,13 @@ class _Log:
 
 def _env(tmp_path):
     return {"QUODEQ_DIR": str(tmp_path / "qdir")}
+
+
+def _later_start_env(tmp_path):
+    """An env whose storage.json says a start already showed the first-start notice."""
+    env = _env(tmp_path)
+    mark_archive_notice_done(env)
+    return env
 
 
 def test_old_finished_runs_are_archived_and_recent_ones_are_not(tmp_path):
@@ -94,7 +102,7 @@ def test_cleanup_reports_the_bytes_it_freed(tmp_path):
 def test_the_hook_accepts_a_string_root_and_archives(tmp_path):
     old = _run(tmp_path, "p", "old", 300)
     _run(tmp_path, "p", "newer", 10)
-    thread = storage_cleanup.start_storage_cleanup(str(tmp_path), _env(tmp_path))
+    thread = storage_cleanup.start_storage_cleanup(str(tmp_path), _later_start_env(tmp_path))
     thread.join(10)
     assert (old / "archive.tar.gz").is_file()
 
@@ -132,7 +140,7 @@ def test_cleanup_waits_for_the_warmup(tmp_path):
         return next(answers)
 
     thread = storage_cleanup.start_storage_cleanup(
-        tmp_path, _env(tmp_path), warmup_idle=idle, poll_s=0.01)
+        tmp_path, _later_start_env(tmp_path), warmup_idle=idle, poll_s=0.01)
     thread.join(10)
     assert len(calls) == 3
     assert (old / "archive.tar.gz").is_file()

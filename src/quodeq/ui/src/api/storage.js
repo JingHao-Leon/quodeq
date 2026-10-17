@@ -7,7 +7,9 @@ import { request } from './request.js';
 /**
  * The full summary. Walks the evaluations folder, so read it once and after a
  * change; poll getCleanStatus() for clean progress instead.
- * @returns {Promise<{bytes: number, runs: number, archived: number, projects: Object<string, {bytes: number, runs: number, archived: number}>, archiveAfterDays: number|null, clean: {state: string, done: number, total: number, archived: number, bytesFreed: number}}>}
+ * `archiveNotice` is what the next start archives while the first-start
+ * notice is pending, else null.
+ * @returns {Promise<{bytes: number, runs: number, archived: number, projects: Object<string, {bytes: number, runs: number, archived: number}>, archiveAfterDays: number|null, autoCleanup: boolean, archiveNotice: {runs: number, bytes: number}|null, clean: {state: string, done: number, total: number, archived: number, bytesFreed: number}}>}
  */
 export function getStorage() {
   return request('/storage');
@@ -19,11 +21,12 @@ export function getCleanStatus() {
 }
 
 /**
- * @param {{archiveAfterDays: 91|183|365|null}} settings
- * @returns {Promise<{archiveAfterDays: number|null}>}
+ * Saves the settings given; the others keep their saved values.
+ * @param {{archiveAfterDays?: 91|183|365|null, autoCleanup?: boolean}} settings
+ * @returns {Promise<{archiveAfterDays: number|null, autoCleanup: boolean}>}
  */
-export function putStorageSettings({ archiveAfterDays }) {
-  return request('/storage/settings', { method: 'PUT', body: JSON.stringify({ archiveAfterDays }) });
+export function putStorageSettings(settings) {
+  return request('/storage/settings', { method: 'PUT', body: JSON.stringify(settings) });
 }
 
 /** @returns {Promise<{archive: number, frees: number}>} */
@@ -31,7 +34,7 @@ export function getCleanPreview() {
   return request('/storage/preview');
 }
 
-/** 202 with the clean snapshot; throws a 409 (STORAGE_BUSY) while a clean or the score warm-up runs. */
+/** 202 with the clean snapshot; throws a 409 while a clean (STORAGE_BUSY), the score warm-up or a formula rescore runs. */
 export function startClean() {
   return request('/storage/clean', { method: 'POST' });
 }
