@@ -2438,5 +2438,8 @@
   "storage.busyClean": "A clean is already running.",
   "storage.busyCleanRunning": "A clean is running. Try again when it ends.",
   "storage.busyEvaluation": "An evaluation is running in {names}. Wait for it to finish.",
-  "storage.cleanDidNotFinish": "The last clean didn't finish."
+  "storage.cleanDidNotFinish": "The last clean didn't finish.",
+  "history.archived": "archived",
+  "history.archivedTitle": "Stored compressed. Opens in a few seconds the first time.",
+  "history.restoringArchived": "restoring archived run…"
 }

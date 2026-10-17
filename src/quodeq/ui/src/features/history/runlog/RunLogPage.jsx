@@ -48,7 +48,7 @@ function useRunPicker({ rows, initialRunId, onRunChange, pageRef }) {
 
 function useRunActions({ selected, runsById, callbacks, refetch }) {
   const { onRunClick, onDimensionClick, onNavigate, onDeleteRun } = callbacks;
-  const openRun = useCallback((run) => onRunClick?.(run.runId, runStamp(run)), [onRunClick]);
+  const openRun = useCallback((run) => onRunClick?.(run.runId, runStamp(run), { archived: Boolean(run.archived) }), [onRunClick]);
   const openFinding = (finding, inRun, resolvedIn) => onNavigate?.(NAV_FINDING, findingParams({ finding, selected, inRun, resolvedIn }));
   const openDimension = (dim) => onDimensionClick?.(dimensionParams(dim, selected));
   // The log drops the run on its next read; read it now rather than in 10 s.

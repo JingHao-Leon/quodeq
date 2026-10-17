@@ -1,5 +1,6 @@
 import { t } from '../../../../strings/index.js';
 import { gradeLabel } from '../../../../utils/formatters.js';
+import { formatBytes } from '../../../../utils/formatSize.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 import { PUBLISH_STATE } from '../../dashboardVocab.js';
 import { projectIdOrSelf } from '../../../../utils/projectIdentity.js';
@@ -27,10 +28,17 @@ function RelocateEditor({ id, relocateActions }) {
   );
 }
 
-function DeleteConfirm({ id, onDelete, setConfirming }) {
+// What a delete takes: the runs and the space, from the storage summary
+// entry (`stored`), or the plain question while the size is unknown.
+function deleteQuestion(stored, runsCount) {
+  if (stored?.bytes == null) return t('projects.deleteConfirm');
+  return t('projects.deleteConfirmSized', { runs: stored.runs ?? runsCount, size: formatBytes(stored.bytes) });
+}
+
+export function DeleteConfirm({ id, onDelete, setConfirming, stored, runsCount }) {
   return (
     <div className="projects-row__detail" onClick={(e) => e.stopPropagation()}>
-      <span>{t('projects.deleteConfirmSized', { runs: 23, size: '62 MB' })}</span>
+      <span>{deleteQuestion(stored, runsCount)}</span>
       <button type="button" className="projects-row__btn projects-row__btn--danger" onClick={() => { onDelete?.(id); setConfirming(null); }}>{t('projects.yes')}</button>
       <button type="button" className="projects-row__btn" onClick={() => setConfirming(null)}>{t('projects.no')}</button>
     </div>
@@ -88,14 +96,21 @@ function outcomeLines(id, local, publishActions, refresh, pull) {
 // What a row says under itself after an action: an inline confirm (delete,
 // pull conflict), the relocate editor, or the outcome lines. At most one
 // confirm at a time.
-function RowDetails({ id, local, ctx, refresh, pull }) {
+function RowDetails({ id, local, ctx, refresh, pull, stored, runsCount }) {
   const { confirming, setConfirming, onDelete, relocateActions, publishActions } = ctx;
   if (local && relocateActions.relocating === id) return <RelocateEditor id={id} relocateActions={relocateActions} />;
-  if (local && confirming === id) return <DeleteConfirm id={id} onDelete={onDelete} setConfirming={setConfirming} />;
+  if (local && confirming === id) return <DeleteConfirm id={id} onDelete={onDelete} setConfirming={setConfirming} stored={stored} runsCount={runsCount} />;
   if (pull?.conflict) return <PullConflict id={id} pull={pull} />;
   const lines = outcomeLines(id, local, publishActions, refresh, pull);
   if (lines.length === 0) return null;
   return <div className="projects-row__detail projects-row__detail--lines">{lines}</div>;
+}
+
+// The row's storage summary entry. Only a local project has evaluations on
+// this machine to size; null too before the summary loads.
+function storedFor(entry, storage, id) {
+  if (!entry.local || !storage) return null;
+  return storage[id] ?? null;
 }
 
 /**
@@ -111,6 +126,7 @@ function Row({ entry, project, isChild, ctx, refresh, pull }) {
   const grade = gradeLabel(project.overallGrade ?? project.latestGrade);
   const score = project.latestScore != null ? parseFloat(project.latestScore).toFixed(1) : null;
   const action = rowAction(entry);
+  const stored = storedFor(entry, ctx.storage, id);
   const cls = ['projects-row', isChild && 'projects-row--child', selected && 'projects-row--selected', !selected && childSelectedIds?.has(id) && 'projects-row--parent-of-selected'].filter(Boolean).join(' ');
   return (
     <div className="projects-row-group">
@@ -119,7 +135,7 @@ function Row({ entry, project, isChild, ctx, refresh, pull }) {
         <div className="projects-row__grade" role="cell"><GradeChip grade={grade} score={score} pending={project.summaryPending} /></div>
         <FilesCell project={project} />
         <LastRunCell project={project} />
-        <SizeCell project={project} />
+        <SizeCell stored={stored} />
         {configured && <LocationCell entry={entry} />}
         {configured && <SyncCell entry={entry} />}
         <MetaLine entry={entry} project={project} configured={configured} />
@@ -134,7 +150,7 @@ function Row({ entry, project, isChild, ctx, refresh, pull }) {
           ? <RowMenu name={id} refresh={isRefreshable(project) && !isChild ? refresh : null} onExport={onExport} onDelete={() => setConfirming(id)} />
           : <div className="projects-row__more" role="cell" />}
       </div>
-      <RowDetails id={id} local={!!entry.local} ctx={ctx} refresh={refresh} pull={pull} />
+      <RowDetails id={id} local={!!entry.local} ctx={ctx} refresh={refresh} pull={pull} stored={stored} runsCount={project.runsCount} />
     </div>
   );
 }

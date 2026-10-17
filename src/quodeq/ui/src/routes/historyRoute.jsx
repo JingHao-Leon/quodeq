@@ -27,7 +27,10 @@ export function historyRoute(params, props) {
       }}
       availableRuns={runs}
       callbacks={{
-        onRunClick: (runId, dateLabel) => props.navigation.handleNavigate(NAV_TAB.HISTORY_RUN, { runId, dateLabel }),
+        // An archived run carries the mark, so the run page says it is restoring.
+        onRunClick: (runId, dateLabel, { archived = false } = {}) => props.navigation.handleNavigate(
+          NAV_TAB.HISTORY_RUN, archived ? { runId, dateLabel, archived } : { runId, dateLabel },
+        ),
         // A run's dimension opens as of the run, with History still lit in the sidebar.
         onDimensionClick: (dim) => props.navigation.handleNavigate(NAV_TAB.EXPLORER, {
           dimension: dim.dimension, runId: dim.fromRunId, dateLabel: dim.fromDateLabel, fromProject: dim.fromProject, sourceTab: NAV_TAB.HISTORY,

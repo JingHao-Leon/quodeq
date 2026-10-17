@@ -65,4 +65,14 @@ describe('RunList', () => {
     rerender(<><input aria-label="outside" /><RunList {...props} selectedId="c" /></>);
     expect(document.activeElement).toBe(outside);
   });
+
+  it('an archived run carries a quiet tag that says what opening it costs; others carry none', () => {
+    const archived = { ...rows[0], archived: true };
+    const { container } = render(<RunList rows={[archived, rows[1]]} selectedId="a" onSelect={vi.fn()} hoverId={null} onHover={vi.fn()} />);
+    const tags = container.querySelectorAll('.rl-row__archived');
+    expect(tags).toHaveLength(1);
+    expect(tags[0]).toHaveTextContent('archived');
+    expect(tags[0]).toHaveAttribute('title', 'Stored compressed. Opens in a few seconds the first time.');
+    expect(tags[0].querySelector('.rl-row__archived-dot')).toHaveAttribute('aria-hidden', 'true');
+  });
 });

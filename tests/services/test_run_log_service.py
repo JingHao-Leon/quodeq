@@ -101,13 +101,19 @@ def test_an_entry_has_exactly_the_contract_keys(evals, filler_sync) -> None:
         "runId", "jobId", "startedAt", "endedAt", "status", "model", "provider", "commit", "origin",
         "dims", "partial", "score", "grade", "open", "critical", "majors", "dimensionDetails",
         "filesAnalysed", "activeSeconds", "baselineRunId", "baselineKind", "counts", "newSev",
-        "resolvedSev", "pending", "plannedDims", "exitReason",
+        "resolvedSev", "pending", "plannedDims", "exitReason", "archived",
     }
     assert (newest["jobId"], newest["commit"], newest["dims"]) == (f"ext-{CURR}", COMMIT[:7], [DIM])
     assert newest["origin"] == {"kind": "ci", "workflow": "Quodeq Nightly"}
     assert set(newest["dimensionDetails"][0]) == {"dimension", "score", "grade", "majors", "critical"}
     assert newest["newSev"] == {"minor": 1} and newest["partial"] is False
     assert payload["running"] is None
+
+
+def test_an_archived_run_says_so(evals, filler_sync) -> None:
+    (evals / PROJECT / PREV / "archive.tar.gz").write_bytes(b"")
+    by_id = {r["runId"]: r for r in build_run_log(evals, PROJECT, provider=PROVIDER, filler=filler_sync)["runs"]}
+    assert (by_id[PREV]["archived"], by_id[CURR]["archived"]) == (True, False)
 
 
 def test_the_running_job_is_reported_apart(evals, filler_sync) -> None:

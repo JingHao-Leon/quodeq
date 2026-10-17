@@ -4,6 +4,7 @@ import { useApi } from '../../../api/ApiContext.jsx';
 import { projectKeys, storageKeys } from '../../../api/queryKeys.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { invalidateProjects } from '../../../hooks/invalidateProjects.js';
+import { useStorageSummary } from '../../../hooks/useStorageSummary.js';
 
 // GET /api/storage walks the disk, so it is never polled; the cheap clean
 // snapshot is, once a second, only while a pass runs.
@@ -76,9 +77,9 @@ function useArchiveAfter() {
  * result and rejects with the API error, so the modal shows its own failure.
  */
 export default function useStorage() {
-  const { getStorage, startClean, deleteAllEvaluations } = useApi();
+  const { startClean, deleteAllEvaluations } = useApi();
   const queryClient = useQueryClient();
-  const summary = useQuery({ queryKey: storageKeys.summary(), queryFn: getStorage });
+  const summary = useStorageSummary();
   const progress = useCleanProgress(summary);
   const archiveAfter = useArchiveAfter();
   const runClean = async () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiProvider } from '../api/ApiContext.jsx';
-import { projectsKeys } from '../api/queryKeys.js';
+import { projectsKeys, storageKeys } from '../api/queryKeys.js';
 import { useProjectActions, makeHandleDeleteProject } from './useProjectActions.js';
 import { apiErrorMessage } from '../strings/apiErrors.js';
 
@@ -28,7 +28,10 @@ function renderActions(fakeApi, options) {
   const projectsInvalidations = () => invalidate.mock.calls.filter(([arg]) => (
     JSON.stringify(arg?.queryKey) === JSON.stringify(projectsKeys.list())
   )).length;
-  return { result, handleProjectChange, projectsInvalidations };
+  const storageInvalidations = () => invalidate.mock.calls.filter(([arg]) => (
+    JSON.stringify(arg?.queryKey) === JSON.stringify(storageKeys.summary())
+  )).length;
+  return { result, handleProjectChange, projectsInvalidations, storageInvalidations };
 }
 
 // Stands in for the native file picker: the hidden input's click() selects
@@ -51,6 +54,15 @@ describe('useProjectActions', () => {
 
       expect(outcome).toEqual({ ok: true });
       expect(projectsInvalidations()).toBe(1);
+    });
+
+    it("refetches the storage summary, so Repositories' sizes and Settings' totals drop the project", async () => {
+      const fakeApi = { deleteProject: vi.fn().mockResolvedValue(undefined) };
+      const { result, storageInvalidations } = renderActions(fakeApi);
+
+      await act(async () => { await result.current.handleDeleteProject('a'); });
+
+      expect(storageInvalidations()).toBe(1);
     });
 
     it('moves the selection when the deleted project was selected', async () => {

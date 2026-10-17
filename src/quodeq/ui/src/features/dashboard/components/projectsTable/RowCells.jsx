@@ -1,5 +1,6 @@
 import { t, LOCALE } from '../../../../strings/index.js';
 import { relativeTime } from '../../../../utils/relativeTime.js';
+import { formatBytes } from '../../../../utils/formatSize.js';
 import Badge from '../../../../components/Badge.jsx';
 import { formatDate, formatPath } from '../projectCards/projectDisplayHelpers.js';
 import { PROJECT_LOCATION } from '../../../../models/project.js';
@@ -58,11 +59,11 @@ export function FilesCell({ project }) {
   return <div className="projects-row__num projects-row__files" role="cell">{files != null ? files.toLocaleString(LOCALE) : EMPTY_CELL}</div>;
 }
 
-// PROTOTYPE: sample sizes until the storage endpoint reports them.
-const SAMPLE_SIZE = { quodeq: '6.5 GB', growstuff: '62 MB', BenchmarkPython: '41 MB', 'quodeq-web': '9 MB' };
-
-export function SizeCell({ project }) {
-  return <div className="projects-row__num projects-row__size" role="cell">{SAMPLE_SIZE[project.name] ?? EMPTY_CELL}</div>;
+// `stored` is the project's storage summary entry ({bytes, runs, archived}):
+// null before the summary loads and for a project that is not on this machine.
+export function SizeCell({ stored }) {
+  const bytes = stored?.bytes;
+  return <div className="projects-row__num projects-row__size" role="cell">{bytes != null ? formatBytes(bytes) : EMPTY_CELL}</div>;
 }
 
 export function LastRunCell({ project }) {

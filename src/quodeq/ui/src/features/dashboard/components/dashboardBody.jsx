@@ -45,7 +45,7 @@ function renderReadyContent({ data, callbacks, runMode, projectInfo, selectedRun
  * @param {() => void} ctx.onSetupComplete
  */
 export function renderDashboardBody(ctx) {
-  const { data, runMode, projectInfo, projectName, pageState, onSetupComplete } = ctx;
+  const { data, runMode, archivedRun, projectInfo, projectName, pageState, onSetupComplete } = ctx;
   const { dashboard, error, isFetching } = data;
   const { contentReady, isLoading, showOverviewSkeleton, dashboardAppearClass } = pageState;
   // True while a *background* fetch is running but we're already showing
@@ -69,7 +69,7 @@ export function renderDashboardBody(ctx) {
         <IncompleteSetupCard projectInfo={projectInfo} onComplete={onSetupComplete} />
         {error && <p className="inline-error">{t('overview.loadFailed')}</p>}
         {showOverviewSkeleton && <OverviewSkeleton projectName={projectName} lastKnown={data.lastKnown} shape={recallShape(data.selectedProject)} />}
-        {showRunSkeleton && <OverviewSkeleton run projectName={projectName} />}
+        {showRunSkeleton && <OverviewSkeleton run projectName={projectName} sub={archivedRun ? t('history.restoringArchived') : undefined} />}
         {/* No runMode equivalent of the Overview's grace-fallback loader: in
             runMode contentReady is `!!dashboard`, so the instant dashboard lands
             contentReady is already true -- there's no window where dashboard is

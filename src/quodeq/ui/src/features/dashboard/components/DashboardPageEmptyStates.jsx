@@ -54,9 +54,11 @@ export function NoProjectSelectedContent({ onNavigate }) {
 // Shared by both call sites that show the inline loader while a retry is in
 // flight: the failed-fetch branch (error set, isFetching true) and the
 // runMode empty-response branch (no error, isFetching true). Same markup.
-export function LoadingProjectContent({ projectName }) {
+// `message` replaces the project line when the wait is for something more
+// specific (an archived run being restored).
+export function LoadingProjectContent({ projectName, message }) {
   return (
-    <LoadingScreen variant="inline" message={projectName ? t('overview.loadingProjectMsg', { name: projectName }) : undefined} />
+    <LoadingScreen variant="inline" message={message ?? (projectName ? t('overview.loadingProjectMsg', { name: projectName }) : undefined)} />
   );
 }
 

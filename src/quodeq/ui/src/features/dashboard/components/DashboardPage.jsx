@@ -46,7 +46,7 @@ function makeSetupCompleteHandler(onProjectsReload) {
   };
 }
 
-export default function DashboardPage({ data = {}, callbacks = {}, runMode = false }) {
+export default function DashboardPage({ data = {}, callbacks = {}, runMode = false, archivedRun = false }) {
   const { selectedProject, selectedSource, selectedRun, projects, sharedProjectInfo, dashboard, accumulated, loading, error, projectsLoaded, projectsLoadFailed } = data;
   const projectInfo = selectDashboardProjectInfo({ selectedSource, projects, selectedProject, sharedProjectInfo });
   const onSetupComplete = makeSetupCompleteHandler(callbacks.onProjectsReload);
@@ -86,8 +86,8 @@ export default function DashboardPage({ data = {}, callbacks = {}, runMode = fal
     return null;
   }
   const projectName = projectInfo?.displayName || projectInfo?.name || selectedProject;
-  const gate = renderDashboardGate({ data, callbacks, runMode, projectName, projectInfo, pageState, onSetupComplete });
+  const gate = renderDashboardGate({ data, callbacks, runMode, archivedRun, projectName, projectInfo, pageState, onSetupComplete });
   if (gate) return gate;
   const focus = { dimension: focusedDimension, setDimension: setFocusedDimension, dimensionData: focusedDimensionData };
-  return renderDashboardBody({ data, callbacks, runMode, projectName, projectInfo, pageState, focus, handlers, accumulatedDimensions, selectedRunId, onSetupComplete });
+  return renderDashboardBody({ data, callbacks, runMode, archivedRun, projectName, projectInfo, pageState, focus, handlers, accumulatedDimensions, selectedRunId, onSetupComplete });
 }

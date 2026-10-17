@@ -14,6 +14,7 @@ import { isSlotActive } from '../../../api/syncStatus.js';
 import { SYNC_PHASE } from '../../../vocab/syncPhase.js';
 import { useCloneGhost } from '../hooks/useCloneGhost.js';
 import CloningTile from './CloningTile.jsx';
+import { useStorageSummary } from '../../../hooks/useStorageSummary.js';
 
 // While a connect reads the team's projects, one placeholder row per
 // project found so far heads the list; they become the real rows when
@@ -61,11 +62,13 @@ function useProjectsRowsCtx({ projects, filters, selectedProject, actions }) {
   const { shared, children, localEntryById, publishActions, isEmpty, visibleEntries } = useProjectsPageData({ projects, filters });
 
   const { pullConflictId, pullingId, pullError, pulledIds, handlePull, handleConfirmCopy, cancelConflict } = usePullToLocal({ shared });
+  // One summary read for every row's size and delete confirm (never per row).
+  const storage = useStorageSummary().data?.projects ?? null;
 
   const rowsCtx = {
     children, selectedProject, onSelect, onResumeSetup, confirming, setConfirming, onDelete, onExport,
     relocateActions, publishActions, localEntryById, configured: shared.configured, pullConflictId, pullingId, pullError,
-    handlePull, handleConfirmCopy, cancelConflict, pulledIds,
+    handlePull, handleConfirmCopy, cancelConflict, pulledIds, storage,
   };
   return { shared, isEmpty, visibleEntries, rowsCtx };
 }

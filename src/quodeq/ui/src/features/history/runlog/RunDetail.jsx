@@ -50,12 +50,13 @@ function Hero({ run, baseline, onOpenRun, onDelete }) {
   );
 }
 
-// One quiet line under the hero: commit · took · files · rate.
+// One quiet line under the hero: commit · took · files · rate · archived.
 function Identity({ run, throughput }) {
   const parts = [
     run.commit,
     run.activeSeconds > 0 ? t('history.idTookValue', { value: formatDurationCoarse(run.activeSeconds) }) : null,
     filesCell(throughput),
+    run.archived ? t('history.archived') : null,
   ].filter(Boolean);
   if (!parts.length) return null;
   return <div className="rl-idline">{parts.join(' · ')}</div>;

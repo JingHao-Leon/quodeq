@@ -39,4 +39,10 @@ describe('historyRoute', () => {
     historyRoute({}, props).props.callbacks.onRunClick('r2', 'Thu 8 Oct 08:23');
     expect(props.navigation.handleNavigate).toHaveBeenCalledWith('history-run', { runId: 'r2', dateLabel: 'Thu 8 Oct 08:23' });
   });
+
+  it('opens an archived run with the archived mark, so the run page can say it is restoring', () => {
+    const props = routeProps();
+    historyRoute({}, props).props.callbacks.onRunClick('r2', 'Thu 8 Oct 08:23', { archived: true });
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('history-run', { runId: 'r2', dateLabel: 'Thu 8 Oct 08:23', archived: true });
+  });
 });
