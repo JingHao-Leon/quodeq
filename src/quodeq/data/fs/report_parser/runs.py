@@ -32,6 +32,7 @@ from quodeq.data.fs.report_parser._run_info import (
     safe_read_dir as safe_read_dir,
 )
 from quodeq.data.fs.report_parser.run_dates import remember_run_dates, remembered_run_dates
+from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.shared.validation import validate_path_segment
 
 _DEFAULT_RUN_LIMIT = 100
@@ -53,6 +54,7 @@ def read_run_data(reports_root: Path, project: str, run_id: str) -> list[Dimensi
     if resolved_run is None:
         raise FileNotFoundError(f"Run not found: {project}/{run_id}")
     run_dir = Path(resolved_run)
+    restore_or_warn(run_dir)  # the evidence read below needs an archived run's database back
     evaluations = load_evaluations(run_dir / "evaluation")
     evidence_map = load_evidence_map(run_dir / EVIDENCE_DIRNAME)
 
@@ -101,12 +103,13 @@ def _read_run_scalars_from_sql(run_dir: Path) -> "tuple[list[dict], list[dict]] 
     projection). None signals the caller to use its fallback reader.
     """
     from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db  # noqa: PLC0415
+    from quodeq.data.fs.run_archive import has_event_log, is_archived  # noqa: PLC0415
     from quodeq.shared.env import sqlite_disabled  # noqa: PLC0415
 
     if (
         sqlite_disabled()
-        or not has_evaluation_db(run_dir)
-        or not (run_dir / "events.jsonl").is_file()
+        or not has_event_log(run_dir)
+        or not (has_evaluation_db(run_dir) or is_archived(run_dir))
     ):
         return None
 
@@ -121,7 +124,7 @@ def _read_run_scalars_from_sql(run_dir: Path) -> "tuple[list[dict], list[dict]] 
         dim_rows = store.read_dimension_scores()
         principle_rows = store.read_principle_grades()
         counts = read_dimension_counts(run_dir)
-    except sqlite3.DatabaseError:
+    except (sqlite3.DatabaseError, FileNotFoundError):  # FileNotFoundError: log archived mid-read
         return None
 
     if not dim_rows:

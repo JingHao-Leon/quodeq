@@ -16,6 +16,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from quodeq.core.run.state import RunState, parse_run_state
+from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.data.fs.run_artifacts import read_json_object
 from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX, MANIFEST_FILENAME
 
@@ -27,7 +28,7 @@ _FINGERPRINT_DIRS = ("evaluation", EVIDENCE_DIRNAME)
 # SQL grade tables that overlay_sql_grades reads back, so the fingerprint has
 # to cover the database (and its write-ahead log, which absorbs writes long
 # before a checkpoint touches the main file) alongside the JSON.
-_FINGERPRINT_FILES = ("evaluation.db", "evaluation.db-wal", "events.jsonl")
+_FINGERPRINT_FILES = ("evaluation.db", "evaluation.db-wal", "events.jsonl", "archive.tar.gz")
 _EVIDENCE_SUFFIX = "_evidence.jsonl"
 
 
@@ -120,7 +121,8 @@ def queue_file_exists(run_dir: Path, dim_id: str) -> bool:
 
 
 def dimension_evidence_file(run_dir: Path, dim_id: str) -> Path:
-    """The dim's raw evidence path (``evidence/<dim>_evidence.jsonl``)."""
+    """The dim's raw evidence path (``evidence/<dim>_evidence.jsonl``), restoring an archived run first."""
+    restore_or_warn(run_dir)
     return run_dir / EVIDENCE_DIRNAME / f"{dim_id}_evidence.jsonl"
 
 

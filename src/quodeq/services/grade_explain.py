@@ -11,6 +11,7 @@ from quodeq.core.scoring.params import ScoringParams, params_to_dict
 from quodeq.core.scoring.mass import principle_mass, requirement_rows
 from quodeq.core.types.finding import Finding
 from quodeq.core.utils.io import resolve_child_dir
+from quodeq.services.grade_formula import project_run
 from quodeq.services.wiring import GradeInputs, load_grade_inputs, load_params
 
 
@@ -67,6 +68,7 @@ def explain_dimension(
     tables use. Raises FileNotFoundError for an unknown run or dimension."""
     run_dir = _run_dir(reports_root, project, run_id)
     active = params if params is not None else load_params()
+    project_run(run_dir)
     inputs = load_grade_inputs(run_dir)
     keys = _keys_for(inputs, dimension)
     if not keys:

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from quodeq.services.ephemeral_cleanup import maybe_cleanup_after_job
+from quodeq.services.wiring_sync import has_event_log
 
 _logger = logging.getLogger(__name__)
 
@@ -72,7 +73,7 @@ class PostRunHook:
             return
         run_dir = Path(reports_root) / project_uuid / run_id
         events_log = run_dir / "events.jsonl"
-        if not events_log.is_file():
+        if not has_event_log(run_dir):
             return
         from quodeq.data.projection.projector import Projector
         result = Projector().project(events_log, run_dir)
