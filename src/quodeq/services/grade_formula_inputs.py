@@ -28,6 +28,7 @@ from quodeq.services.grade_formula import load_params, project_run
 from quodeq.services.grade_formula_preview import (
     ProjectSources, SourceDimension, is_touched, local_projects, project_sources,
 )
+from quodeq.services.ports import StoreUnreadableError
 from quodeq.services.rescore import dismissed_violations, filter_excluded_violations, group_by_principle
 from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import load_grade_inputs
@@ -61,6 +62,8 @@ def _from_tables(src: SourceDimension, saved: ScoringParams, cache: dict[Path, A
         project_run(src.run_dir)
         cache[src.run_dir] = load_grade_inputs(src.run_dir)
     inputs = cache[src.run_dir]
+    if inputs is None:  # unreadable, found by an earlier dimension of this run
+        return _frozen(src, src.stored_score)
     keys = sorted(k for k in set(inputs.violations_by) | set(inputs.compliance_by) if k[0].lower() == src.name)
     principles = [
         _scored(key[1], inputs.violations_by.get(key, []), inputs.compliance_by.get(key, []),
@@ -103,6 +106,16 @@ def _from_evidence(src: SourceDimension, sources: ProjectSources, saved: Scoring
 
 
 def _dimension(src: SourceDimension, sources: ProjectSources, saved: ScoringParams, cache: dict) -> dict[str, Any]:
+    """The dimension's inputs; its stored score, frozen, when its run cannot be read (one run costs only itself)."""
+    try:
+        return _readable_dimension(src, sources, saved, cache)
+    except StoreUnreadableError:
+        cache[src.run_dir] = None
+        return _frozen(src, src.stored_score)
+
+
+def _readable_dimension(src: SourceDimension, sources: ProjectSources, saved: ScoringParams,
+                        cache: dict) -> dict[str, Any]:
     if is_touched(src, sources.keys):
         return _from_evidence(src, sources, saved)
     if src.saved_score is not None:
