@@ -4,7 +4,8 @@ An archived run keeps its reports, ``status.json``, ``dimensions.json`` and
 ``evidence/manifest.json`` in place. ``events.jsonl``, the
 ``evidence/*_evidence.jsonl`` files and ``evaluation.db`` (WAL folded in
 first) move into ``archive.tar.gz`` inside the run folder; the ``-wal`` and
-``-shm`` sidecars are dropped. Keeping the database spares a restore the
+``-shm`` sidecars are dropped, and the run's dismissals are kept beside the
+archive in ``precedents.json`` (see ``run_precedents``). Keeping the database spares a restore the
 multi-second rebuild measured on the biggest real runs.
 
 Safety rules: originals are deleted only after the archive is written,
@@ -35,6 +36,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
+from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, vacuum_db
 
 _logger = logging.getLogger(__name__)
@@ -136,16 +138,18 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         tmp, final = run_dir / _TMP_ARCHIVE, run_dir / ARCHIVE_FILENAME
         packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in DB_SIDECARS)])
         try:
+            write_precedents(run_dir)  # precedent matching reads these without a restore
             _write_archive(tmp, sources)
             _verify_archive(tmp, sources)
             os.replace(tmp, final)
+            # A reader or writer touched the run while it was packed, or added a file the archive would hold.
+            if not unchanged(packed) or archive_sources(run_dir) != sources:
+                final.unlink(missing_ok=True)
+                raise RunArchiveError(f"run changed while it was archived: {run_dir}")
         except BaseException:
             tmp.unlink(missing_ok=True)
+            (run_dir / PRECEDENTS_NAME).unlink(missing_ok=True)
             raise
-        # A reader or writer touched the run while it was packed, or added a file the archive would hold.
-        if not unchanged(packed) or archive_sources(run_dir) != sources:
-            final.unlink(missing_ok=True)
-            raise RunArchiveError(f"run changed while it was archived: {run_dir}")
         for path in [*(p for _, p in sources), *dropped, run_dir / RESTORED_STAMP]:
             path.unlink(missing_ok=True)
         return ArchiveResult(bytes_before=bytes_before, bytes_after=final.stat().st_size)
