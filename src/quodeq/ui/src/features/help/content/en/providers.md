@@ -23,8 +23,8 @@ quodeq needs an AI model to read your code. There are three ways to supply one, 
 Delegates to an AI CLI you already have authenticated on your machine.
 
 1. Install and sign in to the CLI of your choice.
-2. In **Settings**, *Model*, pick the CLI under **AI Provider** and type a model id it accepts, such as `sonnet` for Claude Code or `gpt-6-sol` for Codex.
-3. Optionally, for Claude Code or Codex, set the **Effort** under **Advanced**. Higher effort finds more but runs slower and uses more of your plan.
+2. In **Settings**, *Model*, pick the CLI under **AI Provider**, then the model. Claude Code, Codex and GitHub Copilot list the models your account can use; ↻ reloads the list. For Gemini CLI, run `gemini`, type `/model` to see yours, and copy the id into the field.
+3. Optionally, for Claude Code or Codex, set the **Effort** under **Advanced**. It offers the levels the chosen model takes. Higher effort finds more but runs slower and uses more of your plan.
 
 #### GitHub Copilot
 
