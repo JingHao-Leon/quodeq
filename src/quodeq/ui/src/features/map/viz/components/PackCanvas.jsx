@@ -30,16 +30,16 @@ function useStaticLayer(canvasRef, { circles, indexOf, paint, screenCoords, view
 }
 
 function useOverlayLayer(canvasRef, frame) {
-  const { circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, theme, size } = frame;
+  const { circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, theme, size, paint } = frame;
   useEffect(() => {
     if (!theme.palette) return;
     const ctx = prepareLayer(canvasRef.current, size);
     if (!ctx) return;
     drawOverlay(ctx, {
-      circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels,
+      circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, paint,
       palette: theme.palette, font: theme.font, fontScale: theme.fontScale, width: size.w, height: size.h,
     });
-  }, [canvasRef, circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, theme, size]);
+  }, [canvasRef, circles, screenCoords, viewport, hoverIndex, selectedIndex, focusNode, showLabels, theme, size, paint]);
 }
 
 function kbdItems({ circles, paint, focusNode, colorMode, handleClick }) {
@@ -137,7 +137,7 @@ export default function PackCanvas({ view, paintInputs, hoverState, handlers }) 
 
   useStaticLayer(staticRef, { circles, indexOf, paint, screenCoords, viewport, size, fades });
   useOverlayLayer(overlayRef, {
-    circles, screenCoords, viewport, focusNode, theme, size, hoverIndex: ringIndex, selectedIndex,
+    circles, screenCoords, viewport, focusNode, theme, size, hoverIndex: ringIndex, selectedIndex, paint,
     showLabels: showLabels && shown === transform,
   });
   const kbd = useMemo(

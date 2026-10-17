@@ -309,8 +309,8 @@
 
   /* Map */
   --color-map-worse: var(--color-sev-critical-text);
-  --color-map-better: color-mix(in srgb, var(--color-text) 35%, var(--color-surface-alt));
-  --color-map-neutral: color-mix(in srgb, var(--color-text) 20%, var(--color-surface-alt));
+  --color-map-better: color-mix(in srgb, var(--color-text) 28%, var(--color-surface-alt));
+  --color-map-neutral: color-mix(in srgb, var(--color-text) 12%, var(--color-surface-alt));
   --color-map-activity: var(--color-accent);
   --color-map-activity-idle: var(--primitive-steel-300);
   --color-map-glass-parent: var(--primitive-mauve-100);
@@ -577,8 +577,8 @@ html[data-theme$="dark"]:root, [data-theme$="dark"] {
 
 html[data-theme$="light"]:root, [data-theme$="light"] {
   --color-map-worse: var(--color-sev-critical-text);
-  --color-map-better: color-mix(in srgb, var(--color-text) 35%, var(--color-surface-alt));
-  --color-map-neutral: color-mix(in srgb, var(--color-text) 20%, var(--color-surface-alt));
+  --color-map-better: color-mix(in srgb, var(--color-text) 28%, var(--color-surface-alt));
+  --color-map-neutral: color-mix(in srgb, var(--color-text) 12%, var(--color-surface-alt));
   --color-map-activity: var(--color-accent);
   --color-map-activity-idle: var(--primitive-steel-300);
   --color-map-glass-parent: var(--primitive-mauve-100);

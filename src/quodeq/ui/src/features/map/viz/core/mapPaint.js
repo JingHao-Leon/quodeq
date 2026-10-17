@@ -6,10 +6,8 @@ const WORSE_SPAN = { dark: 0.46, light: 0.5 };
 const BETTER_EXP = { dark: 1.3, light: 1 };
 const BETTER_BASE = { dark: 0.05, light: 0.04 };
 const BETTER_SPAN = { dark: 0.34, light: 0.16 };
-const FILE_BAND = {
-  dark: { base: 0.45, span: 0.55, min: 0.4, max: 1 },
-  light: { base: 0.18, span: 0.75, min: 0.15, max: 0.92 },
-};
+/** How far a file's colour moves from the page toward its hue, the same band in both themes. */
+const FILE_BAND = { base: 0.45, span: 0.55, min: 0.4, max: 1 };
 const ACTIVITY_SCALE_MIN = 2;
 const ACTIVITY_QUANTILE = 0.9;
 // A changed file starts faint and reaches full colour only at "changed often" (the scale), linearly,
@@ -80,9 +78,8 @@ export function folderGlow(b) {
 }
 
 /** How far a file's colour moves from the background toward its hue. */
-export function fileStrength(b, dark) {
-  const band = FILE_BAND[side(dark)];
-  return clamp(band.base + band.span * Math.abs(b), band.min, band.max);
+export function fileStrength(b) {
+  return clamp(FILE_BAND.base + FILE_BAND.span * Math.abs(b), FILE_BAND.min, FILE_BAND.max);
 }
 
 /**
@@ -93,7 +90,7 @@ export function fileStrength(b, dark) {
  * @returns {{r:number, g:number, b:number}}
  */
 export function fileConcentrationColor(b, palette) {
-  return mixRgb(palette.bg, badnessHue(b, palette), fileStrength(b, palette.dark));
+  return mixRgb(palette.bg, badnessHue(b, palette), fileStrength(b));
 }
 
 const SEVERITY_HUE_KEY = Object.freeze({ critical: 'sevCritical', major: 'sevMajor', minor: 'sevMinor' });
@@ -109,7 +106,7 @@ export function fileSeverityHue(worst, b, palette) {
 
 /** A file in the Circle Pack: its hue, stronger the further its findings sit from the average. */
 export function fileSeverityColor(worst, b, palette) {
-  return mixRgb(palette.bg, fileSeverityHue(worst, b, palette), fileStrength(b, palette.dark));
+  return mixRgb(palette.bg, fileSeverityHue(worst, b, palette), fileStrength(b));
 }
 
 /** Edits that count as "changed often": the 90th percentile of edited files, at least 2. */

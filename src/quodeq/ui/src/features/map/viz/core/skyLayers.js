@@ -195,8 +195,9 @@ function drawVeil(ctx, b, palette, size) {
   drawVeilWithHole(ctx, { px: b.px, py: b.py, r: b.R + VEIL_GAP_PX }, palette, size);
 }
 
-function drawHover(ctx, b, palette) {
-  drawHoverRing(ctx, { px: b.px, py: b.py, r: b.R + HOVER_GAP_PX }, palette);
+/** The hover ring in the hovered area's hue (as the Circle Pack's), the text colour without one. */
+function drawHover(ctx, b, palette, hue) {
+  drawHoverRing(ctx, { px: b.px, py: b.py, r: b.R + HOVER_GAP_PX }, palette, hue);
 }
 
 /**
@@ -224,10 +225,10 @@ function drawLabel(ctx, label, { palette, font, fontScale }) {
  * The overlay: one veil around the kept bubble, the hover ring, the file dots
  * of the kept and hovered bubbles (the static layer leaves them out), and the labels.
  */
-export function drawSkyOverlay(ctx, { bubbles, files = null, keepIndex, hoverIndex, labels, palette, font, fontScale, width, height }) {
+export function drawSkyOverlay(ctx, { bubbles, files = null, paints = null, keepIndex, hoverIndex, labels, palette, font, fontScale, width, height }) {
   ctx.clearRect(0, 0, width, height);
   if (keepIndex !== null && bubbles[keepIndex]) drawVeil(ctx, bubbles[keepIndex], palette, { width, height });
-  if (hoverIndex !== null && bubbles[hoverIndex]) drawHover(ctx, bubbles[hoverIndex], palette);
+  if (hoverIndex !== null && bubbles[hoverIndex]) drawHover(ctx, bubbles[hoverIndex], palette, paints?.[hoverIndex]?.hue);
   for (const i of new Set([keepIndex, hoverIndex])) if (i !== null && bubbles[i] && files?.[i]) drawFiles(ctx, bubbles[i], files[i]);
   ctx.textAlign = 'center';
   for (const label of labels) drawLabel(ctx, label, { palette, font, fontScale });

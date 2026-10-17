@@ -21,7 +21,7 @@ const RING_OF = new Map([[AREA_KIND.HOTSPOT, RING_STYLE.SOLID], [AREA_KIND.DORMA
  * @param {{kind:string, stats:object}} area
  * @param {number} average project severity weight per file
  * @param {object} palette readMapPalette output (with `dark`)
- * @returns {{fill:string, alpha:number, stroke:string, strokeAlpha:number, ring:string|null, ringColor:string}}
+ * @returns {{fill:string, alpha:number, stroke:string, strokeAlpha:number, ring:string|null, ringColor:string, hue:{r:number,g:number,b:number}}}
  */
 export function skyAreaPaint(area, average, palette) {
   const b = badness(area.stats, average, NODE_KIND.FOLDER);
@@ -34,6 +34,7 @@ export function skyAreaPaint(area, average, palette) {
     strokeAlpha: STROKE_ALPHA,
     ring: RING_OF.get(area.kind) || null,
     ringColor: rgbCss(palette.worse),
+    hue,
   };
 }
 

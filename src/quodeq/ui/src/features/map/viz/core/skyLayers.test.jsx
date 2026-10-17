@@ -89,6 +89,16 @@ describe('drawSkyOverlay', () => {
     expect(ctx.fillText).toHaveBeenCalledWith('article', 10, 10);
   });
 
+  it('draws the hover ring in the hovered area\'s hue', () => {
+    const ctx = fakeCanvasContext();
+    const { bubbles } = scene();
+    const styles = [];
+    ctx.stroke.mockImplementation(() => styles.push(ctx.strokeStyle));
+    const paints = [{ hue: { r: 240, g: 80, b: 120 } }, { hue: null }];
+    drawSkyOverlay(ctx, { bubbles, paints, keepIndex: null, hoverIndex: 0, labels: [], palette: PALETTE, font: 'sans', fontScale: 1, width: SIZE, height: SIZE });
+    expect(styles).toEqual(['rgb(240, 80, 120)']);
+  });
+
   it('draws the kept bubble\'s file dots', () => {
     const ctx = fakeCanvasContext();
     const { bubbles } = scene();
