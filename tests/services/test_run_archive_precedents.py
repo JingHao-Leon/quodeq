@@ -117,3 +117,34 @@ def test_cleanup_keeps_the_precedents_of_a_failed_run(tmp_path, monkeypatch):
 
     assert is_archived(old)
     assert [snippet for _, snippet in read_dismissed_snippets_strict(old)] == [_SNIPPET]
+
+
+def test_a_planted_tmp_symlink_is_never_followed(tmp_path):
+    run = make_run(tmp_path, "run-old")
+    _dismiss_one(run)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("keep me")
+    (run / "precedents.json.tmp").symlink_to(outside)
+
+    archive_run(run)
+
+    assert outside.read_text() == "keep me"
+    assert (run / "precedents.json").is_file() and not (run / "precedents.json").is_symlink()
+    assert [s for _, s in read_dismissed_snippets_strict(run)] == [_SNIPPET]
+
+
+def test_a_symlinked_sidecar_reads_as_missing(tmp_path):
+    run, _, _ = _archived_with_a_dismissal(tmp_path)
+    real = tmp_path / "elsewhere.json"
+    (run / "precedents.json").rename(real)
+    (run / "precedents.json").symlink_to(real)
+
+    assert read_dismissed_snippets_strict(run) == []
+
+
+def test_sidecar_rows_with_non_string_values_are_skipped(tmp_path):
+    run, _, _ = _archived_with_a_dismissal(tmp_path)
+    (run / "precedents.json").write_text(json.dumps(
+        {"version": 1, "dismissed": [["R1", 5], [{"x": 1}, "s"], ["R2", "ok"], [None, "n"]], "semantic": []}))
+
+    assert read_dismissed_snippets_strict(run) == [("R2", "ok"), (None, "n")]

@@ -17,6 +17,7 @@ import os
 import sqlite3
 from pathlib import Path
 
+from quodeq.data.fs.run_archive_files import is_plain_file
 from quodeq.data.fs.run_archive_wal import DB_NAME
 
 PRECEDENTS_NAME = "precedents.json"
@@ -53,7 +54,10 @@ def write_precedents(run_dir: Path) -> Path | None:
         sidecar.unlink(missing_ok=True)
         return None
     tmp = sidecar.with_name(sidecar.name + ".tmp")
-    tmp.write_text(json.dumps({"version": _VERSION, **data}), encoding="utf-8")
+    tmp.unlink(missing_ok=True)  # never write through a leftover, or a planted symlink
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o644)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps({"version": _VERSION, **data}))
     os.replace(tmp, sidecar)
     return sidecar
 
@@ -86,23 +90,35 @@ def _queries(conn: sqlite3.Connection) -> dict[str, str]:
 def read_precedents(run_dir: Path, kind: str) -> Pairs:
     """The sidecar's *kind* pairs (``dismissed`` or ``semantic``); empty without a sidecar.
 
-    Raises ``RuntimeError`` on a malformed sidecar, ``OSError`` on an unreadable one.
+    A sidecar that is not a plain file (a symlink) reads as missing, and a
+    row whose values are neither text nor null is skipped. Raises
+    ``RuntimeError`` on a malformed sidecar, ``OSError`` on an unreadable one.
     """
+    sidecar = run_dir / PRECEDENTS_NAME
+    if not is_plain_file(sidecar):
+        return []
     try:
-        text = (run_dir / PRECEDENTS_NAME).read_text(encoding="utf-8")
+        text = sidecar.read_text(encoding="utf-8")
     except FileNotFoundError:
         return []
     try:
         rows = json.loads(text)[kind]
-        return [(req, snippet) for req, snippet in rows]
+        return [(req, snippet) for req, snippet in rows if _text_or_null(req) and _text_or_null(snippet)]
     except (ValueError, KeyError, TypeError) as exc:
         raise RuntimeError(f"malformed {PRECEDENTS_NAME} in {run_dir}: {exc}") from exc
 
 
+def _text_or_null(value: object) -> bool:
+    return value is None or isinstance(value, str)
+
+
 def precedents_stamp(run_dir: Path) -> tuple[int, ...] | None:
-    """``(size, mtime_ns)`` of the sidecar, None without one."""
+    """``(size, mtime_ns)`` of the sidecar, None without one (or when it is not a plain file)."""
+    sidecar = run_dir / PRECEDENTS_NAME
+    if not is_plain_file(sidecar):
+        return None
     try:
-        st = (run_dir / PRECEDENTS_NAME).stat()
+        st = sidecar.stat()
     except OSError:
         return None
     return (st.st_size, st.st_mtime_ns)
