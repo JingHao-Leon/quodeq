@@ -87,14 +87,14 @@ describe('OnboardingWizard reviewer step', () => {
     });
   });
 
-  it('later on a first reviewer (nothing stored yet) saves it and lands on repositories with the project selected', async () => {
+  it('later without a pick stores nothing and lands on repositories with the project selected', async () => {
     const { onClose, onLaunch } = renderWizard(ADD_ENTRY);
     await addRepository('/u/me/billing');
     await screen.findByRole('option', { name: 'Sonnet (default)' });
     fireEvent.click(screen.getByRole('button', { name: 'later, take me to the project' }));
     expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: 'uuid-9', cloning: false, landed: true });
     expect(onLaunch).not.toHaveBeenCalled();
-    expect(localStorage.getItem('cc-claude-model')).toBe('sonnet');
+    expect(localStorage.getItem('cc-active-provider')).toBeNull();
   });
 
   it('the close button after an add lands like later', async () => {

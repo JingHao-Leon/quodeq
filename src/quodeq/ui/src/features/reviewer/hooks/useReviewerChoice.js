@@ -55,9 +55,9 @@ function effortFor(catalog, model, effort) {
  * which model and effort. Starts on `initial` when it is listed, else the
  * first. Picks survive switching provider and back; nothing is stored until
  * `save` writes the selected one under the keys Settings reads. `changed`
- * says whether a save would alter that: a pick made here for the selected
- * provider, or a selected provider other than `initial` (the stored active
- * one in both callers).
+ * says the user made an explicit pick here (selected a provider, or changed
+ * a model or effort); a preselection alone never counts, so an untouched
+ * draft never replaces the active provider.
  *
  * @param {{providers: string[], initial?: string|null, storage?: Storage}} options
  */
@@ -67,13 +67,17 @@ export function useReviewerDraft({ providers, initial = null, storage }) {
     [providers, storage],
   );
   const [selected, setSelected] = useState(initial);
+  const [touched, setTouched] = useState(false);
   const [picks, setPicks] = useState({});
   const providerId = providers.includes(selected) ? selected : (providers[0] || null);
   const { data: catalog } = useClientModels(providerId);
 
   const choiceFor = (id, providerCatalog) => resolveChoice({ stored: stored[id], picked: picks[id], catalog: providerCatalog });
   const { model, effort } = providerId ? choiceFor(providerId, catalog) : { model: null, effort: '' };
-  const pick = (patch) => setPicks((prev) => ({ ...prev, [providerId]: { model, effort, ...prev[providerId], ...patch } }));
+  const pick = (patch) => {
+    setTouched(true);
+    setPicks((prev) => ({ ...prev, [providerId]: { model, effort, ...prev[providerId], ...patch } }));
+  };
 
   return {
     providerId,
@@ -81,11 +85,14 @@ export function useReviewerDraft({ providers, initial = null, storage }) {
     effort,
     catalog,
     choiceFor,
-    select: setSelected,
+    select: (id) => {
+      setTouched(true);
+      setSelected(id);
+    },
     setModel: (next) => pick({ model: next, effort: effortFor(catalog, next, effort) }),
     setEffort: (next) => pick({ effort: next }),
     ready: Boolean(providerId && model),
-    changed: Boolean(picks[providerId]) || providerId !== initial,
+    changed: touched,
     save: () => writeReviewerChoice({ providerId, model, effort }, storage),
   };
 }

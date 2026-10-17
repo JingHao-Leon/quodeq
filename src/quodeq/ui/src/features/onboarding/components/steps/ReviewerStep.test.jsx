@@ -157,4 +157,25 @@ describe('ReviewerStep', () => {
     fireEvent.click(start);
     expect(onStart).toHaveBeenCalledWith({ provider: { id: 'claude', model: 'sonnet' }, standardIds: ['security', 'maintainability'] });
   });
+
+  it('later with a stored provider that was not detected leaves storage untouched', async () => {
+    localStorage.setItem('cc-active-provider', 'gemini');
+    detection.value = detected(['claude-code', 'codex-cli']);
+    const { onLater } = renderStep();
+    await screen.findByRole('option', { name: 'Sonnet (default)' });
+    fireEvent.click(screen.getByRole('button', { name: 'later, take me to the project' }));
+    expect(onLater).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('cc-active-provider')).toBe('gemini');
+    expect(localStorage.getItem('cc-claude-model')).toBeNull();
+  });
+
+  it('later after selecting another provider row saves it', async () => {
+    localStorage.setItem('cc-active-provider', 'codex');
+    detection.value = detected(['claude-code', 'codex-cli']);
+    renderStep();
+    await screen.findByRole('option', { name: 'Sonnet (default)' });
+    fireEvent.click(screen.getByRole('radio', { name: 'Claude Code' }));
+    fireEvent.click(screen.getByRole('button', { name: 'later, take me to the project' }));
+    expect(localStorage.getItem('cc-active-provider')).toBe('claude');
+  });
 });

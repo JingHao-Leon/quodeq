@@ -93,8 +93,14 @@ describe('useReviewerChoice', () => {
     expect(result.current.changed).toBe(true);
   });
 
-  it('a first reviewer (nothing stored) counts as a change', () => {
+  it('a preselection alone is never a change, even with nothing stored', () => {
     const { result } = renderChoice(detectedOf('claude-code'));
+    expect(result.current.changed).toBe(false);
+  });
+
+  it('selecting a provider row counts as a change', () => {
+    const { result } = renderChoice(detectedOf('claude-code', 'codex-cli'), fakeStorage({ 'cc-active-provider': 'codex' }));
+    act(() => result.current.select('claude'));
     expect(result.current.changed).toBe(true);
   });
 });
