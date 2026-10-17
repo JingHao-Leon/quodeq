@@ -103,7 +103,7 @@ describe('JobHeader time-limit exit', () => {
     renderWithClient(
       <EvaluationStatus job={{ ...baseJob, status: 'failed' }} />
     );
-    expect(screen.getByText('evaluation_failed')).toBeInTheDocument();
+    expect(screen.getByText('evaluation failed')).toBeInTheDocument();
     expect(document.querySelector('.eval-run-pill--failed')).not.toBeNull();
   });
 
@@ -113,7 +113,7 @@ describe('JobHeader time-limit exit', () => {
     renderWithClient(
       <EvaluationStatus job={{ ...baseJob, status: 'done', exitReason: 'deadline' }} />
     );
-    expect(screen.getByText('evaluation_complete')).toBeInTheDocument();
+    expect(screen.getByText('evaluation complete')).toBeInTheDocument();
     expect(screen.queryByText('time limit reached')).toBeNull();
   });
 
@@ -121,7 +121,7 @@ describe('JobHeader time-limit exit', () => {
     renderWithClient(
       <EvaluationStatus job={{ ...baseJob, status: 'cancelled' }} />
     );
-    expect(screen.getByText('evaluation_cancelled')).toBeInTheDocument();
+    expect(screen.getByText('evaluation cancelled')).toBeInTheDocument();
     expect(screen.queryByText('time limit reached')).toBeNull();
   });
 });
