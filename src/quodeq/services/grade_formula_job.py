@@ -128,11 +128,13 @@ class GradeFormulaRescorer:
             return self._snapshot_locked()
 
     def owes_pass(self) -> bool:
-        """True while a pass runs or is owed: requested here, or left unfinished by the last process (the marker)."""
+        """True while a pass runs or waits to run: requested here, or resumed at start from the marker.
+
+        A pass that ended in error is not owed: its marker stays for the next
+        start to resume, but nothing waits on it meanwhile.
+        """
         with self._cond:
-            if self._state is RescoreState.RUNNING:
-                return True
-        return grade_formula.rescore_pending()
+            return self._state is RescoreState.RUNNING
 
     def wait_idle(self, timeout: float) -> bool:
         """Block until no pass is running or pending; False on timeout."""

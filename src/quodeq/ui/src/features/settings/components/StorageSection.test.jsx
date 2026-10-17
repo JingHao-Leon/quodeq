@@ -218,4 +218,22 @@ describe('StorageSection', () => {
     fireEvent.click(dialog.getByRole('button', { name: 'clean now' }));
     await waitFor(() => expect(dialog.getByText('Runs are being rescored with the grade formula. Try again when it ends.')).toBeInTheDocument());
   });
+
+  it('says one run, not one runs', async () => {
+    const getStorage = vi.fn(async () => ({ ...SUMMARY, archiveNotice: { runs: 1, bytes: GB } }));
+    const { section } = setup({ getStorage });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 1 run untouched for more than 6 months'));
+  });
+
+  it('promises archiving after start only while cleanup after start is on', async () => {
+    const { section } = setup({ getStorage: vi.fn(async () => ({ ...SUMMARY, autoCleanup: false })) });
+    const dialog = await openClean(section);
+    expect(dialog.queryByText(/archived on their own/)).not.toBeInTheDocument();
+  });
+
+  it('says old runs are archived after start when cleanup after start is on', async () => {
+    const { section } = setup();
+    const dialog = await openClean(section);
+    expect(dialog.getByText(/archived on their own after quodeq starts/)).toBeInTheDocument();
+  });
 });

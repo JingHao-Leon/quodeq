@@ -173,7 +173,6 @@ def build_response_from_eval_files(
     reports_root: Path, project: str, run_id: str,
     params: ScoringParams = DEFAULT_PARAMS,
     deps: ScoringDeps | None = None,
-    fetch: Callable[[str], list[DimensionResult]] | None = None,
 ) -> dict:
     """Read eval JSON files for a run and apply rescore (legacy path).
 
@@ -185,12 +184,11 @@ def build_response_from_eval_files(
     the dashboard already uses for accumulated data.
 
     Returns the same camelCase ``{dimensions, summary}`` shape as the SQL
-    path, so callers (UI dismiss handlers) don't need to branch. *fetch*
-    (default: the shared run-dimension fetcher) reads the run's dimensions.
+    path, so callers (UI dismiss handlers) don't need to branch.
     """
     validate_path_segment(project, run_id)
     d = deps or NO_DEPS
-    base_fetcher = fetch or make_run_dimension_fetcher(reports_root, project)
+    base_fetcher = make_run_dimension_fetcher(reports_root, project)
     project_dir = reports_root / project
     dismissed = (d.dismissed_keys or dismissed_keys)(project_dir)
     deleted = (d.deleted_keys or deleted_keys)(project_dir)

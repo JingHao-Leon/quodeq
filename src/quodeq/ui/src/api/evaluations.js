@@ -51,12 +51,15 @@ export async function getEvaluation(jobId) {
 
 /**
  * Live progress for a scan. Pure on-disk read — works for internal and
- * external (CLI-started) runs uniformly.
+ * external (CLI-started) runs uniformly. `findings: false` leaves the
+ * finding counts at zero and never unpacks an archived run (files and time only).
  * @param {string} jobId
+ * @param {{findings?: boolean}} [options]
  * @returns {Promise<Object>}
  */
-export function getEvaluationProgress(jobId) {
-  return request(`/evaluations/${encodeURIComponent(jobId)}/progress`);
+export function getEvaluationProgress(jobId, { findings = true } = {}) {
+  const query = findings ? '' : '?findings=none';
+  return request(`/evaluations/${encodeURIComponent(jobId)}/progress${query}`);
 }
 
 /**

@@ -125,12 +125,17 @@ def test_dismiss_and_restore_all_leave_archived_runs_packed(env):
     _assert_still_archived(old, "restore-all")
 
 
+def _name_dimensions(runs) -> None:
+    """A run that names its dimensions has a per-dimension progress row, with its evidence tally."""
+    for run in runs:
+        status = json.loads((run / "status.json").read_text())
+        (run / "status.json").write_text(json.dumps({**status, "dimensions": ["security"]}))
+
+
 def test_the_run_log_change_fill_leaves_archived_runs_packed(env):
     """History and the Overview header fill each run's change data; that read never restores a run."""
     _root, old, client = env
-    for run in old:  # a run that names its dimensions has a per-dimension progress row to fill
-        status = json.loads((run / "status.json").read_text())
-        (run / "status.json").write_text(json.dumps({**status, "dimensions": ["security"]}))
+    _name_dimensions(old)
     _archive(old)
     assert client.get(f"/api/projects/{PROJECT}/runs/log").status_code == 200
     assert client.application.extensions["run_change_filler"].wait_idle(budget(10))
@@ -147,3 +152,37 @@ def test_the_previous_period_scores_read_leaves_an_archived_run_packed(env):
     assert resp.status_code == 200
     assert [d["dimension"] for d in resp.get_json()["dimensions"]] == ["security"]
     _assert_still_archived(old, "the previous-period scores read")
+
+
+def test_the_history_throughput_read_leaves_an_archived_run_packed(env):
+    """Selecting a History row reads its files and time (``?findings=none``); the run stays packed."""
+    _root, old, client = env
+    _name_dimensions(old)
+    _archive(old)
+
+    resp = client.get(f"/api/evaluations/{old[0].name}/progress?findings=none")
+
+    assert resp.status_code == 200
+    assert [d["id"] for d in resp.get_json()["dimensions"]] == ["security"]
+    _assert_still_archived(old, "the History throughput read")
+
+
+def test_the_previous_period_read_keeps_the_frozen_grades_after_a_dismissal(env):
+    """With the evidence packed a dismissal would regrade with the legacy formula; the frozen grades stand."""
+    _root, old, client = env
+    report = old[0] / "evaluation" / "security.json"
+    violations = [{"req": f"R{i}", "principle": "P1", "file": f"f{i}.py", "line": 10 + i, "severity": "major"}
+                  for i in range(5)]
+    body = json.loads(report.read_text())
+    report.write_text(json.dumps({**body, "violations": violations, "principles": [
+        {"principle": "P1", "score": 4.0, "grade": "Weak", "violationCount": 5}]}))
+    _archive(old[:1])
+    url = f"/api/projects/{PROJECT}/scores/{old[0].name}?archived=keep"
+    before = client.get(url).get_json()["dimensions"][0]
+
+    dismiss = {"project": PROJECT, **_KEY, "run_id": _LIVE}  # dismissed on the newest run, as the page does
+    assert client.post("/api/findings/dismiss", json=dismiss, headers=_LOCALHOST).status_code == 200
+    after = client.get(url).get_json()["dimensions"][0]
+
+    _assert_still_archived(old[:1], "the previous-period read after a dismissal")
+    assert (after["overallScore"], after["principles"]) == (before["overallScore"], before["principles"])

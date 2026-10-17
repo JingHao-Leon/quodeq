@@ -19,7 +19,7 @@ function renderPage(props = {}, runs = RUNS) {
   const cb = { onRunClick: vi.fn(), onDimensionClick: vi.fn(), onNavigate: vi.fn(), onRunChange: vi.fn(), ...props };
   const Wrapper = withStableQueryApi(api);
   render(<Wrapper><RunLogPage project="p1" {...cb} /></Wrapper>);
-  return cb;
+  return { ...cb, api };
 }
 
 describe('RunLogPage', () => {
@@ -38,6 +38,13 @@ describe('RunLogPage', () => {
     fireEvent.keyDown(input, { key: 'ArrowUp' });
     expect(cb.onRunChange).toHaveBeenLastCalledWith('b');
     input.remove();
+  });
+
+  it('reads the selected run\'s throughput without counting findings, so an archived run stays packed', async () => {
+    const { api } = renderPage();
+    await screen.findByText(/comparison|vs /);
+    await waitFor(() => expect(api.getEvaluationProgress).toHaveBeenCalled());
+    expect(api.getEvaluationProgress).toHaveBeenCalledWith('ext-a', { findings: false });
   });
 
   it('a resolved finding opens in the comparison run with a note naming both runs', async () => {

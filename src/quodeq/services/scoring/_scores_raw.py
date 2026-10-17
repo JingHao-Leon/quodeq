@@ -12,6 +12,8 @@ from pathlib import Path
 
 from quodeq.services.grade_formula import load_params
 from quodeq.services.ports import StoreUnreadableError
+from quodeq.services.rescore import rescore_dimensions
+from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.score_cache import params_fingerprint
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
@@ -135,6 +137,8 @@ def get_scores_raw(
 
     ``keep_archived`` serves an archived run from its reports and
     ``scalars.json`` instead of restoring it (a comparison read, not an open).
+    Nothing is filtered then: with the evidence packed a filter would regrade
+    with the legacy formula, so the frozen grades stand, as the trend shows them.
     """
     validate_path_segment(project, run_id)
     d = deps or NO_DEPS
@@ -145,9 +149,10 @@ def get_scores_raw(
     params = load_params()
     project_dir = reports_root / project
     if keep_archived and is_archived(run_dir):
-        return build_response_from_eval_files(
-            reports_root, project, run_id, params=params, deps=d, fetch=lambda _rid: read_archived_run_data(run_dir),
+        rescored = rescore_dimensions(
+            read_archived_run_data(run_dir), SuppressionKeys(frozenset()), params=params, run_dir=run_dir,
         )
+        return {"dimensions": rescored.get("dimensions", []), "summary": rescored.get("summary", {})}
 
     # SQL path is meaningful only when events.jsonl exists. For older runs
     # without one, skip straight to the JSON-file fallback so we don't have

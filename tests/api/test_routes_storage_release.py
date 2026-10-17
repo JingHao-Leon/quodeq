@@ -116,16 +116,26 @@ def test_clean_now_is_409_while_a_rescore_runs(root):
     assert not (old / "archive.tar.gz").exists()
 
 
-def test_clean_now_is_409_while_an_unfinished_rescore_waits_to_resume(root):
+def test_clean_now_waits_for_a_resumed_rescore_but_not_a_failed_one(root):
     grade_formula.mark_rescore_pending()  # the last process quit mid-pass
-    rescorer = GradeFormulaRescorer()
+    release = threading.Event()
+
+    def apply(*_a, **_k):
+        release.wait(budget(10))
+        raise OSError("evaluations folder unreadable")
+
+    rescorer = GradeFormulaRescorer(apply)
     try:
+        rescorer.resume_pending(root)
         resp = _client(rescorer).post("/api/storage/clean", headers=_LOCALHOST)
         assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_RESCORE"
-        grade_formula.clear_rescore_pending()
+        release.set()
+        assert rescorer.wait_idle(budget(10))
+        assert rescorer.snapshot().state == "error" and grade_formula.rescore_pending()
         client = _client(rescorer)
         assert client.post("/api/storage/clean", headers=_LOCALHOST).status_code == 202
         assert _wait_done(client)
     finally:
+        release.set()
         grade_formula.clear_rescore_pending()
         rescorer.stop()

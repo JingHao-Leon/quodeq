@@ -117,6 +117,13 @@ def _get_evaluation(app: Flask, provider: ActionProvider, job_id: str) -> Respon
     return jsonify(payload)
 
 
+# ``?findings=none`` leaves the finding counts at zero: a caller that reads only
+# files and time (History's throughput) never opens the evidence, so an
+# archived run stays packed.
+FINDINGS_PARAM = "findings"
+NO_FINDINGS = "none"
+
+
 def _get_evaluation_progress(app: Flask, provider: ActionProvider, job_id: str) -> Response | tuple[Response, int]:
     """Return live progress for a scan (works for internal and external runs)."""
     run_dir = provider.get_log_run_dir(job_id) if hasattr(provider, "get_log_run_dir") else None
@@ -134,6 +141,7 @@ def _get_evaluation_progress(app: Flask, provider: ActionProvider, job_id: str) 
     progress = build_scan_progress(
         job_id, run_dir, time_limit_s=time_limit_s,
         compiled_dir=standards_compiled_dir(app),
+        tally_findings=request.args.get(FINDINGS_PARAM) != NO_FINDINGS,
     )
     if progress is None:
         return json_error("Run not ready", HTTPStatus.NOT_FOUND, CODE_NOT_FOUND)
