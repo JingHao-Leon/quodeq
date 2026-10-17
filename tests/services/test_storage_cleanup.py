@@ -97,4 +97,51 @@ def test_cleanup_reports_the_bytes_it_freed(tmp_path):
     _run(tmp_path, "p", "newer", 10)
     result = run_cleanup(tmp_path, NOW)
     assert result.archived == 1
-    assert result.bytes_freed >= 0
+    assert result.bytes_freed > 0
+
+
+def test_the_hook_accepts_a_string_root_and_archives(tmp_path):
+    old = _run(tmp_path, "p", "old", 300)
+    _run(tmp_path, "p", "newer", 10)
+    thread = storage_cleanup.start_storage_cleanup(str(tmp_path), {"QUODEQ_STORAGE_CLEANUP": "1"})
+    thread.join(10)
+    assert (old / "archive.tar.gz").is_file()
+
+
+def test_legacy_state_spellings_count_as_finished(tmp_path):
+    old = _run(tmp_path, "p", "old", 300, state="completed")
+    _run(tmp_path, "p", "newer", 10)
+    assert plan_cleanup(tmp_path, NOW).archive == (old,)
+
+
+def test_a_live_run_without_a_start_time_still_blocks_its_project(tmp_path):
+    old = _run(tmp_path, "p", "old", 300)
+    live = _run(tmp_path, "p", "live", 5, state="running")
+    (live / "status.json").write_text(json.dumps({"state": "running"}))
+    _run(tmp_path, "p", "newer", 10)
+    plan = plan_cleanup(tmp_path, NOW)
+    assert old not in plan.archive and old not in plan.tidy
+
+
+def test_the_newest_done_and_newest_terminal_runs_both_stay(tmp_path):
+    done = _run(tmp_path, "p", "done", 400, dims=("security",))
+    cancelled = _run(tmp_path, "p", "cancelled", 300, state="cancelled", dims=("security",))
+    plan = plan_cleanup(tmp_path, NOW)
+    assert done not in plan.archive and cancelled not in plan.archive
+
+
+def test_cleanup_waits_for_the_warmup(tmp_path):
+    old = _run(tmp_path, "p", "old", 300)
+    _run(tmp_path, "p", "newer", 10)
+    answers = iter([False, False, True])
+    calls = []
+
+    def idle():
+        calls.append(1)
+        return next(answers)
+
+    thread = storage_cleanup.start_storage_cleanup(
+        tmp_path, {"QUODEQ_STORAGE_CLEANUP": "1"}, warmup_idle=idle, poll_s=0.01)
+    thread.join(10)
+    assert len(calls) == 3
+    assert (old / "archive.tar.gz").is_file()

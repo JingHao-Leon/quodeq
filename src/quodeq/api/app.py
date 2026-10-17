@@ -269,7 +269,8 @@ def _start_background_work(env: Mapping[str, str] | None = None) -> None:
         from quodeq.shared.log_sink import SHARED_LOG  # noqa: PLC0415
         warmup_engine.start(reports_dir())
         start_cache_maintenance(log=SHARED_LOG)
-        start_storage_cleanup(reports_dir(), env, log=SHARED_LOG)
+        start_storage_cleanup(
+            reports_dir(), env, log=SHARED_LOG, warmup_idle=lambda: not (warmup_engine.snapshot() or {}).get("active"))
     except (ImportError, RuntimeError, OSError):  # pragma: no cover - warm-up must never block serving
         _logger.warning("warm-up start failed", exc_info=True)
 
