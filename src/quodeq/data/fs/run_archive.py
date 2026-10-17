@@ -37,9 +37,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
-from quodeq.data.fs.run_archive_limits import (  # noqa: F401 -- check_members re-exported
-    RunArchiveError, check_members, check_packable, check_restore_dirs, read_members,
-)
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_members, check_packable, check_restore_dirs, read_members  # noqa: F401
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
@@ -47,8 +45,7 @@ from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal,
 
 _logger = logging.getLogger(__name__)
 
-# The dispatch queues (``*_queue.json``) stay: History's files analysed and a cancelled
-# run's partly scanned dimensions are read from them.
+# The dispatch queues (``*_queue.json``) stay: files analysed and partly scanned dimensions read them.
 TIDY_PATTERNS = ("*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
 
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
