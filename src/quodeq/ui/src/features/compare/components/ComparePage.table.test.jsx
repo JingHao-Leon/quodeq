@@ -15,7 +15,7 @@ vi.mock('../../../api/shared.js', () => ({
   sharedListProjects: vi.fn(),
 }));
 
-import { getDimensionEval, getFleetCompare, sharedGetFleetCompare } from '../../../api/index.js';
+import { getFleetCompare, sharedGetFleetCompare } from '../../../api/index.js';
 import { sharedListProjects } from '../../../api/shared.js';
 import { PROJECTS, fleetOf, summary, renderPage, iso, findTableName } from './_comparePage.fixtures.jsx';
 
@@ -249,26 +249,15 @@ describe('ComparePage', () => {
   });
 
   it('opens a project-specific principle from a principle card', async () => {
-    getDimensionEval.mockResolvedValue({
-      dimension: 'Security',
-      principles: [{ name: 'Integrity', violations: [], compliance: [] }],
-      principleGrades: [{ principle: 'Integrity', score: '7.0', grade: 'Good' }],
-      violations: [],
-      compliance: [],
-    });
-    const onOpenEvalPrincipal = vi.fn();
-    renderPage({ onOpenEvalPrincipal });
+    const onOpenProjectPrinciple = vi.fn();
+    renderPage({ onOpenProjectPrinciple });
     await findTableName('alpha');
     await drillIntoSecurity();
     // Any integrity tile in the principle matrix opens that project's principle.
     const leads = await screen.findAllByTitle(/open integrity in/);
     await userEvent.click(leads[0]);
-    await waitFor(() => expect(onOpenEvalPrincipal).toHaveBeenCalled());
-    const evalPrincipal = onOpenEvalPrincipal.mock.calls[0][0];
-    expect(evalPrincipal.principle).toBe('Integrity');
-    expect(evalPrincipal.runId).toBe('r2');
-    expect(['alpha', 'beta']).toContain(evalPrincipal.project);
-    expect(getDimensionEval).toHaveBeenCalledWith(evalPrincipal.project, 'r2', 'Security');
+    expect(onOpenProjectPrinciple).toHaveBeenCalledWith(expect.objectContaining({ dimName: 'Security', principle: 'Integrity' }));
+    expect(['alpha', 'beta']).toContain(onOpenProjectPrinciple.mock.calls[0][0].id);
   });
 
   it('marks projects whose summary failed', async () => {

@@ -9,7 +9,7 @@
  * Data arrives progressively (one query per project — see useCompareData);
  * rows for projects still computing render as pending instead of blocking
  * the whole screen. Row/aggregate building lives in useCompareRows, scope
- * selection in useCompareScopeActions, and the principle drill-down fetch in
+ * selection in useCompareScopeActions, and the principle drill-down in
  * useOpenPrinciple — this component only owns navigation state and layout.
  */
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
@@ -86,13 +86,13 @@ function useFleetProjects(projects) {
 /**
  * Everything view/scope-state-shaped: score ordering, the scope picker,
  * the built rows/aggregates (useCompareRows), scope actions
- * (useCompareScopeActions), the principle drill-down fetch
+ * (useCompareScopeActions), the principle drill-down
  * (useOpenPrinciple), and the dimension-open callback (which follows the
  * push-vs-replace nav contract described on the component below).
  */
 function useComparePageState({
   fleetProjects, summariesById, dimension, duel, onOpenProject, onOpenDimension,
-  onSwitchDimension, onOpenEvalPrincipal,
+  onSwitchDimension, onOpenProjectPrinciple,
 }) {
   const view = dimension || COMPARE_VIEW_FLEET;
   // Rows arrive best-first; the fleet tables re-rank by their own column headers.
@@ -106,7 +106,7 @@ function useComparePageState({
 
   const rowsState = useCompareRows({ fleetProjects, summariesById, now, scopeIds, sortDir, view, duel, onOpenProject });
   const { toggleProject, selectAll, selectFlagged } = useCompareScopeActions({ scopeIds, setScopeIds, rows: rowsState.rows });
-  const openPrinciple = useOpenPrinciple({ onOpenEvalPrincipal, openProject: rowsState.openProject });
+  const openPrinciple = useOpenPrinciple({ onOpenProjectPrinciple, openProject: rowsState.openProject });
 
   const openDimension = useCallback((key) => {
     setPickerOpen(false);
@@ -172,7 +172,7 @@ export default function ComparePage({
   dimension = null,
   onOpenDimension,
   onSwitchDimension,
-  onOpenEvalPrincipal,
+  onOpenProjectPrinciple,
   onOpenProjectDimension,
   duel = null,
   onOpenDuel,
@@ -186,7 +186,7 @@ export default function ComparePage({
     toggleProject, selectAll, selectFlagged, openPrinciple, openDimension,
   } = useComparePageState({
     fleetProjects, summariesById, dimension, duel, onOpenProject, onOpenDimension,
-    onSwitchDimension, onOpenEvalPrincipal,
+    onSwitchDimension, onOpenProjectPrinciple,
   });
 
   // The route component stays mounted across the fleet <-> dimension swap,

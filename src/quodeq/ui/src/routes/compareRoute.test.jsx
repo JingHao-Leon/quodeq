@@ -32,4 +32,13 @@ describe('compareRoute', () => {
     const params = props.navigation.handleNavigate.mock.calls[0][1];
     expect(ownProjectProps(params, props).scopedFindings).not.toBeNull();
   });
+
+  it('opens a project\'s principle on its findings, with that project selected', () => {
+    const props = routeProps();
+    compareRoute({}, props).props.onOpenProjectPrinciple({ id: 'proj2', dimName: 'Security', principle: 'Integrity' });
+    expect(props.navigation.handleProjectChange).toHaveBeenCalledWith('proj2', 'local');
+    expect(props.navigation.handleNavigate).toHaveBeenCalledWith('violations', {
+      scope: { kind: 'principle', dimension: 'Security', principle: 'Integrity' }, asOf: null,
+    });
+  });
 });
