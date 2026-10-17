@@ -20,9 +20,6 @@ const ZONE_GLOW = {
 };
 const RIM_GLOW_SHARE = 0.18;
 const LINE_GLOW_PX = 8;
-const ZONE_LABEL_PX = 10;
-const ZONE_LABEL_WEIGHT = 600;
-const ZONE_LABEL_GAP_PX = 5;
 const BAND_DASH_PX = 5;
 const BAND_DASH = [BAND_DASH_PX, BAND_DASH_PX];
 const RING_DASH_PX = 5;
@@ -127,39 +124,6 @@ function drawBands(ctx, frame, rings, palette) {
   ctx.globalAlpha = 1;
 }
 
-/** The canvas font of a zone's label (its name and count on top of its ring). */
-export function skyZoneFont(font, fontScale) {
-  return `${ZONE_LABEL_WEIGHT} ${ZONE_LABEL_PX * fontScale}px ${font}`;
-}
-
-/**
- * Where each zone's label sits: centred on top of its ring. `zoneLabels`
- * holds each label's text and measured width; the boxes keep area labels off them.
- * @returns {{text: string, x: number, y: number, box: {x0: number, x1: number, y0: number, y1: number}, zone: string}[]}
- */
-export function placeZoneLabels(frame, rings, zoneLabels, fontScale) {
-  return [SKY_ZONE.FIX_FIRST, SKY_ZONE.WATCH].map((zone) => {
-    const { text, w } = zoneLabels[zone];
-    const y = frame.cy - rings[zone] * frame.s - ZONE_LABEL_GAP_PX;
-    return { zone, text, x: frame.cx, y, box: { x0: frame.cx - w / 2, x1: frame.cx + w / 2, y0: y - ZONE_LABEL_PX * fontScale, y1: y } };
-  });
-}
-
-/** Each zone's name and count on top of its ring, over the bubbles. */
-function drawZoneLabels(ctx, { zoneLabels, palette, font, fontScale }) {
-  if (!zoneLabels) return;
-  const color = { [SKY_ZONE.FIX_FIRST]: palette.sevCritical, [SKY_ZONE.WATCH]: palette.sevMajor };
-  ctx.textAlign = 'center';
-  ctx.font = skyZoneFont(font, fontScale);
-  ctx.lineWidth = HALO_WIDTH;
-  ctx.strokeStyle = rgbCss(palette.bg);
-  for (const label of zoneLabels) {
-    ctx.strokeText(label.text, label.x, label.y);
-    ctx.fillStyle = rgbCss(color[label.zone]);
-    ctx.fillText(label.text, label.x, label.y);
-  }
-}
-
 function drawCentre(ctx, frame, palette) {
   const hot = rgbCss(palette.sevCritical);
   ctx.beginPath();
@@ -214,18 +178,17 @@ function drawBubble(ctx, b, paint) {
 }
 
 /**
- * The static layer: zone glows, bands, centre mark, bubbles largest first
- * (one colour each, no file dots), then the zone labels on top. `rings` are skyRings distances, so the lines
+ * The static layer: zone glows, bands, centre mark, then the bubbles largest first
+ * (one colour each, no file dots); the legend names the zones. `rings` are skyRings distances, so the lines
  * and the glows follow the areas on the sky.
  */
-export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, palette, width, height, zoneLabels, font, fontScale }) {
+export function drawSkyStatic(ctx, { frame, rings, bubbles, paints, palette, width, height }) {
   ctx.clearRect(0, 0, width, height);
   drawZones(ctx, frame, rings, palette);
   drawBands(ctx, frame, rings, palette);
   drawCentre(ctx, frame, palette);
   const order = bubbles.map((_, i) => i).sort((a, b) => bubbles[b].R - bubbles[a].R);
   for (const i of order) drawBubble(ctx, bubbles[i], paints[i]);
-  drawZoneLabels(ctx, { zoneLabels, palette, font, fontScale });
 }
 
 function drawVeil(ctx, b, palette, size) {

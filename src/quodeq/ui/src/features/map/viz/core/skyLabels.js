@@ -126,19 +126,18 @@ function spotFor(index, { bubbles, placed, w, must }) {
  * of other bubbles and labels. Must labels may move further out and graze
  * bubbles. No two labels ever overlap: a label without a free spot is
  * dropped (the area keeps its tooltip, keyboard button and panel).
- * `reserved` boxes (the zone labels) are kept clear like placed labels;
  * `first` (the selected area) is placed before every other label, so it wins
  * any conflict.
  * @returns {{index: number, x: number, y: number}[]}
  */
-export function placeSkyLabels({ bubbles, wanted, must, measure, reserved = [], first = null, priority = null }) {
+export function placeSkyLabels({ bubbles, wanted, must, measure, first = null, priority = null }) {
   const rank = priority || ((i) => bubbles[i].R);
   const order = [...new Set([...must, ...wanted])]
     .sort((a, b) => Number(b === first) - Number(a === first) || Number(must.has(b)) - Number(must.has(a)) || rank(b) - rank(a));
-  const placed = reserved.map((box) => ({ index: null, box }));
+  const placed = [];
   for (const index of order) {
     const spot = spotFor(index, { bubbles, placed, w: measure(index), must: must.has(index) });
     if (spot) placed.push({ index, x: spot.x, y: spot.y, box: spot.box });
   }
-  return placed.filter((p) => p.index !== null).map(({ index, x, y }) => ({ index, x, y }));
+  return placed.map(({ index, x, y }) => ({ index, x, y }));
 }

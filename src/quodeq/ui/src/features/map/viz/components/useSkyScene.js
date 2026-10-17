@@ -3,7 +3,7 @@ import { createLayoutCache } from '../core/skyLayoutCache.js';
 import { skyRings } from '../core/skyScale.js';
 import { packAreaFiles } from '../core/skyMiniPack.js';
 import { skyAreaPaint, fileDotColor } from '../core/skyPaint.js';
-import { skyFrame, toPixels, placeZoneLabels } from '../core/skyLayers.js';
+import { skyFrame, toPixels } from '../core/skyLayers.js';
 import { chooseLabelled, mustLabelled, placeSkyLabels } from '../core/skyLabels.js';
 
 /** One cache for the app, so Back from the circle pack finds the sky already laid out. */
@@ -30,7 +30,7 @@ function useSkyModel(areas, average, palette, given) {
   return { nodes, rings, paints, files };
 }
 
-function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, labelText, reserved }) {
+function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, labelText }) {
   return useMemo(() => {
     // Labels off: no label at all (hover keeps its popup), as on the Circle Pack.
     if (!showLabels) return [];
@@ -41,9 +41,9 @@ function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, la
     const shown = (set) => new Set([...set].filter((i) => !placeable[i].absent));
     const must = shown(mustLabelled({ ...picks, showLabels }));
     const wanted = shown(chooseLabelled(picks));
-    const placed = placeSkyLabels({ bubbles, wanted, must, measure, reserved, first: picks.selected, priority: (i) => areas[i].density || 0 });
+    const placed = placeSkyLabels({ bubbles, wanted, must, measure, first: picks.selected, priority: (i) => areas[i].density || 0 });
     return placed.map((p) => ({ ...p, ...labelText(areas[p.index]) }));
-  }, [areas, bubbles, hover, selected, showLabels, measure, labelText, reserved]);
+  }, [areas, bubbles, hover, selected, showLabels, measure, labelText]);
 }
 
 /**
@@ -51,15 +51,10 @@ function useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure, la
  * pixel bubbles for the canvas size, and placed labels. `nodes` (aligned with
  * `areas`) and `rings`, when given, are used as they are instead of laying out.
  */
-export function useSkyScene({ areas, average, palette, size, hover, selected, showLabels, measure, labelText, zoneText, nodes: givenNodes, rings: givenRings }) {
+export function useSkyScene({ areas, average, palette, size, hover, selected, showLabels, measure, labelText, nodes: givenNodes, rings: givenRings }) {
   const { nodes, rings, paints, files } = useSkyModel(areas, average, palette, { nodes: givenNodes, rings: givenRings });
   const frame = useMemo(() => skyFrame(size.w, size.h), [size.w, size.h]);
   const bubbles = useMemo(() => toPixels(nodes, frame), [nodes, frame]);
-  const zoneLabels = useMemo(
-    () => (showLabels ? placeZoneLabels(frame, rings, zoneText(rings), measure.fontScale) : []),
-    [frame, rings, zoneText, measure, showLabels],
-  );
-  const reserved = useMemo(() => zoneLabels.map((z) => z.box), [zoneLabels]);
-  const labels = useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure: measure.area, labelText, reserved });
-  return { frame, rings, bubbles, paints, files, labels, zoneLabels };
+  const labels = useSkyLabels({ areas, bubbles, hover, selected, showLabels, measure: measure.area, labelText });
+  return { frame, rings, bubbles, paints, files, labels };
 }
