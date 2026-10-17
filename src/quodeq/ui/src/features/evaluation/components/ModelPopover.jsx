@@ -12,13 +12,14 @@ import { t } from '../../../strings/index.js';
 // The element inside the anchor cell that takes focus back on close.
 const ANCHOR_FOCUS_TARGET = 'button';
 
-/** The AI clients in the neutral reviewer order, and the installed ones' ids. */
+/** The AI clients in the neutral reviewer order, the installed ones' ids, and the list's load error. */
 function useOrderedClients() {
-  const { clients } = useAiClientList();
-  return useMemo(() => {
+  const { clients, clientsError } = useAiClientList();
+  const sorted = useMemo(() => {
     const ordered = [...clients].sort((a, b) => compareReviewerOrder(a.id, b.id));
     return { ordered, installed: ordered.filter((c) => c.installed !== false).map((c) => c.id) };
   }, [clients]);
+  return { ...sorted, clientsError };
 }
 
 /**
@@ -49,7 +50,7 @@ function confirmLabel(draft) {
 
 function ModelPopoverPanel({ anchorRef, onClose, onOpenSettings }) {
   const panelRef = useRef(null);
-  const { ordered, installed } = useOrderedClients();
+  const { ordered, installed, clientsError } = useOrderedClients();
   const [initial] = useState(() => readString(ACTIVE_PROVIDER_KEY, '') || null);
   const draft = useReviewerDraft({ providers: installed, initial });
   const right = useAnchoredPanel(anchorRef, panelRef);
@@ -65,6 +66,7 @@ function ModelPopoverPanel({ anchorRef, onClose, onOpenSettings }) {
   return (
     <div ref={panelRef} className="eval-model-popover" role="dialog" aria-label={title} tabIndex={-1} style={{ right }}>
       <div className="eval-model-popover__title">{title}</div>
+      {clientsError && <span className="settings-error" role="alert">{clientsError}</span>}
       <ProviderPillGroup clients={ordered} activeId={draft.providerId} onSelect={draft.select} />
       {draft.providerId && (
         <ReviewerFields

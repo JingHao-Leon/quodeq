@@ -16,7 +16,7 @@ const CLIENTS = [
 ];
 const TITLE = 'Who reviews this run';
 
-function setup() {
+function setup(overrides = {}) {
   const onStart = vi.fn();
   const onGoToSettings = vi.fn();
   const api = makeFakeApi({
@@ -26,6 +26,7 @@ function setup() {
     getClientModels: vi.fn().mockResolvedValue({ catalog: CATALOG }),
     getOllamaModels: vi.fn().mockResolvedValue([{ name: 'qwen3:8b' }]),
     getOllamaStatus: vi.fn().mockResolvedValue({ status: 'online' }),
+    ...overrides,
   });
   renderCard({ project: 'p-popover', projectInfo: INFO, api, onStart, onGoToSettings, preselectDims: ['security'] });
   return { onStart, onGoToSettings };
@@ -116,5 +117,14 @@ describe('ModelPopover on Evaluate', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'use Sonnet' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: TITLE })).toBeNull());
     expect(onStart).not.toHaveBeenCalled();
+  });
+
+  it('a failed client list shows the same error line as Settings', async () => {
+    setup({ getAiClients: vi.fn().mockRejectedValue(new Error('down')) });
+    const dialog = await openPopover();
+    const alert = await screen.findByRole('alert');
+    expect(dialog).toContainElement(alert);
+    expect(alert).toHaveClass('settings-error');
+    expect(alert).toHaveTextContent("We couldn't load your AI providers.");
   });
 });
