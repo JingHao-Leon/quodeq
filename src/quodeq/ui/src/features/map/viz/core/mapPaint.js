@@ -62,6 +62,15 @@ export function badnessStrength(b, dark) {
   return BETTER_BASE[s] + BETTER_SPAN[s] * t ** BETTER_EXP[s];
 }
 
+/**
+ * Dark glass: how strongly a worse-than-average folder glows, 0 to 1. It follows
+ * the folder's own score, so depth never adds glow (the fills are cut out).
+ */
+export function folderGlow(b, dark) {
+  if (!dark || b <= AVERAGE_BAND) return 0;
+  return clamp(badnessStrength(b, true) / (WORSE_BASE.dark + WORSE_SPAN.dark), 0, 1);
+}
+
 /** How far a file's colour moves from the background toward its hue. */
 export function fileStrength(b, dark) {
   const band = FILE_BAND[side(dark)];

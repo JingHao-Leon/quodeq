@@ -1,6 +1,6 @@
 import { badness, nodeWeight } from './mapBadness.js';
 import {
-  mixRgb, rgbCss, badnessHue, badnessStrength, fileSeverityColor, fileSeverityHue, activityScale, activityFileStrength,
+  mixRgb, rgbCss, badnessHue, badnessStrength, folderGlow, fileSeverityColor, fileSeverityHue, activityScale, activityFileStrength,
   activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE,
   ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
@@ -63,11 +63,12 @@ function strokeFor(n, hue, palette) {
   return { stroke: rgbCss(palette.text), strokeAlpha: n.depth === 1 ? STROKE_ALPHA_TOP : STROKE_ALPHA };
 }
 
+/** Folders cut out their sub-folders in both themes, so a translucent dark tint never stacks on its ancestors'. */
 function folderFill({ n, hue, strength, glassStrength, palette }) {
   if (!palette.dark) return { fill: rgbCss(mixRgb(pageBg(palette), hue, strength)), alpha: 1, cutOut: true };
   const holdsFiles = n.children.some(isLeaf);
-  if (!holdsFiles) return { fill: rgbCss(palette.glassParent), alpha: GLASS_PARENT_ALPHA, cutOut: false };
-  return { fill: rgbCss(hue), alpha: glassStrength, cutOut: false };
+  if (!holdsFiles) return { fill: rgbCss(palette.glassParent), alpha: GLASS_PARENT_ALPHA, cutOut: true };
+  return { fill: rgbCss(hue), alpha: glassStrength, cutOut: true };
 }
 
 function concentrationPaint(n, ctx) {
@@ -81,7 +82,8 @@ function concentrationPaint(n, ctx) {
     return { fill: rgbCss(fileSeverityColor(worst, b, ctx.palette)), alpha: 1, cutOut: false, file: true, badness: b, hue: fileHue };
   }
   const strength = badnessStrength(b, ctx.palette.dark);
-  return { ...folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette }), file: false, badness: b, hue };
+  const fill = folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette });
+  return { ...fill, file: false, badness: b, hue, glow: folderGlow(b, ctx.palette.dark) };
 }
 
 function activityPaint(n, ctx) {

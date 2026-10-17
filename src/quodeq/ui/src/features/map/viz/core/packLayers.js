@@ -1,9 +1,9 @@
 import { isDrawable } from './packCanvasGeometry.js';
 import { TAU } from './galaxyCore.js';
-import { clamp } from './mapBadness.js';
 import { chainLabel } from './chainLabel.js';
 import { rgbCss, labelInk } from './mapPaint.js';
 import { isPackFolder } from './packNode.js';
+import { drawFolder, folderRadius, STROKE_PX } from './packFolder.js';
 
 /** Files are drawn at 84 % of their slot, so siblings never touch. */
 export const FILE_SLOT_SCALE = 0.84;
@@ -15,10 +15,6 @@ export const VEIL_ALPHA_LIGHT = 0.6;
  * what steps back, and the context outside the open folder.
  */
 export const FADE = Object.freeze({ ACTIVE: 1, RECEDED: 0.65, CONTEXT: 0.15 });
-const INSET_SHARE = 0.02;          // folders drawn 2 % inside their slot
-const INSET_MIN_PX = 0.5;
-const INSET_MAX_PX = 2.5;
-const STROKE_PX = 1;
 const HOVER_STROKE_PX = 1.6;
 const HOVER_STROKE_ALPHA = 0.8;
 const LABEL_MIN_R = 10;
@@ -39,45 +35,6 @@ const NO_DASH = [];
 
 function toPx(sc, viewport) {
   return { px: viewport.ox + sc.cx * viewport.scale, py: viewport.oy + sc.cy * viewport.scale, r: sc.r * viewport.scale };
-}
-
-/** Folder radius in pixels after the proportional inset. */
-function folderRadius(rPx) {
-  return Math.max(0, rPx - clamp(rPx * INSET_SHARE, INSET_MIN_PX, INSET_MAX_PX));
-}
-
-/** Holes for the sub-folders drawn solid inside `c`; one drawn dotted (absent), still fading in
- * (time-lapse move) or not at all keeps its parent's fill. */
-function traceCutOut(ctx, { c, at, index, paints }) {
-  for (const child of c.children || []) {
-    if (!isPackFolder(child)) continue;
-    const i = index.get(child);
-    if (i === undefined || !paints[i] || paints[i].ghost || paints[i].arriving) continue;
-    const p = at(i);
-    const r = folderRadius(p.r);
-    if (r <= 0) continue;
-    ctx.moveTo(p.px + r, p.py);
-    ctx.arc(p.px, p.py, r, 0, TAU);
-  }
-}
-
-function drawFolder(ctx, { c, p, paint, at, index, paints, fade = 1 }) {
-  const r = folderRadius(p.r);
-  ctx.beginPath();
-  ctx.arc(p.px, p.py, r, 0, TAU);
-  if (!paint.outlineOnly) {
-    if (paint.cutOut) traceCutOut(ctx, { c, at, index, paints });
-    ctx.globalAlpha = paint.alpha * fade;
-    ctx.fillStyle = paint.fill;
-    ctx.fill(paint.cutOut ? EVEN_ODD : undefined);
-  }
-  ctx.beginPath();
-  ctx.arc(p.px, p.py, r, 0, TAU);
-  ctx.globalAlpha = paint.strokeAlpha * fade;
-  ctx.lineWidth = STROKE_PX;
-  ctx.strokeStyle = paint.stroke;
-  ctx.stroke();
-  ctx.globalAlpha = 1;
 }
 
 /** A file's fill at its paint's opacity (1 except while it fades in during a time-lapse move), times `fade`. */

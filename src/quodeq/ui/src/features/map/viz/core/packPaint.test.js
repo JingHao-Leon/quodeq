@@ -48,11 +48,19 @@ test('the bad folder is worse, the good folder better', () => {
   assert.ok(at('src/good').badness < -0.3);
 });
 
-test('dark glass: folders holding files carry the hue, parents a faint veil, no cut-outs', () => {
+test('dark glass: folders holding files carry the hue, parents a faint veil, cut out under sub-folders so tints never stack', () => {
   const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, true);
   assert.equal(at('src/bad').fill, 'rgb(240, 80, 120)');
   assert.equal(at('src').fill, 'rgb(200, 195, 216)');
-  assert.equal(at('src').cutOut, false);
+  assert.equal(at('src').cutOut, true);
+  assert.equal(at('src/bad').cutOut, true);
+});
+
+test('dark: a worse folder glows, a better one does not; light never glows', () => {
+  const dark = paint(PACK_COLOR_MODE.CONCENTRATION, true).at;
+  assert.ok(dark('src/bad').glow > 0);
+  assert.equal(dark('src/good').glow, 0);
+  assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, false).at('src/bad').glow, 0);
 });
 
 test('light: solid colours precomputed against the page, cut out under sub-folders', () => {
