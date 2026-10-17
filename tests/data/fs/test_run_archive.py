@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import shutil
 import sqlite3
 import tarfile
 import threading
@@ -96,15 +97,28 @@ def test_round_trip_restores_identical_bytes(tmp_path):
 
 
 def test_rows_only_in_the_wal_survive_archive_and_restore(tmp_path):
-    run, conn = _wal_run(tmp_path)  # the idle writer keeps the WAL alive during the archive
+    # Build the WAL beside a scratch copy while its writer is open, then copy the database and
+    # its WAL into the run: the run holds real WAL-only frames and no open handle (Windows
+    # cannot unlink a database a connection still holds).
+    run = _run_with_files(tmp_path)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    shutil.copyfile(run / "evaluation.db", scratch / "evaluation.db")
+    conn = sqlite3.connect(scratch / "evaluation.db")
     try:
-        wal = run / "evaluation.db-wal"
-        assert wal.is_file() and wal.stat().st_size > 0
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA wal_autocheckpoint=0")
+        conn.executemany("INSERT INTO findings (file) VALUES (?)", [(f"w{i}.py",) for i in range(200)])
+        conn.commit()
         expected = conn.execute("SELECT id, file FROM findings ORDER BY id").fetchall()
-        assert len(expected) == 500
-        archive_run(run)
+        for name in ("evaluation.db", "evaluation.db-wal"):
+            shutil.copyfile(scratch / name, run / name)
     finally:
         conn.close()
+    assert len(expected) == 500
+    wal = run / "evaluation.db-wal"
+    assert wal.is_file() and wal.stat().st_size > 0
+    archive_run(run)
     assert not (run / "evaluation.db").exists()
     assert ensure_restored(run) is True
     assert _rows(run) == expected
