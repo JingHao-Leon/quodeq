@@ -175,7 +175,10 @@ def test_an_archive_and_restore_racing_an_open_never_serve_an_empty_db(tmp_path,
         threads[0].start()
         threads[0].join(0.5)  # the archive runs now, or waits for this open to connect
         conn = real_connect(path)
-        run_archive.ensure_restored(run)  # another reader restores whatever got archived
+        try:
+            run_archive.ensure_restored(run)  # another reader restores whatever got archived
+        except PermissionError:
+            pass  # Windows: a file this stray connection holds open cannot be unlinked; that reader fails, nothing is lost
         return conn
 
     monkeypatch.setattr(connection_mod, "_connect", connect_amid_archive_and_restore)
