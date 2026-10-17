@@ -1,6 +1,8 @@
 import io
 from unittest.mock import patch
 
+import pytest
+
 from quodeq import cli
 
 
@@ -97,3 +99,11 @@ def test_upgrade_subcommand_dispatches_without_notice(restore_environ) -> None:
         assert cli.main(["upgrade", "--dry-run"]) == 0
     run_upgrade.assert_called_once_with(dry_run=True)
     notice.assert_not_called()
+
+
+def test_upgrade_rejects_unknown_flags(restore_environ) -> None:
+    with patch("quodeq.update.upgrade.run_upgrade") as run_upgrade, \
+         pytest.raises(SystemExit) as exc:
+        cli.main(["upgrade", "--dryrun"])
+    assert exc.value.code == 2
+    run_upgrade.assert_not_called()

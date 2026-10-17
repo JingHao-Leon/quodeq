@@ -170,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
         from quodeq.ci.export_cli import handle_export
         code = handle_export(args)
     elif command == Command.UPGRADE:
+        if remaining:  # a mistyped --dry-run must never fall through to a real upgrade
+            parser.error(f"unrecognized arguments: {' '.join(remaining)}")
         from quodeq.update.upgrade import run_upgrade
         # No notice afterwards: this process still reports the old version.
         return run_upgrade(dry_run=args.dry_run)
