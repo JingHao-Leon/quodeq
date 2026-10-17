@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   mixRgb, rgbCss, badnessHue, badnessStrength, fileStrength, fileConcentrationColor,
-  activityScale, activityFileStrength, activityFolderStrength, labelInk,
+  activityScale, activityFileStrength, activityFolderStrength, labelInk, folderGlow,
 } from './mapPaint.js';
 
 const RED = { r: 240, g: 80, b: 120 };
@@ -62,4 +62,14 @@ test('label ink: the theme text pushed toward white on dark, toward black on lig
   assert.ok(dark.r > text.r && dark.r < WHITE.r);
   assert.ok(light.r < text.r && light.r > BLACK.r);
   assert.deepEqual(labelInk({ dark: true, text: WHITE }), WHITE);
+});
+
+test('folderGlow: only worse-than-average folders glow, in dark only, growing with the score up to 1', () => {
+  assert.equal(folderGlow(0.8, false), 0);
+  assert.equal(folderGlow(0, true), 0);
+  assert.equal(folderGlow(-0.6, true), 0);
+  assert.ok(folderGlow(0.3, true) > 0);
+  assert.ok(folderGlow(0.3, true) < folderGlow(0.9, true));
+  assert.equal(folderGlow(1, true), 1);
+  assert.equal(folderGlow(3, true), 1);
 });
