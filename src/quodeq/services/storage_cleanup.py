@@ -1,6 +1,7 @@
-"""Opt-in storage cleanup: tidy finished runs and archive the old ones.
+"""Storage cleanup: tidy finished runs and archive the old ones.
 
-Off unless ``QUODEQ_STORAGE_CLEANUP=1``. A run is touched only when its
+On by default; ``QUODEQ_STORAGE_CLEANUP=0`` turns it off. The archive window
+comes from the storage settings (None means tidy only). A run is touched only when its
 ``status.json`` is readable and in a terminal state. The newest finished run
 of each dimension (the one the Overview reads) is tidied but never archived,
 and a project with a run still in flight is left alone entirely. A restored
@@ -17,13 +18,13 @@ from pathlib import Path
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
+from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring_sync import archive_run, has_event_log, is_archived, restored_at, tidy_run
 from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.fault_isolation import run_isolated
 
-WARM_DAYS_DEFAULT = 183
 ENV_FLAG = "QUODEQ_STORAGE_CLEANUP"
-ENABLED_VALUE = "1"
+DISABLED_VALUE = "0"
 WARMUP_POLL_S = 5.0
 
 
@@ -45,8 +46,8 @@ class CleanupResult:
 
 
 def cleanup_enabled(env: Mapping[str, str]) -> bool:
-    """True only when the operator opted in with ``QUODEQ_STORAGE_CLEANUP=1``."""
-    return env.get(ENV_FLAG) == ENABLED_VALUE
+    """True unless the operator set the kill switch ``QUODEQ_STORAGE_CLEANUP=0``."""
+    return env.get(ENV_FLAG) != DISABLED_VALUE
 
 
 def _read_run(run_dir: Path) -> tuple[RunState | None, datetime | None]:
@@ -107,7 +108,7 @@ def _last_touched(run_dir: Path, started: datetime) -> datetime:
     return max(started, restored) if restored is not None else started
 
 
-def _plan_project(project: Path, now: datetime, warm_days: int) -> tuple[list[Path], list[Path]]:
+def _plan_project(project: Path, now: datetime, warm_days: int | None) -> tuple[list[Path], list[Path]]:
     runs: list[tuple[Path, datetime | None, RunState]] = []
     for run_dir in _subdirs(project):
         state, when = _read_run(run_dir)
@@ -116,17 +117,17 @@ def _plan_project(project: Path, now: datetime, warm_days: int) -> tuple[list[Pa
         if state in TERMINAL_STATES and not is_archived(run_dir):
             runs.append((run_dir, when, state))
     protected = _newest_per_dimension(runs)
-    cutoff = now - timedelta(days=warm_days)
+    cutoff = now - timedelta(days=warm_days) if warm_days is not None else None
     tidy = [r for r, _, _ in runs]
-    archive = [
+    archive = [] if cutoff is None else [
         r for r, w, _ in runs
         if w is not None and r not in protected and has_event_log(r) and _last_touched(r, w) < cutoff
     ]
     return tidy, archive
 
 
-def plan_cleanup(evaluations_root: Path | str, now: datetime, warm_days: int = WARM_DAYS_DEFAULT) -> CleanupPlan:
-    """Decide which runs to tidy and which to archive, without touching disk."""
+def plan_cleanup(evaluations_root: Path | str, now: datetime, warm_days: int | None) -> CleanupPlan:
+    """Decide which runs to tidy and which to archive, without touching disk. None warm_days: tidy only."""
     tidy: list[Path] = []
     archive: list[Path] = []
     for project in _subdirs(Path(evaluations_root)):
@@ -136,41 +137,76 @@ def plan_cleanup(evaluations_root: Path | str, now: datetime, warm_days: int = W
     return CleanupPlan(tuple(tidy), tuple(archive))
 
 
-def run_cleanup(evaluations_root: Path | str, now: datetime, *, log: LogSink = NULL_LOG) -> CleanupResult:
-    """Apply the plan; one failing run is logged and the rest carry on."""
-    plan = plan_cleanup(evaluations_root, now)
+def _archive_one(run_dir: Path, log: LogSink):
+    return run_isolated(lambda: archive_run(run_dir), label=f"storage cleanup archive {run_dir}", log=log)
+
+
+def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> CleanupResult | None:
+    """One startup pass with the archive window read now, not at import."""
+    days = read_storage_settings(env).archive_after_days
+    return try_run_cleanup(root, datetime.now(timezone.utc), warm_days=days, log=log)
+
+
+def run_cleanup(
+    evaluations_root: Path | str, now: datetime, *, warm_days: int | None, log: LogSink = NULL_LOG,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> CleanupResult:
+    """Apply the plan; one failing run is logged and the rest carry on.
+
+    *on_progress* gets (done, total) after each archive attempt.
+    """
+    plan = plan_cleanup(evaluations_root, now, warm_days)
     tidied = archived = freed = 0
     for run_dir in plan.tidy:
         got = run_isolated(lambda d=run_dir: max(0, tidy_run(d)), label=f"storage cleanup tidy {run_dir}", log=log)
         if got is not None:
             tidied += 1
             freed += got
-    for run_dir in plan.archive:
-        if _project_in_flight(run_dir.parent):  # a run started after the plan was made
-            continue
-        done = run_isolated(lambda d=run_dir: archive_run(d), label=f"storage cleanup archive {run_dir}", log=log)
-        if done is not None:
-            archived += 1
-            freed += max(0, done.bytes_before - done.bytes_after)
+    for index, run_dir in enumerate(plan.archive, start=1):
+        if not _project_in_flight(run_dir.parent):  # else a run started after the plan was made
+            done = _archive_one(run_dir, log)
+            if done is not None:
+                archived += 1
+                freed += max(0, done.bytes_before - done.bytes_after)
+        if on_progress is not None:
+            on_progress(index, len(plan.archive))
     result = CleanupResult(tidied, archived, freed)
     log.info(f"storage cleanup: tidied {result.tidied}, archived {result.archived}, freed {result.bytes_freed} bytes")
     return result
+
+
+CLEANUP_LOCK = threading.Lock()
+
+
+def try_run_cleanup(
+    evaluations_root: Path | str, now: datetime, *, warm_days: int | None, log: LogSink = NULL_LOG,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> CleanupResult | None:
+    """Single-flight run_cleanup: None when another pass already holds the lock."""
+    if not CLEANUP_LOCK.acquire(blocking=False):
+        return None
+    try:
+        return run_cleanup(evaluations_root, now, warm_days=warm_days, log=log, on_progress=on_progress)
+    finally:
+        CLEANUP_LOCK.release()
 
 
 def start_storage_cleanup(
     evaluations_root: Path | str, env: Mapping[str, str] | None = None, *,
     log: LogSink = NULL_LOG, warmup_idle: Callable[[], bool] | None = None, poll_s: float = WARMUP_POLL_S,
 ) -> threading.Thread | None:
-    """Run the cleanup on a daemon thread when opted in; never raises.
+    """Run the cleanup on a daemon thread unless switched off; never raises.
 
-    The thread first waits until *warmup_idle* reports the score warm-up done.
+    The thread first waits until *warmup_idle* reports the score warm-up done,
+    then reads the archive window from the storage settings.
     """
     if not cleanup_enabled(resolve_env(env)):
         return None
     root = Path(evaluations_root)
+    resolved = resolve_env(env)
 
     def _cleanup() -> None:
-        run_isolated(lambda: run_cleanup(root, datetime.now(timezone.utc), log=log), label="storage cleanup", log=log)
+        run_isolated(lambda: _scheduled_pass(root, resolved, log), label="storage cleanup", log=log)
 
     def _run() -> None:
         pause = threading.Event()

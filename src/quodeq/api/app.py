@@ -258,7 +258,7 @@ def _install_shutdown_handlers() -> None:
 
 
 def _start_background_work(env: Mapping[str, str] | None = None) -> None:
-    """Warm the score caches, run cache maintenance and opt-in storage cleanup off the request path.
+    """Warm the score caches, run cache maintenance and storage cleanup off the request path.
     main() only: create_app callers (tests, embedding) stay thread-free.
     """
     try:

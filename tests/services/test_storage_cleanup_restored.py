@@ -32,16 +32,16 @@ def _archived_then_restored(tmp_path):
 
 def test_a_run_restored_today_is_not_archived_again(tmp_path):
     old = _archived_then_restored(tmp_path)
-    assert old not in plan_cleanup(tmp_path, NOW).archive
-    assert run_cleanup(tmp_path, NOW).archived == 0
+    assert old not in plan_cleanup(tmp_path, NOW, 183).archive
+    assert run_cleanup(tmp_path, NOW, warm_days=183).archived == 0
     assert not (old / "archive.tar.gz").exists()
 
 
 def test_a_run_restored_long_ago_is_archived_again(tmp_path):
     old = _archived_then_restored(tmp_path)
     (old / RESTORED_STAMP).write_text((NOW - timedelta(days=200)).isoformat())
-    assert plan_cleanup(tmp_path, NOW).archive == (old,)
-    assert run_cleanup(tmp_path, NOW).archived == 1
+    assert plan_cleanup(tmp_path, NOW, 183).archive == (old,)
+    assert run_cleanup(tmp_path, NOW, warm_days=183).archived == 1
     assert (old / "archive.tar.gz").is_file() and not (old / RESTORED_STAMP).exists()
 
 
@@ -56,6 +56,6 @@ def test_a_run_that_starts_after_planning_stops_the_archive(tmp_path, monkeypatc
         return real_tidy(run_dir)
 
     monkeypatch.setattr(storage_cleanup, "tidy_run", tidy_while_a_run_starts)
-    assert plan_cleanup(tmp_path, NOW).archive == (old,)
-    assert run_cleanup(tmp_path, NOW).archived == 0
+    assert plan_cleanup(tmp_path, NOW, 183).archive == (old,)
+    assert run_cleanup(tmp_path, NOW, warm_days=183).archived == 0
     assert (old / "events.jsonl").is_file() and not (old / "archive.tar.gz").exists()

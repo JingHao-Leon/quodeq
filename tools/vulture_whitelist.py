@@ -325,3 +325,6 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 # JSON (to_dict / to_camel_dict); the dashboard reads them by key.
 _.workflow
 _.run_url
+
+# services/storage_settings.py: the storage settings route (next PR task) is its caller; tests cover it now.
+_.write_storage_settings
