@@ -21,9 +21,10 @@ const DETECTED = vi.hoisted(() => [{ id: 'claude-code', detected: true }]);
 const shared = vi.hoisted(() => ({ status: { configured: false }, disconnect: null }));
 
 // The welcome's connected card runs the app's confirmed disconnect; the hook
-// needs the side pane (toasts), which this test does not mount.
+// needs the side pane (toasts), which this test does not mount. The mock
+// keeps the hook's real return shape, { disconnect, disconnecting }.
 vi.mock('../../dashboard/hooks/useSharedDisconnect.js', () => ({
-  useSharedDisconnect: () => shared.disconnect,
+  useSharedDisconnect: () => ({ disconnect: shared.disconnect, disconnecting: false }),
 }));
 
 vi.mock('../../../api/index.js', () => ({

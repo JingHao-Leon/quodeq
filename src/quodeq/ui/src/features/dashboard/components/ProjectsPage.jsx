@@ -79,7 +79,7 @@ function useProjectsRowsCtx({ projects, filters, selectedProject, actions }) {
 // a connected repository's card disconnects as the strip does.
 function EmptyPaths({ paths }) {
   const { configured, host } = useSharedConnection();
-  const disconnect = useSharedDisconnect({ onDisconnected: paths.onSharedDisconnected });
+  const { disconnect } = useSharedDisconnect({ onDisconnected: paths.onSharedDisconnected });
   return (
     <div className="projects-empty-paths">
       <WelcomePaths

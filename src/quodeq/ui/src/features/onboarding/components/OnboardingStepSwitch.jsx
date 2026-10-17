@@ -22,7 +22,7 @@ import { useSharedDisconnect } from '../../dashboard/hooks/useSharedDisconnect.j
  */
 function WelcomeRoute({ wizard, entry, handleSkipWelcome, handleImport }) {
   const { configured, host } = useSharedConnection();
-  const disconnect = useSharedDisconnect({ onDisconnected: entry.onSharedDisconnected });
+  const { disconnect } = useSharedDisconnect({ onDisconnected: entry.onSharedDisconnected });
   const adaptation = {
     connected: configured,
     host,
