@@ -51,7 +51,9 @@ from quodeq.services.wiring import (
     run_git,  # noqa: F401 -- _publish_git reads run_git from this namespace
     stage_publish_paths,
 )
-from quodeq.services.wiring_sync import reset_clone_to_remote, restore_shared_standards, stage_standard_paths
+from quodeq.services.wiring_sync import (
+    SHARED_STANDARDS_DIRNAME, find_repo_link, reset_clone_to_remote, restore_shared_standards, stage_standard_paths,
+)
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.validation import validate_path_segment
@@ -107,6 +109,14 @@ def _prepare_workspace(
         yield project_dir, repo
 
 
+def _refuse_links(repo: Path, project_id: str) -> None:
+    """Refuse before any write when the repository holds a link where publish writes (it would write through it)."""
+    link = find_repo_link(repo, (f"evaluations/{project_id}", SHARED_STANDARDS_DIRNAME))
+    if link is not None:
+        raise PublishError(f"The shared repository contains a link at {link}. "
+                           "Remove it from the repository and publish again.")
+
+
 def _commit_and_push(repo: Path, project_id: str, staged: StagedProject, env: dict | None = None,
                      standard_ids: list[str] | None = None) -> None:
     ok, out = stage_publish_paths(repo, staged.paths)
@@ -140,6 +150,7 @@ def publish_project(
         if not restored:
             raise PublishError("failed to reset the shared standards folder, "
                                f"{out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
+        _refuse_links(repo, project_id)
         try:
             staged = stage_project(project_dir, repo / "evaluations" / project_id)
             activity = stage_activity(project_dir, repo / "evaluations" / project_id,

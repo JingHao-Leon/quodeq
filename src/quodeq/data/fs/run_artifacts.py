@@ -12,11 +12,13 @@ import logging
 import os
 import shutil
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from quodeq.shared.json_state import dump_json_and_replace
 
 _logger = logging.getLogger(__name__)
+_FILE_MODE = 0o644
 
 
 def ensure_dir(path: Path) -> None:
@@ -24,14 +26,33 @@ def ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
+def write_replacing(dest: Path, write: Callable[[Path], None]) -> None:
+    """Have *write* fill a temporary file beside *dest*, then move it over *dest*.
+
+    A link at *dest* is replaced, never written through. The parent of
+    *dest* must exist.
+    """
+    fd, name = tempfile.mkstemp(dir=dest.parent, prefix=f".{dest.name}.", suffix=".tmp")
+    os.close(fd)
+    tmp = Path(name)
+    try:
+        os.chmod(tmp, _FILE_MODE)
+        write(tmp)
+        os.replace(tmp, dest)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
 def copy_file_if_exists(src: Path, dest: Path) -> bool:
     """Copy *src* to *dest* (metadata preserved) when it exists.
 
-    Returns True when a copy happened. The parent of *dest* must exist.
+    Returns True when a copy happened. The parent of *dest* must exist; a
+    link at *dest* is replaced, never written through.
     """
     if not src.exists():
         return False
-    shutil.copy2(src, dest)
+    write_replacing(dest, lambda tmp: shutil.copy2(src, tmp))
     return True
 
 
@@ -43,7 +64,7 @@ def copy_matching_files(src_dir: Path, dest_dir: Path, pattern: str) -> list[Pat
     ensure_dir(dest_dir)
     written = []
     for src in sorted(src_dir.glob(pattern)):
-        shutil.copy2(src, dest_dir / src.name)
+        write_replacing(dest_dir / src.name, lambda tmp, s=src: shutil.copy2(s, tmp))
         written.append(dest_dir / src.name)
     return written
 

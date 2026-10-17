@@ -166,3 +166,27 @@ class TestReplaceJsonFile:
                 replace_json_file(path, {"a": 1})
 
         assert any("not removed" in r.message for r in caplog.records)
+
+
+class TestCopyThroughLinks:
+    def test_copy_replaces_a_linked_destination_instead_of_writing_through_it(self, tmp_path):
+        outside = tmp_path / "outside.txt"
+        outside.write_text("keep")
+        src, dest = tmp_path / "status.json", tmp_path / "dest.json"
+        src.write_text("new")
+        dest.symlink_to(outside)
+        assert copy_file_if_exists(src, dest) is True
+        assert outside.read_text() == "keep"
+        assert not dest.is_symlink() and dest.read_text() == "new"
+
+    def test_matching_copy_replaces_linked_destinations(self, tmp_path):
+        outside = tmp_path / "outside.txt"
+        outside.write_text("keep")
+        src_dir, dest_dir = tmp_path / "src", tmp_path / "dest"
+        src_dir.mkdir()
+        dest_dir.mkdir()
+        (src_dir / "a_evidence.jsonl").write_text("a")
+        (dest_dir / "a_evidence.jsonl").symlink_to(outside)
+        copy_matching_files(src_dir, dest_dir, "*_evidence.jsonl")
+        assert outside.read_text() == "keep"
+        assert (dest_dir / "a_evidence.jsonl").read_text() == "a"
