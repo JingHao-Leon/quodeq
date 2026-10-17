@@ -42,10 +42,11 @@ const NO_TIME_LIMIT_S = 0;
 function reviewerExits({ wizard, onClose, onLaunch, onOpenSettings }) {
   const added = () => wizard.state.added || { projectId: null, cloning: false };
 
-  // The add panel's hand-over: a registered project, or a clone job that
-  // started (the Repositories tile carries on). The panel stays open.
-  function handleAdded({ projectId = null, cloning = false }) {
-    wizard.markAdded({ projectId, cloning });
+  // The add panel's hand-over: a registered project (`hasRuns` when a
+  // resumed one was evaluated before), or a clone job that started (the
+  // Repositories tile carries on). The panel stays open.
+  function handleAdded({ projectId = null, cloning = false, hasRuns = false }) {
+    wizard.markAdded({ projectId, cloning, hasRuns });
   }
 
   // `landed` is what moves the app to Repositories and selects the project;

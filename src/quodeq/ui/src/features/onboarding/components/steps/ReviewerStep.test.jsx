@@ -147,4 +147,14 @@ describe('ReviewerStep', () => {
     expect(await screen.findByText(/Failed to load dimensions/)).toHaveAttribute('role', 'alert');
     expect(screen.getByRole('button', { name: 'start first evaluation' })).toBeDisabled();
   });
+
+  it('a resumed project that already has runs starts an evaluation, not a first one', async () => {
+    detection.value = detected(['claude-code']);
+    const { onStart } = renderStep({ ...FOLDER_ADD, hasRuns: true });
+    expect(screen.queryByRole('button', { name: 'start first evaluation' })).toBeNull();
+    const start = screen.getByRole('button', { name: 'start evaluation' });
+    await waitFor(() => expect(start).toBeEnabled());
+    fireEvent.click(start);
+    expect(onStart).toHaveBeenCalledWith({ provider: { id: 'claude', model: 'sonnet' }, standardIds: ['security', 'maintainability'] });
+  });
 });

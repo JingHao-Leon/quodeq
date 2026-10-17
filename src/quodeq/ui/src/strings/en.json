@@ -1155,6 +1155,7 @@
   "onboarding.reviewerCloneHint": "the download continues on Repositories. your reviewer is saved for its first evaluation.",
   "onboarding.reviewerLater": "later, take me to the project",
   "onboarding.reviewerStart": "start first evaluation",
+  "onboarding.reviewerStartAgain": "start evaluation",
   "onboarding.reviewerSaveClose": "save and close",
   "onboarding.retry": "retry",
   "onboarding.addButton": "add",

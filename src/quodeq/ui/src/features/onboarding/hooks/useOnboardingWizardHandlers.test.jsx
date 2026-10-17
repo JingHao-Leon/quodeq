@@ -56,7 +56,7 @@ describe('useOnboardingWizardHandlers handleAdded', () => {
   it('an add keeps the panel open on the reviewer step', () => {
     const { result, opts } = setup({ wizard: { state: {}, markAdded: vi.fn() } });
     result.current.handleAdded({ projectId: 'p-new', cloning: false });
-    expect(opts.wizard.markAdded).toHaveBeenCalledWith({ projectId: 'p-new', cloning: false });
+    expect(opts.wizard.markAdded).toHaveBeenCalledWith({ projectId: 'p-new', cloning: false, hasRuns: false });
     expect(opts.onClose).not.toHaveBeenCalled();
   });
 

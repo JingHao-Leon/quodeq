@@ -91,8 +91,17 @@ describe('useAnalyzeLaunch', () => {
     const { result, onAdded, wizard } = setup({ registerProject, api: { getProjectInfo, getProjectScan } });
     await act(async () => { await result.current.run(); });
     expect(wizard.succeedScan).toHaveBeenCalledWith('p-old', { total_files: 3 }, '/u/me/old');
-    expect(onAdded).toHaveBeenCalledWith({ projectId: 'p-old', cloning: false });
+    expect(onAdded).toHaveBeenCalledWith({ projectId: 'p-old', cloning: false, hasRuns: false });
     expect(result.current.startError).toBeNull();
+  });
+
+  it('a 409 on a project with runs resumes it and says it has runs', async () => {
+    const registerProject = vi.fn().mockRejectedValue(conflict('PROJECT_EXISTS', { existingProjectId: 'p-old' }));
+    const getProjectInfo = vi.fn(async () => ({ id: 'p-old', runsCount: 4, path: '/u/me/old' }));
+    const getProjectScan = vi.fn(async () => ({ total_files: 3 }));
+    const { result, onAdded } = setup({ registerProject, api: { getProjectInfo, getProjectScan } });
+    await act(async () => { await result.current.run(); });
+    expect(onAdded).toHaveBeenCalledWith({ projectId: 'p-old', cloning: false, hasRuns: true });
   });
 
   it('a 409 CLONE_IN_PROGRESS says a clone is already running and keeps the panel', async () => {

@@ -18,15 +18,16 @@ function lastSegment(value) {
  * scanned folder its source-file count and languages. A clone has no scan yet.
  *
  * @param {object} state - the wizard state, with `added` set
- * @returns {{projectId: string|null, cloning: boolean, name: string, fileCount: number|null, languages: string[]}}
+ * @returns {{projectId: string|null, cloning: boolean, hasRuns: boolean, name: string, fileCount: number|null, languages: string[]}}
  */
 export function addedSummary(state) {
-  const { projectId, cloning } = state.added;
+  const { projectId, cloning, hasRuns = false } = state.added;
   const scan = createScanSummary(state.scan);
   const name = cloning ? lastSegment(repoLabel(state.repo.value)) : lastSegment(state.projectPath || state.repo.value);
   return {
     projectId,
     cloning,
+    hasRuns,
     name,
     fileCount: scan?.codeFiles > 0 ? scan.codeFiles : null,
     languages: detectedLanguages(scan?.languages).map((l) => l.name),

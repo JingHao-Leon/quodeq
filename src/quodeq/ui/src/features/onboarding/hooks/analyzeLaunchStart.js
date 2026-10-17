@@ -15,17 +15,20 @@ const CODE_CLONE_IN_PROGRESS = 'CLONE_IN_PROGRESS';
  *   ctx.wizard       startScan, succeedScan, failScan
  *   ctx.set          setAccessFailure, setStartError
  *   ctx.tryResume    makeTryResumeExisting's resume of a registered repo
- *   ctx.added        ({ projectId, cloning }) => void; the reviewer step follows.
- *                    projectId is the registered project (null while a clone
- *                    job runs), cloning says the Repositories tile carries on.
+ *   ctx.added        ({ projectId, cloning, hasRuns? }) => void; the reviewer step
+ *                    follows. projectId is the registered project (null while
+ *                    a clone job runs), cloning says the Repositories tile
+ *                    carries on, hasRuns marks a resumed project with runs.
  *                    A no-op once the panel closed (it may run after a slow await).
  */
 
 // A repo the server already holds (409 + existingProjectId) is resumed and
-// handed over as added, not failed; true when it was.
+// handed over as added, not failed, with whether it already has runs; true
+// when it was.
 async function resumed(ctx, err) {
-  if (!(await resumedExisting(err, ctx.tryResume))) return false;
-  ctx.added({ projectId: err.existingProjectId, cloning: false });
+  const resume = await resumedExisting(err, ctx.tryResume);
+  if (!resume) return false;
+  ctx.added({ projectId: err.existingProjectId, cloning: false, hasRuns: resume.hasRuns });
   return true;
 }
 

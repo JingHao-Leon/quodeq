@@ -52,9 +52,10 @@ function DimensionError({ message }) {
   return <p className="reviewer-step__error" role="alert">{message}</p>;
 }
 
-// A folder starts its first evaluation here; a clone (no project until it
-// lands) only saves the reviewer for it and closes.
-function ReviewerActions({ step, cloning }) {
+// A folder starts its first evaluation here (a resumed project with runs,
+// an evaluation: the same launch); a clone (no project until it lands)
+// only saves the reviewer for it and closes.
+function ReviewerActions({ step, cloning, hasRuns }) {
   if (cloning) {
     return (
       <div className="onboarding-step__actions onboarding-step__actions--end">
@@ -70,7 +71,7 @@ function ReviewerActions({ step, cloning }) {
         {t('onboarding.reviewerLater')}
       </button>
       <button type="button" className="term-btn term-btn--primary term-btn--filled" disabled={!step.canStart} onClick={step.start}>
-        {t('onboarding.reviewerStart')}
+        {t(hasRuns ? 'onboarding.reviewerStartAgain' : 'onboarding.reviewerStart')}
       </button>
     </div>
   );
@@ -95,7 +96,7 @@ export default function ReviewerStep({ added, onStart, onLater, onOpenSettings }
       </section>
       <ScopeLine cloning={added.cloning} count={step.dimensionCount} />
       {!added.cloning && <DimensionError message={step.dimLoadError} />}
-      <ReviewerActions step={step} cloning={added.cloning} />
+      <ReviewerActions step={step} cloning={added.cloning} hasRuns={added.hasRuns} />
     </div>
   );
 }
