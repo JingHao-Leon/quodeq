@@ -140,36 +140,32 @@ def run_cleanup(
 ) -> CleanupResult:
     """Apply the plan; one failing run is logged and the rest carry on.
 
-    *on_progress* gets (done, total) after each tidy and each archive attempt,
-    total counting both. A project with a run in flight is skipped (checked
-    when the project folder changes, and afresh before each archive), and so
-    is a run whose status changed within ``TIDY_SETTLE_S``.
+    Each run is tidied, then archived when the plan says so; *on_progress*
+    gets (runs done, runs in the pass) after each, so a pass that only tidies
+    shows its progress too. A project with a run in flight is skipped
+    (checked when the project folder changes, and afresh before each
+    archive), and a run whose status changed within ``TIDY_SETTLE_S`` is
+    not tidied.
     """
     plan = plan_cleanup(evaluations_root, now, warm_days)
-    total, step = len(plan.tidy) + len(plan.archive), 0
+    to_archive, tidy = set(plan.archive), set(plan.tidy)
+    runs = [*plan.tidy, *(r for r in plan.archive if r not in tidy)]  # the plan archives only runs it tidies
     watch, wall_now = _InFlightWatch(), time.time()
     tidied = archived = freed = 0
-
-    def progressed() -> None:
-        nonlocal step
-        step += 1
-        if on_progress is not None:
-            on_progress(step, total)
-
-    for run_dir in plan.tidy:
+    for index, run_dir in enumerate(runs, start=1):
         if not _gone(run_dir) and _settled(run_dir, wall_now) and not watch.busy(run_dir.parent):
             got = _tidy_one(run_dir, log)
             if got is not None:
                 tidied += 1
                 freed += got
-        progressed()
-    for run_dir in plan.archive:
-        if not watch.busy(run_dir.parent, fresh=True):  # else a run started after the plan was made
+        # Afresh before each archive: a run started after the plan was made stops its project.
+        if run_dir in to_archive and not watch.busy(run_dir.parent, fresh=True):
             done = _archive_one(run_dir, log)
             if done is not None:
                 archived += 1
                 freed += max(0, done.bytes_before - done.bytes_after)
-        progressed()
+        if on_progress is not None:
+            on_progress(index, len(runs))
     result = CleanupResult(tidied, archived, freed)
     log.info(f"storage cleanup: tidied {result.tidied}, archived {result.archived}, freed {result.bytes_freed} bytes")
     return result

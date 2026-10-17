@@ -42,7 +42,7 @@ def test_a_tidy_pass_reads_each_status_a_bounded_number_of_times(tmp_path, monke
     assert reads[0] <= 3 * 30
 
 
-def test_progress_counts_tidy_and_archive(tmp_path):
+def test_progress_counts_every_run_of_the_pass_tidied_or_archived(tmp_path):
     for name, days in (("a", 300), ("b", 290)):
         _run(tmp_path, name, "old", days)
         _run(tmp_path, name, "newer", 10)
@@ -50,7 +50,7 @@ def test_progress_counts_tidy_and_archive(tmp_path):
 
     run_cleanup(tmp_path, NOW, warm_days=183, on_progress=lambda d, t: seen.append((d, t)))
 
-    assert seen == [(i, 6) for i in range(1, 7)]
+    assert seen == [(i, 4) for i in range(1, 5)]  # four runs: all tidied, two of them archived too
 
 
 def test_a_run_that_finished_minutes_ago_is_not_tidied(tmp_path):
