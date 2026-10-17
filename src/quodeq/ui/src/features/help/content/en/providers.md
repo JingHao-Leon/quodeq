@@ -1,10 +1,12 @@
 ## AI Providers
 
-quodeq needs an AI model to read your code. There are three ways to supply one, and you can switch any time in **Settings**:
+quodeq needs an AI model to read your code. There are three ways to supply one:
 
 - **An AI CLI you already use.** Claude Code, Codex, Gemini CLI or GitHub Copilot. Its sign-in and billing apply; quodeq drives it.
 - **A cloud API with your key.** OpenRouter, or any OpenAI-compatible endpoint.
 - **A local model.** Ollama, llama.cpp, or omlx on Apple Silicon. Code never leaves your machine.
+
+You choose the provider and model when you add a project (*Who reviews it*), from the model cell on **Evaluate**, or in **Settings**, and you can switch any time. All three places read and save the same choice.
 
 ### Which one
 
