@@ -4,7 +4,10 @@
 .compare-page {
   display: flex;
   flex-direction: column;
-  gap: var(--term-space-3);
+  /* The app's data face: Compare reads like Overview, History and Evaluate. */
+  font-family: var(--term-font-mono);
+  --page-flow-gap: var(--term-space-3);
+  gap: var(--page-flow-gap);
   /* One hover for every Compare table and list: a neutral ink tint over the
      panel (an accent tint turns pink in crimson themes, where red means a bad
      score) plus an accent bar on the row's leading edge. Mixed from tokens,
@@ -45,12 +48,6 @@
 
 /* ── header ─────────────────────────────────────────────────────────── */
 
-/* Page top row: the shared .term-page-top (terminal.css). The page's
-   column gap owns the spacing below it, so its own margin is dropped. */
-.compare-page__top { margin-bottom: 0; }
-
-.compare-page__titles { min-width: 0; }
-
 .compare-dim-badges {
   display: inline-flex;
   align-items: center;
@@ -69,7 +66,7 @@
   border-color: var(--color-accent);
 }
 
-.compare-picker__glyph { font-size: 8px; color: var(--color-text-subtle); }
+.compare-picker__glyph { font-size: 10px; color: var(--color-text-subtle); }
 
 .compare-picker__pop {
   position: absolute;
@@ -95,15 +92,15 @@
 
 .compare-picker__title {
   flex: 1;
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .compare-picker__quick {
   font: inherit;
-  font-size: 10.5px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -146,7 +143,7 @@
 }
 
 .compare-picker__score { text-align: right; }
-.compare-picker__viol { text-align: right; font-size: 10.5px; color: var(--color-text-muted); }
+.compare-picker__viol { text-align: right; font-size: 11px; color: var(--color-text-muted); }
 
 /* ── panels ─────────────────────────────────────────────────────────── */
 
@@ -173,8 +170,8 @@
 /* Remote (shared-repo) rows carry a small origin chip wherever the project
    name appears: the fleet tables, the scope picker, and the duel. */
 .compare-row__remote {
-  font-size: 8.5px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
@@ -210,7 +207,7 @@
 
 .compare-attention--strip .compare-attention__why {
   margin-top: 7px;
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.5;
 }
 
@@ -241,7 +238,7 @@
 
 .compare-attention__name {
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--color-text);
   background: transparent;
   border: none;
@@ -256,7 +253,7 @@
 
 .compare-attention__level {
   margin-left: auto;
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   border: 1px solid var(--color-border);
@@ -266,19 +263,14 @@
   color: var(--color-text-muted);
 }
 
-.compare-attention__level--severe,
-.compare-attention__level--elevated,
-.compare-attention__level--watch {
-  color: var(--attention-accent, var(--color-text-muted));
-  border-color: color-mix(in srgb, var(--attention-accent, var(--color-text-muted)) 50%, transparent);
-}
+.compare-attention__level { border: 0; padding: 0; }
 
 /* Head-row expander: both strips show 3 items; the rest sit behind this.
    Same voice as the panel note it stands next to, accent to say "control". */
 .compare-attention__toggle {
   font: inherit;
   font-size: 10px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: lowercase;
   color: var(--color-accent);
   background: transparent;
@@ -305,7 +297,7 @@
 
 .compare-attention__why {
   margin: 9px 0 0;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.55;
   color: var(--color-text-muted);
 }
@@ -315,7 +307,7 @@
 .compare-attention__link {
   margin-top: 9px;
   font: inherit;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--color-accent);
   background: transparent;
   border: none;
@@ -327,7 +319,7 @@
 
 .compare-attention__empty {
   padding: 16px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--color-text-subtle);
 }
 
@@ -336,7 +328,7 @@
 .compare-back {
   font: inherit;
   font-size: 11px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--color-text-muted);
   background: transparent;
   border: none;
@@ -349,7 +341,7 @@
 
 .compare-dim-tier {
   font-size: 10px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -394,15 +386,15 @@
 
 .compare-radar__labelName {
   display: block;
-  font-size: 9px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .compare-radar__labelScore {
   display: block;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--color-text);
   margin-top: 2px;
 }
@@ -413,7 +405,7 @@
   gap: 16px;
   padding: 8px 16px 12px;
   flex-wrap: wrap;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--color-text-muted);
 }
 
@@ -440,8 +432,8 @@
 .compare-dueltrigger__hint {
   display: block;
   padding: 8px 10px 6px;
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
   color: var(--color-text-muted);
   border-bottom: 1px solid var(--color-border);
 }
@@ -511,8 +503,13 @@
 }
 
 .compare-dueltrigger__item:hover { background: var(--color-surface-alt); }
+.compare-dueltrigger__item--current { color: var(--color-text); font-weight: 600; }
+/* The quiet ⋯ opener of rare actions (components/launcher/MoreMenu.jsx), and its destructive items. */
+.launcher-more { width: 30px; height: 30px; border: 1px solid transparent; border-radius: var(--term-radius); background: none; color: var(--color-text-muted); cursor: pointer; font-size: 16px; line-height: 1; }
+.launcher-more:hover, .launcher-more[aria-expanded="true"] { border-color: var(--color-border); color: var(--color-text); }
+.compare-dueltrigger__item.compare-dueltrigger__item--danger:hover { color: var(--color-danger); }
 
-.compare-dueltrigger__itemScore { font-size: 11.5px; }
+.compare-dueltrigger__itemScore { font-size: 12px; }
 
 /* ── small-view tiers ───────────────────────────────────────────────────
    Shed by importance: the spark and ratio go first (the delta badge keeps

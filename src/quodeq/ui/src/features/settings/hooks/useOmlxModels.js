@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { useOmlxServerStatus } from './useOmlxServerStatus.js';
 import { useProviderModels } from './useProviderModels.js';
@@ -6,8 +8,8 @@ import { useProviderModels } from './useProviderModels.js';
 const MODELS_KEY_PREFIX = ['settings', 'omlxModels'];
 
 /**
- * OmlxTab.jsx's models query plus its offline->online invalidation effect.
- * Extracted verbatim.
+ * The oMLX tab's model list and server status, refetched when the server
+ * comes back online, plus `reloadModels` for after a key is saved.
  */
 export function useOmlxModels({ apiBase, apiKey }) {
   const { getOmlxModels } = useApi();
@@ -21,5 +23,12 @@ export function useOmlxModels({ apiBase, apiKey }) {
     invalidateKey: MODELS_KEY_PREFIX,
   });
 
-  return { omlxStatus, models, modelsError };
+  const queryClient = useQueryClient();
+  // A key saved to the keychain changes what the server lists; reload.
+  const reloadModels = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: MODELS_KEY_PREFIX }),
+    [queryClient],
+  );
+
+  return { omlxStatus, models, modelsError, reloadModels };
 }

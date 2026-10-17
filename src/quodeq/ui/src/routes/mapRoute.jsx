@@ -1,6 +1,6 @@
 /**
- * The Map tab's route renderer, moved out of routes/renderers.jsx verbatim
- * (move-only refactor).
+ * The Map tab's route renderer: lazy-loads MapPage and carries the display
+ * toggles (viz style and modes) across the nav stack.
  */
 import { lazy } from 'react';
 import { NAV_TAB } from '../vocab/navTab.js';
@@ -16,6 +16,19 @@ const MapPage = lazy(() => import('../features/map/components/MapPage.jsx'));
 function withCurrentView(entry, { vizStyle, viewMode, galaxyMode }) {
   const next = { ...entry, vizStyle, viewMode, galaxyMode };
   return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined));
+}
+
+// A link may open the Map filtered: { vizStyle: 'risk', dimensions: [...], principle?, area? }.
+// Once the filter is changed on the page, the entry stops carrying the link's
+// filter, so coming back to it keeps the user's.
+function linkFilter(params, replaceView) {
+  return {
+    dimensions: params.dimensions,
+    principle: params.principle,
+    onFilterEdited: () => {
+      if (params.dimensions || params.principle) replaceView({ dimensions: undefined, principle: undefined });
+    },
+  };
 }
 
 export function mapRoute(params, props) {
@@ -59,13 +72,17 @@ export function mapRoute(params, props) {
     nav={{
       path: params.path || '',
       vizStyle: params.vizStyle,
+      area: params.area || null,
+      ...linkFilter(params, replaceView),
       viewMode: params.viewMode,
       galaxyMode: params.galaxyMode,
       onPathChange: handlePathChange,
-      onVizStyleChange: (v) => replaceView({ vizStyle: v }),
+      // A tab carries its own colour: an old entry's pack colour (viewMode) must not follow it.
+      onVizStyleChange: (v) => replaceView({ vizStyle: v, viewMode: undefined }),
       onViewModeChange: (v) => replaceView({ viewMode: v }),
       onGalaxyModeChange: (v) => replaceView({ galaxyMode: v }),
     }}
+    grouping={{ granularity: props.dashboardData.granularity, onGranularityChange: props.dashboardData.onGranularityChange }}
     isDirectNav={isDirectNav}
     tabKey={params._tabKey || 0}
   />;

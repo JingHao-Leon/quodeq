@@ -31,7 +31,7 @@ from typing import Any
 from quodeq.core.events.models import EventType
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.run.state import RunState
-from quodeq.services import wiring
+from quodeq.services import wiring, wiring_sync
 from quodeq.shared.constants import JSON_SUFFIX
 from quodeq.shared.env import env_int
 
@@ -148,6 +148,7 @@ def read_new_findings_from_events(
     finding-shaping step in one try/except, so the two failure modes share a
     single WARNING and an all-or-nothing outcome.
     """
+    wiring_sync.restore_or_warn(run_dir)
     events_log = run_dir / "events.jsonl"
     if not events_log.is_file():
         return []

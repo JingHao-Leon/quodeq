@@ -3,6 +3,7 @@ import { MessageList } from './MessageList.jsx';
 import { CommandMenu } from './CommandMenu.jsx';
 import { AssistantWelcome } from './AssistantWelcome.jsx';
 import { StopIcon } from '../../components/CopyButton.jsx';
+import Icon from '../../components/Icon.jsx';
 import { t } from '../../strings/index.js';
 import { useAssistantComposer } from './hooks/useAssistantComposer.js';
 
@@ -11,6 +12,56 @@ function SendIcon() {
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 19V5M5 12l7-7 7 7" />
     </svg>
+  );
+}
+
+const QUEUE_ICON_SIZE = 13;
+
+/** Messages typed during the turn, waiting their turn; each can be dropped. */
+function QueuedMessages({ queued, dropQueued }) {
+  if (queued.length === 0) return null;
+  return (
+    <ul className="assistant-queued" aria-label={t('assistant.queuedLabel')}>
+      {queued.map((text, index) => (
+        // Queued texts can repeat; the position is their identity until sent.
+        <li key={`${index}:${text}`} className="assistant-queued-item">
+          <Icon size={QUEUE_ICON_SIZE}><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></Icon>
+          <span className="assistant-queued-text">{text}</span>
+          <button type="button" className="assistant-queued-drop" onClick={() => dropQueued(index)}
+            aria-label={t('assistant.queuedDrop')} title={t('assistant.queuedDrop')}>
+            <Icon size={QUEUE_ICON_SIZE}><path d="M6 6l12 12M18 6L6 18" /></Icon>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function composerHint(streaming, draft) {
+  if (streaming && draft.trim()) return t('assistant.queueHint');
+  if (streaming) return t('assistant.stopHint');
+  return t('assistant.inputHint');
+}
+
+function SendOrStop({ streaming, draft, stopTurn, handleSend }) {
+  if (streaming && !draft.trim()) {
+    return (
+      <button type="button" className="assistant-send-btn assistant-stop-btn"
+        onClick={stopTurn}
+        aria-label={t('assistant.stopGenerating')} title={t('assistant.stopGenerating')}>
+        <StopIcon />
+      </button>
+    );
+  }
+  const label = streaming ? t('assistant.queueSend') : t('assistant.send');
+  return (
+    <button type="button"
+      className={`assistant-send-btn${draft.trim() ? ' assistant-send-btn--ready' : ''}`}
+      onClick={handleSend}
+      disabled={!draft.trim()}
+      aria-label={label} title={streaming ? label : t('assistant.sendHint')}>
+      <SendIcon />
+    </button>
   );
 }
 
@@ -32,27 +83,12 @@ function AssistantInputRow({
           value={draft}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          disabled={streaming}
           rows={1}
         />
-        {streaming ? (
-          <button type="button" className="assistant-send-btn assistant-stop-btn"
-            onClick={stopTurn}
-            aria-label={t('assistant.stopGenerating')} title={t('assistant.stopGenerating')}>
-            <StopIcon />
-          </button>
-        ) : (
-          <button type="button"
-            className={`assistant-send-btn${draft.trim() ? ' assistant-send-btn--ready' : ''}`}
-            onClick={handleSend}
-            disabled={!draft.trim()}
-            aria-label={t('assistant.send')} title={t('assistant.sendHint')}>
-            <SendIcon />
-          </button>
-        )}
+        <SendOrStop streaming={streaming} draft={draft} stopTurn={stopTurn} handleSend={handleSend} />
       </div>
-      <div className="assistant-composer-hint">
-        {t('assistant.inputHint')}
+      <div className="assistant-composer-hint" aria-live="polite">
+        {composerHint(streaming, draft)}
       </div>
     </div>
   );
@@ -79,14 +115,15 @@ export function AssistantPane({ uiState, active = true }) {
   } = useAssistantDrawer();
   const {
     draft, setDraft, inputRef, suggestions, menuIndex, menuVisible,
-    acceptSuggestion, handleSend, handleKeyDown, handleChange,
-  } = useAssistantComposer({ active, streaming, catalog, readOnly, uiState, sendMessage, resetConversation, addLocalExchange });
+    acceptSuggestion, handleSend, handleKeyDown, handleChange, queued, dropQueued,
+  } = useAssistantComposer({ active, streaming, catalog, readOnly, uiState, sendMessage, resetConversation, addLocalExchange, stopTurn });
 
   return (
     <>
       {messages.length === 0
-        ? <AssistantWelcome catalog={catalog} view={uiState?.view} onPick={setDraft} readOnly={readOnly} />
+        ? <AssistantWelcome catalog={catalog} view={uiState?.view} page={uiState?.page} onPick={setDraft} readOnly={readOnly} />
         : <MessageList messages={messages} streaming={streaming} />}
+      <QueuedMessages queued={queued} dropQueued={dropQueued} />
       {error && <div className="assistant-drawer-error" role="alert">{error}</div>}
       <AssistantInputRow
         menuVisible={menuVisible} suggestions={suggestions} menuIndex={menuIndex} acceptSuggestion={acceptSuggestion}

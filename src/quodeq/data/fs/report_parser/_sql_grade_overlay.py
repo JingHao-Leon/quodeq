@@ -28,6 +28,7 @@ from pathlib import Path
 
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.report import PrincipleGrade
+from quodeq.data.fs.run_archive import has_event_log
 
 _logger = logging.getLogger(__name__)
 
@@ -108,14 +109,19 @@ def overlay_sql_grades(
     """
     if not dimensions:
         return dimensions
-    if not (run_dir / "events.jsonl").is_file():
+    if not has_event_log(run_dir):
         return dimensions
 
     sql_result = _read_sql_grade_tables(run_dir)
     if sql_result is None:
         return dimensions
-    dim_rows, principle_rows = sql_result
+    return overlay_grade_rows(dimensions, *sql_result)
 
+
+def overlay_grade_rows(
+    dimensions: list[DimensionResult], dim_rows: list[dict], principle_rows: list[dict],
+) -> list[DimensionResult]:
+    """Overlay grade-table rows (from the database, or an archive's ``scalars.json``) onto *dimensions*."""
     sql_by_dim = {r["dimension"]: r for r in dim_rows}
     principles_by_dim: dict[str, list[dict]] = {}
     for r in principle_rows:

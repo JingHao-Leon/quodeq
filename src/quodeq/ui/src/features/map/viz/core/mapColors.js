@@ -1,6 +1,3 @@
-import { t } from '../../../../strings/index.js';
-import { MAP_VIEW_MODE } from '../../mapVocab.js';
-import { PERCENT } from '../../../../constants.js';
 
 const RATE_HIGH = 0.9;
 const RATE_MEDIUM = 0.7;
@@ -9,12 +6,6 @@ const RATE_LOW = 0.4;
 // Cell background tint: how much of the severity/compliance colour shows
 // through before it fades to transparent.
 const CELL_BG_MIX_PCT = 22;
-
-const SEVERITY_STATE_KEYS = {
-  critical: 'map.stateCritical',
-  major: 'map.stateMajor',
-  minor: 'map.stateMinor',
-};
 
 // One entry per colour bucket: the text/fill colour, the cell background and
 // the border. severityColor, severityBorderColor and severityCellStyle are
@@ -72,53 +63,4 @@ export function worstSeverity(severity) {
   if (severity.major > 0) return 'major';
   if (severity.minor > 0) return 'minor';
   return null;
-}
-
-function severityBorderColor(severity) {
-  return severityBucket(severity).borderColor;
-}
-
-function complianceRateBorderColor(rate) {
-  return rateBucket(rate).borderColor;
-}
-
-export function nodeBorderColor(node, viewMode) {
-  switch (viewMode) {
-    case MAP_VIEW_MODE.VIOLATIONS: return severityBorderColor(worstSeverity(node.severity));
-    case MAP_VIEW_MODE.COMPLIANCE: return complianceRateBorderColor(node.complianceRate);
-    case MAP_VIEW_MODE.HEALTH: return complianceRateBorderColor(node.complianceRate);
-    default: return severityBorderColor(worstSeverity(node.severity));
-  }
-}
-
-export function nodeColor(node, viewMode) {
-  switch (viewMode) {
-    case MAP_VIEW_MODE.VIOLATIONS: return severityColor(worstSeverity(node.severity));
-    case MAP_VIEW_MODE.COMPLIANCE: return complianceRateColor(node.complianceRate);
-    case MAP_VIEW_MODE.HEALTH: return healthColor(node.complianceRate);
-    default: return severityColor(worstSeverity(node.severity));
-  }
-}
-
-/**
- * The screen-reader equivalent of the colour nodeColor picks for this node:
- * the worst severity word in violations mode, the rounded compliance
- * percentage in the compliance/health modes. Colour is the only cue a
- * sighted user gets, so every focusable node label carries this too.
- */
-export function nodeStateText(node, viewMode) {
-  if (viewMode === MAP_VIEW_MODE.COMPLIANCE || viewMode === MAP_VIEW_MODE.HEALTH) {
-    return t('map.stateCompliance', { pct: Math.round((node.complianceRate || 0) * PERCENT) });
-  }
-  const worst = worstSeverity(node.severity || {});
-  return worst ? t(SEVERITY_STATE_KEYS[worst]) : t('map.stateClean');
-}
-
-export function nodeSize(node, viewMode) {
-  switch (viewMode) {
-    case MAP_VIEW_MODE.VIOLATIONS: return node.violations || 1;
-    case MAP_VIEW_MODE.COMPLIANCE: return node.compliance || 1;
-    case MAP_VIEW_MODE.HEALTH: return (node.violations + node.compliance) || 1;
-    default: return node.violations || 1;
-  }
 }

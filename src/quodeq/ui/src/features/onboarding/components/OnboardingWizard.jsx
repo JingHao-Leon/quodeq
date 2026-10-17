@@ -8,7 +8,7 @@ import { OnboardingStepSwitch } from './OnboardingStepSwitch.jsx';
 import { t } from '../../../strings/index.js';
 import '../../../styles/onboarding.css';
 
-export default function OnboardingWizard({ entry, onClose, onLaunch, onGoToRepositories, onStepChange }) {
+export default function OnboardingWizard({ entry, onClose, onLaunch, onGoToRepositories, onOpenSettings, onStepChange }) {
   const initialStep = entry.startStep || STEP_WELCOME;
   const wizard = useWizardState({ initial: { step: initialStep, isFirstProject: entry.isFirstProject ?? true } });
   const [standards, setStandards] = useState([]);
@@ -24,8 +24,9 @@ export default function OnboardingWizard({ entry, onClose, onLaunch, onGoToRepos
 
   const {
     handleSkipWelcome, handleImport, handleClose, handleAdded, handleLaunch, nextStep, prevStep,
+    handleStartFirst, handleLater, handleOpenSettings,
   } = useOnboardingWizardHandlers({
-    wizard, onClose, onLaunch, onGoToRepositories, fromSettings: entry.source === WIZARD_SOURCE.SETTINGS, instanceId: entry.instanceId ?? null,
+    wizard, onClose, onLaunch, onGoToRepositories, onOpenSettings, fromSettings: entry.source === WIZARD_SOURCE.SETTINGS, instanceId: entry.instanceId ?? null,
   });
   // The welcome's two columns need a wider frame than the single-column steps.
   const frameClass = wizard.state.step === STEP_WELCOME
@@ -48,6 +49,7 @@ export default function OnboardingWizard({ entry, onClose, onLaunch, onGoToRepos
           standards={standards}
           currentIndex={currentIndex}
           visibleCount={SETUP_ORDER.length}
+          reviewer={{ handleStartFirst, handleLater, handleOpenSettings }}
           nextStep={nextStep}
           prevStep={prevStep}
           handleSkipWelcome={handleSkipWelcome}

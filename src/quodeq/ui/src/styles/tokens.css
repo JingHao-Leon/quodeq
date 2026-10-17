@@ -88,6 +88,12 @@
   --primitive-slate-700: #4a4a4a;
   --primitive-slate-900: #1a1a1a;
 
+  /* Map (Circle Pack) hues */
+  --primitive-steel-600: #3d5a78;   /* light Activity hue */
+  --primitive-steel-300: #8a9bb0;   /* Activity, folder with nothing changed (dark) */
+  --primitive-mauve-100: #c8c3d8;   /* dark glass: parent veil and outline base */
+  --primitive-slate-350: #8a8fa8;   /* dark: about-average hue */
+
   /* Horizon palette (cool whites, indigo accent) */
   --primitive-horizon-50:  #f8f9fc;
   --primitive-horizon-100: #eef1f8;
@@ -301,6 +307,14 @@
   --color-danger:  var(--primitive-red-600);
   --color-success: var(--primitive-green-700);
 
+  /* Map */
+  --color-map-worse: var(--color-sev-critical-text);
+  --color-map-better: color-mix(in srgb, var(--color-text) 28%, var(--color-surface-alt));
+  --color-map-neutral: color-mix(in srgb, var(--color-text) 12%, var(--color-surface-alt));
+  --color-map-activity: var(--color-accent);
+  --color-map-activity-idle: var(--primitive-steel-300);
+  --color-map-glass-parent: var(--primitive-mauve-100);
+
   /* Severity bands — traditional: red=critical, amber=major, green=minor */
   --color-sev-critical-text:   var(--primitive-crimson-600);
   --color-sev-critical-bg:     color-mix(in srgb, var(--primitive-crimson-600) 4%, transparent);
@@ -338,6 +352,11 @@
   --color-trend-soft-down:   var(--primitive-ired-800);
   --color-trend-down:        var(--primitive-ired-900);
   --color-trend-strong-down: var(--primitive-crimson-600);
+
+  /* History: violations a run added / resolved. Their own names so a theme
+     can tune them without touching the trend palette. */
+  --color-change-new:      var(--color-trend-down);
+  --color-change-resolved: var(--color-trend-strong-up);
 
   /* Console — always dark (terminal convention); text auto-adapts to accent */
   --color-console-bg:   #0d1117;
@@ -429,6 +448,14 @@
 
     --color-danger:  #e05c4b;
     --color-success: #4caf7d;
+
+    /* Map (keep in step with the shared [data-theme$="dark"] Map set below) */
+    --color-map-worse: var(--color-sev-critical-text);
+    --color-map-better: var(--color-accent);
+    --color-map-neutral: var(--primitive-slate-350);
+    --color-map-activity: var(--color-accent);
+    --color-map-activity-idle: var(--primitive-steel-300);
+    --color-map-glass-parent: var(--primitive-mauve-100);
 
     --color-sev-critical-text:   var(--primitive-flynn-sev-critical-dark);
     --color-sev-critical-bg:     color-mix(in srgb, var(--primitive-flynn-sev-critical-dark) 4%, transparent);
@@ -534,6 +561,27 @@ html[data-theme$="dark"]:root, [data-theme$="dark"] {
   --tty-ansi-bright-cyan:    #67e3f9;
   --tty-ansi-bright-white:   #ffffff;
   --tty-selection:           rgba(255, 255, 255, 0.22);
+}
+
+/* Map colours: shared dark and light sets for every family (each resolves
+   its own accent and severity tokens). The dark set repeats the one in the
+   prefers-color-scheme: dark block above; keep the two in step. */
+html[data-theme$="dark"]:root, [data-theme$="dark"] {
+  --color-map-worse: var(--color-sev-critical-text);
+  --color-map-better: var(--color-accent);
+  --color-map-neutral: var(--primitive-slate-350);
+  --color-map-activity: var(--color-accent);
+  --color-map-activity-idle: var(--primitive-steel-300);
+  --color-map-glass-parent: var(--primitive-mauve-100);
+}
+
+html[data-theme$="light"]:root, [data-theme$="light"] {
+  --color-map-worse: var(--color-sev-critical-text);
+  --color-map-better: color-mix(in srgb, var(--color-text) 28%, var(--color-surface-alt));
+  --color-map-neutral: color-mix(in srgb, var(--color-text) 12%, var(--color-surface-alt));
+  --color-map-activity: var(--color-accent);
+  --color-map-activity-idle: var(--primitive-steel-300);
+  --color-map-glass-parent: var(--primitive-mauve-100);
 }
 
 /* ── 4. Explicit theme overrides (user preference) ────────
@@ -1437,6 +1485,16 @@ html[data-theme="deckard-light"]:root, [data-theme="deckard-light"] {
   --space-8:  32px;
   --space-10: 40px;
   --space-12: 48px;
+  /* Where every page's first row starts: the Overview's header panel and
+     the tool pages' toolbar share this line, just under the topbar. It
+     reaches up into the main padding (.dashboard, --space-8) so the empty
+     band above the first row stays thin. */
+  --page-top-gap: calc(var(--space-3) - var(--space-8));
+  /* And the one distance between that first row and the content under
+     it, on every page. A page that lays its sections out with a flex
+     gap names that gap --page-flow-gap, and the toolbar takes it off its
+     own margin so the two never add up. */
+  --page-head-gap: var(--space-3);
 }
 
 /* ── 7. Border radius ─────────────────────────────────── */

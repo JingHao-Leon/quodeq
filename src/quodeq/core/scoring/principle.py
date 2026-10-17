@@ -8,7 +8,7 @@ from quodeq.core.evidence.model import DEFAULT_WEIGHT
 from quodeq.core.scoring.constants import Grade
 from quodeq.core.scoring.overall import MODE_NUMERICAL
 from quodeq.core.scoring.scale import PrincipleGradeScale
-from quodeq.core.scoring.mass import principle_mass, requirement_rows
+from quodeq.core.scoring.mass import principle_mass, requirement_rows, unit_masses
 from quodeq.core.scoring.internals import (
     build_deductions,
     compliance_dampening,
@@ -88,6 +88,7 @@ def _score_numerical(ctx: _PrincipleContext) -> PrincipleScore:
         grade=score_to_grade_label(final, params=params),
         observation=mass.observation, violation_mass=mass.violation_mass,
         compliance_mass=mass.compliance_mass,
+        unit_masses=unit_masses(mass), worst=mass.worst,
     )
 
 

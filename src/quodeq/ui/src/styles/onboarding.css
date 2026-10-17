@@ -85,6 +85,10 @@
 .onboarding-step__actions--end {
   justify-content: flex-end;
 }
+/* The reviewer step: the quiet way out on the left, the first run on the right. */
+.onboarding-step__actions--split {
+  justify-content: space-between;
+}
 /* Wizard CTA rows: on narrow viewports the buttons grow to fill the
    row so longer labels (e.g. "scan and run", "start evaluation")
    stay legible and the primary action is comfortably tappable. */
@@ -404,4 +408,79 @@
 }
 .resume-setup-badge:hover {
   background: color-mix(in srgb, var(--color-warning) 25%, transparent);
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Reviewer list: the detected providers in a fixed, neutral order.
+   The selected row gets a soft accent ground and a 2px accent bar;
+   the others show a muted one-line summary. No row is styled as the
+   better choice.
+   ────────────────────────────────────────────────────────────── */
+.reviewer-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--term-space-2);
+}
+.reviewer-list__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: var(--term-border);
+  border-radius: var(--term-radius);
+}
+.reviewer-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--term-space-2);
+  padding: var(--term-space-2) var(--term-space-3);
+  font-size: 13px;
+}
+.reviewer-row + .reviewer-row {
+  border-top: 1px solid var(--color-border);
+}
+.reviewer-row--selected {
+  background: var(--color-accent-soft);
+  box-shadow: inset 2px 0 0 var(--color-accent);
+}
+.reviewer-row__head {
+  display: flex;
+  align-items: center;
+  gap: var(--term-space-2);
+  cursor: pointer;
+}
+.reviewer-row__head input[type="radio"] {
+  accent-color: var(--color-accent);
+}
+.reviewer-row__name {
+  color: var(--color-text);
+}
+.reviewer-row__summary {
+  min-width: 0;
+  overflow-wrap: break-word;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.reviewer-list__footer {
+  display: flex;
+}
+
+/* The reviewer step after an add: what was added, and the empty state
+   when no provider answered on this machine. */
+.reviewer-step__added {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.reviewer-step__error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+.reviewer-step__none {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--term-space-2);
 }

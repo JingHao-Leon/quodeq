@@ -55,6 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Open in browser instead of native window")
     parser.add_argument("--verbose", action="store_true",
                         help="Show API request logs in console")
+    parser.add_argument("--foreground", action="store_true",
+                        help="Keep the terminal attached; closing it stops Quodeq")
     return parser
 
 
@@ -79,6 +81,7 @@ def parse_args(argv: list[str] | None = None) -> DashboardConfig:
             dev=args.dev,
             use_native=not args.browser,
             verbose=args.verbose,
+            foreground=args.foreground,
         ),
         reports_dir=Path(get_evaluations_dir() if reports_defaulted else args.evaluations),
         static_dist=Path(_default_static_dist() if static_dist_defaulted else args.static_dist),
@@ -96,8 +99,14 @@ class _StderrLog:
         print(f"Error: {message}", file=sys.stderr)
 
 
+def _run(argv: list[str] | None) -> int:
+    """Launch with *argv*, handing the flags on so ``quodeq restart`` can repeat them."""
+    args = list(argv) if argv is not None else sys.argv[1:]
+    return run_dashboard(parse_args(args), launch_args=args)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Entry point for the dashboard command."""
     return run_isolated(
-        lambda: run_dashboard(parse_args(argv)), label="dashboard", log=_StderrLog(), on_error=lambda _exc: 1,
+        lambda: _run(argv), label="dashboard", log=_StderrLog(), on_error=lambda _exc: 1,
     )

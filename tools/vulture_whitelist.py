@@ -75,6 +75,13 @@ _.plain_logs  # api/_log_stream_routes.py: Flask view function; the route decora
 _.post_assistant_message  # api/assistant_turn_routes.py: Flask view function; the route decorator is its only caller.
 _.preview_grade_formula  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
 _.rescore_grade_formula  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
+_.get_storage  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.put_storage_settings  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.get_storage_preview  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.post_storage_clean  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.get_storage_clean  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.delete_storage  # api/routes_storage.py: Flask view function; the route decorator is its only caller.
+_.grade_formula_inputs_route  # api/_grade_formula_routes.py: Flask view function; the route decorator is its only caller.
 _.fleet_compare  # api/routes_compare.py: Flask view function; the route decorator is its only caller.
 _.project_compare_summary  # api/routes_compare.py: Flask view function; the route decorator is its only caller.
 _.project_compliance_detail  # api/_scores_routes.py: Flask view function; the route decorator is its only caller.
@@ -111,8 +118,10 @@ _.unverify  # api/routes_findings.py: Flask view function; the route decorator i
 _.update_check  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_dismiss  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_selfupdate  # api/routes_update.py: Flask view function; the route decorator is its only caller.
+_.update_restart  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_settings  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 _.update_status  # api/routes_update.py: Flask view function; the route decorator is its only caller.
+_.update_upgrade  # api/routes_update.py: Flask view function; the route decorator is its only caller.
 
 # Dataclass and TypedDict fields. The value travels as a dict key or a keyword argument, which vulture does not resolve.
 _.JudgmentPayload  # core/events/models.py: Judgment field; read by name through serialization or a dict key (89 refs).
@@ -165,6 +174,8 @@ _.principle_count  # core/types/standard.py: StandardMeta field; read by name th
 _.requirement_count  # core/types/standard.py: StandardMeta field; read by name through serialization or a dict key (7 refs).
 _.subtype  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict), shown as the edition in Standards.
 _.version  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
+_.created_at  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
+_.sources  # core/types/standard.py: StandardMeta/StandardDetail field; read by name through serialization (to_camel_dict).
 _.runId  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (704 refs).
 _.runNumericAverage  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (9 refs).
 _.runOverallGrade  # services/dashboard_trend.py: TrendEntry field; read by name through serialization or a dict key (7 refs).
@@ -175,7 +186,10 @@ _.supports_tools  # assistant/adapters/cli_config.py: CliChatConfig field; read 
 _.taxonomy_used  # core/types/scoring.py: PrincipleScore field; read by name through serialization or a dict key (8 refs).
 _.total_deduction  # core/types/scoring.py: Deductions field; read by name through serialization or a dict key (1 refs).
 _.untracked_files  # core/types/scan.py: ScanData field; read by name through serialization or a dict key (9 refs).
-_.updated_at  # data/sqlite/run_index.py: RunRow field; read by name through serialization or a dict key (33 refs).
+_.updated_at  # data/sqlite/run_index.py RunRow and core/types/standard.py StandardHeader field; read by name through serialization or a dict key.
+_.published_at  # core/types/standard.py: StandardMeta field; read by name through serialization (to_camel_dict).
+_.remote  # core/types/standard.py: StandardMeta field; read by name through serialization (to_camel_dict).
+_.sync_state  # core/types/standard.py: StandardMeta field; read by name through serialization (to_camel_dict).
 _.violations_per100_files  # core/types/finding.py: Totals field; read by name through serialization or a dict key (19 refs).
 
 # Seams whose only caller lives in tests/, which this scan does not cover (src/quodeq is the scanned tree).
@@ -311,6 +325,7 @@ _.set_verdict  # data/ports/findings.py: FindingsRepository port method; adapter
 _.from_wire  # core/admission/facts.py: FindingFacts entry point, read by the writers once they admit findings.
 _.mapping_stamp  # core/admission/index.py: StandardIndex stamp, recorded per run once projection admits findings.
 _.load_standard_catalog  # data/fs/standard_index_loader.py: admission catalog loader, called by the writers once they admit findings.
+_.clear_partial_memo  # services/_run_log_partials.py: test reset hook for the in-process partial-entry memo.
 
 # pywebview window event. The toolkit fires it; we only subscribe.
 _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, fired by the toolkit.
@@ -318,3 +333,4 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 # JSON (to_dict / to_camel_dict); the dashboard reads them by key.
 _.workflow
 _.run_url
+

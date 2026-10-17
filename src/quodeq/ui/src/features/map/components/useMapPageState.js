@@ -1,4 +1,3 @@
-import { treeNodeToFileObj } from '../viz/index.js';
 import { hasBodies } from '../../../models/dimension.js';
 import { useTabScopedPageState } from '../../../hooks/useTabScopedPageState.js';
 import { useDashboardFullHeight } from './useDashboardFullHeight.js';
@@ -6,8 +5,9 @@ import { useStandardTypes } from './useStandardTypes.js';
 import { useMapDisplayPrefs } from './useMapDisplayPrefs.js';
 import { useMapDimensionFilter } from './useMapDimensionFilter.js';
 import { useMapTreeState } from './useMapTreeState.js';
-import { MAP_VIEW_MODE, VIZ_STYLE, GALAXY_MODE } from '../mapVocab.js';
-import { NAV_TAB } from '../../../vocab/navTab.js';
+import { MAP_VIEW_MODE, GALAXY_MODE, isPackStyle, normalizeVizStyle, packColorModeOf } from '../mapVocab.js';
+import { nodeScope, openPastScope } from '../model/detailScopes.js';
+import { openScope } from '../../violations/scope/scopeModel.js';
 
 // Re-exported so existing importers of the tree helpers keep one seam; the
 // implementations live in mapTree.js (pure, unit-testable without the hook).
@@ -27,13 +27,15 @@ const EMPTY_DIMENSIONS = [];
 function useMapNavParams(nav) {
   const {
     path: currentPath = '',
-    vizStyle = VIZ_STYLE.ZOOMPACK,
+    vizStyle: rawVizStyle,
     viewMode = MAP_VIEW_MODE.HEALTH,
     galaxyMode = GALAXY_MODE.FILESYSTEM,
     onPathChange, onVizStyleChange, onViewModeChange, onGalaxyModeChange,
   } = nav || {};
+  const vizStyle = normalizeVizStyle(rawVizStyle, viewMode);
   return {
-    currentPath, vizStyle, viewMode, galaxyMode,
+    currentPath, vizStyle, galaxyMode,
+    viewMode: isPackStyle(vizStyle) ? packColorModeOf(vizStyle) : viewMode,
     setCurrentPath: (p) => onPathChange?.(p),
     setVizStyle: (v) => onVizStyleChange?.(v),
     setViewMode: (v) => onViewModeChange?.(v),
@@ -56,7 +58,7 @@ function useMapTabCache(selectedProject, tabKey, cache) {
  * for every consumer of useMapPageState. */
 function buildMapPageResult({
   allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-  dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
+  dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, currentNode, fullTree, currentPath,
   setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
   showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName, standardTypes,
 }) {
@@ -64,16 +66,16 @@ function buildMapPageResult({
     allDimensions,
     viewState: { viewMode, setViewMode, vizStyle, setVizStyle },
     galaxyState: { galaxyMode, setGalaxyMode },
-    dimensionState: { allDimensions: dimensionNames, selectedDimensions: effectiveSelected, onToggleDimension: handleToggleDimension },
+    dimensionState: { allDimensions: dimensionNames, selectedDimensions: effectiveSelected, onToggleDimension: handleToggleDimension, onShowOnlyDimension: handleShowOnlyDimension },
     vizState: { vizStyle, viewMode, galaxyMode, setGalaxyMode },
     treeState: { node: currentNode, fullTree, currentPath, onPathChange: setCurrentPath },
     dimensions: filteredDimensions,
     callbacks: {
       onDrillDown: handleDrillDown,
-      onFileClick: (treeNode) => {
-        if (!callbacks?.onNavigate) return;
-        callbacks.onNavigate(NAV_TAB.FILE, { file: treeNodeToFileObj(treeNode), sourceTab: NAV_TAB.MAP });
-      },
+      // A node's details are its findings as one page (a scoped Findings view): a file's, a folder's, the project's at the root.
+      onFileClick: (treeNode) => { openScope(callbacks?.onNavigate, nodeScope(treeNode)); },
+      // A past day's details: the same, as of that day, read-only.
+      onPastDetails: (node, run) => openPastScope(callbacks?.onNavigate, nodeScope(node), run),
       onNavigate: callbacks?.onNavigate,
       onBreadcrumbNav: handleBreadcrumbNav,
     },
@@ -119,6 +121,11 @@ function treeDimensions(filteredDimensions, deferTree) {
   return deferTree ? EMPTY_DIMENSIONS : filteredDimensions;
 }
 
+/** The filter's dimensions on mount: a link's (nav `dimensions`) over the tab's cached selection. */
+function initialDimensions(nav, cached) {
+  return nav?.dimensions?.length ? nav.dimensions : cached.selectedDimensionsArr;
+}
+
 export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cache, deferTree = false }) {
   const selectedProject = data?.projectName || data?.selectedProject || '__map__';
   const {
@@ -134,8 +141,8 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
 
   const { showLabels, setShowLabels, darkMode, setDarkMode } = useMapDisplayPrefs();
 
-  const { dimensionNames, effectiveSelected, handleToggleDimension, filteredDimensions } = useMapDimensionFilter({
-    allDimensions, selectedProject, cachedSelectedArr: cached.selectedDimensionsArr, cache,
+  const { dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, filteredDimensions } = useMapDimensionFilter({
+    allDimensions, selectedProject, cachedSelectedArr: initialDimensions(nav, cached), cache,
   });
 
   const { fullTree, currentNode, breadcrumb, handleDrillDown, handleBreadcrumbNav } = useMapTreeState({
@@ -144,7 +151,7 @@ export default function useMapPageState({ data, callbacks, nav, tabKey = 0, cach
 
   return buildMapPageResult({
     allDimensions, viewMode, setViewMode, vizStyle, setVizStyle, galaxyMode, setGalaxyMode,
-    dimensionNames, effectiveSelected, handleToggleDimension, currentNode, fullTree, currentPath,
+    dimensionNames, effectiveSelected, handleToggleDimension, handleShowOnlyDimension, currentNode, fullTree, currentPath,
     setCurrentPath, filteredDimensions, handleDrillDown, callbacks, handleBreadcrumbNav,
     showLabels, setShowLabels, darkMode, setDarkMode, breadcrumb, tabKey, projectName: data?.projectName, standardTypes,
   });

@@ -31,7 +31,7 @@ def test_browser_and_verbose():
 
 
 def test_main_catches_unexpected_exception(monkeypatch, capsys):
-    monkeypatch.setattr("quodeq.dashboard.cli.run_dashboard", lambda cfg: (_ for _ in ()).throw(PermissionError("no access")))
+    monkeypatch.setattr("quodeq.dashboard.cli.run_dashboard", lambda cfg, **_kw: (_ for _ in ()).throw(PermissionError("no access")))
     monkeypatch.setattr(sys, "argv", ["quodeq-dashboard"])
     exit_code = main([])
     assert exit_code == 1
@@ -39,7 +39,7 @@ def test_main_catches_unexpected_exception(monkeypatch, capsys):
 
 
 def test_main_logs_the_traceback_on_unexpected_exception(monkeypatch, capsys):
-    monkeypatch.setattr("quodeq.dashboard.cli.run_dashboard", lambda cfg: (_ for _ in ()).throw(PermissionError("no access")))
+    monkeypatch.setattr("quodeq.dashboard.cli.run_dashboard", lambda cfg, **_kw: (_ for _ in ()).throw(PermissionError("no access")))
     monkeypatch.setattr(sys, "argv", ["quodeq-dashboard"])
     exit_code = main([])
     assert exit_code == 1

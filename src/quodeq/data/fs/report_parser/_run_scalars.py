@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.finding import SeverityTally, Totals
+from quodeq.core.types.principle_counts import NO_VIOLATIONS
+from quodeq.core.types.report import PrincipleCounts, PrincipleGrade
 from quodeq.data.sqlite.dimension_counts import DimensionCounts
 
 
@@ -23,8 +25,6 @@ def scalars_to_dimension_results(
     never "". *metadata* is the run-level manifest part a full read attaches
     (``sourceFileCount``, ``discipline``); the exit reason comes from the row.
     """
-    from quodeq.core.types.report import PrincipleGrade  # noqa: PLC0415
-
     meta = metadata or {}
 
     principles_by_dim: dict[str, list[PrincipleGrade]] = {}
@@ -34,6 +34,7 @@ def scalars_to_dimension_results(
             score=f'{r["score"]}/10' if r.get("score") is not None else None,
             grade=r.get("grade"),
             confidence=r.get("confidence"),
+            counts=_principle_counts(counts, r["dimension"], r["principle_id"]),
         ))
 
     dimensions = [
@@ -53,6 +54,17 @@ def scalars_to_dimension_results(
     ]
     dimensions.sort(key=lambda d: d.dimension)
     return dimensions
+
+
+def _principle_counts(
+    counts: dict[str, DimensionCounts] | None, dimension: str, principle: str,
+) -> PrincipleCounts | None:
+    """The principle's violation counts: zero when its dimension or it has none,
+    unknown (None) when the read counted nothing at all."""
+    if counts is None:
+        return None
+    dim_counts = counts.get(dimension)
+    return dim_counts.principles.get(principle, NO_VIOLATIONS) if dim_counts else NO_VIOLATIONS
 
 
 def _scalar_counts(c: "DimensionCounts | None") -> dict:

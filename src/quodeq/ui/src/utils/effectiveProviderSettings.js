@@ -12,7 +12,7 @@ import {
   ACTIVE_PROVIDER_KEY, DEFAULT_MAX_SUBAGENTS, DEFAULT_TIME_LIMIT_S, providerKey, PROVIDER_SETTING_KEY,
 } from '../constants.js';
 import { LOCAL_API_PROVIDERS } from '../vocab/provider.js';
-import { readString, STORED_FALSE } from '../adapters/storage.js';
+import { readString } from '../adapters/storage.js';
 
 /**
  * Effective defaults for a provider when no key was ever written.
@@ -25,7 +25,6 @@ export function effectiveProviderDefaults(providerId) {
   return {
     subagents: isLocalApi ? 1 : DEFAULT_MAX_SUBAGENTS,
     timeLimitS: isLocalApi ? 0 : DEFAULT_TIME_LIMIT_S,
-    verify: true,
   };
 }
 
@@ -58,17 +57,12 @@ export function readActiveProviderModel(providerId, storage) {
  */
 export function resolveProviderSettings(providerId, storage) {
   const defaults = effectiveProviderDefaults(providerId);
-  const get = (key) => readString(providerKey(providerId, key), null, storage);
   const subagents = readInt(storage, providerId, PROVIDER_SETTING_KEY.SUBAGENTS);
   // Read the new key first; fall back to the legacy 'pool-budget' key.
   const timeLimitS = readInt(storage, providerId, PROVIDER_SETTING_KEY.TIME_LIMIT)
     ?? readInt(storage, providerId, PROVIDER_SETTING_KEY.POOL_BUDGET);
-  const verifyRaw = get(PROVIDER_SETTING_KEY.VERIFY);
   return {
     subagents: subagents ?? defaults.subagents,
     timeLimitS: timeLimitS ?? defaults.timeLimitS,
-    verify: verifyRaw === null || verifyRaw === undefined
-      ? defaults.verify
-      : verifyRaw !== STORED_FALSE,
   };
 }

@@ -42,6 +42,13 @@ def test_clone_legacy_disables_prompts_and_closes_stdin(tmp_path):
     assert kwargs["stdin"] is subprocess.DEVNULL
 
 
+def test_clone_legacy_ends_options_before_the_url(tmp_path):
+    with patch("quodeq.data.fs.repo_clone.subprocess.run") as run_mock:
+        GitCloneClient({"PATH": "/usr/bin"}).clone_legacy("--upload-pack=x", tmp_path / "d", timeout_s=5)
+    argv = run_mock.call_args.args[0]
+    assert argv.index("--") == argv.index("--upload-pack=x") - 1
+
+
 def test_shared_run_git_still_closes_stdin():
     with patch("quodeq.data.fs.shared_repo_git.subprocess.run") as run_mock:
         run_mock.return_value.returncode = 0

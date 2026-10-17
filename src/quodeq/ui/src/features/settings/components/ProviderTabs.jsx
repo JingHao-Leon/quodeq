@@ -57,7 +57,7 @@ function TabContent({ provider, providerConfig }) {
     return <OllamaTab state={state} update={update} />;
   }
   if (classification === PROVIDER_CLASSIFICATION.CLI) {
-    return <CliProviderTab providerId={provider.id} state={state} update={update} />;
+    return <CliProviderTab providerId={provider.id} providerConfig={providerConfig} state={state} update={update} />;
   }
   return <CloudProviderTab providerId={provider.id} providerConfig={providerConfig} state={state} update={update} />;
 }
@@ -66,7 +66,7 @@ export default function ProviderTabs({ providerConfigs }) {
   const { clients, clientsError, activeTab, active, selectTab } = useProviderTabsState(providerConfigs);
 
   return (
-    <section className="panel settings-section">
+    <section className="panel settings-section settings-section--analysis">
       <div className="panel-header">
         <SectionLabel marker="▶">{t('settings.analysisLabel')}</SectionLabel>
       </div>

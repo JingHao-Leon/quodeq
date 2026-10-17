@@ -36,7 +36,7 @@ def test_balanced_ratio_lifts_score():
     )
     scores = score_evidence(ev, mode="numerical")
     ts001 = scores.principles["ts-001"]
-    assert ts001.final_score == 6.2
+    assert ts001.final_score == 4.9
 
 
 def test_strong_compliance_lifts_toward_ceiling():
@@ -62,7 +62,7 @@ def test_strong_compliance_lifts_toward_ceiling():
     )
     scores = score_evidence(ev, mode="numerical")
     ts001 = scores.principles["ts-001"]
-    assert ts001.final_score == 8.4
+    assert ts001.final_score == 8.6
 
 
 def test_no_compliance_gives_base_only():
@@ -81,7 +81,7 @@ def test_no_compliance_gives_base_only():
     scores = score_evidence(ev, mode="numerical")
     ts001 = scores.principles["ts-001"]
     assert ts001.dampening_multiplier == 0.0  # lift = 0 (no compliance)
-    assert ts001.final_score == 7.6
+    assert ts001.final_score == 7.8
 
 
 def test_weak_compliance_small_lift():
@@ -104,7 +104,7 @@ def test_weak_compliance_small_lift():
     )
     scores = score_evidence(ev, mode="numerical")
     ts001 = scores.principles["ts-001"]
-    assert ts001.final_score == 8.9
+    assert ts001.final_score == 9.4
 
 
 def test_dampening_in_graded_mode():

@@ -12,13 +12,24 @@ import { scoreToGradeLabel } from './gradeThresholds.js';
 import { countBySeverity, emptySeverityCounts } from './severity.js';
 import { weightedMeanScore } from './dimensionWeights.js';
 
-// The [dimension id, score] pairs of an entry's details, for an average.
-function scorePairs(details) {
+/**
+ * The [dimension id, score] pairs of an entry's details, for an average.
+ *
+ * @param {Array} details - dimensionDetails entries
+ * @returns {Array<[string, number]>} lowercase dimension id and score
+ */
+export function scorePairs(details) {
   return details.map((d) => [(d.dimension || '').toLowerCase(), d.score]);
 }
 
-// The entry's dimensionDetails narrowed to the visible set.
-function visibleDetailsOf(entry, visibleSet) {
+/**
+ * The entry's dimensionDetails narrowed to the visible set.
+ *
+ * @param {Object} entry - a trend entry or run log run
+ * @param {Set<string>} visibleSet - Lowercase dimension IDs to include
+ * @returns {Array} the visible dimensionDetails, same order
+ */
+export function visibleDetailsOf(entry, visibleSet) {
   return (entry.dimensionDetails || []).filter((d) => visibleSet.has((d.dimension || '').toLowerCase()));
 }
 

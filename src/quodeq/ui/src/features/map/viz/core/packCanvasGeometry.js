@@ -1,10 +1,8 @@
 import { withinRadius } from './hitTest.js';
 import { PACK_BASE_SIZE } from './packLayout.js';
 
-// The SVG view box the pack is authored in: a PAD margin around BASE_SIZE
-// layout units, fitted to the container with the aspect ratio kept
-// (xMidYMid meet). The canvas reproduces the same mapping so the two
-// renderers place every circle identically.
+// The view box the pack is authored in: a PAD margin around BASE_SIZE layout
+// units, fitted to the canvas with the aspect ratio kept and centred.
 export const PACK_VIEW_PAD = 20;
 const VIEW_SPAN = PACK_BASE_SIZE + PACK_VIEW_PAD * 2;
 
@@ -44,14 +42,23 @@ export function hitCircle(circles, screenCoords, x, y) {
 
 /** Whether a circle touches the canvas. Culling is against the canvas
  * pixels, not the square view box: a wide or tall canvas shows content in
- * the letterbox either side of the box (the SVG view clips to its element
- * too), and after zooming in the siblings of the focused folder live there.
+ * the letterbox either side of the box, and after zooming in the siblings
+ * of the focused folder live there.
  * Sub-pixel circles are kept: the 1px stroke still paints them, and that
- * texture is what makes a zoomed-out folder read as full rather than empty
- * (the SVG view gets the same from its non-scaling stroke). */
+ * texture is what makes a zoomed-out folder read as full rather than empty. */
 export function isDrawable(sc, viewport, width, height) {
   const px = viewport.ox + sc.cx * viewport.scale;
   const py = viewport.oy + sc.cy * viewport.scale;
   const r = sc.r * viewport.scale;
   return px + r > 0 && px - r < width && py + r > 0 && py - r < height;
+}
+
+const IDENTITY = Object.freeze({ k: 1, tx: 0, ty: 0 });
+
+/** The focus transform that frames circle `{x, y, r}` in the view box; the
+ * whole view when the circle has no size, so the camera is never infinite. */
+export function focusTransformFor({ x, y, r }) {
+  if (!(r > 0)) return { ...IDENTITY };
+  const k = PACK_BASE_SIZE / (r * 2);
+  return { k, tx: PACK_BASE_SIZE / 2 - x * k, ty: PACK_BASE_SIZE / 2 - y * k };
 }

@@ -95,3 +95,11 @@ test('pillsForView offers only view-matching skills, max 4', () => {
   assert.deepEqual(pillsForView(catalog, 'map'), []);
   assert.deepEqual(pillsForView(null, 'overview'), []);
 });
+
+test('pillsForView also offers skills declared for the drill-down page under the tab', () => {
+  const paged = { skills: [...catalog.skills, { name: 'explain-file', description: 'd', views: ['file'] }] };
+  assert.deepEqual(pillsForView(paged, 'overview', { page: 'file' }).map((p) => p.fill),
+    ['/explain-score ', '/explain-file ']);
+  assert.deepEqual(pillsForView(paged, 'overview', { page: 'explorer' }).map((p) => p.fill),
+    ['/explain-score ']);
+});

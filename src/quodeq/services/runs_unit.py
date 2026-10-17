@@ -86,7 +86,8 @@ def _terminal_run_scalars(reports_root: Path, project: str, run_id: str) -> list
     """``read_run_scalars`` for a terminal run, reused while the run's files are unchanged.
 
     The stamp covers everything the reader consults: the database (grade
-    tables), ``events.jsonl`` (folded into it by ``ensure_projected``) and the
+    tables), ``events.jsonl`` (folded into it by ``ensure_projected``), an
+    archived run's ``scalars.json`` and the
     ``evaluation`` directory (the per-dimension JSON the fallback parses and
     the SQL path counts). A run with none of these is read directly.
     """
@@ -94,6 +95,8 @@ def _terminal_run_scalars(reports_root: Path, project: str, run_id: str) -> list
     stamp = (
         evaluation_db_stamp(run_dir),
         file_stamp(run_dir / "events.jsonl"),
+        file_stamp(run_dir / "archive.tar.gz"),
+        file_stamp(run_dir / "scalars.json"),  # what an archived run is read from
         file_stamp(run_dir / "evaluation"),
     )
     if all(part is None for part in stamp):

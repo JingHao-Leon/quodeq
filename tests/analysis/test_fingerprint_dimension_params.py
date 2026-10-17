@@ -1,7 +1,7 @@
 """Per-dimension params fingerprint — the cache-key input for thresholds.
 
 Contract:
-1. Defaults (no overrides file, or overrides equal to defaults) hash to ""
+1. Defaults (no settings file, or overrides equal to defaults) hash to ""
    so legacy cache keys stay byte-identical.
 2. A non-default override yields a stable non-empty hash.
 3. Reverting the override restores "".
@@ -18,7 +18,7 @@ import pytest
 
 from quodeq.analysis import fingerprint
 from quodeq.analysis.fingerprint import dimension_params_state
-from quodeq.core.standards.overrides import OVERRIDES_RELPATH
+from quodeq.data.fs.standards_prefs import ProjectStandards, write_project_standards
 
 DIM = "maintainability"
 
@@ -35,10 +35,8 @@ def _write_compiled(standards_dir: Path, dimension: str, req_id: str, default: i
     }))
 
 
-def _write_overrides(project_root: Path, overrides: dict) -> None:
-    path = project_root / OVERRIDES_RELPATH
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"version": 1, "overrides": overrides}))
+def _write_overrides(settings_file: Path, overrides: dict) -> None:
+    write_project_standards(settings_file, ProjectStandards(overrides=overrides))
 
 
 @pytest.fixture(autouse=True)
@@ -56,53 +54,68 @@ def standards_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def project_root(tmp_path: Path) -> Path:
-    root = tmp_path / "repo"
-    root.mkdir()
-    return root
+def settings_file(tmp_path: Path) -> Path:
+    return tmp_path / "home" / "projects" / "p" / "standards.json"
 
 
-def test_no_overrides_hashes_empty(standards_dir, project_root):
-    params_hash, effective = dimension_params_state(standards_dir, DIM, project_root)
+def test_no_overrides_hashes_empty(standards_dir, settings_file):
+    params_hash, effective = dimension_params_state(standards_dir, DIM, settings_file)
     assert params_hash == ""
     assert effective == {"M-ANA-2": {"max_lines": 50}}
 
 
-def test_override_equal_to_default_hashes_empty(standards_dir, project_root):
-    _write_overrides(project_root, {"M-ANA-2": {"max_lines": 50}})
-    params_hash, _ = dimension_params_state(standards_dir, DIM, project_root)
+def test_override_equal_to_default_hashes_empty(standards_dir, settings_file):
+    _write_overrides(settings_file, {"M-ANA-2": {"max_lines": 50}})
+    params_hash, _ = dimension_params_state(standards_dir, DIM, settings_file)
     assert params_hash == ""
 
 
-def test_non_default_override_hashes_non_empty_and_stable(standards_dir, project_root):
-    _write_overrides(project_root, {"M-ANA-2": {"max_lines": 60}})
-    h1, effective = dimension_params_state(standards_dir, DIM, project_root)
-    h2, _ = dimension_params_state(standards_dir, DIM, project_root)
+def test_non_default_override_hashes_non_empty_and_stable(standards_dir, settings_file):
+    _write_overrides(settings_file, {"M-ANA-2": {"max_lines": 60}})
+    h1, effective = dimension_params_state(standards_dir, DIM, settings_file)
+    h2, _ = dimension_params_state(standards_dir, DIM, settings_file)
     assert h1 and h1 == h2
     assert effective == {"M-ANA-2": {"max_lines": 60}}
 
 
-def test_revert_restores_empty_hash(standards_dir, project_root):
-    _write_overrides(project_root, {"M-ANA-2": {"max_lines": 60}})
-    assert dimension_params_state(standards_dir, DIM, project_root)[0] != ""
-    (project_root / OVERRIDES_RELPATH).unlink()
+def test_revert_restores_empty_hash(standards_dir, settings_file):
+    _write_overrides(settings_file, {"M-ANA-2": {"max_lines": 60}})
+    assert dimension_params_state(standards_dir, DIM, settings_file)[0] != ""
+    settings_file.unlink()
     fingerprint.reset_hash_caches()
-    assert dimension_params_state(standards_dir, DIM, project_root)[0] == ""
+    assert dimension_params_state(standards_dir, DIM, settings_file)[0] == ""
 
 
-def test_foreign_dimension_override_does_not_shift_hash(standards_dir, project_root):
+def test_visibility_toggle_keeps_params_hash(standards_dir, settings_file):
+    # The cache key's params_hash follows the overrides only: a toggle that
+    # rewrites the same settings file must not re-key cached results.
+    write_project_standards(settings_file, ProjectStandards(
+        enabled=("security",), overrides={"M-ANA-2": {"max_lines": 60}}))
+    before, _ = dimension_params_state(standards_dir, DIM, settings_file)
+    write_project_standards(settings_file, ProjectStandards(
+        enabled=("usability",), overrides={"M-ANA-2": {"max_lines": 60}}))
+    after, _ = dimension_params_state(standards_dir, DIM, settings_file)
+    assert before != "" and after == before
+
+
+def test_visibility_only_settings_file_hashes_empty(standards_dir, settings_file):
+    write_project_standards(settings_file, ProjectStandards(enabled=("security",)))
+    assert dimension_params_state(standards_dir, DIM, settings_file)[0] == ""
+
+
+def test_foreign_dimension_override_does_not_shift_hash(standards_dir, settings_file):
     _write_compiled(standards_dir, "standards", "S-SEC-1", 3)
-    _write_overrides(project_root, {"S-SEC-1": {"max_lines": 5}})
-    assert dimension_params_state(standards_dir, DIM, project_root)[0] == ""
+    _write_overrides(settings_file, {"S-SEC-1": {"max_lines": 5}})
+    assert dimension_params_state(standards_dir, DIM, settings_file)[0] == ""
 
 
-def test_missing_dimension_file_hashes_empty(standards_dir, project_root):
-    params_hash, effective = dimension_params_state(standards_dir, "nonexistent", project_root)
+def test_missing_dimension_file_hashes_empty(standards_dir, settings_file):
+    params_hash, effective = dimension_params_state(standards_dir, "nonexistent", settings_file)
     assert (params_hash, effective) == ("", {})
 
 
-def test_none_standards_dir_hashes_empty(project_root):
-    assert dimension_params_state(None, DIM, project_root) == ("", {})
+def test_none_standards_dir_hashes_empty(settings_file):
+    assert dimension_params_state(None, DIM, settings_file) == ("", {})
 
 
 def _write_compiled_raw_params(standards_dir: Path, dimension: str, req_id: str, params) -> None:
@@ -120,7 +133,7 @@ def _write_compiled_raw_params(standards_dir: Path, dimension: str, req_id: str,
     }))
 
 
-def test_shape_invalid_param_spec_hashes_empty_without_raising(tmp_path, project_root):
+def test_shape_invalid_param_spec_hashes_empty_without_raising(tmp_path, settings_file):
     """``"params": {"max_lines": 5}`` -- the spec is a bare int, not a dict.
 
     ``effective_params`` calls ``spec.get("default")`` and would raise
@@ -129,10 +142,10 @@ def test_shape_invalid_param_spec_hashes_empty_without_raising(tmp_path, project
     """
     bad_dir = tmp_path / "standards-bad-spec"
     _write_compiled_raw_params(bad_dir, DIM, "M-ANA-2", {"max_lines": 5})
-    assert dimension_params_state(bad_dir, DIM, project_root) == ("", {})
+    assert dimension_params_state(bad_dir, DIM, settings_file) == ("", {})
 
 
-def test_shape_invalid_params_list_hashes_empty_without_raising(tmp_path, project_root):
+def test_shape_invalid_params_list_hashes_empty_without_raising(tmp_path, settings_file):
     """``"params": [...]`` -- not a mapping at all.
 
     ``dimension_params`` treats the list as truthy and calls
@@ -142,10 +155,10 @@ def test_shape_invalid_params_list_hashes_empty_without_raising(tmp_path, projec
     """
     bad_dir = tmp_path / "standards-bad-list"
     _write_compiled_raw_params(bad_dir, DIM, "M-ANA-2", ["max_lines"])
-    assert dimension_params_state(bad_dir, DIM, project_root) == ("", {})
+    assert dimension_params_state(bad_dir, DIM, settings_file) == ("", {})
 
 
-def test_deeply_nested_compiled_file_hashes_empty(standards_dir, project_root, deeply_nested_json):
+def test_deeply_nested_compiled_file_hashes_empty(standards_dir, settings_file, deeply_nested_json):
     """A compiled dimension file must degrade the same way a missing one does.
 
     Deeply nested JSON overflows the C decoder's call stack and raises
@@ -158,7 +171,7 @@ def test_deeply_nested_compiled_file_hashes_empty(standards_dir, project_root, d
     (standards_dir / "compiled" / f"{DIM}.json").write_text(
         deeply_nested_json, encoding="utf-8")
 
-    assert dimension_params_state(standards_dir, DIM, project_root) == ("", {})
+    assert dimension_params_state(standards_dir, DIM, settings_file) == ("", {})
 
 
 # ---------------------------------------------------------------------------

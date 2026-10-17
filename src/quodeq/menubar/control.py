@@ -18,6 +18,7 @@ from pathlib import Path
 from quodeq.shared.constants import PLATFORM_DARWIN, PLATFORM_WIN32
 from quodeq.shared.env_paths import ensure_run_dir
 from quodeq.shared.frozen import is_frozen, subprocess_cmd
+from quodeq.shared.process import process_has_arg
 
 _logger = logging.getLogger(__name__)
 _PIDFILE_NAME = "menubar.pid"
@@ -71,10 +72,20 @@ def is_running() -> bool:
     if pid is None:
         remove_pidfile()
         return False
-    if not _pid_alive(pid):
+    if not _pid_alive(pid) or not _is_menubar_process(pid):
         remove_pidfile()
         return False
     return True
+
+
+# The argv token that marks a menu bar process: "--_menubar" in the app
+# bundle, "quodeq.menubar" when run from source (see subprocess_cmd).
+_MENUBAR_TOKENS = ("--_menubar", "quodeq.menubar")
+
+
+def _is_menubar_process(pid: int) -> bool:
+    """True when *pid* is a menu bar process, not an unrelated one that reused a stale pid."""
+    return any(process_has_arg(pid, token) for token in _MENUBAR_TOKENS)
 
 
 def write_pidfile() -> None:

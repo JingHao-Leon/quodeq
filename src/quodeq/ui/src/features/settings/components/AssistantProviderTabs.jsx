@@ -4,7 +4,6 @@ import { AssistantModeRows } from './AssistantModeRows.jsx';
 import { ProviderPillGroup } from './ProviderPillGroup.jsx';
 import { SettingsRowLabel, SettingsEnableRow } from './settingsRowParts.jsx';
 import AssistantModelPicker from './AssistantModelPicker.jsx';
-import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { t } from '../../../strings/index.js';
 import { CopilotModelStatus } from './CopilotModelSelect.jsx';
 import { PROVIDER } from '../../../vocab/provider.js';
@@ -33,29 +32,35 @@ function AssistantCustomProviderSection({ clients, activeProvider, setActiveProv
   );
 }
 
+/** The toolbar switch that shows or hides the assistant. */
+export function AssistantEnableRow() {
+  const { enabled, setEnabled } = useAssistantProvider();
+  return (
+    <SettingsEnableRow
+      enabled={enabled}
+      setEnabled={setEnabled}
+      label={t('settings.assistantEnable')}
+      description={t('settings.assistantEnableDesc')}
+    />
+  );
+}
+
+/**
+ * Which model the assistant uses: the evaluation one by default, or its own.
+ * Shown whether or not the assistant is switched on; the switch lives in the
+ * Toolbar section. The Assistant group's gutter names it, so no section label.
+ */
 export default function AssistantProviderTabs({ providerConfigs }) {
   const { clients, clientsError } = useAiClientList(providerConfigs);
-  const { enabled, setEnabled, mode, setMode, activeProvider, setActiveProvider, model, setModel } = useAssistantProvider();
+  const { mode, setMode, activeProvider, setActiveProvider, model, setModel } = useAssistantProvider();
 
   const active = clients.find((c) => c.id === activeProvider);
 
   return (
     <section className="panel settings-section">
-      <div className="panel-header">
-        <SectionLabel marker="▶">{t('settings.assistantLabel')}</SectionLabel>
-      </div>
       {clientsError && <div className="settings-row"><span className="settings-error" role="alert">{clientsError}</span></div>}
-
-      <SettingsEnableRow
-        enabled={enabled}
-        setEnabled={setEnabled}
-        label={t('settings.assistantEnable')}
-        description={t('settings.assistantEnableDesc')}
-      />
-
-      <AssistantModeRows enabled={enabled} mode={mode} setMode={setMode} active={active} activeProvider={activeProvider} model={model} />
-
-      {enabled && mode === ASSISTANT_MODE.CUSTOM && (
+      <AssistantModeRows mode={mode} setMode={setMode} />
+      {mode === ASSISTANT_MODE.CUSTOM && (
         <AssistantCustomProviderSection
           clients={clients} activeProvider={activeProvider} setActiveProvider={setActiveProvider}
           active={active} providerConfigs={providerConfigs} model={model} setModel={setModel}

@@ -15,6 +15,10 @@ export function buildAssistantSessionPayload({ provider, model, projectId, runId
  * Handler for the ASSISTANT_ACTION_APPLIED_EVENT window event (constants.js),
  * which the assistant's ActionPreviewCard dispatches after a successful apply.
  *
+ * A created standard goes to `onStandardCreated` with its id, which makes it
+ * visible and refetches the standards list; the Standards page itself opens
+ * the new standard.
+ *
  * Extracted and exported so the post-dismiss convergence contract can be
  * pinned without mounting App (which needs ~8 providers). An assistant
  * dismiss mutates exactly the payloads a manual dismiss does, so it owes the
@@ -22,6 +26,7 @@ export function buildAssistantSessionPayload({ provider, model, projectId, runId
  *
  * @param {{
  *   applyDelta: (project: string, scores: Object, delta: Object) => void,
+ *   onStandardCreated?: (standardId: string|undefined) => void,
  *   recordDismissed?: (project: string, entry: Object) => void,
  *   scheduleDashboardReconcile?: () => void,
  *   selectedProject: string,
@@ -30,11 +35,13 @@ export function buildAssistantSessionPayload({ provider, model, projectId, runId
  */
 export function buildAssistantActionAppliedHandler({
   applyDelta,
+  onStandardCreated,
   recordDismissed,
   scheduleDashboardReconcile,
   selectedProject,
 }) {
   return (event) => {
+    if (event.detail?.actionType === ACTION_TYPE.CREATE_STANDARD) { onStandardCreated?.(event.detail.standardId); return; }
     if (event.detail?.actionType !== ACTION_TYPE.DISMISS_FINDING) return;
     // Apply the delta first so the currently-visible screen patches in place
     // immediately; the refresh/reconcile below are the eventual-correctness

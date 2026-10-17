@@ -4,6 +4,7 @@ import pytest
 
 from quodeq.assistant.tools import ToolContext, build_registry
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
+from tests.assistant._standard_fixtures import _VALID_STANDARD
 
 
 def _seed_run_ctx(tmp_path, violations, *, dbname="assistant_run.db"):
@@ -25,15 +26,6 @@ def _seed_run_ctx(tmp_path, violations, *, dbname="assistant_run.db"):
         dimensions_file=tmp_path / "d.json",
         project_id="proj", reports_dir=eval_root,
     )
-
-
-_VALID_STANDARD = {
-    "id": "api-errors", "name": "API Error Contract", "description": "d",
-    "weight": 1.0, "source": "assistant",
-    "principles": [{"name": "P1", "description": "", "requirements": [
-        {"id": "r1", "text": "Endpoints return RFC7807", "description": "", "refs": []},
-    ]}],
-}
 
 
 @pytest.fixture()

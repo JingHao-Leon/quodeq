@@ -26,6 +26,7 @@ from quodeq.services.shared_listing import warm_shared_listing
 from quodeq.services.sync_progress import SYNC_IDLE_FIELDS, WarmListing, progress_writer, read_projects
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.shared.git_errors import NOT_A_GIT_REPO_CODE, NOT_A_GIT_REPO_MESSAGE, NotAGitRepoError
+from quodeq.shared.repo import mask_userinfo
 
 # Wire ``code`` values for a failed connect. The UI maps each to a
 # translated message, so the strings are API contract.
@@ -72,7 +73,7 @@ def connect_failure(outcome: ConnectOutcome) -> ConnectFailure | None:
         return invalid_url_failure(outcome.detail)
     if outcome.status == ConnectStatus.CLONE_FAILED:
         return ConnectFailure(
-            f"could not clone the repository, check that git can access {outcome.url}",
+            f"could not clone the repository, check that git can access {mask_userinfo(outcome.url)}",
             CODE_CLONE_FAILED,
             HTTPStatus.BAD_GATEWAY,
         )

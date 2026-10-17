@@ -33,6 +33,10 @@ _ALLOWLIST: set[str] = {
     # pgrep / ps are wrapped in `except (OSError, ...)` -> returns _UNKNOWN, so
     # on Windows (FileNotFoundError) resource sampling degrades gracefully.
     "shared/resource_sampler.py:61",
+    # _command_line_cmd: the else of `if _on_windows()` (win32 asks CIM through PowerShell).
+    "shared/process.py:70",
+    # _ps_start_time: process_started_at returns None before it on win32.
+    "shared/process.py:125",
     "shared/resource_sampler.py:78",
     # child_cwd's macOS branch: only reached when `platform == "darwin"` and
     # wrapped in `except (..., subprocess.SubprocessError)`, so Windows never
@@ -47,8 +51,8 @@ _ALLOWLIST: set[str] = {
     # pids from find_pids_on_port, which returns [] off-darwin.
     "menubar/_process.py:86",
     "menubar/_process.py:98",
-    "menubar/_app_lifecycle.py:156",
-    "menubar/_app_lifecycle.py:168",
+    "menubar/_app_lifecycle.py:157",
+    "menubar/_app_lifecycle.py:169",
     # _terminate's POSIX branch: `if _IS_WINDOWS` returns after proc.kill()
     # before this line, and the call is wrapped in `except OSError`. Kills the
     # streaming git process group (git plus any ssh/credential helper that

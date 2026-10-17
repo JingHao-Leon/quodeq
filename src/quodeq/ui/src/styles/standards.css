@@ -10,27 +10,6 @@
   margin: 0 auto;
 }
 
-.standards-page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 28px;
-  gap: 16px;
-}
-
-.standards-page-title {
-  margin: 0 0 6px 0;
-  font-size: 2rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.standards-page-subtitle {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 1rem;
-}
-
 .standards-page-header-actions {
   display: flex;
   gap: 6px;
@@ -299,23 +278,9 @@
 }
 
 .standard-editor-toolbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--space-6) var(--space-3);
+  margin-bottom: 0;
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.standard-editor-toolbar > .term-header {
-  margin: 0;
-}
-
-.standard-editor-actions {
-  display: inline-flex;
-  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -970,90 +935,6 @@
   font-size: 0.9rem;
 }
 
-/* ── Library Browser ─────────────────────────────────────── */
-
-.library-browser-subtitle {
-  margin: 0 0 20px 0;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
-}
-
-.library-loading,
-.library-empty {
-  padding: 32px 0;
-  text-align: center;
-  color: var(--color-text-muted);
-}
-
-.library-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
-  max-height: 480px;
-  overflow-y: auto;
-}
-
-.library-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-}
-
-.library-card-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.library-card-name {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.library-card-id {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  font-family: var(--font-mono, monospace);
-}
-
-.library-card-description {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.library-card-counts {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-}
-
-.library-card-counts-sep {
-  margin: 0 4px;
-  opacity: 0.5;
-}
-
-.library-card-footer {
-  margin-top: auto;
-  padding-top: 8px;
-}
-
-.library-import-btn {
-  width: 100%;
-  justify-content: center;
-}
-
 /* ── Modal Shared Styles ─────────────────────────────────── */
 
 .modal-overlay {
@@ -1240,6 +1121,11 @@
   opacity: 0.88;
 }
 
+.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ── Chip Badges for Evaluate Tab ────────────────────────── */
 
 .dimension-chip-btn {
@@ -1334,7 +1220,7 @@
 .standards-table-head,
 .standards-row {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) 100px 90px 110px 80px 124px;
+  grid-template-columns: minmax(0, 2fr) 100px 80px 96px 104px 64px 124px;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -1377,6 +1263,13 @@
 .standards-cell { min-width: 0; }
 .standards-cell--num { font-variant-numeric: tabular-nums; text-align: center; }
 .standards-cell--enabled { display: flex; justify-content: flex-start; }
+.standards-cell--version {
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .standards-cell--actions { display: flex; justify-content: flex-end; gap: 4px; }
 
 .standards-cell--name {
@@ -1485,14 +1378,117 @@
   border-color: color-mix(in srgb, var(--color-sev-critical-text, #c0392b) 30%, var(--color-border));
 }
 
+/* Shared repository connected: a sync column joins the grid. The fixed
+   tracks shrink (short headers, tighter gap) so the name keeps ~220px at a
+   1280px window; actions fit four icons and one sync button, a second
+   button (diverged) wraps inside the cell, and the sync text wraps. */
+.standards-table--shared .standards-table-head,
+.standards-table--shared .standards-row {
+  grid-template-columns: minmax(0, 1fr) 88px 56px 56px 84px 160px 40px 180px;
+  gap: var(--space-2);
+}
+.standards-table--shared .standards-cell--actions { flex-wrap: wrap; row-gap: 4px; }
+.standards-table--shared .standards-sync { white-space: normal; align-items: flex-start; line-height: 1.4; }
+.standards-table--shared .standards-sync__dot { margin-top: 0.45em; }
+.standards-table-head abbr { text-decoration: none; cursor: help; }
+
+/* A standard that exists only remotely is not installed: dimmed like an
+   off row, and its sub-line ("remote only · published ...") may wrap. */
+.standards-row--remote { cursor: default; opacity: 0.55; }
+.standards-row--remote:hover { opacity: 0.8; }
+.standards-row--remote .standards-row-subtitle {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.standards-sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.standards-table-head .standards-cell--sync { display: block; font-size: inherit; }
+.standards-sync__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.standards-sync--ok .standards-sync__dot { background: var(--color-success); }
+.standards-sync--warn .standards-sync__dot { background: var(--color-warning); }
+
+.standards-sync-actions { display: inline-flex; gap: 6px; align-items: center; }
+.standards-sync-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.standards-sync-btn:hover:not([aria-disabled="true"]) { border-color: var(--color-accent); color: var(--color-accent); }
+.standards-sync-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.standards-sync-btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+
+.standards-row-error {
+  padding: 4px 16px 8px;
+  color: var(--color-sev-critical-text);
+  font-size: var(--text-xs);
+}
+
+/* Shared repository band: one slim row atop the table, as on Repositories. */
+.standards-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-bottom: var(--page-head-gap);
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--term-radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+}
+.standards-band__name { color: var(--color-text); overflow-wrap: anywhere; }
+.standards-band__spacer { flex: 1; }
+.standards-band__error { color: var(--color-sev-critical-text); }
+
+/* Narrow windows with the sync column: principles and version step aside. */
+@media (max-width: 1100px) {
+  .standards-table--shared .standards-table-head,
+  .standards-table--shared .standards-row {
+    grid-template-columns: minmax(0, 1fr) 88px 56px 150px 40px 128px;
+  }
+  .standards-table--shared .standards-cell--principles,
+  .standards-table--shared .standards-cell--version { display: none; }
+}
+
 @media (max-width: 900px) {
   .standards-table-head,
   .standards-row {
-    grid-template-columns: minmax(0, 1.6fr) 80px 70px 110px;
+    grid-template-columns: minmax(0, 1.6fr) 80px 70px 96px 64px;
     gap: var(--space-2);
   }
-  .standards-cell--num:first-of-type,
-  .standards-cell--actions { display: none; }
+  .standards-table--shared .standards-table-head,
+  .standards-table--shared .standards-row {
+    grid-template-columns: minmax(0, 1.6fr) 80px 70px 96px 64px 120px;
+  }
+  .standards-table--shared .standards-cell--version { display: block; }
+  .standards-cell--principles,
+  .standards-cell--actions,
+  .standards-cell--sync,
+  .standards-table-head .standards-cell--sync { display: none; }
+  .standards-table--shared .standards-cell--actions { display: flex; flex-wrap: wrap; }
 }
 
 /* ── Threshold fields ───────────────────────────────────────────────── */

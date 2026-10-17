@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import {
-  VISIBLE_STANDARDS_STORAGE_KEY, DEFAULT_VISIBLE_STANDARDS, STANDARDS_CHANGED_EVENT, STANDARDS_CHANGED_REASON,
+  VISIBLE_STANDARDS_STORAGE_KEY, STANDARDS_CHANGED_EVENT, STANDARDS_CHANGED_REASON,
 } from '../constants.js';
 
 vi.mock('../api/standards.js', () => ({
@@ -26,6 +26,17 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+it('hydrate adopts the server ids and never PUTs, even when the cache differs', async () => {
+  const storage = fakeStorage({ [VISIBLE_STANDARDS_STORAGE_KEY]: JSON.stringify(['usability']) });
+  getStandardsVisibility.mockResolvedValue({
+    visibleStandardIds: ['security'], isDefault: true, defaultStandardIds: ['security'],
+  });
+  const ids = await hydrateVisibleStandardIds('p1', { storage });
+  expect(ids).toEqual(['security']);
+  expect(putStandardsVisibility).not.toHaveBeenCalled();
+});
+
+
 it('writeVisibleStandardIds broadcasts a visibility change for same-tab listeners', () => {
   const seen = [];
   const listener = (evt) => seen.push(evt.detail?.reason);
@@ -46,50 +57,6 @@ it('caches the server selection into storage', async () => {
   const ids = await hydrateVisibleStandardIds('p1', { storage });
   expect(ids).toEqual(['security']);
   expect(JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY])).toEqual(['security']);
-});
-
-it('migrates an existing local selection up to the server once', async () => {
-  getStandardsVisibility.mockResolvedValue({
-    visibleStandardIds: [...DEFAULT_VISIBLE_STANDARDS], isDefault: true,
-  });
-  putStandardsVisibility.mockResolvedValue({
-    visibleStandardIds: ['security'], isDefault: false,
-  });
-  const storage = fakeStorage({
-    [VISIBLE_STANDARDS_STORAGE_KEY]: JSON.stringify(['security']),
-  });
-  const ids = await hydrateVisibleStandardIds('p1', { storage });
-  expect(putStandardsVisibility).toHaveBeenCalledWith('p1', ['security']);
-  expect(ids).toEqual(['security']);
-});
-
-it('uses the server-provided defaultStandardIds for the migration comparison, not the JS constant', async () => {
-  // The cache matches the SERVER's default set (a different, hypothetical
-  // set than the local DEFAULT_VISIBLE_STANDARDS constant) -- nothing to
-  // migrate, even though it differs from the JS literal. Proves the
-  // comparison prefers the hydrated `defaultStandardIds` over the
-  // boot-fallback constant when the response carries one.
-  const serverDefaults = ['security', 'reliability'];
-  getStandardsVisibility.mockResolvedValue({
-    visibleStandardIds: [...serverDefaults], isDefault: true, defaultStandardIds: serverDefaults,
-  });
-  const storage = fakeStorage({
-    [VISIBLE_STANDARDS_STORAGE_KEY]: JSON.stringify(serverDefaults),
-  });
-  await hydrateVisibleStandardIds('p1', { storage });
-  expect(putStandardsVisibility).not.toHaveBeenCalled();
-});
-
-it('does not migrate when the server already has a saved selection', async () => {
-  getStandardsVisibility.mockResolvedValue({
-    visibleStandardIds: ['reliability'], isDefault: false,
-  });
-  const storage = fakeStorage({
-    [VISIBLE_STANDARDS_STORAGE_KEY]: JSON.stringify(['security']),
-  });
-  const ids = await hydrateVisibleStandardIds('p1', { storage });
-  expect(putStandardsVisibility).not.toHaveBeenCalled();
-  expect(ids).toEqual(['reliability']);
 });
 
 it('leaves the cached value in place when the request fails', async () => {
@@ -129,72 +96,6 @@ it('does not write a stale project response over the current project\'s cache (r
   expect(JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY])).toEqual(['reliability']);
 });
 
-it('does not migrate when the cached selection already equals the defaults', async () => {
-  // Distinct from the "no cachedRaw" case below: here cachedRaw IS present,
-  // but it carries no real user intent because it's set-equal to the ISO
-  // defaults (e.g. left over from a previous project that also had no
-  // file). PUTting it would create an untracked
-  // .quodeq/standards-visibility.json with nothing but the defaults in it.
-  getStandardsVisibility.mockResolvedValue({
-    visibleStandardIds: [...DEFAULT_VISIBLE_STANDARDS], isDefault: true,
-  });
-  const storage = fakeStorage({
-    // Reordered/duplicated but set-equal to the defaults.
-    [VISIBLE_STANDARDS_STORAGE_KEY]: JSON.stringify(
-      [...DEFAULT_VISIBLE_STANDARDS].reverse()),
-  });
-  const ids = await hydrateVisibleStandardIds('p1', { storage });
-  expect(putStandardsVisibility).not.toHaveBeenCalled();
-  expect(ids).toEqual(DEFAULT_VISIBLE_STANDARDS);
-});
-
-it('does not let a project switch bleed one project\'s selection into another (cross-project bleed)', async () => {
-  // The regression this guards: project A has a real, already-synced
-  // selection (its own file, isDefault: false). The user then switches to
-  // project B, which has no file yet (isDefault: true). B must get the ISO
-  // defaults, NOT A's ids pushed into a brand-new file in B's repo -- the
-  // shared (per-browser, not per-project) localStorage cache must not be
-  // read as "B's own pending migration" just because A's hydrate happened
-  // to leave a non-default value sitting in it.
-  getStandardsVisibility.mockImplementation((projectId) => {
-    if (projectId === 'A') {
-      return Promise.resolve({
-        visibleStandardIds: ['maintainability', 'usability'], isDefault: false,
-      });
-    }
-    return Promise.resolve({
-      visibleStandardIds: [...DEFAULT_VISIBLE_STANDARDS], isDefault: true,
-    });
-  });
-  const storage = fakeStorage();
-
-  await hydrateVisibleStandardIds('A', { storage });
-  expect(JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY]))
-    .toEqual(['maintainability', 'usability']);
-
-  const idsForB = await hydrateVisibleStandardIds('B', { storage });
-
-  expect(putStandardsVisibility).not.toHaveBeenCalled();
-  expect(idsForB).toEqual(DEFAULT_VISIBLE_STANDARDS);
-  expect(JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY]))
-    .toEqual(DEFAULT_VISIBLE_STANDARDS);
-});
-
-it('does not migrate when isDefault is true but there is no cached selection to migrate', async () => {
-  // Case 3 of the migration matrix: isDefault true, but cachedRaw is absent
-  // (fresh browser, nothing to push up) rather than isDefault being false.
-  // Distinct from "does not migrate when the server already has a saved
-  // selection" above, which takes the false branch for the opposite reason.
-  getStandardsVisibility.mockResolvedValue({
-    visibleStandardIds: [...DEFAULT_VISIBLE_STANDARDS], isDefault: true,
-  });
-  const storage = fakeStorage();
-  const ids = await hydrateVisibleStandardIds('p1', { storage });
-  expect(putStandardsVisibility).not.toHaveBeenCalled();
-  expect(ids).toEqual(DEFAULT_VISIBLE_STANDARDS);
-  expect(JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY])).toEqual(DEFAULT_VISIBLE_STANDARDS);
-});
-
 it('does not let a hydrate GET overwrite a same-project toggle that persisted while it was in flight (race)', async () => {
   // Reproduces the reviewer's sequence:
   //   1. hydrate(P) fires its GET; it's slow.
@@ -228,28 +129,6 @@ it('does not let a hydrate GET overwrite a same-project toggle that persisted wh
   await hydrate;
 
   expect(JSON.parse(storage._map[VISIBLE_STANDARDS_STORAGE_KEY])).toEqual(['security', 'reliability']);
-});
-
-it('does not fire the migration PUT for a project the user has left', async () => {
-  let currentProject = 'A';
-  const isStaleFor = (projectId) => () => currentProject !== projectId;
-
-  let resolveA;
-  const aPromise = new Promise((resolve) => { resolveA = resolve; });
-  getStandardsVisibility.mockImplementation((projectId) => (
-    projectId === 'A' ? aPromise : Promise.resolve({ visibleStandardIds: [...DEFAULT_VISIBLE_STANDARDS], isDefault: true })
-  ));
-
-  const storage = fakeStorage({
-    [VISIBLE_STANDARDS_STORAGE_KEY]: JSON.stringify(['security']),
-  });
-  const hydrateA = hydrateVisibleStandardIds('A', { storage, isStale: isStaleFor('A') });
-
-  currentProject = 'B';
-  resolveA({ visibleStandardIds: [...DEFAULT_VISIBLE_STANDARDS], isDefault: true });
-  await hydrateA;
-
-  expect(putStandardsVisibility).not.toHaveBeenCalled();
 });
 
 it('two injected storages keep separate write generations -- a write to one never supersedes an in-flight hydrate for the other', async () => {

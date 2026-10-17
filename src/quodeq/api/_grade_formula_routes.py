@@ -3,7 +3,8 @@
 GET    /api/grade-formula          -- current + defaults + isCustom + rescore progress
 PUT    /api/grade-formula          -- validate, save, start a background rescore (202)
 DELETE /api/grade-formula          -- reset to Q2 defaults, start a background rescore (202)
-POST   /api/grade-formula/preview  -- read-only before/after for one project
+POST   /api/grade-formula/preview  -- read-only before/after of every local project's accumulated score
+GET    /api/grade-formula/inputs   -- every project's per-principle scoring inputs (read-only)
 """
 from __future__ import annotations
 
@@ -12,17 +13,19 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, request
 
-from quodeq.api._constants import CODE_INVALID_INPUT, CODE_NOT_FOUND, QUERY_FLAG_TRUE
-from quodeq.api.helpers import json_error, optional_json_object_or_error, validate_segment
+from quodeq.api._constants import CODE_INVALID_INPUT, QUERY_FLAG_TRUE
+from quodeq.api.helpers import json_error, optional_json_object_or_error
 from quodeq.api.routes_common import reports_dir
 from quodeq.core.scoring.params import (
     DEFAULT_PARAMS,
     params_error,
     params_from_dict,
     params_to_dict,
+    ranges_to_dict,
     validate_params,
 )
-from quodeq.services import grade_formula
+from quodeq.services import grade_formula, grade_formula_inputs, grade_formula_preview
+from quodeq.shared.log_sink import SHARED_LOG
 from quodeq.services.grade_formula_job import GradeFormulaRescorer, RescoreSnapshot
 
 
@@ -51,7 +54,11 @@ def _state_payload(rescore: RescoreSnapshot) -> dict:
     return {
         "current": params_to_dict(grade_formula.load_params()),
         "defaults": params_to_dict(DEFAULT_PARAMS),
+        # The bounds the PUT validates, so the editor's sliders match them.
+        "ranges": ranges_to_dict(),
         "isCustom": grade_formula.is_custom(),
+        # A custom formula saved under an older grade algorithm, set aside: the page says so.
+        "retiredCustom": grade_formula.has_retired_formula(),
         # Progress of the background rescore pass. The client polls GET
         # until appliedGeneration reaches the generation its PUT/DELETE got,
         # and warns when failed > 0: those runs keep the old formula.
@@ -60,24 +67,14 @@ def _state_payload(rescore: RescoreSnapshot) -> dict:
 
 
 def _preview_response() -> Response | tuple[Response, int]:
-    """Handle POST /api/grade-formula/preview for one project."""
+    """Handle POST /api/grade-formula/preview: every local project, saved vs draft."""
     payload = optional_json_object_or_error(CODE_INVALID_INPUT)
     if not isinstance(payload, dict):
         return payload
-    project = payload.get("project") or ""
-    err = validate_segment(project, message="Invalid project")
-    if err is not None:
-        return err
     params, err = parse_params(payload.get("params") or {})
     if err:
         return err
-    result = grade_formula.preview_scores(Path(reports_dir()), project, params)
-    if result is None:
-        return json_error(
-            "No evaluation with an event log found for this project",
-            HTTPStatus.NOT_FOUND, CODE_NOT_FOUND,
-        )
-    return jsonify(result)
+    return jsonify(grade_formula_preview.preview_all(Path(reports_dir()), params, log=SHARED_LOG))
 
 
 def register_grade_formula_routes(
@@ -125,6 +122,10 @@ def register_grade_formula_routes(
     @app.post("/api/grade-formula/preview")
     def preview_grade_formula() -> Response | tuple[Response, int]:
         return _preview_response()
+
+    @app.get("/api/grade-formula/inputs")
+    def grade_formula_inputs_route() -> Response:
+        return jsonify(grade_formula_inputs.inputs_all(Path(reports_dir()), log=SHARED_LOG))
 
     @app.post("/api/grade-formula/rescore")
     def rescore_grade_formula() -> tuple[Response, int]:

@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from enum import StrEnum
 from pathlib import Path
@@ -28,7 +28,12 @@ from quodeq.services._publish_git import (
     push_with_rebase_fallback,
     prepare_clone,
 )
+from quodeq.services._publish_standards import (
+    record_shared_hashes,
+    stage_scored_standards,
+)
 from quodeq.services._publish_staging import (
+    StagedProject,
     copy_run,
     list_completed_runs,
     merge_actions_log,
@@ -36,6 +41,8 @@ from quodeq.services._publish_staging import (
 )
 from quodeq.services.github_access import forget_url
 from quodeq.services.job_status import JobSlotStatus
+from quodeq.services._fs_metadata import local_repo_root
+from quodeq.services.shared_activity import stage_activity
 from quodeq.services.wiring import (
     RepoFormat,
     bootstrap_repo_layout,
@@ -44,7 +51,11 @@ from quodeq.services.wiring import (
     run_git,  # noqa: F401 -- _publish_git reads run_git from this namespace
     stage_publish_paths,
 )
+from quodeq.services.wiring_sync import (
+    SHARED_STANDARDS_DIRNAME, find_repo_link, reset_clone_to_remote, restore_shared_standards, stage_standard_paths,
+)
 from quodeq.shared.fault_isolation import run_isolated
+from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.validation import validate_path_segment
 
 __all__ = [
@@ -52,7 +63,7 @@ __all__ = [
     "get_publish_status", "publish_project", "start_publish",
     # Re-exported so callers and tests keep reaching them at this module's
     # path; ``ensure_shared_clone`` is also a patch target.
-    "clone_lock", "copy_run", "ensure_shared_clone", "list_completed_runs",
+    "StagedProject", "clone_lock", "copy_run", "ensure_shared_clone", "list_completed_runs",
     "merge_actions_log", "stage_project",
 ]
 
@@ -98,34 +109,68 @@ def _prepare_workspace(
         yield project_dir, repo
 
 
-def _commit_and_push(repo: Path, project_id: str, count: int, env: dict | None = None) -> None:
-    ok, out = stage_publish_paths(repo, project_id)
+def _refuse_links(repo: Path, project_id: str) -> None:
+    """Refuse before any write when the repository holds a link where publish writes (it would write through it)."""
+    link = find_repo_link(repo, (f"evaluations/{project_id}", SHARED_STANDARDS_DIRNAME))
+    if link is not None:
+        raise PublishError(f"The shared repository contains a link at {link}. "
+                           "Remove it from the repository and publish again.")
+
+
+def _commit_and_push(repo: Path, project_id: str, staged: StagedProject, env: dict | None = None,
+                     standard_ids: list[str] | None = None) -> None:
+    ok, out = stage_publish_paths(repo, staged.paths)
+    if ok and standard_ids:
+        ok, out = stage_standard_paths(repo, standard_ids)
     if not ok:
         raise PublishError(f"git add failed, {out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
 
-    commit_staged_changes(repo, project_id, count)
+    commit_staged_changes(repo, project_id, staged.runs)
     push_with_rebase_fallback(repo, env)
 
 
 def publish_project(
-    project_id: str, url: str, *, evaluations_root: Path, env: dict | None = None
+    project_id: str, url: str, *, evaluations_root: Path, env: dict | None = None,
+    on_skipped: Callable[[list[str]], None] | None = None,
 ) -> int:
     """Stage a project's completed runs into the shared results repo and push them.
 
-    Returns the number of runs staged. Raises ``PublishError`` for anything a
+    The custom standards those runs scored ride in the same commit; ids whose
+    shared copy is newer are left alone and handed to *on_skipped* after the
+    push. Returns the number of runs staged. Raises ``PublishError`` for anything a
     user can act on (bad project id, missing project, git add/commit/push
     failure). The whole clone-stage-push sequence runs under one process-wide
     clone lock, so concurrent publishes serialise instead of racing on the
     working tree.
     """
     with _prepare_workspace(project_id, url, evaluations_root, env) as (project_dir, repo):
+        # A failed earlier attempt can leave standards/ files the comparison
+        # below would read as already shared: start from HEAD.
+        restored, out = restore_shared_standards(repo)
+        if not restored:
+            raise PublishError("failed to reset the shared standards folder, "
+                               f"{out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
+        _refuse_links(repo, project_id)
         try:
-            count = stage_project(project_dir, repo / "evaluations" / project_id)
+            staged = stage_project(project_dir, repo / "evaluations" / project_id)
+            activity = stage_activity(project_dir, repo / "evaluations" / project_id,
+                                      local_repo_root(evaluations_root, project_id), log=LoggerSink(logger))
+            if activity is not None:
+                staged.paths.append(activity)
+            standards = stage_scored_standards(project_dir, repo, log=LoggerSink(logger))
         except (OSError, ValueError) as exc:
             raise PublishError(f"failed to stage project files, {exc}") from exc
 
-        _commit_and_push(repo, project_id, count, env)
-        return count
+        try:
+            _commit_and_push(repo, project_id, staged, env, standards.published)
+        except PublishError:
+            # An unpushed commit must not read as shared (listing, installs).
+            reset_clone_to_remote(url, env)
+            raise
+        record_shared_hashes(repo, standards, log=LoggerSink(logger))
+    if on_skipped is not None:
+        on_skipped(standards.skipped)
+    return staged.runs
 
 
 class PublishState(StrEnum):
@@ -152,6 +197,7 @@ class PublishStatus(JobSlotStatus):
                 "runs": None,
                 "error": None,
                 "finished_at": None,
+                "skipped_standards": [],
             },
             PublishState.RUNNING,
         )
@@ -174,8 +220,11 @@ def _do_publish(
     env: dict | None = None,
 ) -> None:
     try:
-        count = publish_project(project_id, url, evaluations_root=evaluations_root, env=env)
-        status.set(state=PublishState.DONE, runs=count, error=None, finished_at=time.time())
+        skipped: list[str] = []
+        count = publish_project(project_id, url, evaluations_root=evaluations_root, env=env,
+                                on_skipped=skipped.extend)
+        status.set(state=PublishState.DONE, runs=count, error=None, finished_at=time.time(),
+                   skipped_standards=skipped)
     except PublishError as exc:
         forget_url(url)  # a stale "reachable" cache entry must not outlive a failed push
         status.set(state=PublishState.ERROR, error=str(exc), finished_at=time.time())

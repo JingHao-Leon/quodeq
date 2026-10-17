@@ -1,5 +1,5 @@
 /**
- * Standards API — standard CRUD and library operations.
+ * Standards API — standard CRUD operations.
  */
 
 import { request, BASE } from './request.js';
@@ -59,21 +59,8 @@ export async function duplicateStandard(standardId, newId) {
 }
 
 /** @returns {Promise<Object[]>} */
-export async function listLibrary() {
-  return request('/standards/library');
-}
-
-/** @returns {Promise<Object[]>} */
 export async function listCwes() {
   return request('/standards/refs/cwe');
-}
-
-/**
- * @param {string} file - Library file identifier
- * @returns {Promise<Object>}
- */
-export async function importFromLibrary(file) {
-  return request('/standards/library/import', { method: 'POST', body: JSON.stringify({ file }) });
 }
 
 /**
@@ -162,3 +149,17 @@ export async function putStandardsVisibility(projectId, visibleStandardIds) {
     body: JSON.stringify({ visibleStandardIds }),
   });
 }
+
+function syncPost(id, op, force) {
+  return request(`/standards/${encodeURIComponent(id)}/${op}`, {
+    method: 'POST',
+    body: JSON.stringify(force ? { force: true } : {}),
+  });
+}
+
+/** Push this machine's copy of a custom standard to the shared repository. */
+export function shareStandard(id, { force = false } = {}) { return syncPost(id, 'share', force); }
+/** Copy a standard from the shared repository onto this machine. */
+export function installStandard(id) { return syncPost(id, 'install', false); }
+/** Replace this machine's copy with the shared one. */
+export function updateStandardFromShared(id, { force = false } = {}) { return syncPost(id, 'update', force); }

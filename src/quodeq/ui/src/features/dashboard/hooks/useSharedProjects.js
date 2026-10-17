@@ -103,13 +103,19 @@ function deriveSharedProjectsState({ sync, listQuery, configured, startFailed })
   };
 }
 
-// Starts a refresh job and re-reads the status so the strip flips to
-// "refreshing" now rather than at the next idle poll. A failure to start
-// keeps the page's data and flags it stale; the exact API message isn't
-// shown, the stale banner copy is fixed regardless of cause. A list that
-// errored (it timed out on a cold clone) is re-read too, so "retry" heals the
-// list even when no refresh job reaches DONE to invalidate it.
-function useRefreshStart({ startRefresh, refetchStatus, listQuery }) {
+const NO_LIST = { isError: false, refetch: async () => {} };
+
+/**
+ * Starts a refresh job and re-reads the status so the strip flips to
+ * "refreshing" now rather than at the next idle poll. A failure to start
+ * keeps the page's data and flags it stale; the exact API message isn't
+ * shown, the stale banner copy is fixed regardless of cause. A list that
+ * errored (it timed out on a cold clone) is re-read too, so "retry" heals the
+ * list even when no refresh job reaches DONE to invalidate it. A caller with
+ * no list of its own (the Standards page's pull) leaves `listQuery` out.
+ * @returns {{ startFailed: boolean, refresh: () => Promise<void> }}
+ */
+export function useRefreshStart({ startRefresh, refetchStatus, listQuery = NO_LIST }) {
   const [startFailed, setStartFailed] = useState(false);
   const { isError: listFailed, refetch: refetchList } = listQuery;
   const refresh = useCallback(async () => {

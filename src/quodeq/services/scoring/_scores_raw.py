@@ -12,6 +12,8 @@ from pathlib import Path
 
 from quodeq.services.grade_formula import load_params
 from quodeq.services.ports import StoreUnreadableError
+from quodeq.services.rescore import rescore_dimensions
+from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.score_cache import params_fingerprint
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
@@ -26,6 +28,7 @@ from quodeq.services.scoring._response_builders import (
 )
 from quodeq.shared.stamp_memo import StampCache, file_stamp, memoized_by_stamp
 from quodeq.shared.validation import validate_path_segment
+from quodeq.services.wiring_sync import has_event_log, is_archived, read_archived_run_data
 from quodeq.services.scoring.compliance_detail import defer_dimension_detail
 
 _logger = logging.getLogger(__name__)
@@ -83,7 +86,7 @@ def _scores_from_sql_grade_tables(
     db_stamp = evaluation_db_stamp(run_dir)
     if db_stamp is None:
         return _read_sql_grade_tables(run_dir, project, run_id, params, deps)
-    stamp = (db_stamp, file_stamp(run_dir / "events.jsonl"))
+    stamp = (db_stamp, file_stamp(run_dir / "events.jsonl"), file_stamp(run_dir / "archive.tar.gz"))
     hit = memoized_by_stamp(
         f"{run_dir}|{params_fingerprint(params)}", stamp,
         lambda: _read_sql_grade_tables(run_dir, project, run_id, params, deps),
@@ -120,7 +123,7 @@ def _read_sql_grade_tables(
 
 def get_scores_raw(
     reports_root: Path, project: str, run_id: str,
-    deps: ScoringDeps | None = None,
+    deps: ScoringDeps | None = None, *, keep_archived: bool = False,
 ) -> dict:
     """Return raw rescore dict for a single run (explorer detail compat).
 
@@ -131,6 +134,11 @@ def get_scores_raw(
     pre-event-log runs returned an empty ``{dimensions: [], summary: {}}``
     payload, which made live-grade updates impossible for them: the dismiss
     POST returned no scores, the UI had nothing to apply.
+
+    ``keep_archived`` serves an archived run from its reports and
+    ``scalars.json`` instead of restoring it (a comparison read, not an open).
+    Nothing is filtered then: with the evidence packed a filter would regrade
+    with the legacy formula, so the frozen grades stand, as the trend shows them.
     """
     validate_path_segment(project, run_id)
     d = deps or NO_DEPS
@@ -140,11 +148,16 @@ def get_scores_raw(
 
     params = load_params()
     project_dir = reports_root / project
+    if keep_archived and is_archived(run_dir):
+        rescored = rescore_dimensions(
+            read_archived_run_data(run_dir), SuppressionKeys(frozenset()), params=params, run_dir=run_dir,
+        )
+        return {"dimensions": rescored.get("dimensions", []), "summary": rescored.get("summary", {})}
 
     # SQL path is meaningful only when events.jsonl exists. For older runs
     # without one, skip straight to the JSON-file fallback so we don't have
     # to wait on a no-op projection that will leave the grade tables empty.
-    if not _prefer_eval_rescore(d, project_dir, run_dir) and (run_dir / "events.jsonl").is_file():
+    if not _prefer_eval_rescore(d, project_dir, run_dir) and has_event_log(run_dir):
         sql_response = _scores_from_sql_grade_tables(run_dir, project, run_id, params, d)
         if sql_response is not None:
             return sql_response
@@ -156,7 +169,7 @@ def get_scores_raw(
 
 def get_scores_slim(
     reports_root: Path, project: str, run_id: str,
-    deps: ScoringDeps | None = None,
+    deps: ScoringDeps | None = None, *, keep_archived: bool = False,
 ) -> dict:
     """``get_scores_raw`` with finding detail deferred, for the run-scores route.
 
@@ -168,5 +181,5 @@ def get_scores_slim(
     ``reqRefs`` (most of a finding-heavy run's 7+ MB) and
     ``/compliance-detail?run=`` refills them on demand.
     """
-    raw = get_scores_raw(reports_root, project, run_id, deps=deps)
+    raw = get_scores_raw(reports_root, project, run_id, deps=deps, keep_archived=keep_archived)
     return {**raw, "dimensions": defer_dimension_detail(raw.get("dimensions") or [])}

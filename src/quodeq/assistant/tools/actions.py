@@ -5,33 +5,26 @@ import hashlib
 import json
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Callable
+from urllib.parse import urlparse
 
 from quodeq.assistant.action_status import ActionStatus
 from quodeq.assistant.frame_type import FrameType
 from quodeq.assistant.tools._context import ToolContext
+from quodeq.assistant.tools.action_context import ActionContext
 from quodeq.assistant.tools.registry import ToolError, ToolRegistry, ToolSpec
 from quodeq.services.import_validator import validate_import
 from quodeq.shared.validation import validate_path_segment
 
 
+# Fewest requirements a drafted principle may carry. One or two checks per
+# principle is the shallow draft the interview exists to prevent; a narrow
+# standard gets fewer principles, not thinner ones.
+MIN_REQUIREMENTS_PER_PRINCIPLE = 3
+
+
 class ActionConflict(Exception):
     """Apply-time domain conflict; the endpoint maps it to HTTP 409."""
-
-
-@dataclass(frozen=True)
-class ActionContext:
-    """Everything an action's ``apply`` needs from server configuration.
-
-    Built per-request by ``api._assistant_helpers.build_action_context`` so
-    tests that monkeypatch ``app.config`` before POSTing still take effect —
-    this must never be cached at app-construction time.
-    """
-    evaluations_dir: Path
-    evaluators_dir: Path
-    compiled_dir: Path
-    dimensions_file: Path
 
 
 @dataclass(frozen=True)
@@ -45,26 +38,83 @@ class ActionSpec:
     apply: Callable[[dict, ActionContext], dict]       # executes on user approval
 
 
+def _hollow_content_errors(canonical: dict) -> list[str]:
+    """Why a drafted standard is not yet reviewable, one complaint per gap.
+
+    The import validator accepts an empty requirements list and requirements
+    without id or text (the manual import route tolerates skeletons the
+    editor fills in later). A drafted standard is different: the user reviews
+    it on a card and applies it as-is, so every principle needs at least
+    MIN_REQUIREMENTS_PER_PRINCIPLE requirements and every requirement needs an
+    id and a checkable text. The
+    complaints go back to the model in-loop, which rewrites the payload
+    instead of handing the user an empty card.
+    """
+    errors: list[str] = []
+    for index, principle in enumerate(canonical.get("principles", [])):
+        label = f"principle {index} ({principle.get('name')!r})"
+        requirements = principle.get("requirements") or []
+        if not requirements:
+            errors.append(f"{label} has no requirements")
+        elif len(requirements) < MIN_REQUIREMENTS_PER_PRINCIPLE:
+            errors.append(f"{label} has {len(requirements)} requirements, "
+                          f"needs at least {MIN_REQUIREMENTS_PER_PRINCIPLE}")
+        for req_index, req in enumerate(requirements):
+            if not str(req.get("id") or "").strip():
+                errors.append(f"{label} requirement {req_index} is missing an id")
+            if not str(req.get("text") or "").strip():
+                errors.append(f"{label} requirement {req_index} is missing its text")
+    return errors
+
+
 def _validate_create_standard(payload: dict, _ctx: ToolContext) -> dict:
     verdict = validate_import(payload)
     if not verdict["valid"]:
         raise ToolError("invalid standard payload: " + "; ".join(verdict["errors"]))
+    hollow = _hollow_content_errors(verdict["data"])
+    if hollow:
+        raise ToolError(f"incomplete standard, every principle needs at least "
+                        f"{MIN_REQUIREMENTS_PER_PRINCIPLE} requirements, each with an id "
+                        "and a checkable text: " + "; ".join(hollow))
     return verdict["data"]
 
 
+_LINK_SCHEMES = frozenset({"http", "https"})
+
+
+def _summarize_ref(ref: dict) -> dict:
+    """A requirement reference as the card shows it: a label and, when the
+    url is a web link, the url. Any other scheme is dropped so the card never
+    renders a javascript: or file: href from a model-written payload."""
+    url = str(ref.get("url") or "")
+    name = str(ref.get("name") or "").strip() or " ".join(
+        str(ref.get(k)) for k in ("source", "id") if ref.get(k)) or url
+    return {"name": name, "url": url if urlparse(url).scheme in _LINK_SCHEMES else None}
+
+
+def _summarize_requirement(req: dict) -> dict:
+    refs = [_summarize_ref(r) for r in req.get("refs") or [] if isinstance(r, dict)]
+    return {"id": req.get("id"), "text": req.get("text"),
+            "refs": [r for r in refs if r["name"]]}
+
+
 def _summarize_create_standard(canonical: dict) -> dict:
+    # The outline is what the user reads on the preview card before Apply;
+    # it is cut from the canonical payload, never from model prose.
+    principles = canonical.get("principles", [])
     return {
         "id": canonical.get("id"), "name": canonical.get("name"),
-        "principleCount": len(canonical.get("principles", [])),
+        "principleCount": len(principles),
+        "principles": [{
+            "name": p.get("name"),
+            "requirements": [_summarize_requirement(r) for r in p.get("requirements", [])],
+        } for p in principles],
     }
 
 
 def _apply_create_standard(payload: dict, ctx: ActionContext) -> dict:
-    from quodeq.services.standards import IMPORT_STATUS_CONFLICT, StandardsService  # noqa: PLC0415
-
-    service = StandardsService(ctx.evaluators_dir, ctx.compiled_dir, ctx.dimensions_file)
-    result = service.import_from_file(payload, force=False)
-    if result.get("status") == IMPORT_STATUS_CONFLICT:
+    result = ctx.import_standard(payload)
+    if result is None:
         raise ActionConflict("standard id already exists")
     return result
 
@@ -129,26 +179,21 @@ def _summarize_dismiss_finding(canonical: dict) -> dict:
             "line": canonical["line"], "reason": canonical["reason"]}
 
 
-def _apply_dismiss_finding(payload: dict, ctx: ActionContext) -> dict:
-    from quodeq.services.mutation_rescore import dismiss_delta, rescore_with_fallback  # noqa: PLC0415
-    from quodeq.services.dismissed import dismiss_finding  # noqa: PLC0415
+def _finding_key_fields(payload: dict) -> dict:
+    return {"req": payload["req"], "file": payload["file"], "line": payload["line"]}
 
-    validate_path_segment(payload["project"])
-    evaluations_dir = str(ctx.evaluations_dir)
-    project_dir = Path(evaluations_dir) / payload["project"]
+
+def _apply_dismiss_finding(payload: dict, ctx: ActionContext) -> dict:
+    project = payload["project"]
+    validate_path_segment(project)
     run_id = payload.get("runId")
-    dismiss_finding(project_dir, {
-        "req": payload["req"], "file": payload["file"], "line": payload["line"],
-        "dismissReason": payload["reason"],
-    }, run_id=run_id)
-    scores = rescore_with_fallback(evaluations_dir, payload["project"], run_id)
+    ctx.dismiss_finding(project, {**_finding_key_fields(payload), "dismissReason": payload["reason"]}, run_id)
+    scores = ctx.rescore(project, run_id)
     # Mirror the manual /api/findings/dismiss route so the UI can patch its
     # caches from this response instead of waiting on a lazy invalidation.
     # run_id is None in overview scope -- dismiss_delta handles that by
     # returning an inert-but-valid envelope (isLatest False, accumulated None).
-    delta = dismiss_delta(evaluations_dir, payload["project"], run_id, {
-        "req": payload["req"], "file": payload["file"], "line": payload["line"],
-    })
+    delta = ctx.dismiss_delta(project, run_id, _finding_key_fields(payload))
     return {"dismissed": True, "scores": scores, "delta": delta}
 
 
@@ -168,10 +213,8 @@ def _summarize_verify_finding(canonical: dict) -> dict:
 
 
 def _apply_verify_finding(payload: dict, ctx: ActionContext) -> dict:
-    from quodeq.services.verified import verify_finding  # noqa: PLC0415
-
     validate_path_segment(payload["project"])
-    verify_finding(ctx.evaluations_dir / payload["project"], payload)
+    ctx.verify_finding(payload["project"], payload)
     return {"verified": True}
 
 

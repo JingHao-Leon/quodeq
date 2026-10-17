@@ -21,13 +21,20 @@ describe('GradeBoundaryBar slider keyboard accessibility (#1583)', () => {
     sliders.forEach((s) => expect(s).toHaveAttribute('tabindex', '0'));
   });
 
-  it('dividers have aria-valuemin=0 and aria-valuemax=10', () => {
+  it('each divider reports the range it can reach: half a point from its neighbours', () => {
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
     const sliders = screen.getAllByRole('slider');
-    sliders.forEach((s) => {
-      expect(s).toHaveAttribute('aria-valuemin', '0');
-      expect(s).toHaveAttribute('aria-valuemax', '10');
-    });
+    // ascending [3,5,7,9] between the scale's ends 0 and 10
+    expect([sliders[0].getAttribute('aria-valuemin'), sliders[0].getAttribute('aria-valuemax')]).toEqual(['0.5', '4.5']);
+    expect([sliders[1].getAttribute('aria-valuemin'), sliders[1].getAttribute('aria-valuemax')]).toEqual(['3.5', '6.5']);
+    expect([sliders[3].getAttribute('aria-valuemin'), sliders[3].getAttribute('aria-valuemax')]).toEqual(['7.5', '9.5']);
+  });
+
+  it('names each divider by the grade that starts there', () => {
+    render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
+    expect(screen.getAllByRole('slider').map((s) => s.getAttribute('aria-label'))).toEqual([
+      'Where Poor starts', 'Where Adequate starts', 'Where Good starts', 'Where Exemplary starts',
+    ]);
   });
 
   it('divider has aria-valuenow matching its boundary value', () => {
@@ -80,5 +87,24 @@ describe('GradeBoundaryBar slider keyboard accessibility (#1583)', () => {
     const sliders = screen.getAllByRole('slider');
     fireEvent.keyDown(sliders[0], { key: 'ArrowDown' });
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('GradeBoundaryBar segment labels', () => {
+  it('keep the full name for screen readers and hover, with a hidden initial for narrow segments', () => {
+    render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
+    const name = screen.getByText('Exemplary');
+    expect(name).toHaveClass('gf-boundary-seg__name');
+    expect(name.parentElement).toHaveAttribute('title', 'Exemplary');
+    expect(name.nextElementSibling).toHaveTextContent('E');
+    expect(name.nextElementSibling).toHaveAttribute('aria-hidden', 'true');
+  });
+});
+
+describe('GradeBoundaryBar segment names', () => {
+  it('come from the thresholds, lowest first, under the bottom grade', () => {
+    const { container } = render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
+    const names = [...container.querySelectorAll('.gf-boundary-seg__name')].map((n) => n.textContent);
+    expect(names).toEqual(['Critical', 'Poor', 'Adequate', 'Good', 'Exemplary']);
   });
 });

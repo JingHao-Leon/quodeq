@@ -1,6 +1,6 @@
 [project]
 name = "quodeq"
-version = "1.13.1"
+version = "1.14.0"
 description = "Source code quality evaluation platform powered by AI"
 readme = "README.md"
 license = "MIT"
@@ -55,7 +55,7 @@ dev = [
     "pytest-cov==7.1.0",
     "pytest-timeout==2.4.0",
     "pytest-xdist==3.8.0",
-    "ruff==0.16.10",
+    "ruff==0.17.0",
     "vulture==2.16",
 ]
 
@@ -149,7 +149,7 @@ omit = ["*/terminal/_pty_windows.py"]
 fail_under = 80
 
 [build-system]
-requires = ["uv_build>=0.10.6,<0.13.0"]
+requires = ["uv_build>=0.10.6,<0.14.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]

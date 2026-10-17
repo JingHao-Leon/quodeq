@@ -1,0 +1,112 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import KnobGroups from './KnobGroups.jsx';
+import { SERVER_RANGES } from './_serverRanges.fixtures.js';
+import { toPosition } from './knobScale.js';
+import { GROUPS, withRange } from './knobGroups.js';
+
+// The severity sliders are log-scaled: an input event carries a position, not a weight.
+const majorAt = (weight) => String(toPosition(withRange(GROUPS[0].knobs.find((k) => k.id === 'major'), SERVER_RANGES), weight));
+
+const SAVED = {
+  severityWeight: { critical: 4, major: 2, minor: 0.25 }, baseK: 0.08, liftCompress: 2.2, ceilScale: 0.5,
+  floorMinor: 5, floorMajor: 3, gradeThresholds: [[9, 'Exemplary'], [7, 'Good'], [5, 'Adequate'], [3, 'Poor']],
+  dimensionWeightsEnabled: false, dimensionWeights: {},
+};
+const INPUTS = { projects: [{ id: 'a', dimensions: [{ dimension: 'security', frozenScore: null, principles: [
+  { id: 'p', massMinor: 1, massMajor: 2, massCritical: 0, complianceMass: 3, observation: 1, worst: 'major' }] }] }] };
+
+function mount(over = {}) {
+  const props = { draft: SAVED, saved: SAVED, defaults: SAVED, ranges: SERVER_RANGES, inputs: INPUTS, update: vi.fn(), onHoverGroup: vi.fn(), ...over };
+  render(<KnobGroups {...props} />);
+  return props;
+}
+
+describe('KnobGroups', () => {
+  it('shows the open groups and keeps fine-tune folded at the defaults', () => {
+    mount();
+    expect(screen.getByText('What a finding costs')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fine-tune' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('How fast scores fall')).toBeNull();
+  });
+
+  it('opens fine-tune by itself when a knob inside is off its default', () => {
+    mount({ draft: { ...SAVED, baseK: 0.1 } });
+    expect(screen.getByRole('button', { name: 'Fine-tune' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText('How fast scores fall')).toBeInTheDocument();
+  });
+
+  it('sends a knob move as a draft patch', () => {
+    const props = mount();
+    fireEvent.change(screen.getByLabelText('major'), { target: { value: majorAt(3) } });
+    expect(props.update).toHaveBeenCalledWith({ severityWeight: { critical: 4, major: 3, minor: 0.25 } });
+  });
+
+  it('strikes the saved value through when the draft moved it, and says what the group reaches', () => {
+    mount({ draft: { ...SAVED, severityWeight: { critical: 4, major: 3, minor: 0.25 } } });
+    expect(screen.getByText('2', { selector: 's' })).toBeInTheDocument();
+    expect(screen.getByText('moves 1 of 1 principles')).toBeInTheDocument();
+  });
+
+  it('reports the hovered group', () => {
+    const props = mount();
+    fireEvent.mouseEnter(screen.getByText('What a finding costs').closest('section'));
+    expect(props.onHoverGroup).toHaveBeenCalledWith('cost');
+  });
+
+  it('marks a group as reaching only when it moves a principle', () => {
+    mount({ draft: { ...SAVED, severityWeight: { critical: 4, major: 3, minor: 0.25 } } });
+    expect(screen.getByRole('region', { name: 'What a finding costs' })).toHaveClass('gf-group--reaching');
+    expect(screen.getByRole('region', { name: 'Where each grade starts' })).not.toHaveClass('gf-group--reaching');
+  });
+});
+
+describe('KnobGroups hint line', () => {
+  const QUESTION = 'How much each open rule weighs, by its severity.';
+  const MAJOR_HINT = 'weight of a major rule; the knob that moves grades most';
+
+  it('swaps the group question for the hint of the knob under the pointer', () => {
+    mount();
+    fireEvent.mouseEnter(screen.getByLabelText('major').closest('.gf-knob'));
+    expect(screen.getByText(MAJOR_HINT)).toHaveClass('gf-group__question--hint');
+    expect(screen.queryByText(QUESTION)).toBeNull();
+  });
+
+  it('puts the question back when the pointer leaves the group', () => {
+    mount();
+    fireEvent.mouseEnter(screen.getByLabelText('major').closest('.gf-knob'));
+    fireEvent.mouseLeave(screen.getByText('What a finding costs').closest('section'));
+    expect(screen.getByText(QUESTION)).not.toHaveClass('gf-group__question--hint');
+  });
+
+  it('shows the hint for a knob reached by keyboard', () => {
+    mount();
+    fireEvent.focus(screen.getByLabelText('major'));
+    expect(screen.getByText(MAJOR_HINT)).toBeInTheDocument();
+  });
+});
+
+describe('KnobGroups severity sliders', () => {
+  it('announce the weight, not the log position', () => {
+    mount();
+    expect(screen.getByLabelText('critical')).toHaveAttribute('aria-valuetext', '4');
+    expect(screen.getByLabelText('minor')).toHaveAttribute('aria-valuetext', '0.25');
+  });
+});
+
+describe('KnobGroups default tick', () => {
+  it('describes each slider with its Q² default', () => {
+    mount();
+    expect(screen.getByLabelText('major')).toHaveAccessibleDescription('Q² default 2');
+  });
+});
+
+describe('KnobGroups server ranges', () => {
+  it('bound each linear knob by the range the server serves', () => {
+    mount({ draft: { ...SAVED, baseK: 0.1 }, ranges: { ...SERVER_RANGES, baseK: [0.02, 0.5] } });
+    const slider = screen.getByLabelText(/steepness/i);
+    expect(slider).toHaveAttribute('min', '0.02');
+    expect(slider).toHaveAttribute('max', '0.5');
+  });
+});

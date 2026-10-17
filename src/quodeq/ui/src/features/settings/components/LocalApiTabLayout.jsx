@@ -5,14 +5,24 @@
  * the provider-specific labels differ, so those are passed in.
  */
 import { useId } from 'react';
-import ServerStatusPill from '../../../components/ServerStatusPill.jsx';
+import ServerStatusRow, { SERVER_ROW_STATUS } from '../../../components/ServerStatusRow.jsx';
 import { SettingsRowLabel } from './settingsRowParts.jsx';
 import { t } from '../../../strings/index.js';
 import { TimeLimitSetting } from './ProviderSettings.jsx';
-import { LocalApiAdvancedPanel } from './LocalApiAdvancedPanel.jsx';
-import { SERVER_STATUS } from '../settingsVocab.js';
+import { LocalApiSubagentsRow } from './LocalApiSubagentsRow.jsx';
+
 import { PROVIDER_CLASSIFICATION } from './providerUtils.js';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
+
+/**
+ * The row state for a polled server status: null until the first poll answers,
+ * which reads as checking, not as a server that is down.
+ * @param {{status?: string}|null|undefined} serverStatus
+ * @returns {'online'|'offline'|'checking'}
+ */
+export function rowStatus(serverStatus) {
+  return serverStatus?.status ?? SERVER_ROW_STATUS.CHECKING;
+}
 
 /**
  * @param {object} props
@@ -22,6 +32,7 @@ import { PROVIDER_SETTING_KEY } from '../../../constants.js';
  * @param {boolean} props.consoleOpen
  * @param {string} props.modelsError  message shown when the model list failed to load
  * @param {React.ReactNode} props.modelRow  the provider's own model picker
+ * @param {React.ReactNode} [props.apiKeyRow]  the provider's key row, when it takes one
  * @param {object} props.state  settings state
  * @param {(patch: object) => void} props.update  settings updater
  * @param {string} props.subagentsDescription
@@ -31,13 +42,14 @@ import { PROVIDER_SETTING_KEY } from '../../../constants.js';
  * @returns {JSX.Element}
  */
 export function LocalApiTabLayout({
-  serverStatus, offlineMessage, onToggleConsole, consoleOpen, modelsError, modelRow,
+  serverStatus, offlineMessage, onToggleConsole, consoleOpen, modelsError, modelRow, apiKeyRow,
   state, update, subagentsDescription, subagentsAriaLabel, testDisabled, concurrency,
 }) {
   return (
     <>
-      <ServerStatusPill
-        status={serverStatus?.status ?? SERVER_STATUS.OFFLINE}
+      <ServerStatusRow
+        title={t('settings.providerServerLabel')}
+        status={rowStatus(serverStatus)}
         address={serverStatus?.address}
         offlineMessage={offlineMessage}
         onToggleConsole={onToggleConsole}
@@ -45,8 +57,9 @@ export function LocalApiTabLayout({
       />
       {modelsError && <div className="settings-row"><span className="settings-error">{modelsError}</span></div>}
       {modelRow}
+      {apiKeyRow}
       <TimeLimitSetting state={state} update={update} providerType={PROVIDER_CLASSIFICATION.LOCAL_API} />
-      <LocalApiAdvancedPanel
+      <LocalApiSubagentsRow
         subagentsDescription={subagentsDescription}
         subagentsAriaLabel={subagentsAriaLabel}
         state={state}

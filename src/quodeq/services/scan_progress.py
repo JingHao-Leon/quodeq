@@ -20,6 +20,7 @@ size ratchet's 300-line cap.
 """
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -158,6 +159,7 @@ def build_scan_progress(
     *,
     time_limit_s: int | None = None,
     compiled_dir: Path | None = None,
+    tally_findings: bool = True,
 ) -> ScanProgress | None:
     """Compute progress for a run.
 
@@ -169,6 +171,9 @@ def build_scan_progress(
     Without it only custom evaluators are consulted, which on a stock install is
     an empty directory — the counters then stay permissive and can over-count by
     the number of unmappable findings.
+
+    ``tally_findings=False`` leaves the finding counts at zero and never opens
+    the evidence files, so an archived run stays packed.
     """
     if not run_dir.is_dir():
         return None
@@ -176,5 +181,5 @@ def build_scan_progress(
     if not status:
         return None
 
-    ctx = _gather_progress_context(status, run_dir, time_limit_s, compiled_dir)
+    ctx = replace(_gather_progress_context(status, run_dir, time_limit_s, compiled_dir), tally_findings=tally_findings)
     return _build_per_dim_progress(job_id, ctx)

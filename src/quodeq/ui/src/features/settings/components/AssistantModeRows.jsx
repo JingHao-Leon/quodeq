@@ -8,42 +8,27 @@ const MODE_OPTIONS = [
 ];
 
 /**
- * The assistant's "model source" mode picker, plus the summary row that shows
- * which analysis provider and model the default mode follows.
+ * The assistant's "model source" picker: Default follows the analysis
+ * provider and model, Custom picks its own.
  */
-export function AssistantModeRows({ enabled, mode, setMode, active, activeProvider, model }) {
+export function AssistantModeRows({ mode, setMode }) {
   return (
-    <>
-      {enabled && (
-      <div className="settings-row">
-        <SettingsRowLabel hintSlot={false} label={t('settings.modelSource')} description={t('settings.modelSourceDesc')} />
-        <div className="settings-pill-group" role="tablist">
-          {MODE_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={mode === value}
-              className={`settings-pill${mode === value ? ' settings-pill--active' : ''}`}
-              onClick={() => setMode(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+    <div className="settings-row">
+      <SettingsRowLabel hintSlot={false} label={t('settings.modelSource')} description={t('settings.modelSourceDesc')} />
+      <div className="settings-pill-group" role="tablist">
+        {MODE_OPTIONS.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={mode === value}
+            className={`settings-pill${mode === value ? ' settings-pill--active' : ''}`}
+            onClick={() => setMode(value)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      )}
-
-      {enabled && mode === ASSISTANT_MODE.DEFAULT && (
-        <div className="settings-row settings-row--last">
-          <span className="settings-description">
-            {t('settings.followsAnalysis', {
-              provider: active?.label || activeProvider || t('settings.noneSelected'),
-              model: model || t('settings.modeDefault').toLowerCase(),
-            })}
-          </span>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

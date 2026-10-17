@@ -75,7 +75,7 @@ describe('CompareFleetMatrix', () => {
 describe('CompareDirectionMap', () => {
   it('plots every project, the ones with no runs in 30 days hollow', () => {
     const { container } = render(<CompareDirectionMap rows={ROWS} fleetScore={7.5} hover={null} setHover={vi.fn()} onOpenProject={vi.fn()} />);
-    expect(screen.getByRole('img', { name: /Direction map/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /Direction map/ })).toBeInTheDocument();
     expect(container.querySelectorAll('.compare-dirmap__pt')).toHaveLength(3);
     expect(container.querySelectorAll('.compare-dirmap__pt.is-still')).toHaveLength(1);
     expect(container.querySelector('.compare-dirmap__pt.is-still')).toHaveTextContent('gamma');

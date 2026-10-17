@@ -89,6 +89,7 @@ function useCheckStatus({ getSharedStatus, mountedRef, stopPolling, controls, co
     if (publish.state === PUBLISH_STATE.ERROR) {
       applyPublishFailure(publish, finishedProject, controls);
     } else {
+      completion.onDone?.(publish);
       await applyPublishSuccess(finishedProject, controls, completion);
     }
     controls.setPublishingProjectBoth(null);
@@ -126,9 +127,10 @@ function usePublishJobState() {
  * handles for the status poll that drives them.
  *
  * Polling stops once the job reaches a terminal state, and results arriving
- * after unmount are dropped (`mountedRef`).
+ * after unmount are dropped (`mountedRef`). `onDone`, when given, receives
+ * the finished job's payload on success.
  */
-export function usePublishPolling({ queryClient, sharedListProjects, getSharedStatus, applyOptimisticPublish, mountedRef }) {
+export function usePublishPolling({ queryClient, sharedListProjects, getSharedStatus, applyOptimisticPublish, mountedRef, onDone }) {
   const { publishState, publishingProject, publishError, publishErrorProject, controls } = usePublishJobState();
 
   const [polling, setPolling] = useState(false);
@@ -136,8 +138,8 @@ export function usePublishPolling({ queryClient, sharedListProjects, getSharedSt
 
   const refreshListAfterCompletion = useRefreshListAfterCompletion(queryClient, sharedListProjects);
   const completion = useMemo(
-    () => ({ applyOptimisticPublish, refreshListAfterCompletion }),
-    [applyOptimisticPublish, refreshListAfterCompletion],
+    () => ({ applyOptimisticPublish, refreshListAfterCompletion, onDone }),
+    [applyOptimisticPublish, refreshListAfterCompletion, onDone],
   );
   const checkStatus = useCheckStatus({ getSharedStatus, mountedRef, stopPolling, controls, completion });
 

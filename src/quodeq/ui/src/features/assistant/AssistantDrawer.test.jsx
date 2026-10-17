@@ -29,11 +29,16 @@ beforeEach(() => {
 it('renders messages, markdown, tool marker, and action card', () => {
   render(<AssistantPane uiState={{ activeTab: 'overview' }} />);
   expect(screen.getByText('why grade C?')).toBeInTheDocument();
-  expect(screen.getByText(/used get_scores/i)).toBeInTheDocument();
+  // Settled tool calls fold into activity blocks; a click opens one.
+  const groups = screen.getAllByRole('button', { expanded: false });
+  expect(groups).toHaveLength(2);
+  fireEvent.click(groups[0]);
+  expect(screen.getByText('Reading dimension scores')).toBeInTheDocument();
   expect(screen.getByText('Security').tagName).toBe('STRONG'); // markdown rendered
   expect(screen.getByText('card:a1')).toBeInTheDocument();
   expect(screen.getByText('Commands').tagName).toBe('STRONG'); // local renders markdown
-  expect(screen.getByText(/get_report · \{"dimension":"security"\}/)).toBeInTheDocument();
+  fireEvent.click(groups[1]);
+  expect(screen.getByText('Reading the security report')).toBeInTheDocument();
 });
 
 it('renders the prompt input', () => {
@@ -181,4 +186,48 @@ describe('default (non-read-only) sessions', () => {
     const response = state.addLocalExchange.mock.calls.at(-1)[1];
     expect(response).toContain('I can explain scores, dig into findings, and draft standards for this project.');
   });
+});
+
+it('keeps the input enabled during a turn and queues what is sent', () => {
+  state.streaming = true;
+  state.sendMessage.mockClear();
+  const { rerender } = render(<AssistantPane uiState={{ activeTab: 'overview', page: 'explorer' }} />);
+  const input = screen.getByPlaceholderText(/ask the assistant/i);
+  expect(input).not.toBeDisabled();
+  fireEvent.change(input, { target: { value: 'and the majors?' } });
+  expect(screen.getByText(/queues it until this turn ends/i)).toBeInTheDocument();
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(state.sendMessage).not.toHaveBeenCalled();
+  expect(screen.getByRole('list', { name: 'Queued messages' })).toHaveTextContent('and the majors?');
+  // The turn ends: the queued message goes out with the page context of that moment.
+  state.streaming = false;
+  rerender(<AssistantPane uiState={{ activeTab: 'overview', page: 'file' }} />);
+  expect(state.sendMessage).toHaveBeenCalledWith('and the majors?', { activeTab: 'overview', page: 'file' });
+  expect(screen.queryByRole('list', { name: 'Queued messages' })).toBeNull();
+});
+
+it('drops a queued message on its ×, and Esc with an empty draft stops the turn', () => {
+  state.streaming = true;
+  state.sendMessage.mockClear();
+  state.stopTurn.mockClear();
+  const { rerender } = render(<AssistantPane uiState={{ activeTab: 'overview' }} />);
+  const input = screen.getByPlaceholderText(/ask the assistant/i);
+  fireEvent.change(input, { target: { value: 'never mind' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  fireEvent.click(screen.getByRole('button', { name: 'Remove queued message' }));
+  fireEvent.keyDown(input, { key: 'Escape' });
+  expect(state.stopTurn).toHaveBeenCalledTimes(1);
+  state.streaming = false;
+  rerender(<AssistantPane uiState={{ activeTab: 'overview' }} />);
+  expect(state.sendMessage).not.toHaveBeenCalled();
+});
+
+it('sends what the open page published (the Risk area open on the Map) with the message', async () => {
+  const { usePageFocus } = await import('../../hooks/usePageFocus.js');
+  function RiskTab() { usePageFocus('riskArea', 'payments'); return null; }
+  render(<><RiskTab /><AssistantPane uiState={{ activeTab: 'map', page: 'map' }} /></>);
+  const input = screen.getByPlaceholderText(/ask/i);
+  fireEvent.change(input, { target: { value: 'why is this area red?' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  expect(state.sendMessage).toHaveBeenCalledWith('why is this area red?', { activeTab: 'map', page: 'map', focus: { riskArea: 'payments' } });
 });

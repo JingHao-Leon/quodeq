@@ -13,6 +13,7 @@ _DEFAULT_N_SUBAGENTS = 5
 _MODE_NUMERICAL = "numerical"
 _MODE_GRADES = "grades"
 _OUTPUT_FLAG = "--output"
+_DRY_RUN_FLAG = "--dry-run"
 
 # Spells out the single-letter counters in the progress lines the scan emits.
 # They are abbreviated there to keep the line readable at a glance.
@@ -98,7 +99,7 @@ def _add_evaluate_scope_args(parser: argparse.ArgumentParser) -> None:
         help="Subdirectory to analyze (relative to repo root)",
     )
     parser.add_argument(
-        "--dry-run",
+        _DRY_RUN_FLAG,
         action="store_true",
         help="Skip AI calls and generate placeholder findings (for CI pipeline testing)",
     )
@@ -233,7 +234,7 @@ def _add_review_subcommand(subparsers) -> None:
         help="Evaluation output directory (default: ~/.quodeq/evaluations)",
     )
     review_parser.add_argument(
-        "--dry-run",
+        _DRY_RUN_FLAG,
         action="store_true",
         dest="dry_run",
         help="Build the review but do not post it",
@@ -253,6 +254,26 @@ def build_parser() -> argparse.ArgumentParser:
 
     dashboard_parser = subparsers.add_parser("dashboard", help="Run the dashboard")
     dashboard_parser.set_defaults(handler_command="dashboard")
+
+    stop_parser = subparsers.add_parser(
+        "stop", help="Stop the dashboard window and its API (running evaluations keep going)",
+    )
+    stop_parser.set_defaults(handler_command="stop")
+    status_parser = subparsers.add_parser(
+        "status", help="Show the dashboard window, its API and the running evaluations",
+    )
+    status_parser.set_defaults(handler_command="status")
+    restart_parser = subparsers.add_parser(
+        "restart", help="Stop the dashboard window and its API, then open them again",
+    )
+    restart_parser.set_defaults(handler_command="restart")
+    upgrade_parser = subparsers.add_parser(
+        "upgrade", help="Upgrade quodeq with the tool it was installed with (pip, pipx, uv or Homebrew)",
+    )
+    upgrade_parser.add_argument(
+        _DRY_RUN_FLAG, action="store_true", help="Print the upgrade command without running it",
+    )
+    upgrade_parser.set_defaults(handler_command="upgrade")
 
     evaluate_parser = subparsers.add_parser(
         "evaluate", help="Run evaluation (auto-detects language)",

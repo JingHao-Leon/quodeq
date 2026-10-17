@@ -41,19 +41,20 @@ export function useDeadSharedSelectionEffect({ state, sharedSignal }) {
  * routes/renderers.jsx).
  */
 export function useAssistantActionAppliedEffect({
-  applyDelta, recordDismissed, scheduleReconcileForApply, selectedProject,
+  applyDelta, recordDismissed, onStandardCreated, scheduleReconcileForApply, selectedProject,
 }) {
   // The two cache-patch callbacks get a new identity on most renders. Reading
   // them through a ref keeps the listener attached across those renders (a
   // detach/attach cycle could drop an event that lands in between) while the
   // handler still calls the current ones.
-  const patchRef = useRef({ applyDelta, recordDismissed });
-  patchRef.current = { applyDelta, recordDismissed };
+  const patchRef = useRef({ applyDelta, recordDismissed, onStandardCreated });
+  patchRef.current = { applyDelta, recordDismissed, onStandardCreated };
 
   useEffect(() => {
     const handler = buildAssistantActionAppliedHandler({
       applyDelta: (...args) => patchRef.current.applyDelta(...args),
       recordDismissed: (...args) => patchRef.current.recordDismissed?.(...args),
+      onStandardCreated: (standardId) => patchRef.current.onStandardCreated?.(standardId),
       scheduleDashboardReconcile: scheduleReconcileForApply,
       selectedProject,
     });

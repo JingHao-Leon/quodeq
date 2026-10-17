@@ -26,21 +26,17 @@ vi.mock("../features/evaluation/hooks/useEvaluation.js", async () => {
 
 import { useEvaluationLifecycle } from "./useEvaluationLifecycle.js";
 
-function renderLifecycle({ selectedProject = null, selectProjectAndRun = vi.fn(), client } = {}) {
+function renderLifecycle({ selectedProject = null, selectProjectAndRun = vi.fn(), client, storage } = {}) {
   const queryClient = client || new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false } },
   });
   const utils = renderHook(
     () =>
       useEvaluationLifecycle({
-        settings: {},
         navigation: { navTab: vi.fn(), navReset: vi.fn() },
-        projects: {
-          loadProjects: vi.fn().mockResolvedValue([]),
-          setProjects: vi.fn(),
-          selectProjectAndRun,
-        },
+        projects: { selectProjectAndRun },
         selectedProject,
+        storage,
       }),
     { wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider> },
   );
@@ -239,5 +235,26 @@ describe("useEvaluationLifecycle blocked start", () => {
       returned = result.current.handleStartEvaluation({ repo: "x", dimensions: [] });
     });
     expect(returned).toBe(false);
+  });
+});
+
+describe("useEvaluationLifecycle analysis model", () => {
+  beforeEach(() => {
+    evaluationState.job = null;
+    evaluationState.startEvaluation = vi.fn(() => Promise.resolve());
+  });
+
+  it("uses the model stored after mount, without a reload", () => {
+    const store = new Map([
+      ["cc-active-provider", "claude"],
+      ["cc-claude-model", "sonnet"],
+    ]);
+    const storage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)) };
+    const { result } = renderLifecycle({ storage });
+
+    store.set("cc-claude-model", "opus"); // Settings changes the model while the app runs
+    act(() => { result.current.handleStartEvaluation({ projectPath: "/p" }); });
+
+    expect(evaluationState.startEvaluation).toHaveBeenCalledWith(expect.objectContaining({ subagentModel: "opus" }));
   });
 });

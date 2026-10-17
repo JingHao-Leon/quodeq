@@ -1,34 +1,57 @@
-import { hierarchy, pack } from 'd3-hierarchy';
-import { nodeSize } from './mapColors.js';
+import { hierarchy } from 'd3-hierarchy';
+import { packProportional } from './proportionalPack.js';
+import { isPackFolder } from './packNode.js';
 
-// Layout units for the circle pack; the SVG viewBox scales them to the screen.
+// Layout units for the circle pack; the canvas viewport (packViewport) scales
+// them to the screen.
 export const PACK_BASE_SIZE = 600;
-// Gap d3-pack leaves between a top-level circle and the root, in layout units.
-export const PACK_PADDING = 8;
 // Trees at or above this many nodes lay out in the worker instead of the
 // render thread.
 export const PACK_WORKER_NODE_THRESHOLD = 2000;
-const XYR_STRIDE = 3;
+/** Numbers per node in a layout array: x, y, r. */
+export const XYR_STRIDE = 3;
+/** Offset of a node's y within its stride of a layout array. */
+export const XYR_Y = 1;
+/** Offset of a node's radius within its stride of a layout array. */
+export const XYR_R = 2;
 
-/** The d3 hierarchy for a file-tree node: leaf values from `viewMode`,
- * children sorted largest first. Cheap next to the pack itself. */
-export function buildPackRoot(node, viewMode) {
+/** Circle `i` of a layout array (x, y, r per node) as `{x, y, r}`. */
+export function circleAt(xyr, i) {
+  const o = i * XYR_STRIDE;
+  return { x: xyr[o], y: xyr[o + 1], r: xyr[o + 2] };
+}
+
+/** Checks run on a file: its violations plus its passing checks, at least 1. */
+export function checksRun(node) {
+  return Math.max(1, (node.violations || 0) + (node.compliance || 0));
+}
+
+/**
+ * Pack order: largest first, equal sizes by path. Without the path the order
+ * of equal siblings is whatever the data arrived in, and the time-lapse (which
+ * breaks ties the same way, see timelapseLayout.packToday) would place them
+ * differently from this view.
+ */
+export function packOrder(a, b) {
+  const bySize = (b.value || 0) - (a.value || 0);
+  if (bySize) return bySize;
+  const pa = a.data.path ?? '';
+  const pb = b.data.path ?? '';
+  if (pa === pb) return 0;
+  return pa < pb ? -1 : 1;
+}
+
+/** The d3 hierarchy for a file-tree node: leaf value = checks run (spec 2.3,
+ * "size = checks run"), children in pack order. */
+export function buildPackRoot(node) {
   return hierarchy(node, (d) => d.children || [])
-    .sum((d) => (d.children?.length ? 0 : Math.max(1, nodeSize(d, viewMode))))
-    .sort((a, b) => (b.value || 0) - (a.value || 0));
+    .sum((d) => (isPackFolder(d) ? 0 : checksRun(d)))
+    .sort(packOrder);
 }
 
-/** Padding around a folder's children, shrinking with depth. d3 scales the
- * padding by the unpadded root radius, so on deep source trees a flat value
- * dwarfs the file circles and leaves every deep folder mostly empty. */
-export function packPadding(node) {
-  return PACK_PADDING / (1 + node.depth);
-}
-
-/** Run the pack on a hierarchy in place. */
+/** Run the proportional pack on a hierarchy in place. */
 export function packInPlace(root) {
-  pack().size([PACK_BASE_SIZE, PACK_BASE_SIZE]).padding(packPadding)(root);
-  return root;
+  return packProportional(root, PACK_BASE_SIZE);
 }
 
 export function layoutCircles(root) {

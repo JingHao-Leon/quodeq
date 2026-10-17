@@ -1,6 +1,7 @@
 import { t } from '../../../../strings/index.js';
 import { countKnownSeverities } from '../../../../utils/severity.js';
 import { NAV_TAB } from '../../../../vocab/navTab.js';
+import { KEY } from '../../../../vocab/keyboard.js';
 
 // The overlay's fixed styling: one object per element for the whole module
 // instead of a fresh one on every panel render, and each property readable
@@ -19,6 +20,22 @@ const PANEL_STYLE = {
   minWidth: 160,
 };
 const TITLE_STYLE = { fontWeight: 600, color: 'var(--color-text)', marginBottom: 8, fontSize: 13 };
+const CLOSABLE_TITLE_STYLE = { ...TITLE_STYLE, paddingRight: 18 };
+const CLOSE_STYLE = {
+  position: 'absolute',
+  top: 8,
+  right: 8,
+  width: 24,
+  height: 24,
+  padding: 0,
+  border: 'none',
+  borderRadius: '50%',
+  background: 'transparent',
+  color: 'var(--color-text-muted)',
+  fontSize: 15,
+  lineHeight: '24px',
+  cursor: 'pointer',
+};
 const ROW_STYLE = { display: 'flex', justifyContent: 'space-between', gap: 16, margin: '3px 0' };
 const HINT_STYLE = {
   marginTop: 8,
@@ -39,14 +56,38 @@ const DETAIL_BUTTON_STYLE = {
   cursor: 'pointer',
   transition: 'all 0.2s',
 };
+const TAG_STYLE = { color: 'var(--color-text-muted)', fontSize: 11, margin: '-4px 0 8px' };
+const PATH_STYLE = { color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)', margin: '-6px 0 8px', wordBreak: 'break-all' };
 const DETAIL_BUTTON_HOVER_BG = 'color-mix(in srgb, var(--color-accent) 35%, transparent)';
 
-/** Presentational component for the level info panel overlay */
-export function LevelInfoPanel({ levelInfo }) {
+/** A keydown handler that runs `onEscape` on Escape, or undefined without one. */
+function escapeHandler(onEscape) {
+  if (!onEscape) return undefined;
+  return (e) => {
+    if (e.key !== KEY.ESCAPE) return;
+    e.preventDefault();
+    onEscape();
+  };
+}
+
+/**
+ * Presentational component for the level info panel overlay.
+ * With `label` it is a named region; `detailRef` reaches the View Details
+ * button, and `onEscape` runs when Escape is pressed on it.
+ * With `onClose` (a selection the panel shows) a × in its corner clears it.
+ */
+export function LevelInfoPanel({ levelInfo, label, detailRef, onEscape, onClose }) {
   if (!levelInfo) return null;
+  const onKeyDown = escapeHandler(onEscape);
   return (
-    <div style={PANEL_STYLE}>
-      <div style={TITLE_STYLE}>{levelInfo.title}</div>
+    <div style={PANEL_STYLE} role={label ? 'region' : undefined} aria-label={label}>
+      {onClose && (
+        <button type="button" style={CLOSE_STYLE} onClick={onClose} onKeyDown={onKeyDown}
+          aria-label={t('map.panelClose')} title={t('map.panelClose')}>×</button>
+      )}
+      <div style={onClose ? CLOSABLE_TITLE_STYLE : TITLE_STYLE}>{levelInfo.title}</div>
+      {levelInfo.path && <div style={PATH_STYLE}>{levelInfo.path}</div>}
+      {levelInfo.tag && <div style={TAG_STYLE}>{levelInfo.tag}</div>}
       {levelInfo.lines.map((l, i) => (
         <div key={i} style={{ ...ROW_STYLE, color: l.color || 'var(--color-text-muted)' }}>
           <span>{l.label}</span>
@@ -58,8 +99,10 @@ export function LevelInfoPanel({ levelInfo }) {
       )}
       {levelInfo.detailAction && (
         <button
+          ref={detailRef}
           type="button"
           onClick={levelInfo.detailAction}
+          onKeyDown={onKeyDown}
           style={DETAIL_BUTTON_STYLE}
           onMouseEnter={e => { e.target.style.background = DETAIL_BUTTON_HOVER_BG; }}
           onMouseLeave={e => { e.target.style.background = DETAIL_BUTTON_STYLE.background; }}

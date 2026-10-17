@@ -30,6 +30,8 @@ from quodeq.api.dimension_eval_wire import dimension_eval_response
 from quodeq.api._scores_routes import finding_detail_response
 from quodeq.api.helpers import json_error, validate_segment
 from quodeq.api.routes_shared_findings_mirrors import register_shared_findings_mirror_routes
+from quodeq.api.routes_principle_series import register_shared_principle_series_route
+from quodeq.api.routes_map_history import register_shared_map_history_route
 from quodeq.services import fs_reports, fs_projects
 from quodeq.api.fleet_request import FLEET_LOG, fleet_projects_or_error
 from quodeq.services.compare import build_compare_summary, build_fleet_compare
@@ -139,10 +141,10 @@ def _pending_response(eval_root: Path, url: str, project: str) -> tuple[Response
 @with_shared_root
 def shared_dashboard(project: str, eval_root: Path, url: str):
     """Return one run's dashboard payload from the shared clone. ``?run=`` defaults to latest."""
-    early = validate_segment(project) or _pending_response(eval_root, url, project)
+    run = request.args.get("run", LATEST_RUN)
+    early = validate_segment(project, run) or _pending_response(eval_root, url, project)
     if early:
         return early
-    run = request.args.get("run", LATEST_RUN)
     try:
         payload = fs_reports.get_dashboard(str(eval_root), project, run, log=SHARED_LOG)
     except FileNotFoundError:
@@ -292,3 +294,5 @@ def register_shared_mirror_routes(app: Flask) -> None:
     app.get("/api/shared/projects/<project>/dimensions/<dim>/eval")(shared_dimension_eval)
     app.get("/api/shared/projects/<project>/violations")(shared_violations)
     register_shared_findings_mirror_routes(app)
+    register_shared_principle_series_route(app)
+    register_shared_map_history_route(app)

@@ -12,6 +12,7 @@
  */
 import { useMemo } from 'react';
 import { t } from '../../../strings/index.js';
+import { activateOnKey } from '../../../utils/a11y.js';
 import { scoreGradeColorVar } from '../../../utils/formatters.js';
 import { buildDirectionMap } from '../compareDirectionMap.js';
 import { useMeasuredSize } from '../hooks/useMeasuredWidth.js';
@@ -87,18 +88,26 @@ function Frame({ m, box, fleetScore }) {
       <text className="compare-dirmap__refLabel" x={m.zeroX + REF_LABEL_GAP} y={box.top - REF_LABEL_GAP}>{t('compare.mapZero')}</text>
       <line className="compare-dirmap__ref" x1={box.left} x2={right} y1={m.fleetY} y2={m.fleetY} />
       <text className="compare-dirmap__refLabel" x={right} y={m.fleetY - REF_LABEL_GAP} textAnchor="end">{t('compare.mapFleetLine', { score: score1(fleetScore) })}</text>
-      <text className="compare-dirmap__axisLabel" x={box.left - TICK_LABEL_GAP} y={box.top - REF_LABEL_GAP} textAnchor="end">{t('compare.mapScoreAxis')}</text>
+      {/* From the chart's left edge: wider than the tick column, it would run off the edge if it ended at the axis. */}
+      <text className="compare-dirmap__axisLabel" x={0} y={box.top - REF_LABEL_GAP}>{t('compare.mapScoreAxis')}</text>
       <text className="compare-dirmap__axisLabel" x={right} y={bottom + MOVE_CAPTION_DY} textAnchor="end">{t('compare.mapMoveAxis')}</text>
     </g>
   );
 }
 
-/* Hover lights the project up across the page; a click opens it. */
+/* Hover or focus lights the project up across the page; a click, Enter or
+   Space opens it. Each point is a button in the tab order, so the map is
+   usable without a pointer. */
 function linked(id, setHover, onOpenProject) {
   return {
+    role: 'button',
+    tabIndex: 0,
     onMouseEnter: () => setHover(id),
     onMouseLeave: () => setHover(null),
+    onFocus: () => setHover(id),
+    onBlur: () => setHover(null),
     onClick: () => onOpenProject(id),
+    onKeyDown: activateOnKey(() => onOpenProject(id)),
   };
 }
 
@@ -111,6 +120,7 @@ function Point({ p, hover, setHover, onOpenProject }) {
   return (
     <g
       className={`compare-dirmap__pt${on ? ' is-on' : ''}${hover && !on ? ' is-dim' : ''}${p.still ? ' is-still' : ''}`}
+      aria-label={tip}
       {...linked(row.id, setHover, onOpenProject)}
     >
       <circle cx={p.cx} cy={p.cy} r={p.r} className="compare-dirmap__dot" style={{ '--dot': scoreGradeColorVar(row.score) }} />
@@ -156,7 +166,7 @@ export default function CompareDirectionMap({ rows, fleetScore, hover, setHover,
   return (
     <div className="compare-dirmap">
       <div ref={ref} className="compare-dirmap__plot">
-        <svg width={width} height={height} role="img" aria-label={t('compare.mapAria')}>
+        <svg width={width} height={height} role="group" aria-label={t('compare.mapAria')}>
           <Frame m={m} box={box} fleetScore={fleetScore} />
           {m.points.map((p) => <Point key={p.row.id} p={p} {...pointProps} />)}
         </svg>

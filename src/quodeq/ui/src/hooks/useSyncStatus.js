@@ -1,13 +1,37 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApi } from '../api/ApiContext.jsx';
-import { projectsKeys, sharedKeys } from '../api/queryKeys.js';
+import { projectsKeys, sharedKeys, standardsKeys } from '../api/queryKeys.js';
 import { anyActive } from '../api/syncStatus.js';
 import { SYNC_KIND, SYNC_PHASE } from '../vocab/syncPhase.js';
 
 const ACTIVE_MS = 1000;
 const IDLE_MS = 30000;
+const MS_PER_SECOND = 1000; // the server stamps finishedAt in seconds
 const SYNC_KINDS = Object.values(SYNC_KIND);
+
+// The query keys a finished job of this kind makes stale. One place for the rules.
+function keysFor(kind) {
+  const keys = [sharedKeys.list()];
+  // A refresh only re-reads the shared list; connect and pull change what is local or configured.
+  if (kind !== SYNC_KIND.REFRESH) keys.push(projectsKeys.list());
+  // Each standard's sync state reads the clone, which connect and refresh rewrite; a pull leaves it alone.
+  if (kind !== SYNC_KIND.PULL) keys.push(standardsKeys.list());
+  return keys;
+}
+
+// A slot already DONE when the screen mounted finished before this screen looked. It still
+// matters for a list cached before it finished (finishedAt is server seconds, same local clock).
+function invalidateStaleSinceDone(status, queryClient) {
+  for (const kind of SYNC_KINDS) {
+    const slot = status[kind];
+    if (slot?.phase !== SYNC_PHASE.DONE || typeof slot.finishedAt !== 'number') continue;
+    for (const queryKey of keysFor(kind)) {
+      const updatedAt = queryClient.getQueryState(queryKey)?.dataUpdatedAt;
+      if (updatedAt && slot.finishedAt * MS_PER_SECOND > updatedAt) queryClient.invalidateQueries({ queryKey });
+    }
+  }
+}
 
 // `tick` changes on every poll that lands, even when structural sharing hands back the same data object.
 function useSyncTransitions(status, tick, queryClient) {
@@ -16,6 +40,10 @@ function useSyncTransitions(status, tick, queryClient) {
     if (!status) return;
     const before = prev.current;
     prev.current = status;
+    if (before === null) {
+      invalidateStaleSinceDone(status, queryClient);
+      return;
+    }
     // Only the DONE edge re-lists. The job hydrates the listing during READING;
     // a list request then would run that same cold hydration a second time.
     // A second job of the same kind can start and finish between two polls
@@ -25,9 +53,7 @@ function useSyncTransitions(status, tick, queryClient) {
       const now = status[kind];
       if (now?.phase !== SYNC_PHASE.DONE) continue;
       if (was?.phase === SYNC_PHASE.DONE && was.finishedAt === now.finishedAt) continue;
-      queryClient.invalidateQueries({ queryKey: sharedKeys.list() });
-      // A refresh only re-reads the shared list; connect and pull change what is local or configured.
-      if (kind !== SYNC_KIND.REFRESH) queryClient.invalidateQueries({ queryKey: projectsKeys.list() });
+      for (const queryKey of keysFor(kind)) queryClient.invalidateQueries({ queryKey });
     }
   }, [status, tick, queryClient]);
 }
@@ -35,7 +61,7 @@ function useSyncTransitions(status, tick, queryClient) {
 /**
  * The one poll of GET /api/shared/status that every sync consumer reads.
  * Polls fast while a connect, refresh or pull job runs and slowly otherwise,
- * and keeps the shared and project lists in step as jobs reach DONE. Mount it
+ * and keeps the shared, project and standards lists in step as jobs reach DONE. Mount it
  * once per screen: each mount runs its own transition effect.
  */
 export function useSyncStatus({ activeMs = ACTIVE_MS, idleMs = IDLE_MS } = {}) {

@@ -128,6 +128,10 @@ class FilesystemActionProvider(ActionProvider):
         """Return runs from the SQLite index merged with JobManager's in-memory jobs."""
         return self._evaluations.list(limit=limit, reports_dir=reports_dir, states=states)
 
+    def list_project_evaluations(self, project: str, reports_dir: Path | None = None) -> list[JobSnapshot]:
+        """One project's runs, syncing and reading only that project's run dirs."""
+        return self._evaluations.list_project(project, reports_dir=reports_dir)
+
     def delete_evaluation(self, job_id: str, reports_dir: Path | None = None) -> bool:
         """Drop the run directory and its index row, and the projects-list cache with them."""
         deleted = self._evaluations.delete(job_id, reports_dir=reports_dir)
@@ -288,6 +292,6 @@ class FilesystemActionProvider(ActionProvider):
         """Return the installed CLI clients and configured API providers. *env* overrides ``os.environ``."""
         return self._tooling.get_ai_clients(env)
 
-    def get_client_models(self, client_id: str) -> dict[str, Any]:
-        """Return the models offered by *client_id*; Claude resolves through its own fetcher."""
-        return self._tooling.get_client_models(client_id)
+    def get_client_models(self, client_id: str, *, refresh: bool = False) -> dict[str, Any]:
+        """Return the models offered by *client_id*; Claude and Codex report a live catalog."""
+        return self._tooling.get_client_models(client_id, refresh=refresh)

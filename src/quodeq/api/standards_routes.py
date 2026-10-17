@@ -2,8 +2,9 @@
 
 Entry point that delegates to focused sub-modules:
 - standards_read_routes: GET / list / detail endpoints
-- standards_import_routes: import from file and library
+- standards_import_routes: import from file
 - standards_crud_routes: create, update, delete, duplicate
+- standards_share_routes: share, install, update via the shared repository
 """
 from __future__ import annotations
 
@@ -14,11 +15,11 @@ from flask import Flask
 from quodeq.api.standards_crud_routes import register_crud_routes
 from quodeq.api.standards_import_routes import register_import_routes
 from quodeq.api.standards_overrides_routes import register_overrides_routes
+from quodeq.api.standards_share_routes import register_share_routes
 from quodeq.api.standards_read_routes import register_read_routes
 from quodeq.api.standards_visibility_routes import register_visibility_routes
 from quodeq.api.routes_common import standards_compiled_dir
-from quodeq.services.standards import StandardsService
-from quodeq.services.standards_library import StandardsLibraryClient, UrllibJsonClient
+from quodeq.services.standards import StandardsService, shared_standards_provider
 
 
 def _get_service(app: Flask) -> StandardsService:
@@ -34,26 +35,20 @@ def _get_service(app: Flask) -> StandardsService:
             evaluators_dir=Path(app.config["STANDARDS_EVALUATORS_DIR"]),
             compiled_dir=standards_compiled_dir(app),
             dimensions_file=Path(app.config["STANDARDS_DIMENSIONS_FILE"]),
+            shared_standards=shared_standards_provider(),
         )
     return app._standards_service
-
-
-def _get_library_client(app: Flask):
-    base_url = app.config.get("STANDARDS_LIBRARY_URL")
-    if not base_url:
-        return None
-    token = app.config.get("STANDARDS_LIBRARY_TOKEN")
-    return StandardsLibraryClient(base_url=base_url, http_client=UrllibJsonClient(), token=token)
 
 
 def register_standards_routes(app: Flask) -> None:
     """Bind every /api/standards/* route: reads, imports, CRUD, overrides, visibility.
 
-    The service and library client are passed as factories so each request
-    resolves them against the current app config rather than import-time state.
+    The service is passed as a factory so each request
+    resolves it against the current app config rather than import-time state.
     """
-    register_read_routes(app, _get_service, _get_library_client)
-    register_import_routes(app, _get_service, _get_library_client)
+    register_read_routes(app, _get_service)
+    register_import_routes(app, _get_service)
     register_crud_routes(app, _get_service)
+    register_share_routes(app, _get_service)
     register_overrides_routes(app)
     register_visibility_routes(app)

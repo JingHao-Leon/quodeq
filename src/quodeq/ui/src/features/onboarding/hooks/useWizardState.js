@@ -1,5 +1,5 @@
 import { useReducer, useCallback } from 'react';
-import { STEP_WELCOME } from '../wizardSteps.js';
+import { STEP_WELCOME, STEP_REVIEWER } from '../wizardSteps.js';
 import { SCAN_SUB_STATE, REPO_SOURCE } from '../onboardingVocab.js';
 
 const DEFAULT_TIME_LIMIT_S = 600; // 10 minutes
@@ -10,7 +10,11 @@ function initialState(initial = {}) {
     repoScanSubState: SCAN_SUB_STATE.IDLE,
     repo: { source: REPO_SOURCE.URL, value: '', branch: null, scopePath: null },
     projectId: null,
+    // The registered project's local folder (what an evaluation starts on).
+    projectPath: null,
     scan: null,
+    // What the add panel handed over ({ projectId, cloning }), null before.
+    added: null,
     provider: { id: null, model: null, classification: null },
     providerView: 'pre-recommended',
     standardIds: new Set(),
@@ -40,15 +44,18 @@ function toggleStandard(state, id) {
 const HANDLERS = {
   GO_TO_STEP: (state, action) => ({ ...state, step: action.step }),
   SET_REPO: (state, action) => ({ ...state, repo: { ...state.repo, ...action.repo } }),
-  SCAN_START: (state) => ({ ...state, repoScanSubState: SCAN_SUB_STATE.SCANNING, scan: null, projectId: null }),
+  SCAN_START: (state) => ({ ...state, repoScanSubState: SCAN_SUB_STATE.SCANNING, scan: null, projectId: null, projectPath: null }),
   SCAN_SUCCESS: (state, action) => ({
     ...state,
     repoScanSubState: SCAN_SUB_STATE.SCANNED,
     scan: action.scan,
     projectId: action.projectId,
+    projectPath: action.path ?? null,
   }),
   SCAN_ERROR: (state, action) => ({ ...state, repoScanSubState: SCAN_SUB_STATE.ERROR, scanError: action.error }),
-  SCAN_RESET: (state) => ({ ...state, repoScanSubState: SCAN_SUB_STATE.IDLE, scan: null, projectId: null, scanError: null }),
+  SCAN_RESET: (state) => ({ ...state, repoScanSubState: SCAN_SUB_STATE.IDLE, scan: null, projectId: null, projectPath: null, scanError: null }),
+  // The add panel handed a project (or its clone) over: the reviewer step follows.
+  ADDED: (state, action) => ({ ...state, added: action.added, step: STEP_REVIEWER }),
   SET_PROVIDER: (state, action) => ({ ...state, provider: { ...state.provider, ...action.provider } }),
   SET_PROVIDER_VIEW: (state, action) => ({ ...state, providerView: action.view }),
   SET_TIME_LIMIT: (state, action) => ({ ...state, totalTimeLimitS: action.seconds }),
@@ -90,9 +97,10 @@ export function useWizardState(options = {}) {
   const setRepo = useCallback((repo) => dispatch({ type: 'SET_REPO', repo }), []);
   const startScan = useCallback(() => dispatch({ type: 'SCAN_START' }), []);
   const succeedScan = useCallback(
-    (projectId, scan) => dispatch({ type: 'SCAN_SUCCESS', projectId, scan }),
+    (projectId, scan, path = null) => dispatch({ type: 'SCAN_SUCCESS', projectId, scan, path }),
     [],
   );
+  const markAdded = useCallback((added) => dispatch({ type: 'ADDED', added }), []);
   const failScan = useCallback((error) => dispatch({ type: 'SCAN_ERROR', error }), []);
   const resetScan = useCallback(() => dispatch({ type: 'SCAN_RESET' }), []);
   const setProvider = useCallback((provider) => dispatch({ type: 'SET_PROVIDER', provider }), []);
@@ -111,6 +119,7 @@ export function useWizardState(options = {}) {
     setRepo,
     startScan,
     succeedScan,
+    markAdded,
     failScan,
     resetScan,
     setProvider,

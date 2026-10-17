@@ -8,8 +8,8 @@ afterEach(() => { window.localStorage.removeItem(SKIPPED_KEY); });
 describe('OnboardingSection', () => {
   it('renders the block with its row and button', () => {
     render(<OnboardingSection onShowWelcome={() => {}} />);
-    expect(screen.getByText('onboarding')).toBeInTheDocument();
-    expect(screen.getByText('show the welcome again')).toBeInTheDocument();
+    expect(screen.getByText('Getting started')).toBeInTheDocument();
+    expect(screen.getByText('Show the welcome again')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'show welcome' })).toBeInTheDocument();
   });
 

@@ -20,11 +20,11 @@ quodeq evaluates code across six dimensions derived from the ISO/IEC 25010 softw
 
 - **Accessibility** WCAG 2.2 A and AA as applied to software by EN 301 549: text alternatives, contrast, text scaling, focus, target size, screen reader semantics and platform settings, for Android, iOS and web.
 
-These ship **disabled by default**. Open *Standards* and click the `icon:eye` eye on the dimension card to enable them. Once visible, they appear in Evaluate and Overview alongside the ISO six.
+These ship **disabled by default**. Open *Standards* and click the star in the standard's **Enabled** column to turn it on for the project. Once on, they appear in Evaluate and Overview alongside the ISO six.
 
-### Showing and hiding dimensions
+### Turning dimensions on and off
 
-The `icon:eye` **visibility toggle** on each standard card controls whether a dimension is part of evaluations and the Overview. Hide a dimension to ignore it without deleting any standards. Re-enable it any time, the next run will include it.
+The star in each standard's **Enabled** column on the *Standards* page controls whether a dimension is part of this project's evaluations and Overview. Turn a dimension off to ignore it without deleting any standards. Turn it back on any time; the next run will include it.
 
 ### Scoring summary
 

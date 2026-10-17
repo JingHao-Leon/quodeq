@@ -12,17 +12,18 @@ import { isSharedSource, makeDismissHandler } from './dismissWiring.js';
 import { t } from '../strings/index.js';
 import { buildEvalPrincipal, ViolationsRoute } from './violationsRoute.jsx';
 import { liveAccumulated, liveFileFor } from './liveSelectors.js';
+import { ownProjectProps } from './explorerProps.js';
 import { mapRoute } from './mapRoute.jsx';
 import { historyRoute } from './historyRoute.jsx';
 import { compareRoute } from './compareRoute.jsx';
 import { buildDashboardDataBundle } from './dashboardDataBundle.js';
 import { buildNavigationBundle } from './navigationBundle.js';
-import { switchProject } from './switchProject.js';
+import { switchProject, evaluateProject } from './switchProject.js';
 import { NAV_TAB } from '../vocab/navTab.js';
 import { WIZARD_SOURCE } from '../features/onboarding/onboardingVocab.js';
 import {
   EvaluateCase, SettingsCase, renderEvalPrincipleDetail,
-  resolveSelectionAfterSharedDisconnect,
+  resolveSelectionAfterSharedDisconnect, reselectAfterDeleteAll,
 } from './routeCases.jsx';
 
 const DashboardPage = lazy(() => import('../features/dashboard/components/DashboardPage.jsx'));
@@ -60,12 +61,13 @@ const SELF_HANDLED_EMPTY = new Set([NAV_TAB.OVERVIEW, NAV_TAB.MAP, NAV_TAB.VIOLA
  * The dashboard page for a route. Every dashboard route navigates and
  * retries; `callbacks` adds the route's own.
  */
-function dashboardElement(props, runMode, callbacks = {}) {
+function dashboardElement(props, runMode, callbacks = {}, archivedRun = false) {
   return (
     <DashboardPage
       data={props.dashboardData}
       callbacks={{ onNavigate: props.navigation.handleNavigate, onRetry: props.dashboardData.onRetry, ...callbacks }}
       runMode={runMode}
+      archivedRun={archivedRun}
     />
   );
 }
@@ -104,13 +106,6 @@ function gradeFormulaScope(params, props) {
   };
 }
 
-/** True when an explorer entry shows the globally selected project. */
-function showsSelectedProject(params, navigation) {
-  const project = params.fromProject || navigation.selectedProject;
-  const source = params.fromSource || navigation.selectedSource;
-  return project === navigation.selectedProject && isSharedSource(source) === isSharedSource(navigation.selectedSource);
-}
-
 export const ROUTE_RENDERERS = {
   overview: (params, props) => dashboardElement(props, false, {
     onRunSelect: props.navigation.handleRunSelect,
@@ -123,7 +118,7 @@ export const ROUTE_RENDERERS = {
   map: mapRoute,
   run: (params, props) => dashboardElement(props, true, { onProjectsRetry: props.dashboardData.onProjectsRetry }),
   history: historyRoute,
-  [NAV_TAB.HISTORY_RUN]: (params, props) => dashboardElement(props, true),
+  [NAV_TAB.HISTORY_RUN]: (params, props) => dashboardElement(props, true, {}, params.archived === true),
   explorer: (params, props) => (
     <ExplorerPage
       project={params.fromProject || props.navigation.selectedProject}
@@ -134,12 +129,9 @@ export const ROUTE_RENDERERS = {
       selectedSource={params.fromSource || props.navigation.selectedSource}
       onNavigate={props.navigation.handleNavigate}
       refreshSignal={props.dashboardData.dashboard}
-      // The dashboard's trend is the SELECTED project's: a cross-project
-      // entry (fromProject/fromSource) passes null so the page reads its
-      // own project's history instead of charting the selection's.
-      trend={showsSelectedProject(params, props.navigation) ? (props.dashboardData.dashboard?.trend || []) : null}
       granularity={props.dashboardData.granularity}
       onGranularityChange={props.dashboardData.onGranularityChange}
+      {...ownProjectProps(params, props)}
     />
   ),
   evaluate: (params, props) => {
@@ -161,6 +153,7 @@ export const ROUTE_RENDERERS = {
         preselectDims={params.preselectDims}
         onGoToProjects={() => props.navigation.navTab(NAV_TAB.PROJECTS)}
         onGoToSettings={() => props.navigation.navTab(NAV_TAB.SETTINGS)}
+        onOpenDimension={(target) => props.navigation.handleNavigate(NAV_TAB.EXPLORER, { ...target, sourceTab: NAV_TAB.EVALUATE })}
       />
     );
   },
@@ -192,7 +185,7 @@ export const ROUTE_RENDERERS = {
     <FindingDetailPage
       finding={params.finding}
       principle={params.principle}
-      dimension={params.dimension}
+      dimension={params.dimension} crumbs={params.crumbs} note={params.note}
       // Same identity rule as the file and evalprinciple routes.
       onDismiss={makeDismissHandler({
         selectedSource: props.navigation.selectedSource,
@@ -208,13 +201,13 @@ export const ROUTE_RENDERERS = {
     settings={props.settings}
     onOpenGradeFormula={() => props.navigation.handleNavigate(NAV_TAB.GRADE_FORMULA)}
     onSharedDisconnected={() => reselectAfterSharedDisconnect(props.navigation)}
+    onEvaluationsDeleted={() => reselectAfterDeleteAll(props.navigation)}
     onShowWelcome={() => props.navigation.onTakeTour(WIZARD_SOURCE.SETTINGS, () => reselectAfterSharedDisconnect(props.navigation))}
   />,
   [NAV_TAB.GRADE_FORMULA]: (params, props) => (
     <GradeFormulaPage
       navigation={props.navigation}
       scope={gradeFormulaScope(params, props)}
-      runLabel={props.dashboardData.dashboard?.selectedRun?.dateLabel ?? null}
     />
   ),
   projects: (params, props) => (
@@ -226,6 +219,7 @@ export const ROUTE_RENDERERS = {
       filters={params.filters}
       actions={{
         onSelect: (id, source) => switchProject(props.navigation, id, source),
+        onEvaluate: (id, source) => evaluateProject(props.navigation, id, source),
         onDelete: props.navigation.handleDeleteProject,
         onExport: props.navigation.handleExportProject,
         onRelocate: props.navigation.handleRelocateProject,

@@ -55,7 +55,7 @@ from quodeq._cli_env import (  # noqa: F401 — ENV_*/cli_env_int/no_verify re-e
     cli_env_int, cli_environ, no_verify, subagent_model,
 )
 from quodeq._cli_run_config import (
-    build_analysis_options, dimensions_filter_for, resolve_limits,
+    build_analysis_options, dimensions_filter_for, resolve_limits, standards_settings_for_run,
 )
 from quodeq._cli_resolution import (  # noqa: F401
     ResolvedInputs, build_cli_manifest, cleanup_worktree, create_worktree,
@@ -112,9 +112,13 @@ def _resolve_run_config_locals(
 
 def build_run_config(
     args: argparse.Namespace, *, inputs: ResolvedInputs, evidence_dir: Path,
-    run_dir: Path | None = None, env: dict[str, str] | None = None,
+    reports_root: Path, run_dir: Path | None = None, env: dict[str, str] | None = None,
 ) -> RunConfig:
-    """Assemble a RunConfig from CLI args and resolved inputs."""
+    """Assemble a RunConfig from CLI args and resolved inputs.
+
+    *reports_root* is the local evaluations root the run's standards
+    settings resolve under (see ``standards_settings_for_run``).
+    """
     standards_dir = default_paths().standards_dir
     dimensions_filter = dimensions_filter_for(args)
     resolved = _resolve_run_config_locals(args, env)
@@ -130,6 +134,7 @@ def build_run_config(
         dimensions_data=inputs.dims_data,
         evaluators_dir=default_paths().evaluators_dir,
         prompts_dir=default_paths().prompts_dir,
+        standards_settings=standards_settings_for_run(evidence_dir, inputs.src, reports_root=reports_root),
         options=build_analysis_options(dimensions_filter, resolved, limits),
         dispatch=limits.dispatch_policy,
     )

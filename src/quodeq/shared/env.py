@@ -150,6 +150,7 @@ def get_github_raw_base_url(env: dict[str, str] | None = None) -> str:
 from quodeq.shared._env_ai import (  # noqa: F401 — re-export
     get_ai_cmd,
     get_ai_cmd_path,
+    get_ai_effort,
     get_ai_model,
     get_ai_provider,
 )

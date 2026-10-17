@@ -4,29 +4,19 @@ import { standardsKeys } from '../../../api/queryKeys.js';
 import { apiErrorMessage } from '../../../strings/apiErrors.js';
 import { STANDARDS_CHANGED_REASON, notifyStandardsChanged } from '../../../constants.js';
 import { useStandardsQuery } from './useStandardsQuery.js';
-import { t } from '../../../strings/index.js';
 
-export const STANDARD_TYPES = { ISO: 'iso', WCAG: 'wcag', QUODEQ: 'quodeq', COMMUNITY: 'community', CUSTOM: 'custom' };
+// The families and the base label live with the standard's model (the dimension page reads them too).
+import { STANDARD_TYPES } from '../../../models/standard.js';
 
-const FAMILY_LABEL_KEYS = {
-  [STANDARD_TYPES.ISO]: 'standards.baseIso',
-  [STANDARD_TYPES.WCAG]: 'standards.baseWcag',
-  [STANDARD_TYPES.QUODEQ]: 'standards.baseQuodeq',
-  [STANDARD_TYPES.COMMUNITY]: 'standards.baseCommunity',
-  [STANDARD_TYPES.CUSTOM]: 'standards.baseCustom',
-};
-
-/** The standard's family and, when it has one, its edition: "iso-25010", "wcag-2.2", "custom". */
-export function standardBaseLabel(standard) {
-  const key = FAMILY_LABEL_KEYS[standard?.type];
-  if (!key) return null;
-  return standard.subtype ? `${t(key)}-${standard.subtype}` : t(key);
-}
+export { STANDARD_TYPES, standardBaseLabel, standardTypeLabel } from '../../../models/standard.js';
 
 // Fallback bucket for a standard whose `type` doesn't match any known
 // STANDARD_TYPES value. Keeps it visible (StandardsTable folds this bucket
 // into its flat row list) instead of silently dropping it from the list.
 export const UNKNOWN_STANDARD_TYPE = 'unknown';
+
+// One stable identity while the list loads, so memos keyed on it do not rerun.
+const EMPTY = Object.freeze([]);
 
 function makeHandleDelete({ deleteStandard, setMutationError, refresh }) {
   return async (id) => {
@@ -93,7 +83,7 @@ export function useStandards({ onDuplicated } = {}) {
     queryFn: () => listStandards(),
   });
 
-  const standards = data || [];
+  const standards = data || EMPTY;
 
   // invalidateQueries already refetches the mounted list query and its
   // promise settles when that fetch does; a second refetch() would cancel

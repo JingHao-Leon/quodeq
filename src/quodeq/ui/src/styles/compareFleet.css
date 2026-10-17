@@ -29,43 +29,53 @@
 /* ── summary strip ── */
 .compare-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
 @media (max-width: 1200px) { .compare-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.compare-kpi { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; }
-.compare-kpi__label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-text-muted); }
-.compare-kpi__value { display: flex; align-items: baseline; gap: 8px; font-size: 26px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
+.compare-kpi { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 12px 14px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--term-radius); }
+/* One line, so every card's value sits on the same line as its neighbours'. */
+.compare-kpi__label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.compare-kpi__value { display: flex; align-items: baseline; gap: 8px; font-size: 22px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; }
 .compare-kpi__value--alarm { color: var(--color-danger); }
-.compare-kpi__sub { font-size: 11px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The change beside the score reads as a note, not a second score (as on the Overview). */
+.compare-kpi__value .trend-badge { font-size: 12px; }
+.compare-kpi__sub { font-size: 11px; color: var(--color-text-muted); overflow-wrap: anywhere; }
 
 /* ── projects table ── */
 .compare-fleettable { list-style: none; margin: 0; padding: 0; }
 .compare-fleettable__row {
   display: grid;
-  grid-template-columns: 22px minmax(150px, 1.3fr) minmax(180px, 2fr) 58px 64px 62px 76px 70px 110px;
-  gap: 12px;
+  grid-template-columns: 22px minmax(150px, 300px) minmax(180px, 1fr) 58px 64px 62px 76px 70px 96px;
+  gap: 8px;
   align-items: center;
   min-height: 38px;
   padding: 0 16px;
-  font-size: 12.5px;
+  font-size: 12px;
   border-bottom: 1px solid var(--color-border);
 }
-.compare-fleettable__row--cov { grid-template-columns: 22px minmax(150px, 1.3fr) minmax(180px, 2fr) 58px 64px 62px 62px 76px 70px 110px; }
+/* Names take what they need (up to a cap) before the score axis widens. */
+.compare-fleettable__row--cov { grid-template-columns: 22px minmax(150px, 300px) minmax(180px, 1fr) 58px 64px 62px 62px 76px 70px 96px; }
 .compare-fleettable__row.is-hovered { background: var(--compare-hover-bg); box-shadow: var(--compare-hover-bar); }
 .compare-fleettable__row--head { min-height: 42px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
 .compare-fleettable__rank { font-size: 11px; color: var(--color-text-muted); }
 .compare-fleettable__name { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .compare-fleettable__namebtn { font: inherit; font-size: 13px; color: var(--color-text); background: none; border: none; padding: 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compare-fleettable__namebtn:hover { text-decoration: underline; }
-.compare-fleettable__lang { font-size: 10.5px; color: var(--color-text-muted); }
+.compare-fleettable__lang { font-size: 11px; color: var(--color-text-muted); }
+.compare-fleettable__name .compare-row__remote { margin-left: 0; }
 .compare-fleettable__staledot { display: none; }
 .compare-fleettable__num { text-align: right; font-variant-numeric: tabular-nums; }
 .compare-fleettable__score { font-size: 13px; }
 .compare-fleettable__warn { color: var(--color-danger); }
 .compare-fleettable__behind { display: block; font-size: 10px; color: var(--color-danger); }
 .compare-fleettable__axis { position: relative; align-self: stretch; }
-.compare-fleettable__zone { position: absolute; top: 6px; overflow: hidden; font-size: 9px; text-align: center; white-space: nowrap; text-overflow: ellipsis; border-left: 1px solid var(--color-border); }
+/* A grade label wider than its zone spills evenly past both edges into its
+   neighbours' blank margins, never clipped; its backing hides the zone
+   line it crosses. */
+.compare-fleettable__zone { position: absolute; top: 6px; display: flex; justify-content: center; font-size: 10px; letter-spacing: 0; white-space: nowrap; border-left: 1px solid var(--color-border); }
+.compare-fleettable__zonelabel { position: relative; z-index: 1; padding: 0 3px; background: var(--color-surface); }
 .compare-fleettable__zone:first-child { border-left: none; }
 .compare-fleettable__tick { position: absolute; bottom: 4px; transform: translateX(-50%); font-size: 10px; letter-spacing: 0; }
 .compare-fleettable__pending { display: flex; gap: 12px; align-items: baseline; padding: 10px 16px; font-size: 12px; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); }
 .compare-fleettable__pending:last-child { border-bottom: none; }
+.compare-fleettable__unevaluated { display: flex; flex-wrap: wrap; gap: 4px 14px; }
 
 .compare-fleetplot { position: relative; align-self: stretch; min-height: 28px; }
 .compare-fleetplot::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dotted var(--color-border); }
@@ -75,22 +85,32 @@
 .compare-fleetplot__dot { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%; transform: translate(-50%, -50%); background: var(--dot); border: 2px solid var(--color-surface); }
 
 /* ── score matrix (heatmap) ── */
-.compare-heat__scroll { overflow-x: auto; }
-.compare-heat { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
-.compare-heat__colLead { width: 280px; }
-.compare-heat__colOverall { width: 72px; }
+.compare-heat__scroll { overflow-x: auto; container-type: inline-size; }
+/* Every dimension column fits the longest header word: the word at the 10px
+   header size (5/6 of the 12px table's ch) plus the header's side padding.
+   The table never gets narrower than that (lead floor + overall + columns),
+   and the project names take what the columns leave, between a floor and a cap. */
+.compare-heat {
+  --heat-col-need: calc(var(--heat-word, 0) * 1ch * 5 / 6 + 4px);
+  width: 100%;
+  min-width: max(760px, calc(260px + var(--heat-cols, 0) * var(--heat-col-need)));
+  table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.compare-heat__colLead { width: clamp(200px, calc(100cqw - 60px - var(--heat-cols, 0) * var(--heat-col-need)), 300px); }
+.compare-heat__colOverall { width: 60px; }
 .compare-heat th, .compare-heat td { padding: 0; }
-.compare-heat thead th { height: 44px; padding: 0 4px 8px; vertical-align: bottom; border-bottom: 1px solid var(--color-border); }
-.compare-heat__head .compare-sortbtn { width: 100%; font-size: 10.5px; letter-spacing: 0.04em; text-transform: none; white-space: normal; overflow-wrap: break-word; line-height: 1.25; }
-.compare-heat__lead { position: sticky; left: 0; z-index: 1; padding: 0 12px 0 16px !important; text-align: left; font-weight: 400; background: var(--color-surface); }
+.compare-heat thead th { height: 44px; padding: 0 2px 8px; vertical-align: bottom; border-bottom: 1px solid var(--color-border); }
+/* Dimension names wrap only between words (clean-architecture at its hyphen), never inside one. */
+.compare-heat__head .compare-sortbtn { width: 100%; font-size: 10px; letter-spacing: 0; text-transform: none; white-space: normal; overflow-wrap: normal; line-height: 1.25; }
+.compare-heat__lead { position: sticky; left: 0; z-index: 1; padding: 0 10px 0 16px !important; text-align: left; font-weight: 400; background: var(--color-surface); }
 .compare-heat thead .compare-heat__lead { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
 .compare-heat tbody tr, .compare-heat tfoot tr { height: 38px; }
 .compare-heat tbody tr + tr > * { border-top: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
 .compare-heat tbody th.compare-heat__lead { display: flex; align-items: center; gap: 8px; height: 38px; }
+.compare-heat__lead .compare-row__remote { margin-left: 0; }
 .compare-heat__rank { width: 16px; font-size: 11px; color: var(--color-text-muted); }
-.compare-heat__name { font: inherit; font-family: var(--term-font-mono); font-size: 12.5px; color: var(--color-text); background: none; border: none; padding: 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.compare-heat__name { font: inherit; font-family: var(--term-font-mono); font-size: 12px; color: var(--color-text); background: none; border: none; padding: 0; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .compare-heat__name:hover { text-decoration: underline; }
-.compare-heat__overall { text-align: center; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; border-right: 1px solid var(--color-border); }
+.compare-heat__overall { text-align: center; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; border-right: 1px solid var(--color-border); }
 .compare-heat__cell { padding: 3px !important; text-align: center; }
 .compare-heat__tile {
   /* A chip around the number, like the severity badges: the number in its
@@ -100,7 +120,7 @@
   min-width: 44px;
   padding: 2px 8px;
   font-family: var(--term-font-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
   border-radius: var(--term-radius, 2px);
@@ -108,8 +128,8 @@
   cursor: pointer;
 }
 .compare-heat__tile:hover { background: color-mix(in srgb, currentColor 16%, transparent); }
-.compare-heat__tile--best { border-color: color-mix(in srgb, currentColor 80%, transparent); font-weight: 600; }
-.compare-heat__tile--worst { border-color: color-mix(in srgb, currentColor 70%, transparent); border-style: dashed; font-weight: 600; }
+.compare-heat__tile--best { border-color: color-mix(in srgb, currentColor 70%, transparent); }
+.compare-heat__tile--worst { border-color: color-mix(in srgb, currentColor 60%, transparent); border-style: dashed; }
 .compare-heat__none { color: var(--color-text-muted); opacity: 0.6; }
 /* Hover: the row is marked on its name and overall score (the tiles keep
    their grade tint), the column on its header and footer, and the hovered
@@ -117,7 +137,7 @@
    colour so it never reads as the "best" outline, which hugs the tile. */
 .compare-heat tr.is-row > th, .compare-heat tr.is-row > .compare-heat__overall { background-color: var(--compare-hover-bg); }
 .compare-heat thead .is-col .compare-sortbtn { color: var(--color-accent); font-weight: 600; }
-.compare-heat tfoot .is-col > span:first-child { font-weight: 700; }
+.compare-heat tfoot .is-col > span:first-child { font-weight: 600; }
 .compare-heat__tile:hover { box-shadow: 0 0 0 2px var(--color-surface), 0 0 0 3px currentColor; }
 .compare-heat tbody tr.is-row th.compare-heat__lead { background: var(--compare-hover-bg); box-shadow: var(--compare-hover-bar); }
 .compare-heat tfoot > tr > * { border-top: 1px solid var(--color-border); background: var(--color-surface-alt); }
@@ -139,16 +159,18 @@
 .compare-dirmap__ref { stroke: var(--color-text-muted); stroke-width: 1.4; stroke-dasharray: 2 4; stroke-linecap: round; }
 .compare-dirmap__refLabel { font-family: var(--term-font-mono); font-size: 10px; fill: var(--color-text-muted); }
 .compare-dirmap__tick, .compare-dirmap__axisLabel { font-size: 10px; fill: var(--color-text-muted); }
-.compare-dirmap__corner { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--color-text-muted); opacity: 0.8; }
+.compare-dirmap__corner { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; fill: var(--color-text-muted); opacity: 0.8; }
 .compare-dirmap__corner--watch { fill: var(--color-text); opacity: 0.75; }
 .compare-dirmap__corner--act { fill: var(--color-danger); opacity: 1; }
 .compare-dirmap__pt { cursor: pointer; }
+.compare-dirmap__pt:focus { outline: none; }
+.compare-dirmap__pt:focus-visible .compare-dirmap__dot { stroke: var(--color-accent); stroke-width: 2.5; }
 .compare-dirmap__pt.is-dim { opacity: 0.25; }
 .compare-dirmap__dot { fill: var(--dot); fill-opacity: 0.9; stroke: var(--color-surface); stroke-width: 1.5; }
 .compare-dirmap__pt.is-still .compare-dirmap__dot { fill: none; stroke: var(--dot); stroke-width: 1.8; }
 .compare-dirmap__legendHollow circle { fill: none; stroke: var(--color-text-muted); stroke-width: 1.5; }
 .compare-dirmap__pt.is-on .compare-dirmap__dot { stroke: var(--color-text); stroke-width: 2; }
-.compare-dirmap__name { font-size: 10.5px; fill: var(--color-text); }
+.compare-dirmap__name { font-size: 11px; fill: var(--color-text); }
 .compare-dirmap__pt.is-on .compare-dirmap__name { font-weight: 600; }
 .compare-dirmap__stale { font-size: 10px; fill: var(--color-danger); }
 .compare-dirmap__legend { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 4px; padding: 10px 0 2px; font-size: 11px; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
@@ -174,7 +196,7 @@
 .compare-attnlist__item.is-on .compare-attnlist__link { text-decoration: underline; }
 .compare-attnlist__score { text-align: right; font-variant-numeric: tabular-nums; }
 .compare-attnlist__tags { grid-column: 2 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-.compare-attnlist__tag { padding: 1px 7px; font-size: 10.5px; color: var(--color-text-muted); white-space: nowrap; border: 1px solid var(--color-border); border-radius: 999px; }
+.compare-attnlist__tag { padding: 1px 7px; font-size: 11px; color: var(--color-text-muted); white-space: nowrap; border: 1px solid var(--color-border); border-radius: 999px; }
 .compare-attnlist__link { margin-left: auto; font-size: 11px; color: var(--color-accent); }
 
 /* ── dimension health ── */
@@ -188,7 +210,7 @@
   min-height: 42px;
   padding: 0 16px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   color: inherit;
   text-align: left;
   background: none;
@@ -201,13 +223,17 @@ button.compare-health__row:hover { background: var(--compare-hover-bg); box-shad
 .compare-health__row--head { min-height: 34px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); cursor: default; }
 .compare-health__num { text-align: right; font-variant-numeric: tabular-nums; }
 .compare-health__label { font-size: 13px; }
-.compare-health__avg { font-size: 15px; font-weight: 500; }
+.compare-health__avg { font-size: 13px; font-weight: 500; }
 .compare-health__warn { color: var(--color-danger); }
 .compare-health__weakest { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); }
 .compare-health__weakest b { font-weight: 500; }
 .compare-health__go { color: var(--color-text-muted); }
-.compare-health__mix { display: flex; gap: 2px; height: 18px; overflow: hidden; border-radius: 4px; }
-.compare-health__seg { display: flex; align-items: center; justify-content: center; min-width: 18px; font-size: 10.5px; font-weight: 600; color: var(--color-surface); background: var(--seg); }
+.compare-health__mix { display: flex; gap: 2px; height: 18px; overflow: hidden; border-radius: var(--term-radius); }
+/* Tinted like the matrix chips: the grade reads from the number's colour and
+   a light wash, so a row of segments is not a wall of solid colour. */
+.compare-health__seg { display: flex; align-items: center; justify-content: center; min-width: 18px; font-size: 11px; font-weight: 500;
+  color: color-mix(in srgb, var(--seg) 82%, var(--color-text)); background: color-mix(in srgb, var(--seg) 16%, transparent);
+  box-shadow: inset 0 -2px 0 var(--seg); }
 .compare-health__legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 10px 16px 12px; font-size: 11px; color: var(--color-text-muted); border-top: 1px solid var(--color-border); }
 .compare-health__legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .compare-health__swatch { width: 10px; height: 10px; border-radius: 2px; background: var(--seg); }
@@ -262,7 +288,7 @@ button.compare-health__row:hover { background: var(--compare-hover-bg); box-shad
   min-height: 42px;
   padding: 0 16px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 12px;
   color: inherit;
   text-align: left;
   background: none;
@@ -275,7 +301,7 @@ button.compare-ph:hover { background: var(--compare-hover-bg); box-shadow: var(-
 .compare-ph--head { min-height: 34px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); cursor: default; }
 .compare-ph__num { text-align: right; font-variant-numeric: tabular-nums; }
 .compare-ph__label { font-size: 13px; }
-.compare-ph__avg { font-size: 15px; font-weight: 500; }
+.compare-ph__avg { font-size: 13px; font-weight: 500; }
 .compare-ph__warn { color: var(--color-danger); }
 .compare-ph__who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-muted); }
 .compare-ph__who b { font-weight: 500; }

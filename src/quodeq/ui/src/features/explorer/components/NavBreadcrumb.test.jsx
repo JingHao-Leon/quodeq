@@ -33,6 +33,22 @@ describe('labelFor — map drill-down entries', () => {
   });
 });
 
+describe('labelFor — scoped Findings views', () => {
+  it('a scoped violations entry reads as its scope', () => {
+    expect(labelFor({ page: 'violations', scope: { kind: 'file', path: 'src/app/models.py' } })).toBe('models.py');
+    expect(labelFor({ page: 'violations', scope: { kind: 'folder', path: 'src/app' } })).toBe('src/app/');
+    expect(labelFor({ page: 'violations', scope: { kind: 'requirement', dimension: 'security', req: 'S-INJ-1', text: 'Escape it' } })).toBe('S-INJ-1');
+    expect(labelFor({ page: 'violations', scope: { kind: 'dimension', dimension: 'Security' } })).toBe('security');
+    expect(labelFor({ page: 'violations', scope: { kind: 'project', filter: 'critical' } })).toBe('project');
+    expect(labelFor({ page: 'violations', scope: { kind: 'area', name: 'checkout', paths: ['src/'] } })).toBe('checkout');
+  });
+
+  it('the list, or a malformed scope, keeps the tab label', () => {
+    expect(labelFor({ page: 'violations', scope: null, wb: { q: 'x' } })).toBe('violations');
+    expect(labelFor({ page: 'violations', scope: { kind: 'file' } })).toBe('violations');
+  });
+});
+
 describe('labelFor — prototype-named pages', () => {
   it('falls back to the entry label instead of an Object.prototype member', () => {
     expect(labelFor({ page: 'constructor' })).toBe('constructor');
@@ -255,5 +271,24 @@ describe('NavBreadcrumb collapse and jump bar', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'violations' }));
     expect(onGoTo).toHaveBeenCalledWith(0);
+  });
+});
+
+describe('NavBreadcrumb — a run page and what it opens read from History', () => {
+  const runPage = { page: 'history-run', runId: 'r2', dateLabel: 'Thu 8 Oct 08:23' };
+
+  it('the run page itself: history, then the run by when it ran', () => {
+    render(<NavBreadcrumb stack={[{ page: 'history' }, runPage]} projectName="repo" />);
+    const crumbs = screen.getAllByRole('listitem').map((li) => li.textContent);
+    expect(crumbs).toEqual(['repo', 'history', 'Thu 8 Oct 08:23']);
+  });
+
+  it('a dimension opened from the run: history, the run behind the ellipsis, the dimension', () => {
+    render(<NavBreadcrumb stack={[{ page: 'history' }, runPage, { page: 'explorer', dimension: 'Security', runId: 'r2' }]} projectName="repo" />);
+    const crumbs = screen.getAllByRole('listitem').map((li) => li.textContent);
+    expect(crumbs[1]).toBe('history');
+    expect(crumbs.at(-1)).toBe('security');
+    expect(crumbs).not.toContain('overview');
+    expect(crumbs).not.toContain('Thu 8 Oct 08:23');
   });
 });

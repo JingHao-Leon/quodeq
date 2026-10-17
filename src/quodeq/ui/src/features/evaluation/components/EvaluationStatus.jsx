@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import LiveViolationsFeed from './LiveViolationsFeed.jsx';
 import ScanProgress from './ScanProgress.jsx';
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import JobStatStrip from './JobStatStrip.jsx';
 import { IdentityStrip, IdentityCell } from './IdentityStrip.jsx';
 import { deriveScanMode } from './buildJobStatCells.js';
@@ -121,12 +121,9 @@ function JobActions({ job, progress, onDismiss, onCancel }) {
 function JobHeader({ job, progress, onDismiss, onCancel }) {
   const name = job.vanished ? t('evaluate.termEnded') : termNameForStatus(job.status, job.exitReason);
   return (
-    <div className="evaluate-panel__top evaluate-panel__top--row">
-      <TermHeader name={name} badge={<><StatusMark job={job} /><ExternalTag job={job} progress={progress} /></>} />
-      <div className="evaluate-panel__top-actions">
-        <JobActions job={job} progress={progress} onDismiss={onDismiss} onCancel={onCancel} />
-      </div>
-    </div>
+    <PageToolbar title={t('evaluate.pageTitle')} subject={name} badge={<><StatusMark job={job} /><ExternalTag job={job} progress={progress} /></>}>
+      <JobActions job={job} progress={progress} onDismiss={onDismiss} onCancel={onCancel} />
+    </PageToolbar>
   );
 }
 
@@ -190,7 +187,7 @@ function countAll(byDim) {
   return Object.values(byDim).reduce((n, vs) => n + vs.length, 0);
 }
 
-export default function EvaluationStatus({ job, jobProjectInfo, startedProjectInfo, liveViolations = {}, onDismiss, onCancel, onGoToProjects }) {
+export default function EvaluationStatus({ job, jobProjectInfo, startedProjectInfo, liveViolations = {}, onDismiss, onCancel, onGoToProjects, onOpenDimension }) {
   const { newOnly } = useLiveFeedSettings();
   // Shares the strip/progress query cache entry: no extra polling.
   const { data: progress } = useEvaluationProgress(job?.jobId, !job || JOB_TERMINAL.has(job.status));
@@ -226,13 +223,13 @@ export default function EvaluationStatus({ job, jobProjectInfo, startedProjectIn
   const projectLabel = labelOf(jobProjectInfo) || labelOf(startedProjectInfo) || null;
 
   return (
-    <div className="panel evaluate-panel--terminal">
+    <div className="evaluate-form evaluate-job">
       <JobHeader job={job} progress={progress} onDismiss={onDismiss} onCancel={onCancel} />
       <JobIdentityStrip job={job} progress={progress} projectLabel={projectLabel} onGoToProjects={onGoToProjects} />
       <ReviewEndLine job={job} progress={progress} />
       <JobStatStrip job={job} liveViolations={fresh} hiddenCarriedCount={hiddenCarriedCount} />
       <ScanProgress job={job} />
-      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} />
+      <LiveViolationsFeed job={job} liveViolations={shown} newCount={countAll(fresh)} hiddenCarriedCount={hiddenCarriedCount} onOpenDimension={onOpenDimension} projectName={projectLabel} />
     </div>
   );
 }

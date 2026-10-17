@@ -11,7 +11,7 @@ A principle's score comes from four stages. Each stage reads one part of the gra
 
 The grade label is the threshold band the final score falls in. A principle with few observations is scored and marked thin: the number is honest, but it rests on little evidence. The dimension score weighs principles by how much of the code they were observed on, so a thin principle moves its dimension very little.
 
-**Settings**, *Grade formula* shows these stages on your own run, with the parameters that move each one: pick a dimension and a principle, and the numbers follow the sliders.
+**Settings**, *Grade formula* shows these stages on your own projects: its chart plots every principle of every project, the knobs move these stages, and as you drag each principle's dot moves while the *What changes* panel shows each project's grade old and new.
 
 > **What moves the score**
 >

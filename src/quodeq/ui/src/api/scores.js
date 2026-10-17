@@ -50,11 +50,16 @@ export function getComplianceDetail(projectId, scope) {
 
 /**
  * One run's rescored dimensions with finding detail deferred (see
- * attachRunFindingDetailRefs).
+ * attachRunFindingDetailRefs). `keepArchived` reads an archived run from its
+ * reports instead of unpacking it: for a comparison, not for opening the run.
+ * @param {string} projectId
+ * @param {string} runId
+ * @param {{keepArchived?: boolean}} [options]
  * @returns {Promise<{dimensions: Array, summary: Object}>}
  */
-export async function getRunScores(projectId, runId) {
-  const data = await request(`${projectPath(projectId)}/scores/${encodeURIComponent(runId)}`);
+export async function getRunScores(projectId, runId, { keepArchived = false } = {}) {
+  const query = keepArchived ? '?archived=keep' : '';
+  const data = await request(`${projectPath(projectId)}/scores/${encodeURIComponent(runId)}${query}`);
   return attachRunFindingDetailRefs(parseSlimDimensions(data), projectId, runId);
 }
 

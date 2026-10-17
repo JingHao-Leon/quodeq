@@ -1,28 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { AdvancedAnalysisSettings, TimeLimitSetting } from './ProviderSettings.jsx';
+import { TimeLimitSetting } from './ProviderSettings.jsx';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
-
-// #6394 / #6395 - the verify on/off pill pair is a
-// mutually-exclusive choice marked only by a CSS class; it needs
-// radiogroup/radio semantics.
-describe('AdvancedAnalysisSettings toggle a11y', () => {
-  const setup = (state = {}) => render(
-    <AdvancedAnalysisSettings state={state} update={vi.fn()} />,
-  );
-
-  it('exposes the verify-findings pair as a labelled radiogroup', () => {
-    setup();
-    expect(screen.getByRole('radiogroup', { name: 'Verify findings' })).toBeInTheDocument();
-  });
-
-  it('marks the Off option checked when verify is explicitly false', () => {
-    setup({ verify: 'false' });
-    expect(screen.getByRole('radio', { name: 'Off' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('radio', { name: 'On' })).toHaveAttribute('aria-checked', 'false');
-  });
-});
 
 // The minutes input is named by the row's visible time-limit label.
 describe('TimeLimitSetting a11y', () => {

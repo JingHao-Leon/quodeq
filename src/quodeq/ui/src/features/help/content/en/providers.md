@@ -1,10 +1,12 @@
 ## AI Providers
 
-quodeq needs an AI model to read your code. There are three ways to supply one, and you can switch any time in **Settings**:
+quodeq needs an AI model to read your code. There are three ways to supply one:
 
 - **An AI CLI you already use.** Claude Code, Codex, Gemini CLI or GitHub Copilot. Its sign-in and billing apply; quodeq drives it.
 - **A cloud API with your key.** OpenRouter, or any OpenAI-compatible endpoint.
 - **A local model.** Ollama, llama.cpp, or omlx on Apple Silicon. Code never leaves your machine.
+
+You choose the provider and model when you add a project (*Who reviews it*), from the model cell on **Evaluate**, or in **Settings**, and you can switch any time. All three places read and save the same choice.
 
 ### Which one
 
@@ -23,8 +25,8 @@ quodeq needs an AI model to read your code. There are three ways to supply one, 
 Delegates to an AI CLI you already have authenticated on your machine.
 
 1. Install and sign in to the CLI of your choice.
-2. In **Settings**, *CLI Provider*, pick the binary and a model id the CLI accepts, such as `sonnet` for Claude Code or `gpt-6-sol` for Codex.
-3. Optionally pin a different model per power tier (Fast, Balanced, Thorough).
+2. In **Settings**, *Model*, pick the CLI under **AI Provider**, then the model. Claude Code, Codex and GitHub Copilot list the models your account can use; ↻ reloads the list. For Gemini CLI, run `gemini`, type `/model` to see yours, and copy the id into the field.
+3. Optionally, for Claude Code or Codex, set the **Effort** under the model. It offers the levels the chosen model takes. Higher effort finds more but runs slower and uses more of your plan.
 
 #### GitHub Copilot
 
@@ -63,7 +65,7 @@ On Apple Silicon Macs an extra local option appears: **Omlx**, an MLX-native ser
 
 1. Start the server with `omlx serve` or the omlx menu bar app.
 2. In **Settings**, *Omlx*, pick a model. The list comes from your local server; add models through the omlx admin UI at `http://localhost:8000/admin`.
-3. Under *Advanced* you can set a custom server address, an API key, and run the parallel-agent auto-detect, which recommends a sub-agent count based on your unified memory.
+3. You can set a custom server address, an API key, and run the parallel-agent auto-detect beside **Max parallel agents**, which recommends a sub-agent count based on your unified memory.
 
 ### llama.cpp (local, GGUF models)
 
@@ -71,17 +73,7 @@ Points quodeq at a llama-server instance you run yourself. It serves one GGUF mo
 
 1. Start the server with `llama-server -m model.gguf --port 8080`.
 2. In **Settings**, *llama.cpp*, the loaded model appears automatically. To switch models, restart llama-server with a different GGUF.
-3. Under *Advanced*, run the parallel-agent auto-detect, which tests the server and recommends a sub-agent count.
-
-### Power tiers
-
-Each provider exposes three power levels that map to model size:
-
-| Key | Value |
-| --- | --- |
-| Fast | Smallest tier. Good for routine runs and tight budgets. |
-| Balanced | Default. Best quality-per-cost for most evaluations. |
-| Thorough | Largest tier. Use for first scans, audits, or sensitive areas. |
+3. Beside **Max parallel agents**, run the auto-detect, which tests the server and recommends a sub-agent count.
 
 ### Without the dashboard
 

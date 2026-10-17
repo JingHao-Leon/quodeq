@@ -6,7 +6,11 @@ source path is resolved here, lazily per call, and passed in.
 from __future__ import annotations
 
 from pathlib import Path
+
+from quodeq.shared.env import get_quodeq_dir
 from quodeq.shared.env_resolve import resolve_env
+
+_MCP_LOG_FILENAME = "assistant-mcp.log"
 
 
 def assistant_context_path(env: dict[str, str] | None = None) -> Path:
@@ -25,3 +29,13 @@ def read_assistant_context(env: dict[str, str] | None = None) -> str:
     same ``QUODEQ_ASSISTANT_CONTEXT_PATH`` override as :func:`assistant_context_path`.
     """
     return assistant_context_path(env).read_text(encoding="utf-8")
+
+
+def assistant_mcp_log_path(env: dict[str, str] | None = None) -> Path:
+    """Where the assistant's MCP server writes its warnings and tool tracebacks.
+
+    The server's stderr belongs to the CLI that spawned it and is never shown,
+    so a tool crash would otherwise leave no trace. Under the state dir
+    (QUODEQ_DIR or ``~/.quodeq``), next to the assistant database.
+    """
+    return get_quodeq_dir(resolve_env(env)) / _MCP_LOG_FILENAME

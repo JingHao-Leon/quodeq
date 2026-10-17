@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Callable, Mapping
 
 from quodeq.analysis.run_types import RunConfig
-from quodeq.analysis.cache._key_provenance import content_hash_for
+from quodeq.analysis.cache._key_provenance import content_hash_for, model_id_from
 from quodeq.analysis.cache.backend import CacheBackend
 from quodeq.analysis.cache.dimension_helpers import hash_prompts_combined
 from quodeq.analysis.cache.entry import CacheEntry, build_provenance, quodeq_version
@@ -93,6 +93,9 @@ class CacheWriterSpec:
     content_stamps: Mapping[str, tuple[int, int]] = field(default_factory=dict)
     # None builds the on-disk LocalFileBackend at *cache_root*.
     backend_factory: Callable[[Path], CacheBackend] | None = None
+    # The project's machine settings file whose threshold overrides fold
+    # into params_hash / standards_hash; None means no overrides.
+    standards_settings: Path | None = None
 
     @classmethod
     def from_run_config(
@@ -107,36 +110,35 @@ class CacheWriterSpec:
         scope (see ``_api_runner._build_cache_writer``); left ``None``,
         entries hash their file directly, as before.
         """
-        model_id = (
-            run_config.options.subagent_model
-            or run_config.options.ai_model
-            or "unknown"
-        )
+        model_id = model_id_from(run_config)
         return cls(
             cache_root=cache_root, src_root=run_config.src,
             standards_dir=run_config.standards_dir, prompts_dir=run_config.prompts_dir,
             dimension=dim_id, model_id=model_id, language=run_config.language or "",
             content_hashes=content_hashes or {},
             content_stamps=content_stamps or {},
+            standards_settings=run_config.standards_settings,
         )
 
 
 def _resolve_writer_provenance(
-    dimension: str, src_root: Path, standards_dir: Path | None, prompts_dir: Path | None,
+    dimension: str, standards_settings: Path | None, standards_dir: Path | None,
+    prompts_dir: Path | None,
 ) -> WriterProvenance:
     """Resolve cache-writer provenance context, computed once per closure.
 
-    ``src_root`` doubles as the project root whose threshold overrides fold
-    into the standards hash — must match classify's ``current_provenance``.
+    ``standards_settings`` is the project's settings file whose threshold
+    overrides fold into the standards and params hashes. It must be the
+    file classify's ``current_provenance`` and cache key read.
     """
     standards_hash = (
-        (hash_standards(standards_dir, dimension, src_root) if standards_dir else "")
+        (hash_standards(standards_dir, dimension, standards_settings) if standards_dir else "")
         or ""
     )
     prompts_hash = hash_prompts_combined(prompts_dir)
     version = quodeq_version()
     params_hash, effective_params = dimension_params_state(
-        standards_dir, dimension, src_root,
+        standards_dir, dimension, standards_settings,
     )
     return WriterProvenance(
         standards_hash=standards_hash, prompts_hash=prompts_hash, version=version,
@@ -230,7 +232,7 @@ def build_cache_writer(spec: CacheWriterSpec) -> Callable[[str, list[dict]], Non
     """
     cache = (spec.backend_factory or _local_backend)(spec.cache_root)
     provenance = _resolve_writer_provenance(
-        spec.dimension, spec.src_root, spec.standards_dir, spec.prompts_dir,
+        spec.dimension, spec.standards_settings, spec.standards_dir, spec.prompts_dir,
     )
     target = CacheWriteTarget(
         cache=cache, src_root=spec.src_root, dimension=spec.dimension,

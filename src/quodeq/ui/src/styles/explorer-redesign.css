@@ -3,45 +3,14 @@
 /* Asymmetric 2-col top */
 .qd-top-grid {
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
+  grid-template-columns: 1.4fr 1fr;
   gap: var(--space-3, 12px);
   margin-top: var(--space-4, 16px);
   align-items: stretch;
 }
-.qd-top-left { display: flex; flex-direction: column; gap: var(--space-3, 12px); }
-/* Let the score-history panel consume the remaining height in the left column
-   so its bars fill the gap when the radial on the right is taller. */
-.qd-top-left > .run-history-panel--terminal {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-.qd-top-left > .run-history-panel--terminal > svg,
-.qd-top-left > .run-history-panel--terminal > .qd-history-empty {
-  flex: 1;
-  min-height: 0;
-}
 .qd-top-right { display: flex; }
 .qd-top-right > .panel { flex: 1; display: flex; flex-direction: column; }
 .qd-top-right > .panel .qd-radial { flex: 1; align-items: center; }
-
-/* 2x2 stats — each cell is a bordered card to match the overview's cards strip,
-   sized down to fit four panels in the dimension-detail's left column. */
-.qd-stats-2x2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3, 12px);
-}
-.qd-stats-2x2 .term-stat {
-  border: var(--term-border);
-  border-radius: var(--term-radius);
-  padding: var(--term-space-3) var(--term-space-3) 18px;
-  background: var(--color-surface);
-  display: flex;
-  flex-direction: column;
-  gap: var(--term-space-1);
-}
 
 /* Cards-panel rhythm: sit below the top grid with the same gap as the grid. */
 .qd-cards-panel {
@@ -59,16 +28,16 @@
 
 /* Radial container */
 .qd-radial { display: flex; justify-content: center; align-items: center; padding: 6px 0 4px; }
-.qd-radial__svg { display: block; max-width: 640px; width: 100%; overflow: visible; }
+.qd-radial__svg { display: block; max-width: 440px; width: 100%; overflow: visible; }
 .qd-radial__ring { stroke: var(--color-text-muted); stroke-width: 0.8; opacity: 0.55; }
 .qd-radial__axis { stroke: var(--color-text-muted); stroke-width: 0.9; stroke-dasharray: 2 3; opacity: 0.75; }
 .qd-radial__poly { stroke: var(--color-accent); stroke-width: 1.4; stroke-linejoin: round; }
 .qd-radial__vert { fill: var(--color-accent); }
 .qd-radial__vert--insuf { stroke: var(--color-text-subtle); stroke-width: 1; stroke-dasharray: 1.5 1.5; }
-.qd-radial__lab { font: 500 13px ui-monospace, monospace; fill: var(--color-text); letter-spacing: 0.04em; }
-.qd-radial__lab-sub { font: 600 14px ui-monospace, monospace; fill: var(--color-text); letter-spacing: 0.02em; }
+.qd-radial__lab { font: 500 18px ui-monospace, monospace; fill: var(--color-text); letter-spacing: 0.04em; }
+.qd-radial__lab-sub { font: 600 19px ui-monospace, monospace; fill: var(--color-text); letter-spacing: 0.02em; }
 .qd-radial__lab--insuf { fill: var(--color-text-subtle); }
-.qd-radial__lab-sub--insuf { fill: var(--color-text-subtle); font: 500 11px ui-monospace, monospace; letter-spacing: 0.04em; }
+.qd-radial__lab-sub--insuf { fill: var(--color-text-subtle); font: 500 15px ui-monospace, monospace; letter-spacing: 0.04em; }
 .qd-radial__label-group { cursor: pointer; }
 .qd-radial__label-group--insuf { cursor: default; }
 .qd-radial__label-group:hover .qd-radial__lab { fill: var(--color-accent); }
@@ -91,3 +60,57 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.explorer-principles { margin-top: var(--space-4, 16px); }
+@media (min-width: 1200px) {
+  .explorer-principles .qd-cards-row { grid-template-columns: repeat(var(--qd-cards-cols), minmax(0, 1fr)); }
+}
+
+/* a principle lit from its card or its radial point */
+.dim-gauge-card--hl { border-color: var(--color-accent); }
+.qd-radial__vert.is-hl { stroke: var(--color-surface); stroke-width: 2; }
+.qd-radial__label-group.is-hl .qd-radial__lab { fill: var(--color-accent); }
+.qd-radial__spoke-hl { stroke: var(--color-accent); stroke-width: 1.6; opacity: .85; pointer-events: none; }
+/* narrow screens: one principle card per row, so names stay whole */
+@media (max-width: 600px) {
+  .explorer-principles .qd-cards-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* the dimension page's bottom: what to fix (wider) beside where it is */
+.explorer-bottom { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: var(--space-3, 12px); align-items: start; margin-top: var(--space-3, 12px); }
+.explorer-bottom > .qd-cards-panel, .explorer-where > .qd-cards-panel { margin-top: 0; }
+.explorer-where { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+/* The right column matches Fix first's height while Fix first shows its top
+   rows: the panel fills it and its foot sits at the bottom. Once Fix first
+   opens its whole list, the right column keeps its own height instead of
+   stretching into an empty box. */
+.explorer-bottom { align-items: stretch; }
+.explorer-bottom:has(.fix-first-panel--open) { align-items: start; }
+.explorer-where > .qd-cards-panel { flex: 1 1 auto; display: flex; flex-direction: column; }
+.explorer-where__switch { align-self: flex-start; }
+@media (max-width: 1100px) {
+  .explorer-bottom { grid-template-columns: minmax(0, 1fr); }
+}
+/* medium screens: cards keep a readable width and flow onto more rows */
+@media (max-width: 1250px) {
+  .explorer-principles .qd-cards-row { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+}
+
+/* The since line, a slim row above the header panel (Overview, run page, dimension page, principle page):
+   new and fixed findings since the previous period. It takes the page's first row (a button tall, as the
+   tool pages' toolbar), and the panel follows it at the toolbar's distance. */
+.overview-since { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; min-height: 28px; margin: var(--page-top-gap) 0 var(--page-head-gap); font-size: 12px; }
+.overview-since + .findings-head.qd-cards-panel { margin-top: 0; }
+.overview-since__label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+.overview-since__num { font-family: var(--font-mono); color: var(--color-text); }
+.overview-since__num--new { color: var(--color-sev-major-text); }
+.overview-since__num--fixed { color: var(--color-grade-top-text); }
+.overview-since__num--quiet { color: var(--color-text-muted); }
+/* Nothing to compare: one tip on the row's single line, cut with an ellipsis, faded in after a beat. */
+.overview-since--tip { flex-wrap: nowrap; overflow: hidden; }
+.overview-since__tip { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--color-text-muted); animation: overview-since-tip-in 240ms ease 600ms both; }
+.overview-since__tip strong { color: var(--color-text); font-weight: 600; }
+@keyframes overview-since-tip-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .overview-since__tip { animation: none; } }
+.overview-top-grid { margin-top: var(--space-3, 12px); }
+.explorer-where__note { margin: 0; font-size: 11px; color: var(--color-text-muted); }

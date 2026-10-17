@@ -11,6 +11,7 @@ facade.
 from __future__ import annotations
 
 import json
+import logging
 import threading
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -35,11 +36,15 @@ from quodeq.assistant.frame_type import FrameType
 from quodeq.assistant.orchestrator import TurnRequest
 from quodeq.assistant.tools import ToolContext
 from quodeq.core.types.project_source import ProjectSource, session_source
+from quodeq.shared.fault_isolation import run_isolated
 
 
 # Per-turn toggles. A string such as "false" is rejected, since bool("false")
 # is True; an explicit null means the default (off).
 _TURN_BOOL_FIELDS = ("webEnabled", "writeEnabled")
+
+_logger = logging.getLogger(__name__)
+_TURN_FAILED_MESSAGE = "The assistant hit an unexpected error. Check the server logs for details."
 
 
 @dataclass(frozen=True)
@@ -53,19 +58,45 @@ class TurnGates:
     build_tool_context: Callable[[Flask, dict], ToolContext]
 
 
+def _emit_turn_failure(repo, session_id: str) -> None:
+    """Best-effort terminal ``error`` frame, so the open SSE stream is not left
+    waiting for a turn that died. The append itself may fail (the session's
+    store is what the turn tripped over); then only the log has it."""
+    run_isolated(
+        lambda: repo.append_event(session_id, {"type": FrameType.ERROR, "message": _TURN_FAILED_MESSAGE}),
+        label=f"error frame for session {session_id}", log=_logger,
+    )
+
+
 def _start_turn_worker(state: AssistantTurnState, turn: TurnRequest,
                        repo, tool_ctx, cancel: CancelToken,
                        run_turn: Callable[..., None]) -> None:
     """Run the turn on a daemon thread, freeing the session's turn slot when it
     ends however it ends. Takes *state* directly: the worker thread has no app
-    context, so it cannot resolve current_app."""
+    context, so it cannot resolve current_app.
+
+    ``run_turn`` isolates its own body, but the thread is the last boundary:
+    whatever escapes it (its error path, a patched ``run_turn``) is logged
+    with its traceback and answered with an ``error`` frame, instead of
+    dying on the default excepthook and leaving the stream without a
+    terminal frame."""
     def _worker():
         try:
-            run_turn(turn, repository=repo, tool_ctx=tool_ctx, cancel=cancel)
+            _run_turn_isolated(turn, repo, tool_ctx, cancel, run_turn)
         finally:
             state.release_turn(turn.session_id)
 
     threading.Thread(target=_worker, daemon=True).start()
+
+
+def _run_turn_isolated(turn: TurnRequest, repo, tool_ctx, cancel: CancelToken,
+                       run_turn: Callable[..., None]) -> None:
+    """The worker thread's fault boundary around ``run_turn``."""
+    run_isolated(
+        lambda: run_turn(turn, repository=repo, tool_ctx=tool_ctx, cancel=cancel),
+        label=f"assistant turn worker for session {turn.session_id}", log=_logger,
+        on_error=lambda _exc: _emit_turn_failure(repo, turn.session_id),
+    )
 
 
 def _sse_release_guard(state: AssistantTurnState):

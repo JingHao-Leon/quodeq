@@ -1,77 +1,125 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { fakeCanvasContext } from '../../../../test-utils/fakeCanvasContext.js';
+import { packTree, stubPackCanvas } from '../../../../test-utils/packFixture.js';
 import ZoomablePackView from './ZoomablePackView.jsx';
-import { PACK_WORKER_NODE_THRESHOLD } from '../core/packLayout.js';
+import { t } from '../../../../strings/index.js';
 
-// Above the threshold the pack paints on one canvas instead of one SVG node
-// per circle. Hover and click hit-test the cursor; keyboard users get a
-// button per visible child that reaches the same click handler.
-
-function file(i) {
-  return { path: `src/f${i}.py`, name: `f${i}.py`, isFile: true, violations: 1, compliance: 0, severity: {} };
-}
-
-function bigTree(files = PACK_WORKER_NODE_THRESHOLD) {
-  const children = Array.from({ length: files }, (_, i) => file(i));
-  const folder = { path: 'src', name: 'src', isFile: false, violations: files, compliance: 0, severity: {}, children };
-  return { path: '', name: '/', isFile: false, violations: files, compliance: 0, severity: {}, children: [folder] };
-}
-
-const ctx = fakeCanvasContext();
-
-beforeEach(() => {
-  vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx);
-  ctx.arc.mockClear();
+// The pack paints on two stacked canvases; the pointer goes to the top one.
+// hitCircle is stubbed to "the circle at `hitPath`" so each test names what
+// the cursor is over instead of computing pixel positions.
+let hitPath = null;
+vi.mock('../core/packCanvasGeometry.js', async (importOriginal) => {
+  const real = await importOriginal();
+  return {
+    ...real,
+    hitCircle: (circles) => {
+      const i = circles.findIndex((c) => c.depth > 0 && c.data.path === hitPath);
+      return i < 0 ? null : i;
+    },
+  };
 });
+
+let ctx;
+beforeEach(() => { ctx = stubPackCanvas(); hitPath = null; });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-describe('ZoomablePackView above the canvas threshold', () => {
-  it('renders one canvas and no SVG circles', () => {
-    const { container } = render(<ZoomablePackView node={bigTree()} viewMode="health" />);
-    expect(container.querySelector('canvas')).toBeInTheDocument();
+function renderAt(currentPath, props = {}) {
+  const handlers = { onDrillDown: vi.fn(), onFileClick: vi.fn() };
+  const view = render(<ZoomablePackView node={packTree()} currentPath={currentPath} {...handlers} {...props} />);
+  const overlay = view.container.querySelector('canvas[tabindex="0"]');
+  const clickOn = (path) => { hitPath = path; fireEvent.click(overlay); };
+  return { ...view, ...handlers, overlay, clickOn };
+}
+
+describe('PackCanvas layers', () => {
+  it('stacks a hidden static canvas under a named, focusable overlay', () => {
+    const { container, overlay } = renderAt('');
+    const canvases = container.querySelectorAll('canvas');
+    expect(canvases.length).toBe(2);
+    expect(canvases[0]).toHaveAttribute('aria-hidden', 'true');
+    expect(overlay).toBe(canvases[1]);
+    expect(overlay).toHaveAttribute('aria-label');
     expect(container.querySelector('svg')).toBeNull();
-    expect(container.querySelectorAll('circle').length).toBe(0);
+  });
+
+  it('paints the circles on the static layer', () => {
+    renderAt('');
     expect(ctx.arc).toHaveBeenCalled();
   });
+});
 
-  it('stays on SVG below the threshold', () => {
-    const { container } = render(<ZoomablePackView node={bigTree(3)} viewMode="health" />);
-    expect(container.querySelector('svg')).toBeInTheDocument();
-    expect(container.querySelector('canvas')).toBeNull();
+describe('PackCanvas selection goes straight to the circle under the pointer', () => {
+  it('a click on a file two levels down opens its folder, not the file', () => {
+    const { clickOn, onDrillDown, onFileClick } = renderAt('');
+    clickOn('src/ui/b.js');
+    expect(onDrillDown).toHaveBeenCalledWith('src/ui');
+    expect(onFileClick).not.toHaveBeenCalled();
   });
 
-  it('offers a keyboard button per child of the focused folder that drills in', () => {
-    const onDrillDown = vi.fn();
-    render(<ZoomablePackView node={bigTree()} viewMode="health" onDrillDown={onDrillDown} />);
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBe(1);
-    fireEvent.keyDown(buttons[0], { key: 'Enter' });
-    expect(onDrillDown).toHaveBeenCalledWith('src');
+  it('a click on a folder two levels down drills straight into it', () => {
+    const { clickOn, onDrillDown } = renderAt('');
+    clickOn('src/ui');
+    expect(onDrillDown).toHaveBeenCalledWith('src/ui');
   });
 
-  it('opens a file from the keyboard once drilled into its folder', () => {
-    const onFileClick = vi.fn();
-    render(<ZoomablePackView node={bigTree()} viewMode="health" currentPath="src" onFileClick={onFileClick} />);
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThan(1);
-    fireEvent.click(buttons[0]);
-    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ isFile: true }));
+  it('a click on a file inside its own folder selects it; View details opens it', () => {
+    const { clickOn, onFileClick, container } = renderAt('src/ui');
+    clickOn('src/ui/b.js');
+    expect(onFileClick).not.toHaveBeenCalled();
+    expect(container).toHaveTextContent('b.js');
+    fireEvent.click(screen.getByRole('button', { name: t('map.viewDetails') }));
+    expect(onFileClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'src/ui/b.js' }));
   });
 
-  it('Escape on the canvas zooms out to the root path', () => {
-    const onDrillDown = vi.fn();
-    const { container } = render(<ZoomablePackView node={bigTree()} viewMode="health" currentPath="src" onDrillDown={onDrillDown} />);
-    fireEvent.keyDown(container.querySelector('canvas'), { key: 'Escape' });
-    expect(onDrillDown).toHaveBeenCalledWith('');
+  it('a click in the open folder\'s empty space does nothing', () => {
+    const { clickOn, onDrillDown, onFileClick } = renderAt('src');
+    clickOn('src');
+    expect(onDrillDown).not.toHaveBeenCalled();
+    expect(onFileClick).not.toHaveBeenCalled();
   });
 
-  it('names the canvas and makes it focusable', () => {
-    const { container } = render(<ZoomablePackView node={bigTree()} viewMode="health" />);
-    const canvas = container.querySelector('canvas');
-    expect(canvas).toHaveAttribute('aria-label');
-    expect(canvas).toHaveAttribute('tabindex', '0');
+  it('a click on a file outside the open folder goes straight to its folder', () => {
+    const { clickOn, onDrillDown, onFileClick } = renderAt('src');
+    clickOn('docs/c.md');
+    expect(onDrillDown).toHaveBeenCalledWith('docs');
+    expect(onFileClick).not.toHaveBeenCalled();
+  });
+
+  it('a click outside every circle goes to the top; Escape goes up one level', () => {
+    const { clickOn, onDrillDown, overlay } = renderAt('src/ui');
+    fireEvent.keyDown(overlay, { key: 'Escape' });
+    expect(onDrillDown).toHaveBeenLastCalledWith('src');
+    clickOn(null);
+    expect(onDrillDown).toHaveBeenLastCalledWith('');
+  });
+});
+
+describe('PackCanvas hover', () => {
+  it('hovering a deep file shows its folder, in the card docked in the corner', () => {
+    const { container, overlay } = renderAt('');
+    hitPath = 'src/ui/b.js';
+    fireEvent.mouseMove(overlay);
+    expect(overlay.style.cursor).toBe('pointer');
+    expect(container.querySelector('.map-tooltip--docked .map-tooltip-title')).toHaveTextContent(/^ui$/);
+    expect(container.querySelector('.map-tooltip-path')).toHaveTextContent(/^src\/ui$/);
+  });
+
+  it('a drill clears the hover until the pointer moves again', () => {
+    const { container, overlay, clickOn } = renderAt('');
+    hitPath = 'src';
+    fireEvent.mouseMove(overlay);
+    expect(container.querySelector('.map-tooltip')).not.toBeNull();
+    clickOn('src');
+    expect(container.querySelector('.map-tooltip')).toBeNull();
+    expect(overlay.style.cursor).toBe('default');
+  });
+
+  it('hovering the open folder itself selects nothing', () => {
+    const { container, overlay } = renderAt('src');
+    hitPath = 'src';
+    fireEvent.mouseMove(overlay);
+    expect(overlay.style.cursor).toBe('default');
+    expect(container.querySelector('.map-tooltip')).toBeNull();
   });
 });

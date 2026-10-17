@@ -40,6 +40,11 @@ def scan_json_exists(project_dir: Path) -> bool:
     return (project_dir / SCAN_FILENAME).exists()
 
 
+def project_dir_exists(project_dir: Path) -> bool:
+    """True when *project_dir* is an existing directory (a project with stored runs)."""
+    return project_dir.is_dir()
+
+
 def read_repository_info(project_dir: Path) -> dict | None:
     """Parsed ``repository_info.json``, or None when absent, corrupt, or
     not a JSON object."""

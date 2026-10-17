@@ -76,3 +76,27 @@ def test_project_no_new_events_returns_zero(tmp_path: Path) -> None:
 def test_project_raises_when_events_file_missing(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         Projector().project(tmp_path / "nonexistent.jsonl", tmp_path)
+
+
+def test_ensure_projected_serves_a_read_only_store_without_writing(tmp_path: Path, monkeypatch) -> None:
+    """The assistant's MCP server inside the Codex sandbox may only read the
+    run directory: the projection step must neither migrate nor project."""
+    import os
+    import sys
+    if sys.platform == "win32" or (hasattr(os, "geteuid") and os.geteuid() == 0):
+        pytest.skip("needs POSIX permissions that bind the current user")
+    log = tmp_path / "events.jsonl"
+    _write_events(log, 2)
+    projector = Projector()
+    projector.project(log, tmp_path)
+    tmp_path.chmod(0o555)
+    try:
+        def boom(*_a, **_k):
+            raise AssertionError("staleness must not be checked on a read-only store")
+        monkeypatch.setattr(projector, "_detect_staleness", boom)
+        result = projector.ensure_projected(log, tmp_path, project_dir=tmp_path.parent)
+        assert result == ProjectionResult(events_projected=0, rebuilt=False)
+        with open_evaluation_db(tmp_path) as conn:
+            assert conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0] == 2
+    finally:
+        tmp_path.chmod(0o755)

@@ -94,28 +94,27 @@ class TestRouteDelegation:
 
 class TestProjectOverridesWriter:
     def test_save_then_load_round_trip(self, tmp_path):
-        from quodeq.data.fs.standards_prefs import (
-            load_project_overrides, save_project_overrides,
-        )
+        from quodeq.data.fs.standards_prefs import load_project_standards, save_overrides
 
-        save_project_overrides(tmp_path, {"S-1": {"floorMajor": 5.0}})
+        env = {"QUODEQ_DIR": str(tmp_path)}
+        save_overrides(None, "p1", {"S-1": {"floorMajor": 5.0}}, env=env)
 
-        assert load_project_overrides(tmp_path) == {"S-1": {"floorMajor": 5.0}}
+        assert dict(load_project_standards(None, "p1", env=env).overrides) == {
+            "S-1": {"floorMajor": 5.0}}
 
-    def test_clear_removes_the_file(self, tmp_path):
-        from quodeq.data.fs.standards_prefs import (
-            clear_project_overrides, load_project_overrides, save_project_overrides,
-        )
+    def test_clear_with_empty_dict(self, tmp_path):
+        from quodeq.data.fs.standards_prefs import load_project_standards, save_overrides
 
-        save_project_overrides(tmp_path, {"S-1": {"floorMajor": 5.0}})
-        clear_project_overrides(tmp_path)
+        env = {"QUODEQ_DIR": str(tmp_path)}
+        save_overrides(None, "p1", {"S-1": {"floorMajor": 5.0}}, env=env)
+        save_overrides(None, "p1", {}, env=env)
 
-        assert load_project_overrides(tmp_path) == {}
+        assert dict(load_project_standards(None, "p1", env=env).overrides) == {}
 
-    def test_clear_is_idempotent(self, tmp_path):
-        from quodeq.data.fs.standards_prefs import clear_project_overrides
+    def test_clear_on_a_fresh_project_does_not_raise(self, tmp_path):
+        from quodeq.data.fs.standards_prefs import save_overrides
 
-        clear_project_overrides(tmp_path)  # must not raise
+        save_overrides(None, "p1", {}, env={"QUODEQ_DIR": str(tmp_path)})
 
 
 def test_overrides_route_does_no_filesystem_writes():

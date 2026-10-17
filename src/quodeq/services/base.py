@@ -27,6 +27,7 @@ class EvaluationOptions:
     ai_cmd_path: str | None = None
     ai_model: str | None = None
     subagent_model: str | None = None
+    ai_effort: str | None = None
     verify_findings: bool = True
     max_subagents: int = DEFAULT_MAX_SUBAGENTS
     time_limit: int = DEFAULT_TIME_LIMIT
@@ -34,7 +35,8 @@ class EvaluationOptions:
     branch: str | None = None
     scope_path: str | None = None
     context_size: int = 0
-    provider_api_key: str = ""
+    # repr=False: logging or a traceback that prints the options must not print the key.
+    provider_api_key: str = field(default="", repr=False)
     provider_api_base: str = ""
 
 
@@ -205,6 +207,10 @@ class EvaluationActions(Protocol):
         ...
     # jscpd:ignore-end
 
+    def list_project_evaluations(self, project: str, reports_dir: str | None = None) -> list[JobSnapshot]:
+        """One project's runs, newest first, reading only that project's run dirs."""
+        ...
+
     def delete_evaluation(self, job_id: str, reports_dir: str | None = None) -> bool:
         """Delete a finished evaluation's on-disk artifacts and index row.
         Refuses to delete a running job (returns False). Returns True on success."""
@@ -229,8 +235,8 @@ class ToolingActions(Protocol):
         """Return available AI CLI clients."""
         ...
 
-    def get_client_models(self, client_id: str) -> dict:
-        """Return available models for an AI client."""
+    def get_client_models(self, client_id: str, *, refresh: bool = False) -> dict:
+        """Return available models for an AI client; *refresh* skips any cached list."""
         ...
 
 

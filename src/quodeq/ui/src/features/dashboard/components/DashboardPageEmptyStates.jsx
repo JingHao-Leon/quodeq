@@ -1,9 +1,11 @@
 import IncompleteSetupCard from './IncompleteSetupCard.jsx';
+import NeverEvaluatedPanel from './NeverEvaluatedPanel.jsx';
 import LoadingScreen from '../../../components/LoadingScreen.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import { NoEvalsEmptyState } from '../../../components/ProjectEmptyStates.jsx';
 import { t } from '../../../strings/index.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
+import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 
 // These render only the *contents* of DashboardPage's `.dashboard-page` div
 // for each early-return branch -- never the `<>{null}<div className=...>`
@@ -54,9 +56,11 @@ export function NoProjectSelectedContent({ onNavigate }) {
 // Shared by both call sites that show the inline loader while a retry is in
 // flight: the failed-fetch branch (error set, isFetching true) and the
 // runMode empty-response branch (no error, isFetching true). Same markup.
-export function LoadingProjectContent({ projectName }) {
+// `message` replaces the project line when the wait is for something more
+// specific (an archived run being restored).
+export function LoadingProjectContent({ projectName, message }) {
   return (
-    <LoadingScreen variant="inline" message={projectName ? t('overview.loadingProjectMsg', { name: projectName }) : undefined} />
+    <LoadingScreen variant="inline" message={message ?? (projectName ? t('overview.loadingProjectMsg', { name: projectName }) : undefined)} />
   );
 }
 
@@ -65,12 +69,16 @@ export function LoadingProjectContent({ projectName }) {
 // visually blank .dashboard-page with no dim and no loader), plus the
 // post-eval selectedRun flip while the sticky latch is active (loading
 // true, dashboard still null): stay here, dimmed, until the payload lands
-// rather than swapping to the full inline loader and back.
-export function NoRunsEmptyContent({ projectInfo, onComplete, projectName, onNavigate }) {
+// rather than swapping to the full inline loader and back. A local project
+// gets the same never-evaluated steps DashboardContent shows, so the page
+// reads one way whichever payload settles first.
+export function NoRunsEmptyContent({ projectInfo, onComplete, projectName, onNavigate, selectedSource }) {
   return (
     <>
       <IncompleteSetupCard projectInfo={projectInfo} onComplete={onComplete} />
-      <NoEvalsEmptyState projectName={projectName} onNavigate={onNavigate} />
+      {selectedSource === PROJECT_SOURCE.SHARED
+        ? <NoEvalsEmptyState projectName={projectName} onNavigate={onNavigate} />
+        : <NeverEvaluatedPanel projectName={projectName} projectInfo={projectInfo} onNavigate={onNavigate} />}
     </>
   );
 }

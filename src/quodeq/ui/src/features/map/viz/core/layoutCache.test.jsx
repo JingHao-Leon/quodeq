@@ -10,7 +10,6 @@ import { buildFileTree } from './fileTree.js';
 import { requestPackLayout } from './packWorkerClient.js';
 import { cachedFileTree, resolvePackLayout } from './layoutCache.js';
 import { buildPackRoot, packInPlace, slimTree, packSlim, PACK_WORKER_NODE_THRESHOLD } from './packLayout.js';
-import { MAP_VIEW_MODE } from '../../mapVocab.js';
 
 const dimA = { dimension: 'a', violations: [{ file: 'x/a.py' }], compliance: [] };
 const dimB = { dimension: 'b', violations: [{ file: 'y/b.py' }], compliance: [] };
@@ -44,27 +43,26 @@ describe('cachedFileTree', () => {
 });
 
 describe('resolvePackLayout', () => {
-  it('lays out small trees on the render thread and caches per node and mode', () => {
+  it('lays out small trees on the render thread and caches per node', () => {
     const node = wideTree(3);
-    const a = resolvePackLayout(node, MAP_VIEW_MODE.HEALTH);
+    const a = resolvePackLayout(node);
     expect(a.pending).toBe(false);
     expect(a.circles.length).toBe(4);
-    expect(resolvePackLayout(node, MAP_VIEW_MODE.HEALTH)).toBe(a);
-    expect(resolvePackLayout(node, MAP_VIEW_MODE.VIOLATIONS)).not.toBe(a);
+    expect(resolvePackLayout(node)).toBe(a);
     expect(requestPackLayout).not.toHaveBeenCalled();
   });
 
   it('hands large trees to the worker and settles with the same circles as the render thread', async () => {
     const node = wideTree(PACK_WORKER_NODE_THRESHOLD);
     requestPackLayout.mockImplementation((slim) => Promise.resolve(packSlim(slim)));
-    const first = resolvePackLayout(node, MAP_VIEW_MODE.HEALTH);
+    const first = resolvePackLayout(node);
     expect(first.pending).toBe(true);
     expect(first.circles).toEqual([]);
     const done = await first.promise;
     expect(done.pending).toBe(false);
-    expect(resolvePackLayout(node, MAP_VIEW_MODE.HEALTH)).toBe(done);
+    expect(resolvePackLayout(node)).toBe(done);
 
-    const sync = packInPlace(buildPackRoot(node, MAP_VIEW_MODE.HEALTH)).descendants();
+    const sync = packInPlace(buildPackRoot(node)).descendants();
     done.root.descendants().forEach((n, i) => {
       expect([n.x, n.y, n.r]).toEqual([sync[i].x, sync[i].y, sync[i].r]);
     });
@@ -73,14 +71,14 @@ describe('resolvePackLayout', () => {
 
   it('falls back to the render thread when the worker fails', async () => {
     requestPackLayout.mockReturnValue(Promise.reject(new Error('boom')));
-    const first = resolvePackLayout(wideTree(PACK_WORKER_NODE_THRESHOLD), MAP_VIEW_MODE.HEALTH);
+    const first = resolvePackLayout(wideTree(PACK_WORKER_NODE_THRESHOLD));
     const done = await first.promise;
     expect(done.circles.length).toBe(PACK_WORKER_NODE_THRESHOLD + 1);
   });
 
   it('falls back to the render thread when no worker is available', () => {
     requestPackLayout.mockReturnValue(null);
-    const layout = resolvePackLayout(wideTree(PACK_WORKER_NODE_THRESHOLD), MAP_VIEW_MODE.HEALTH);
+    const layout = resolvePackLayout(wideTree(PACK_WORKER_NODE_THRESHOLD));
     expect(layout.pending).toBe(false);
     expect(layout.circles.length).toBe(PACK_WORKER_NODE_THRESHOLD + 1);
   });

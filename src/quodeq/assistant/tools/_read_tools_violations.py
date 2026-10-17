@@ -1,7 +1,7 @@
 """Violation shaping and paging for the read tools: trimming to the
 model-facing shape, principle/requirement/severity normalization across the
-run-scoped and accumulated payload shapes, hidden-standard filtering, and
-get_violations' scope routing.
+run-scoped and accumulated payload shapes, hidden-standard filtering, folder
+and file narrowing, and get_violations' scope routing.
 """
 from __future__ import annotations
 
@@ -38,6 +38,8 @@ VIOLATION_FIELDS = ("principle", "file", "line", "severity", "title", "reason")
 # get_violations paging limits.
 _VIOLATIONS_DEFAULT_LIMIT = 40
 VIOLATIONS_MAX_LIMIT = 100
+# by_file keeps only the worst offenders so a project-wide page stays small.
+_BY_FILE_TOP_N = 15
 # Severity ordering (critical/major first). Unknown severities sort last.
 # The Severity members are the canonical keys; the rest are synonyms models
 # and older reports use for the same rungs.
@@ -115,29 +117,92 @@ def _severity_key(v: dict):
     return (_SEVERITY_RANK.get(sev, _UNKNOWN_SEVERITY_RANK), _principle_of(v) or "")
 
 
+def _normalize_path(path: str) -> str:
+    """A repo-relative folder or file path with the separators the finding
+    files use: forward slashes, no leading ``./`` or ``/``, no trailing ``/``."""
+    out = str(path).replace("\\", "/").strip()
+    while out.startswith("./"):
+        out = out[2:]
+    return out.strip("/")
+
+
+def path_matches(file: str | None, path: str) -> bool:
+    """Whether *file* lies under or is *path*, compared on whole segments.
+
+    The match is anchored on segment boundaries but not on the repo root, so
+    ``feature-component-tracking``, ``feature-component-tracking/src`` and
+    ``TrackingDelegate.kt`` all select what a user pointing at that folder or
+    file in the Map or Explorer means, while ``tracking`` never matches
+    ``feature-component-tracking``.
+    """
+    if not file:
+        return False
+    haystack = f"/{_normalize_path(file)}/"
+    return f"/{path}/" in haystack
+
+
+def _count_by(raw: list[dict], key) -> dict[str, int]:
+    """Occurrences of ``key(v)`` across *raw*, unknown keys bucketed as ``(unknown)``."""
+    counts: dict[str, int] = {}
+    for v in raw:
+        k = key(v) or "(unknown)"
+        counts[k] = counts.get(k, 0) + 1
+    return counts
+
+
+def _top_counts(counts: dict[str, int], n: int) -> dict[str, int]:
+    """The *n* largest buckets of *counts*, largest first, ties by key."""
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    return dict(ranked[:n])
+
+
 def get_violations(ctx: ToolContext, dimension: str | None = None,
-                    limit: int = _VIOLATIONS_DEFAULT_LIMIT) -> dict:
+                    limit: int = _VIOLATIONS_DEFAULT_LIMIT,
+                    path: str | None = None, paths: list[str] | None = None) -> dict:
     """One page of violations for the run or overview scope, severity first,
-    with per-principle counts."""
+    with per-principle, per-requirement and per-file counts.
+
+    *path* narrows the scope to one folder or file (see ``path_matches``);
+    the counts then describe that folder, which is what a "why does this
+    module have so many findings" question needs. *paths* does the same for
+    several at once (a Risk area spans several folders): a violation counts
+    when it lies under any of them.
+    """
     limit = clamp(int(limit), 1, VIOLATIONS_MAX_LIMIT)
     if has_run(ctx):
         raw, dim_out, hidden = _violations_from_run(ctx, dimension)
     else:
         raw, dim_out, hidden = _violations_from_accumulated(ctx, dimension)
 
-    # by_principle counts reflect ALL violations so "worst principle" stays
-    # accurate even when the returned list is capped by `limit`.
-    by_principle: dict[str, int] = {}
-    for v in raw:
-        key = _principle_of(v) or "(unknown)"
-        by_principle[key] = by_principle.get(key, 0) + 1
+    total_in_scope = len(raw)
+    norm_path = _normalize_path(path) if path else ""
+    norm_paths = [p for p in (_normalize_path(x) for x in (paths or []) if isinstance(x, str)) if p]
+    if norm_path:
+        raw = [v for v in raw if path_matches(v.get("file"), norm_path)]
+    if norm_paths:
+        raw = [v for v in raw if any(path_matches(v.get("file"), p) for p in norm_paths)]
+
+    # The counts reflect ALL matching violations so "worst principle" and
+    # "worst file" stay accurate even when the returned list is capped by
+    # `limit`. by_file is capped so a project-wide call stays small.
+    by_principle = _count_by(raw, _principle_of)
+    by_requirement = _count_by(raw, requirement_of)
+    by_file = _top_counts(_count_by(raw, lambda v: v.get("file")), _BY_FILE_TOP_N)
 
     # nsmallest keeps sorted()'s stable tie order but skips ordering the
     # entries past `limit` that the page drops anyway.
     page = heapq.nsmallest(limit, raw, key=_severity_key)
     trimmed = [trim_violation(v) for v in page]
-    return {"dimension": dim_out, "count": len(raw), "violations": trimmed,
-            "by_principle": by_principle, "hiddenStandardIds": hidden}
+    out = {"dimension": dim_out, "count": len(raw), "violations": trimmed,
+           "by_principle": by_principle, "by_requirement": by_requirement,
+           "by_file": by_file, "hiddenStandardIds": hidden}
+    if norm_path:
+        out["path"] = norm_path
+    if norm_paths:
+        out["paths"] = norm_paths
+    if norm_path or norm_paths:
+        out["total_in_scope"] = total_in_scope
+    return out
 
 
 def _violations_from_run(ctx: ToolContext, dimension: str | None):

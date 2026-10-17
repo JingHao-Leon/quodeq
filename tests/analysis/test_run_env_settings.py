@@ -132,7 +132,7 @@ def _cli_run_config(tmp_path: Path):
         pool_budget=None, clean_scan=False, legacy_incremental=False,
     )
     inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-    return build_run_config(args, inputs=inputs, evidence_dir=tmp_path)
+    return build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path)
 
 
 class TestRunScopedSettings:

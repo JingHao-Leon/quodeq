@@ -1,12 +1,14 @@
 import { t } from '../../../../strings/index.js';
 import { gradeLabel } from '../../../../utils/formatters.js';
+import { formatBytes } from '../../../../utils/formatSize.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 import { PUBLISH_STATE } from '../../dashboardVocab.js';
 import { projectIdOrSelf } from '../../../../utils/projectIdentity.js';
 import { useProjectRefresh } from '../../hooks/useProjectRefresh.js';
 import { GradeChip } from '../projectCards/ProjectCardParts.jsx';
-import { NameCell, FilesCell, LastRunCell, LocationCell, SyncCell, MetaLine } from './RowCells.jsx';
-import { RowAction, RowMenu } from './RowActions.jsx';
+import { NameCell, RunCells, SizeCell, LocationCell, SyncCell, MetaLine } from './RowCells.jsx';
+import { RowAction, RowMenu, EvaluateAction } from './RowActions.jsx';
+import { isFirstRunProject } from '../../../../models/project.js';
 import { SyncBar } from '../SyncBar.jsx';
 import { childEntry, rowAction, rowSource } from './projectRowModel.js';
 
@@ -27,10 +29,17 @@ function RelocateEditor({ id, relocateActions }) {
   );
 }
 
-function DeleteConfirm({ id, onDelete, setConfirming }) {
+// What a delete takes: the runs and the space, from the storage summary
+// entry (`stored`), or the plain question while the size is unknown.
+function deleteQuestion(stored, runsCount) {
+  if (stored?.bytes == null) return t('projects.deleteConfirm');
+  return t('projects.deleteConfirmSized', { runs: stored.runs ?? runsCount, size: formatBytes(stored.bytes) });
+}
+
+export function DeleteConfirm({ id, onDelete, setConfirming, stored, runsCount }) {
   return (
     <div className="projects-row__detail" onClick={(e) => e.stopPropagation()}>
-      <span>{t('projects.deleteConfirm')}</span>
+      <span>{deleteQuestion(stored, runsCount)}</span>
       <button type="button" className="projects-row__btn projects-row__btn--danger" onClick={() => { onDelete?.(id); setConfirming(null); }}>{t('projects.yes')}</button>
       <button type="button" className="projects-row__btn" onClick={() => setConfirming(null)}>{t('projects.no')}</button>
     </div>
@@ -63,13 +72,24 @@ function pullLines(pull) {
   return lines;
 }
 
+// A refused code fetch: our sentence, then git's own output under it, which
+// names what actually failed (a missing branch, an auth prompt, a DNS error).
+export function RefreshError({ refresh }) {
+  return (
+    <div className="inline-error" role="alert">
+      {refresh.error}
+      {refresh.errorDetail && <pre className="projects-row__error-detail">{refresh.errorDetail}</pre>}
+    </div>
+  );
+}
+
 // The lines a row can owe its user: a publish that failed, a code fetch's
 // result, a pull under way or its result. They stack.
 function outcomeLines(id, local, publishActions, refresh, pull) {
   const lines = [];
   const publishError = local ? publishErrorFor(id, publishActions) : null;
   if (publishError) lines.push(<p key="publish" className="inline-error" role="alert">{publishError}</p>);
-  if (refresh?.error) lines.push(<p key="refresh" className="inline-error" role="alert" title={refresh.errorDetail || undefined}>{refresh.error}</p>);
+  if (refresh?.error) lines.push(<RefreshError key="refresh" refresh={refresh} />);
   if (refresh?.note) lines.push(<p key="note" className="projects-row__note" role="status">{refresh.note}</p>);
   return [...lines, ...pullLines(pull)];
 }
@@ -77,14 +97,50 @@ function outcomeLines(id, local, publishActions, refresh, pull) {
 // What a row says under itself after an action: an inline confirm (delete,
 // pull conflict), the relocate editor, or the outcome lines. At most one
 // confirm at a time.
-function RowDetails({ id, local, ctx, refresh, pull }) {
+function RowDetails({ id, local, ctx, refresh, pull, stored, runsCount }) {
   const { confirming, setConfirming, onDelete, relocateActions, publishActions } = ctx;
   if (local && relocateActions.relocating === id) return <RelocateEditor id={id} relocateActions={relocateActions} />;
-  if (local && confirming === id) return <DeleteConfirm id={id} onDelete={onDelete} setConfirming={setConfirming} />;
+  if (local && confirming === id) return <DeleteConfirm id={id} onDelete={onDelete} setConfirming={setConfirming} stored={stored} runsCount={runsCount} />;
   if (pull?.conflict) return <PullConflict id={id} pull={pull} />;
   const lines = outcomeLines(id, local, publishActions, refresh, pull);
   if (lines.length === 0) return null;
   return <div className="projects-row__detail projects-row__detail--lines">{lines}</div>;
+}
+
+// The row's storage summary entry. Only a local project has evaluations on
+// this machine to size; null too before the summary loads.
+function storedFor(entry, storage, id) {
+  if (!entry.local || !storage) return null;
+  return storage[id] ?? null;
+}
+
+// What deleting the project takes: its own entry plus its subprojects', since
+// the delete cascades to them. Null while any part is unknown (the plain question).
+function deletedTotals(stored, ctx, id) {
+  const kids = ctx.children?.[id] ?? [];
+  const storage = ctx.storage;
+  if (!stored || !kids.length) return stored;
+  const parts = [stored, ...kids.map((kid) => storage[projectIdOrSelf(kid)])];
+  if (parts.some((part) => part?.bytes == null)) return null;
+  return { bytes: parts.reduce((sum, part) => sum + part.bytes, 0), runs: parts.reduce((sum, part) => sum + (part.runs ?? 0), 0) };
+}
+
+// The row's one visible action: `evaluate` for a never-evaluated project
+// with nothing more pressing, else the action its state calls for.
+function ActionCell({ action, id, project, notEvaluated, ctx, pull }) {
+  const { onEvaluate, publishActions, relocateActions } = ctx;
+  if (notEvaluated && !action) {
+    return <EvaluateAction name={id} label={project.displayName || project.name} onEvaluate={onEvaluate} />;
+  }
+  return (
+    <RowAction
+      action={action}
+      name={id}
+      publishActions={publishActions}
+      pull={pull}
+      onRelocate={() => relocateActions.startRelocate(id, project.path)}
+    />
+  );
 }
 
 /**
@@ -93,36 +149,40 @@ function RowDetails({ id, local, ctx, refresh, pull }) {
  * cells: without a server every project is local and they say nothing.
  */
 function Row({ entry, project, isChild, ctx, refresh, pull }) {
-  const { selectedProject, onSelect, onResumeSetup, onExport, setConfirming, relocateActions, publishActions, configured, childSelectedIds } = ctx;
+  const { selectedProject, onSelect, onEvaluate, onResumeSetup, onExport, setConfirming, relocateActions, publishActions, configured, childSelectedIds } = ctx;
   const id = projectIdOrSelf(project);
   const selected = id === selectedProject;
   const open = () => onSelect?.(id, rowSource(entry));
   const grade = gradeLabel(project.overallGrade ?? project.latestGrade);
   const score = project.latestScore != null ? parseFloat(project.latestScore).toFixed(1) : null;
   const action = rowAction(entry);
+  const stored = storedFor(entry, ctx.storage, id);
+  const deleted = deletedTotals(stored, ctx, id);
+  // Only a local project can be evaluated from here; a row with its own
+  // action (relocate a missing folder) keeps it.
+  const notEvaluated = !!entry.local && isFirstRunProject(project);
   const cls = ['projects-row', isChild && 'projects-row--child', selected && 'projects-row--selected', !selected && childSelectedIds?.has(id) && 'projects-row--parent-of-selected'].filter(Boolean).join(' ');
   return (
     <div className="projects-row-group">
       <div className={cls} role="row" onClick={open} aria-current={selected || undefined}>
         <NameCell entry={entry} project={project} onOpen={open} onResumeSetup={onResumeSetup} />
-        <div className="projects-row__grade" role="cell"><GradeChip grade={grade} score={score} pending={project.summaryPending} /></div>
-        <FilesCell project={project} />
-        <LastRunCell project={project} />
+        <RunCells project={project} notEvaluated={notEvaluated} grade={<GradeChip grade={grade} score={score} pending={project.summaryPending} />} size={<SizeCell stored={stored} />} />
         {configured && <LocationCell entry={entry} />}
         {configured && <SyncCell entry={entry} />}
         <MetaLine entry={entry} project={project} configured={configured} />
-        <RowAction
+        <ActionCell
           action={action}
-          name={id}
-          publishActions={publishActions}
+          id={id}
+          project={project}
+          notEvaluated={notEvaluated}
+          ctx={{ onEvaluate, publishActions, relocateActions }}
           pull={pull}
-          onRelocate={() => relocateActions.startRelocate(id, project.path)}
         />
         {entry.local
           ? <RowMenu name={id} refresh={isRefreshable(project) && !isChild ? refresh : null} onExport={onExport} onDelete={() => setConfirming(id)} />
           : <div className="projects-row__more" role="cell" />}
       </div>
-      <RowDetails id={id} local={!!entry.local} ctx={ctx} refresh={refresh} pull={pull} />
+      <RowDetails id={id} local={!!entry.local} ctx={ctx} refresh={refresh} pull={pull} stored={deleted} runsCount={project.runsCount} />
     </div>
   );
 }

@@ -5,6 +5,7 @@
 import { lazy } from 'react';
 import { PROJECT_SOURCE } from '../vocab/projectSource.js';
 import { NAV_TAB } from '../vocab/navTab.js';
+import { SCOPE_KIND, openScope } from '../features/violations/scope/scopeModel.js';
 
 const ComparePage = lazy(() => import('../features/compare/components/ComparePage.jsx'));
 
@@ -28,26 +29,36 @@ export function compareRoute(params, props) {
       // dimensions so tab-hopping doesn't grow history.
       onOpenDimension={(key) => props.navigation.handleNavigate(NAV_TAB.COMPARE, { dimension: key })}
       onSwitchDimension={(key) => props.navigation.handleNavigateReplace(NAV_TAB.COMPARE, { dimension: key })}
-      // Cross-project principle jump: the evalPrincipal carries its own
-      // project, so the selection doesn't change and back pops to Compare.
-      onOpenEvalPrincipal={(evalPrincipal) => props.navigation.handleNavigate(NAV_TAB.EVAL_PRINCIPLE, { evalPrincipal, sourceTab: NAV_TAB.COMPARE })}
-      // Standings row -> that project's own screen of the SAME dimension
-      // (the explorer's cross-project fromProject entry), pushed for the
-      // same back-pops-to-Compare contract.
-      onOpenProjectDimension={(target) => props.navigation.handleNavigate(NAV_TAB.EXPLORER, {
-        dimension: target.dimName,
-        runId: target.runId,
-        dateLabel: target.dateLabel,
-        fromProject: target.id,
-        // Named in the crumb: the root crumb is still the global selection,
-        // so without it the trail never says whose dimension this is.
-        fromProjectName: target.name,
-        // The entry's own source, like its own project: the explorer must
-        // read a local fromProject from the local API even while the
-        // global selection sits on the shared source (and vice versa).
-        fromSource: target.source || PROJECT_SOURCE.LOCAL,
-        sourceTab: NAV_TAB.COMPARE,
-      })}
+      // A project's principle (matrix cell, principle health, attention
+      // item) -> that project's findings on it, the view its own dimension
+      // page opens. The project becomes the selection first, as the
+      // Findings views read the selected project; pushed, so back pops to
+      // Compare. The cell's run is the dimension's latest, so it opens today.
+      onOpenProjectPrinciple={(target) => {
+        props.navigation.handleProjectChange(target.id, target.source || PROJECT_SOURCE.LOCAL);
+        openScope(props.navigation.handleNavigate, { kind: SCOPE_KIND.PRINCIPLE, dimension: target.dimName, principle: target.principle });
+      }}
+      // Standings row -> that project's own screen of the SAME dimension,
+      // pushed for the same back-pops-to-Compare contract. The project
+      // becomes the selection first, like a fleet row does: the explorer
+      // then shows the selected project, so its principles, files,
+      // folders, areas and Fix first open the scoped Findings views
+      // instead of the cross-project File and principle pages.
+      onOpenProjectDimension={(target) => {
+        const source = target.source || PROJECT_SOURCE.LOCAL;
+        props.navigation.handleProjectChange(target.id, source);
+        props.navigation.handleNavigate(NAV_TAB.EXPLORER, {
+          dimension: target.dimName,
+          runId: target.runId,
+          dateLabel: target.dateLabel,
+          fromProject: target.id,
+          // Named in the crumb: the trail's root is Compare, so without it
+          // the trail never says whose dimension this is.
+          fromProjectName: target.name,
+          fromSource: source,
+          sourceTab: NAV_TAB.COMPARE,
+        });
+      }}
       // Head-to-head is a push like the dimension drill-down: back returns
       // to the fleet with the two-project scope still selected.
       duel={params.duel || null}

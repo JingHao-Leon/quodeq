@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEvaluation, LOCAL_API_PROVIDERS } from '../features/evaluation/hooks/useEvaluation.js';
 import { ACTIVE_PROVIDER_KEY, providerKey } from '../constants.js';
-import { safeGetItem, readAnalysisPower, writeAnalysisPower, resolveSubagentModel } from './evaluationLifecycleHelpers.js';
+import { safeGetItem, resolveSubagentModel } from './evaluationLifecycleHelpers.js';
 import { useJobCompletionEffect } from './useJobCompletionEffect.js';
 import { t } from '../strings/index.js';
 import { JOB_STATUS } from '../vocab/jobStatus.js';
@@ -18,7 +18,7 @@ import { EVAL_DISMISS_ACTION } from '../features/evaluation/evaluationVocab.js';
  * model resolution) and hooks/useJobCompletionEffect.js (the on-completion
  * effect) -- this file composes the two and owns the start/dismiss handlers.
  */
-function makeStartEvaluationHandler({ job, setBlockedStartError, storage, analysisPower, startEvaluation }) {
+function makeStartEvaluationHandler({ job, setBlockedStartError, storage, startEvaluation }) {
   return function handleStartEvaluation(payload) {
     // Hard guard: only one evaluation may run at a time. A second start
     // request (e.g. user clicked through the onboarding wizard while a
@@ -35,7 +35,8 @@ function makeStartEvaluationHandler({ job, setBlockedStartError, storage, analys
     setBlockedStartError(null);
     const activeProvider = safeGetItem(storage, ACTIVE_PROVIDER_KEY);
     const get = (key) => safeGetItem(storage, providerKey(activeProvider, key));
-    const subagentModel = resolveSubagentModel({ get, analysisPower });
+    // Read per start: Settings can change the model while the app runs.
+    const subagentModel = resolveSubagentModel({ get });
     // Swallow the rejection on the copy we discard: startMutation's onError
     // already surfaces failures via jobError. Callers get the original
     // promise so they can react to success/failure themselves.
@@ -64,8 +65,8 @@ function makeEvalDismissHandler({ job, startedProject, selectedProject, selectPr
 }
 
 /**
- * Owns starting, cancelling and dismissing an evaluation, plus the analysis
- * power setting the start payload is built from.
+ * Owns starting, cancelling and dismissing an evaluation, and reads the
+ * analysis model at each start.
  *
  * A start refused because another run is already in flight surfaces through
  * `jobError` rather than failing silently. On completion the project list and
@@ -76,7 +77,7 @@ function makeEvalDismissHandler({ job, startedProject, selectedProject, selectPr
  */
 export function useEvaluationLifecycle({ navigation, projects, selectedProject = null, storage: _storage }) {
   const storage = _storage || localStorage;
-  const { navTab, navReset } = navigation;
+  const { navTab, navReset, activeTab } = navigation;
   const { selectProjectAndRun } = projects;
   const { job, jobError, liveViolations, startEvaluation, clearJob, cancelEvaluation, startedProject } = useEvaluation();
   const queryClient = useQueryClient();
@@ -86,15 +87,9 @@ export function useEvaluationLifecycle({ navigation, projects, selectedProject =
   // (older) evaluation was the one they just launched.
   const [blockedStartError, setBlockedStartError] = useState(null);
 
-  const [analysisPower, setAnalysisPower] = useState(() => readAnalysisPower(storage));
+  useJobCompletionEffect({ job, navTab, activeTab, queryClient, selectedProject, selectProjectAndRun });
 
-  function persistAnalysisPower(level) {
-    writeAnalysisPower(storage, level);
-  }
-
-  useJobCompletionEffect({ job, navTab, queryClient, selectedProject, selectProjectAndRun });
-
-  const handleStartEvaluation = makeStartEvaluationHandler({ job, setBlockedStartError, storage, analysisPower, startEvaluation });
+  const handleStartEvaluation = makeStartEvaluationHandler({ job, setBlockedStartError, storage, startEvaluation });
   const handleEvalDismiss = makeEvalDismissHandler({ job, startedProject, selectedProject, selectProjectAndRun, navReset, setBlockedStartError, clearJob });
 
   const activeProvider = safeGetItem(storage, ACTIVE_PROVIDER_KEY);
@@ -102,7 +97,6 @@ export function useEvaluationLifecycle({ navigation, projects, selectedProject =
 
   return {
     job, jobError: jobError || blockedStartError, liveViolations,
-    analysisPower, setAnalysisPower, persistAnalysisPower,
     handleStartEvaluation, handleEvalDismiss, cancelEvaluation,
     isLocalApi, startedProject,
   };

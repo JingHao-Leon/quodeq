@@ -2,18 +2,16 @@
 
 from __future__ import annotations
 
-import json
 import subprocess
 from unittest.mock import MagicMock, patch
 
 
 from quodeq.services.tooling_mixin import (
     FsToolingMixin,
-    _fetch_anthropic_models,
-    _load_fallback_claude_models,
     get_allowed_client_ids,
     _DEFAULT_CLIENT_IDS,
 )
+from quodeq.services.wiring import CatalogUnavailable
 
 
 # ---------------------------------------------------------------------------
@@ -156,11 +154,13 @@ class TestGetClientModels:
         assert result == {"models": ["custom-model"]}
         custom_fetcher.assert_called_once_with("myapi")
 
-    def test_configure_model_fetchers_routes_claude_to_the_api_fetcher(self):
+    def test_configure_model_fetchers_routes_claude_and_codex_to_the_live_catalog(self):
         mixin = FsToolingMixin()
         assert "claude" not in mixin._model_fetchers
         mixin.configure_model_fetchers()
-        assert mixin._model_fetchers["claude"] == mixin._get_claude_models
+        assert mixin._model_fetchers["claude"] == mixin._get_catalog_models
+        assert mixin._model_fetchers["codex"] == mixin._get_catalog_models
+        assert "gemini" not in mixin._model_fetchers
 
     @patch("quodeq.services.tooling_mixin.get_allowed_client_ids", return_value=frozenset({"claude"}))
     @patch("shutil.which", return_value="/usr/bin/claude")
@@ -173,78 +173,58 @@ class TestGetClientModels:
 
 
 # ---------------------------------------------------------------------------
-# _get_claude_models
+# _get_catalog_models (live CLI catalog, cached)
 # ---------------------------------------------------------------------------
 
-
-class TestGetClaudeModels:
-    @patch("quodeq.services.tooling_mixin._fetch_anthropic_models", return_value=["claude-3-opus", "claude-3-sonnet"])
-    def test_returns_api_models(self, mock_fetch):
-        mixin = FsToolingMixin()
-        result = mixin._get_claude_models(api_key="sk-test")
-        assert result == {"models": ["claude-3-opus", "claude-3-sonnet"]}
-
-    @patch("quodeq.services.tooling_mixin._fetch_anthropic_models", return_value=None)
-    @patch("quodeq.services.tooling_mixin._load_fallback_claude_models", return_value=["fallback-model"])
-    def test_falls_back_on_api_failure(self, mock_fallback, mock_fetch):
-        mixin = FsToolingMixin()
-        result = mixin._get_claude_models(api_key="sk-test")
-        assert result == {"models": ["fallback-model"]}
-
-    @patch("quodeq.services.tooling_mixin._load_fallback_claude_models", return_value=["fallback"])
-    def test_no_key_uses_fallback(self, mock_fallback):
-        mixin = FsToolingMixin()
-        result = mixin._get_claude_models(api_key=None, key_fn=lambda: None)
-        assert result == {"models": ["fallback"]}
+_CATALOG = [{"id": "opus", "label": "Opus", "description": "", "efforts": ["high"],
+             "defaultEffort": None, "isDefault": True, "pinned": False}]
+_FETCH = "quodeq.services.tooling_mixin.fetch_cli_model_catalog"
 
 
-# ---------------------------------------------------------------------------
-# _fetch_anthropic_models
-# ---------------------------------------------------------------------------
+def _catalog_mixin() -> FsToolingMixin:
+    mixin = FsToolingMixin()
+    mixin.configure_model_fetchers()
+    return mixin
 
 
-class TestFetchAnthropicModels:
-    @patch("urllib.request.urlopen")
-    def test_returns_model_ids(self, mock_urlopen):
-        response_data = json.dumps({"data": [{"id": "m1"}, {"id": "m2"}]}).encode()
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = response_data
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_resp
-        result = _fetch_anthropic_models("sk-test")
-        assert result == ["m1", "m2"]
+class TestCatalogModels:
+    @patch(_FETCH, return_value=_CATALOG)
+    def test_returns_ids_and_catalog(self, mock_fetch):
+        assert _catalog_mixin().get_client_models("claude") == {"models": ["opus"], "catalog": _CATALOG}
 
-    @patch("urllib.request.urlopen")
-    def test_empty_data_returns_none(self, mock_urlopen):
-        mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({"data": []}).encode()
-        mock_resp.__enter__ = lambda s: s
-        mock_resp.__exit__ = MagicMock(return_value=False)
-        mock_urlopen.return_value = mock_resp
-        assert _fetch_anthropic_models("sk-test") is None
+    @patch(_FETCH, return_value=_CATALOG)
+    def test_second_call_is_served_from_cache(self, mock_fetch):
+        mixin = _catalog_mixin()
+        mixin.get_client_models("claude")
+        mixin.get_client_models("claude")
+        assert mock_fetch.call_count == 1
 
-    @patch("urllib.request.urlopen", side_effect=OSError("network error"))
-    def test_network_error_returns_none(self, mock_urlopen):
-        assert _fetch_anthropic_models("sk-test") is None
+    @patch(_FETCH, return_value=_CATALOG)
+    def test_refresh_asks_the_cli_again_once_the_list_is_not_brand_new(self, mock_fetch):
+        mixin = _catalog_mixin()
+        with patch("quodeq.services.tooling_mixin.time.monotonic", return_value=100.0):
+            mixin.get_client_models("claude")
+        with patch("quodeq.services.tooling_mixin.time.monotonic", return_value=130.0):
+            mixin.get_client_models("claude", refresh=True)
+        assert mock_fetch.call_count == 2
 
+    @patch(_FETCH, return_value=_CATALOG)
+    def test_refresh_right_after_a_lookup_is_served_from_cache(self, mock_fetch):
+        mixin = _catalog_mixin()
+        mixin.get_client_models("claude")
+        mixin.get_client_models("claude", refresh=True)
+        assert mock_fetch.call_count == 1
 
-# ---------------------------------------------------------------------------
-# _load_fallback_claude_models
-# ---------------------------------------------------------------------------
+    @patch(_FETCH, side_effect=CatalogUnavailable("timed out"))
+    def test_failure_reports_an_error_and_is_not_cached(self, mock_fetch):
+        mixin = _catalog_mixin()
+        result = mixin.get_client_models("codex")
+        mixin.get_client_models("codex")
+        assert result["models"] == []
+        assert result["error_code"] == "CLIENT_MODELS_UNAVAILABLE"
+        assert mock_fetch.call_count == 2
 
-
-class TestLoadFallbackClaudeModels:
-    @patch("quodeq.services.tooling_mixin.read_json")
-    def test_returns_model_list(self, mock_read):
-        mock_read.return_value = {"fallback_claude_models": ["m1", "m2"]}
-        assert _load_fallback_claude_models() == ["m1", "m2"]
-
-    @patch("quodeq.services.tooling_mixin.read_json", side_effect=OSError)
-    def test_returns_empty_on_error(self, mock_read):
-        assert _load_fallback_claude_models() == []
-
-    # #139 — ValueError (e.g. corrupt JSON int parse) must also be caught
-    @patch("quodeq.services.tooling_mixin.read_json", side_effect=ValueError("bad int"))
-    def test_returns_empty_on_value_error(self, mock_read):
-        assert _load_fallback_claude_models() == []
+    @patch(_FETCH, return_value=_CATALOG)
+    def test_cli_env_drops_what_the_provider_config_removes(self, mock_fetch):
+        _catalog_mixin()._get_catalog_models("claude", env={"CLAUDECODE": "1", "PATH": "/bin"})
+        assert mock_fetch.call_args.kwargs["env"] == {"PATH": "/bin"}

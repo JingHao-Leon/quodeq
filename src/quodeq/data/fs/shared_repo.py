@@ -25,7 +25,7 @@ import os
 import shutil
 import stat
 import threading
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
 # Re-exported so the api layer can validate a shared-repo URL without
@@ -36,6 +36,7 @@ from pathlib import Path
 from quodeq.data.fs.repo_validation import validate_remote_url  # noqa: F401
 from quodeq.data.fs.git_progress import ProgressUpdate, parse_progress
 from quodeq.data.fs.git_stream import run_git_streaming
+from quodeq.data.fs.shared_clone_runs import secure_clone_tree
 from quodeq.data.fs.shared_repo_git import (  # noqa: F401 -- re-exported for existing callers
     DEFAULT_GIT_TIMEOUT_S,
     EVALUATIONS_DIRNAME,
@@ -142,6 +143,7 @@ def ensure_shared_clone(
     with clone_lock(url, env):
         repo = shared_repo_path(url, env)
         if (repo / GIT_DIR_NAME).exists():
+            secure_clone_tree(repo, env)
             return repo
         repo.parent.mkdir(parents=True, exist_ok=True)
         ok, out = run_git_streaming(
@@ -152,6 +154,7 @@ def ensure_shared_clone(
             logger.warning("shared clone failed for %s: %s", url, out.strip()[:500])
             remove_clone_dir(repo)
             return None
+        secure_clone_tree(repo, env)
         return repo
 
 
@@ -197,6 +200,7 @@ def _fetch_and_reset_clone(
         reason = out.strip()[:200]
         logger.warning("refresh_shared_clone: reset failed for %s: %s", url, reason)
         return False, reason
+    secure_clone_tree(repo, env)  # the reset may have checked a tracked database out over a local one
     return True, ""
 
 
@@ -256,13 +260,25 @@ _GITIGNORE_FILENAME = ".gitignore"
 _GITKEEP_FILENAME = ".gitkeep"
 
 
-def stage_publish_paths(repo: Path, project_id: str) -> tuple[bool, str]:
-    """``git add`` everything a publish of *project_id* may have written:
-    the format marker, the ignore file, the project's evaluations tree and
-    the evaluations/.gitkeep placeholder when the layout has one. Returns
-    ``run_git``'s ``(ok, output)``.
+_ADD_BATCH = 200  # paths per ``git add``, well under any platform's command-line limit
+
+
+def stage_publish_paths(repo: Path, paths: Iterable[Path]) -> tuple[bool, str]:
+    """``git add`` exactly the files a publish wrote, plus the format marker, the
+    ignore file and the evaluations/.gitkeep placeholder when the layout has
+    one. Never the rest of the project folder: a database, a restore stamp or
+    a log unpacked in the clone stays out of the commit. Literal pathspecs, in
+    batches, forced: an ignore rule (a global ``*.gz``, a ``*.jsonl`` in the
+    shared .gitignore) must not fail a publish of files it wrote itself. Returns ``run_git``'s ``(ok, output)`` of the first failure, or
+    of the last batch.
     """
-    add_paths = [MARKER_FILENAME, _GITIGNORE_FILENAME, f"{EVALUATIONS_DIRNAME}/{project_id}"]
+    add_paths = [MARKER_FILENAME, _GITIGNORE_FILENAME]
     if (repo / EVALUATIONS_DIRNAME / _GITKEEP_FILENAME).exists():
         add_paths.append(f"{EVALUATIONS_DIRNAME}/{_GITKEEP_FILENAME}")
-    return run_git(["add", "--", *add_paths], cwd=repo)
+    add_paths.extend(sorted({p.relative_to(repo).as_posix() for p in paths}))
+    result = (True, "")
+    for start in range(0, len(add_paths), _ADD_BATCH):
+        result = run_git(["--literal-pathspecs", "add", "-f", "--", *add_paths[start:start + _ADD_BATCH]], cwd=repo)
+        if not result[0]:
+            return result
+    return result

@@ -124,6 +124,12 @@ describe('map/violations view state lives in the nav stack', () => {
     expect(props.navigation.handleNavigateReplace).not.toHaveBeenCalled();
   });
 
+  it('map: an old riskmatrix entry still opens the Map, its param passed through untouched', () => {
+    const el = ROUTE_RENDERERS.map({ _tabKey: 3, vizStyle: 'riskmatrix' }, mapProps());
+    expect(el.props.nav.vizStyle).toBe('riskmatrix');
+    expect(el.props.data.selectedProject).toBe('p1');
+  });
+
   // The toggles are a display preference, not a fact about the level: an
   // entry pushed while on circle pack must not flip the view back to circle
   // pack when the user, now on galaxy, climbs up into it. Unwinding through
@@ -184,7 +190,7 @@ describe('map/violations view state lives in the nav stack', () => {
     expect(props.navigation.handleNavigate).not.toHaveBeenCalled();
   });
 
-  it('violations: the sub-tab flip replaces the entry (history must not grow), _tabKey preserved', () => {
+  it('violations: a workbench change replaces the entry (history must not grow), _tabKey preserved', () => {
     const props = {
       dashboardData: { latestAccumulated: null, accumulated: null, selectedDisplayName: 'p1', loading: false, isFetching: false },
       navigation: {
@@ -196,9 +202,9 @@ describe('map/violations view state lives in the nav stack', () => {
     };
     const outer = ROUTE_RENDERERS.violations({ _tabKey: 2 }, props);
     const inner = outer.type(outer.props);
-    expect(inner.props.subTab).toBe('dimension');
-    inner.props.onSubTabChange('file');
-    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith('violations', { _tabKey: 2, subTab: 'file' });
+    expect(inner.props.workbench).toBeNull();
+    inner.props.onWorkbenchChange({ group: 'file' });
+    expect(props.navigation.handleNavigateReplace).toHaveBeenCalledWith('violations', { _tabKey: 2, wb: { group: 'file' } });
     expect(props.navigation.handleNavigate).not.toHaveBeenCalled();
   });
 

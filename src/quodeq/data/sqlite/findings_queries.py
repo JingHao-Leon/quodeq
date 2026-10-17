@@ -16,6 +16,10 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from quodeq.core.finding_identity import DismissKey, finding_dismiss_keys
+from quodeq.data.fs.run_archive import is_archived
+from quodeq.data.fs.run_precedents import (
+    DISMISSED_SQL, SEMANTIC_ELIGIBLE_SQL, precedents_stamp, read_precedents,
+)
 from quodeq.data.sqlite._db_stamp_memo import memoized_by_db_stamp
 from quodeq.data.sqlite.connection import EVALUATION_DB_FILENAME, open_evaluation_db
 
@@ -179,14 +183,6 @@ def _read_run_key_sets_from_db(run_dir: Path) -> tuple[set[tuple], set[tuple]] |
     return dismiss, cls
 
 
-_SEMANTIC_ELIGIBLE_SQL = (
-    "SELECT requirement, snippet FROM findings WHERE verdict = 'dismissed' "
-    "AND (scope IS NULL OR scope = '') "
-    "AND line > 0 "
-    "AND snippet IS NOT NULL AND TRIM(snippet) <> ''"
-)
-
-
 def read_dismissed_snippets_strict(run_dir: Path) -> list[tuple[str | None, str | None]]:
     """``(requirement, snippet)`` for every dismissed finding in *run_dir*.
 
@@ -196,16 +192,14 @@ def read_dismissed_snippets_strict(run_dir: Path) -> list[tuple[str | None, str 
     ``OSError``). The per-run memo in ``context.precedent_fingerprint``
     depends on seeing the failure: an empty list in its place would be
     remembered as "no dismissals" until the DB's stat happens to change.
+    An archived run answers from its ``precedents.json``, never restored.
     """
+    if is_archived(run_dir):
+        return read_precedents(run_dir, "dismissed")
     if not (run_dir / EVALUATION_DB_FILENAME).is_file():
         return []
     with open_evaluation_db(run_dir) as conn:
-        return [
-            (row[0], row[1])
-            for row in conn.execute(
-                "SELECT requirement, snippet FROM findings WHERE verdict = 'dismissed'"
-            )
-        ]
+        return [(row[0], row[1]) for row in conn.execute(DISMISSED_SQL)]
 
 
 def read_dismissed_snippets(run_dir: Path) -> list[tuple[str | None, str | None]]:
@@ -234,7 +228,12 @@ def dismissed_source_stamp(run_dir: Path) -> tuple[int, ...] | None:
     stats is caught by the main-file stat that follows. The other order reads
     the old main file, then finds no WAL, and reports the exact stamp taken
     before the dismissal: a stale memo hit.
+
+    An archived run is stamped by its ``precedents.json``, so archiving and
+    restoring a run both refresh the memo.
     """
+    if is_archived(run_dir):
+        return precedents_stamp(run_dir)
     db_path = run_dir / EVALUATION_DB_FILENAME
     wal_parts: tuple[int, ...] = ()
     try:
@@ -255,13 +254,16 @@ def read_semantic_eligible_dismissals(run_dir: Path) -> list[tuple[str | None, s
     Excludes scope-level dismissals and empty-snippet/line<=0 rows, mirroring
     ``_semantic_eligible`` in ``analysis/mcp/enricher.py`` on the match side:
     without the filter a single empty-snippet dismissal would cosine-match
-    every future finding under that requirement.
+    every future finding under that requirement. An archived run answers from
+    its ``precedents.json``, never restored.
     """
-    if not (run_dir / EVALUATION_DB_FILENAME).is_file():
-        return []
     try:
+        if is_archived(run_dir):
+            return read_precedents(run_dir, "semantic")
+        if not (run_dir / EVALUATION_DB_FILENAME).is_file():
+            return []
         with open_evaluation_db(run_dir) as conn:
-            return [(req, snippet) for req, snippet in conn.execute(_SEMANTIC_ELIGIBLE_SQL)]
+            return [(req, snippet) for req, snippet in conn.execute(SEMANTIC_ELIGIBLE_SQL)]
     except (sqlite3.Error, OSError, RuntimeError) as exc:
         _logger.warning("Could not read dismissed texts from %s: %s", run_dir, exc)
         return []

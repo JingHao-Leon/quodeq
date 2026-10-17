@@ -45,20 +45,25 @@ function matchVisible(allDimensions, wanted) {
   return seed;
 }
 
-// Seed the selection once from the navigation context (e.g. arriving from a
-// dimension or principle detail). Entering Evaluate any other way starts
-// with nothing selected. Runs in an effect because the chips
-// (allDimensions) load asynchronously; the ref keeps it to one seed per
-// mount, so later re-renders never clobber the user's own toggles.
-function useSeedPreselectedDims(allDimensions, preselectDims, setSelectedDims) {
+// Seed the selection once per mount. An explicit preselect from the
+// navigation context (arriving from a dimension or principle detail) wins;
+// otherwise a first run (a project never evaluated) ticks every dimension,
+// never a partial default; any other entry starts with nothing selected.
+// Runs in an effect because the chips (allDimensions) load asynchronously;
+// the ref keeps it to one seed per mount, so later re-renders never clobber
+// the user's own toggles.
+function useSeedSelection(allDimensions, { preselectDims, isFirstRun }, setSelectedDims) {
   const seededRef = useRef(false);
   useEffect(() => {
-    if (seededRef.current || !preselectDims || preselectDims.length === 0) return;
+    const hasPreselect = preselectDims && preselectDims.length > 0;
+    if (seededRef.current || (!hasPreselect && !isFirstRun)) return;
     if (allDimensions.length === 0) return;
     seededRef.current = true;
-    const seed = matchVisible(allDimensions, preselectDims);
+    const seed = hasPreselect
+      ? matchVisible(allDimensions, preselectDims)
+      : new Set(allDimensions.map((d) => d.id));
     if (seed.size > 0) setSelectedDims(seed);
-  }, [allDimensions, preselectDims]);
+  }, [allDimensions, preselectDims, isFirstRun]);
 }
 
 /**
@@ -68,13 +73,14 @@ function useSeedPreselectedDims(allDimensions, preselectDims, setSelectedDims) {
  * Scanning with standards available but none selected reports through
  * `onValidationFail` instead of starting. A one-shot clean scan is consumed
  * only once the start actually goes through, so a refused or failed start
- * leaves the toggle armed for the retry.
+ * leaves the toggle armed for the retry. `isFirstRun` (a project with no
+ * runs) seeds every dimension unless `preselectDims` names some.
  */
-export function useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail, preselectDims = [], project = null, timeLimitS = null }) {
+export function useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail, preselectDims = [], isFirstRun = false, project = null, timeLimitS = null }) {
   const { selectedDims, setSelectedDims, toggleDim, selectAll, clearAll, refuseEmptySelection } = useDimensionSet(allDimensions);
   const [cleanScan, setCleanScan] = useState(CLEAN_PERSIST.OFF);
 
-  useSeedPreselectedDims(allDimensions, preselectDims, setSelectedDims);
+  useSeedSelection(allDimensions, { preselectDims, isFirstRun }, setSelectedDims);
 
   const handleScan = () => {
     if (refuseEmptySelection(onValidationFail)) return;

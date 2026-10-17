@@ -8,10 +8,10 @@ import { startFolder, startUrl } from './analyzeLaunchStart.js';
 /**
  * The add panel's `add`. A folder registers synchronously and is handed over
  * at once. A url is probed (unreachable opens the access panel), then posted
- * as a clone job (202) and handed over as "cloning": the panel closes and the
- * Repositories tab's tile shows the clone; when it lands the app selects the
- * project. A 409 PROJECT_EXISTS resumes the registered project and hands it
- * over. Closing the panel (unmount) drops any hand-over still in flight.
+ * as a clone job (202) and handed over as "cloning": the Repositories tab's
+ * tile shows the clone; when it lands the app selects the project. A 409
+ * PROJECT_EXISTS resumes the registered project and hands it over. Closing
+ * the panel (unmount) drops any hand-over still in flight.
  *
  * `onAdded({ projectId, cloning })` is the hand-over; never after the panel
  * unmounted.

@@ -12,10 +12,12 @@ export function getAiClients() {
 
 /**
  * @param {string} clientId
+ * @param {{refresh?: boolean}} [options] refresh skips the server's cached list.
  * @returns {Promise<Object[]>}
  */
-export function getClientModels(clientId) {
-  return request(`/ai-clients/${encodeURIComponent(clientId)}/models`);
+export function getClientModels(clientId, { refresh = false } = {}) {
+  const query = refresh ? '?refresh=1' : '';
+  return request(`/ai-clients/${encodeURIComponent(clientId)}/models${query}`);
 }
 
 /**

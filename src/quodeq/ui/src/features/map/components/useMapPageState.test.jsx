@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import useMapPageState from './useMapPageState.js';
+import { VIZ_STYLE } from '../mapVocab.js';
+import { buildFileTree } from '../viz/core/fileTree.js';
 import { writeVisibleStandardIds } from '../../../utils/visibleStandards.js';
 import { createPageStateCache, readCachedState, clearAllCachedState } from '../../../utils/pageStateCache.js';
 
@@ -24,6 +26,41 @@ function setup(props) {
     }
   );
 }
+
+describe('useMapPageState: pack colour mode', () => {
+  it('an old health nav entry opens the pack as concentration', () => {
+    const { result } = setup({ nav: { viewMode: 'health' } });
+    expect(result.current.viewState.viewMode).toBe('concentration');
+  });
+
+  it('an old pack entry coloured by activity opens the Activity tab', () => {
+    const { result } = setup({ nav: { vizStyle: 'zoompack', viewMode: 'activity' } });
+    expect(result.current.viewState.vizStyle).toBe(VIZ_STYLE.ACTIVITY);
+    expect(result.current.viewState.viewMode).toBe('activity');
+  });
+
+  it('the Activity tab colours the pack by activity, the Circle Pack by concentration', () => {
+    expect(setup({ nav: { vizStyle: 'activity' } }).result.current.viewState.viewMode).toBe('activity');
+    expect(setup({ nav: { vizStyle: 'zoompack' } }).result.current.viewState.viewMode).toBe('concentration');
+  });
+});
+
+describe('useMapPageState: view style', () => {
+  it('an old riskmatrix nav entry opens Risk', () => {
+    const { result } = setup({ nav: { vizStyle: 'riskmatrix' } });
+    expect(result.current.viewState.vizStyle).toBe(VIZ_STYLE.RISK);
+  });
+
+  it('an unknown nav value opens the Circle Pack', () => {
+    const { result } = setup({ nav: { vizStyle: 'heatgrid' } });
+    expect(result.current.viewState.vizStyle).toBe(VIZ_STYLE.ZOOMPACK);
+  });
+
+  it('Galaxy is kept', () => {
+    const { result } = setup({ nav: { vizStyle: 'galaxy' } });
+    expect(result.current.vizState.vizStyle).toBe(VIZ_STYLE.GALAXY);
+  });
+});
 
 describe('useMapPageState: page-state cache injection', () => {
   beforeEach(() => {
@@ -73,5 +110,40 @@ describe('useMapPageState: dimension source while accumulated is loading', () =>
     const full = [{ dimension: 'Security', violations: [], compliance: [] }];
     const { result } = setup({ data: { projectName: 'proj-x', accumulated: null, dashboard: { dimensions: full } } });
     expect(result.current.allDimensions).toBe(full);
+  });
+});
+
+/** The first file node under a tree node, depth first. */
+const firstFile = (node) => (node.isFile ? node : node.children.map(firstFile).find(Boolean));
+
+describe('useMapPageState: View Details on a Circle Pack or Galaxy node', () => {
+  it('a folder opens its scoped Findings view', () => {
+    const onNavigate = vi.fn();
+    const { result } = setup({ callbacks: { onNavigate } });
+    result.current.callbacks.onFileClick({ isFile: false, path: 'src/app', name: 'app' });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'folder', path: 'src/app' }, asOf: null });
+  });
+
+  it('the project root opens the project\'s', () => {
+    const onNavigate = vi.fn();
+    const { result } = setup({ callbacks: { onNavigate } });
+    result.current.callbacks.onFileClick({ isFile: false, path: '', name: 'proj-x' });
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'project' }, asOf: null });
+  });
+
+  it('a file opens the file\'s', () => {
+    const onNavigate = vi.fn();
+    const violations = [{ file: 'src/app/a.py', severity: 'minor', principle: 'P1' }];
+    const data = { projectName: 'proj-x', accumulated: { dimensions: [{ dimension: 'Security', violations, compliance: [] }] } };
+    const { result } = setup({ data, callbacks: { onNavigate } });
+    result.current.callbacks.onFileClick(firstFile(buildFileTree(data.accumulated.dimensions)));
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'file', path: 'src/app/a.py' }, asOf: null });
+  });
+
+  it('a past day of the time-lapse opens the same scope as of that day', () => {
+    const onNavigate = vi.fn();
+    const { result } = setup({ callbacks: { onNavigate } });
+    expect(result.current.callbacks.onPastDetails({ path: 'src/app', isFile: false }, { runId: 'r3', day: '2026-09-01' })).toBe(true);
+    expect(onNavigate).toHaveBeenCalledWith('violations', { scope: { kind: 'folder', path: 'src/app' }, asOf: { runId: 'r3', day: '2026-09-01' } });
   });
 });

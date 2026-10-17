@@ -45,7 +45,7 @@ COMPLIANT   src/api.py:88       Parameterized query prevents injection     CWE-8
             cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
 ```
 
-Each finding includes a reason, the offending code, and a fix plan. Results are stored as JSON on your machine.
+Each finding includes a reason, the offending code, and a fix plan. Results are stored on your machine as JSON files and local databases, with older runs compressed to save space.
 
 ---
 
@@ -157,7 +157,7 @@ unrecognized publisher on first launch: choose **More info** then **Run anyway**
 
 Click any dimension, file, or principle to explore the details. Dismiss false positives directly from the UI.
 
-Running `quodeq` is equivalent to `quodeq dashboard`. Both open the same UI.
+Running `quodeq` is equivalent to `quodeq dashboard`. Both open the same UI and hand the terminal back once the window is up. `quodeq status` shows what is running (window, API, evaluations) and `quodeq stop` closes the window and its API. Running evaluations keep going.
 
 ### CLI
 
@@ -319,7 +319,7 @@ Quodeq scores each principle on a 0 to 10 scale using four independent constrain
 
 By default, Quodeq evaluates the six ISO 25010 dimensions. It also ships with **Clean Architecture**, **Domain-Driven Design** and **Accessibility** (WCAG 2.2) standards, off until you enable them. You can create your own from the dashboard, or ask any AI to generate one as a `.json` file and import it.
 
-Numeric thresholds on the built-in standards (max function lines, max parameters, ...) can be tuned per project from the dashboard. Overrides live in `.quodeq/standards-overrides.json` at the repo root, so the whole team scans with the same numbers.
+Numeric thresholds on the built-in standards (max function lines, max parameters, ...) can be tuned per project from the dashboard. They are kept on your machine, per project, in `~/.quodeq/projects/<id>/standards.json`, and quodeq never writes them into the repository. Overrides from an older `.quodeq/standards-overrides.json` in a repository are copied once, the first time the project is used.
 
 ### Threat model
 
@@ -353,13 +353,14 @@ otherwise assumes the most pessimistic model, which is how it behaves today.
 ## Privacy
 
 There is no Quodeq account, no Quodeq server, and no telemetry. Your source code is read
-locally and evaluation results are written to `~/.quodeq/evaluations/` as plain JSON. If
-you run a local provider, nothing about your code leaves the machine at all. If you pick a
+locally and evaluation results are written to `~/.quodeq/evaluations/` as JSON files and local databases,
+with older runs compressed to save space. If you run a local provider, nothing about your code leaves the machine at all. If you pick a
 cloud provider, your code goes to that provider using your own API key or CLI account.
 
 Quodeq makes exactly one network call of its own: a daily unauthenticated version check
 (PyPI for `pip`/`pipx`/`uv` installs, GitHub Releases for the desktop apps). It shows a
-dismissible notice with the right upgrade step and never replaces itself. Turn it off with
+dismissible notice with the right upgrade step and never replaces itself on its own;
+`quodeq upgrade` runs that step when you ask. Turn it off with
 `QUODEQ_NO_UPDATE_NOTIFIER=1`, or under **Settings → Updates**.
 
 ---

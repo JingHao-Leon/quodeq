@@ -14,6 +14,7 @@ from quodeq.data.sqlite.row_mappers import (
 )
 from quodeq.data.sqlite.connection import open_evaluation_db
 from quodeq.data.sqlite._schema import INSERT_FINDING_SQL
+from quodeq.data.fs.run_archive import has_event_log
 
 
 _SELECT_COLUMNS = (
@@ -44,7 +45,7 @@ class SqliteFindingsRepository:
         self._events_log = events_log or (run_dir / "events.jsonl")
 
     def _ensure_fresh(self) -> None:
-        if self._events_log.is_file():
+        if self._events_log.is_file() or has_event_log(self._run_dir):
             project_dir = self._run_dir.parent
             self._projector.ensure_projected(
                 self._events_log,

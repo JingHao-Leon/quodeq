@@ -122,16 +122,19 @@ describe('CompareDuelView: score table', () => {
     expect(within(table()).getByText('auth')).toBeInTheDocument();
   });
 
-  it('sorts by gap first, by name on request', async () => {
+  it('sorts by gap first; a column header sorts, again reverses', async () => {
     const duel = makeDuel();
     duel.dimensions = [...duel.dimensions, { key: 'apis', label: 'apis', a: 7, b: 6.8, gap: 0.2, shared: true }];
     renderDuel(duel);
     const order = () => [...table().querySelectorAll('.compare-duel-table__group > ul > li:first-child .compare-duel-table__label')]
       .map((n) => n.textContent.replace(/^[▸▾]/, ''));
     expect(order()).toEqual(['security', 'apis', 'usability']);
-    await userEvent.click(within(table()).getByRole('button', { name: 'name' }));
-    expect(within(table()).getByRole('button', { name: 'name' })).toHaveAttribute('aria-pressed', 'true');
+    const byName = () => within(table()).getByRole('button', { name: 'Rank by dimension' });
+    await userEvent.click(byName());
+    expect(byName()).toHaveAttribute('aria-pressed', 'true');
     expect(order()).toEqual(['apis', 'security', 'usability']);
+    await userEvent.click(byName());
+    expect(order()).toEqual(['usability', 'security', 'apis']);
   });
 
   it('spells out whose score each number is', () => {

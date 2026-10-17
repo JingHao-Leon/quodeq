@@ -7,8 +7,9 @@
  * compare two lengths on opposite sides of a seam.
  *
  * Above it, the one line a manager reads (who leads on how many dimensions,
- * the widest gap); in its head, sorting for the analyst and a switch
- * between dimensions only and dimensions with their principles.
+ * the widest gap). Column headers sort (again reverses), as the fleet's
+ * tables do; the head keeps the switch between dimensions only and
+ * dimensions with their principles.
  */
 import { useState } from 'react';
 import { t } from '../../../strings/index.js';
@@ -16,6 +17,7 @@ import { scoreColorClass } from '../../../utils/formatters.js';
 import ComparePanel from './ComparePanel.jsx';
 import { gapClass, SideScore, signed1 } from './compareDuelShared.jsx';
 import { DUEL_SIDE } from '../duelTrendGeometry.js';
+import SortHead from './CompareSortButton.jsx';
 import { TABLE_SORT, dimensionTally, scoreAxis, sortScoreRows } from '../compareDuelTable.js';
 
 const NO_GAP = '·';
@@ -65,12 +67,15 @@ function Row({ row, axis, aName, bName, sub = false, toggle = null }) {
   );
 }
 
-function AxisHead({ axis }) {
+function AxisHead({ axis, sort, onSort, aName, bName }) {
+  const head = { sort, onSort };
   return (
-    <div className="compare-duel-table__axisRow" aria-hidden="true">
-      <span>{t('compare.duelTableDimension')}</span>
-      <span className="compare-duel-table__colName"><span className="compare-duel-plot__key compare-duel-plot__dot--a" /></span>
-      <span className="compare-duel-table__axis">
+    <div className="compare-duel-table__axisRow">
+      <span><SortHead sortKey={TABLE_SORT.NAME} label={t('compare.duelTableDimension')} {...head} /></span>
+      <span className="compare-duel-table__colName">
+        <SortHead sortKey={TABLE_SORT.A} label={aName} {...head}><span className="compare-duel-plot__key compare-duel-plot__dot--a" aria-hidden="true" /></SortHead>
+      </span>
+      <span className="compare-duel-table__axis" aria-hidden="true">
         {axis.zones.map((z) => (
           <span key={z.label} className="compare-duel-table__zone" style={{ left: `${axis.at(z.from)}%`, width: `${axis.at(z.to) - axis.at(z.from)}%` }}>
             {z.label}
@@ -78,8 +83,10 @@ function AxisHead({ axis }) {
         ))}
         {axis.ticks.map((v) => <span key={v} className="compare-duel-table__tick" style={{ left: `${axis.at(v)}%` }}>{v}</span>)}
       </span>
-      <span className="compare-duel-table__colName"><span className="compare-duel-plot__key compare-duel-plot__dot--b" /></span>
-      <span className="compare-duel-table__gapHead">{t('compare.duelTableGap')}</span>
+      <span className="compare-duel-table__colName">
+        <SortHead sortKey={TABLE_SORT.B} label={bName} {...head}><span className="compare-duel-plot__key compare-duel-plot__dot--b" aria-hidden="true" /></SortHead>
+      </span>
+      <span className="compare-duel-table__gapHead"><SortHead sortKey={TABLE_SORT.GAP} label={t('compare.duelTableGap')} {...head} /></span>
     </div>
   );
 }
@@ -104,21 +111,9 @@ function Summary({ duel }) {
   );
 }
 
-function Controls({ sort, setSort, withPrinciples, setWithPrinciples, aName, bName }) {
-  const options = [
-    [TABLE_SORT.GAP, t('compare.duelTableSortGap')],
-    [TABLE_SORT.A, aName],
-    [TABLE_SORT.B, bName],
-    [TABLE_SORT.NAME, t('compare.duelTableSortName')],
-  ];
+function Controls({ withPrinciples, setWithPrinciples }) {
   return (
     <span className="compare-duel-table__controls">
-      <span className="compare-duel-table__seg" role="group" aria-label={t('compare.duelTableSortAria')}>
-        <span className="compare-duel-table__segLabel">{t('compare.duelTableSort')}</span>
-        {options.map(([key, label]) => (
-          <button key={key} type="button" aria-pressed={sort === key} className="compare-duel-table__segBtn" onClick={() => setSort(key)}>{label}</button>
-        ))}
-      </span>
       <button type="button" aria-pressed={withPrinciples} className="compare-duel-table__segBtn compare-duel-table__principlesBtn" onClick={() => setWithPrinciples(!withPrinciples)}>
         {t('compare.duelTablePrinciples')}
       </button>
@@ -128,7 +123,9 @@ function Controls({ sort, setSort, withPrinciples, setWithPrinciples, aName, bNa
 
 export default function CompareDuelTable({ duel }) {
   const { a, b } = duel;
-  const [sort, setSort] = useState(TABLE_SORT.GAP);
+  // Widest gap first; NAME reads A to Z on its first press.
+  const [sort, setSort] = useState({ key: TABLE_SORT.GAP, desc: true });
+  const reversed = !sort.desc;
   const [withPrinciples, setWithPrinciples] = useState(false);
   const [open, setOpen] = useState(() => new Set());
   const axis = scoreAxis(duel);
@@ -144,19 +141,19 @@ export default function CompareDuelTable({ duel }) {
       ariaLabel={t('compare.duelTableAria')}
       header={t('compare.duelTableHeader')}
       note={t('compare.duelTableNote')}
-      headExtra={<Controls sort={sort} setSort={setSort} withPrinciples={withPrinciples} setWithPrinciples={setWithPrinciples} aName={a.name} bName={b.name} />}
+      headExtra={<Controls withPrinciples={withPrinciples} setWithPrinciples={setWithPrinciples} />}
     >
       <Summary duel={duel} />
-      <AxisHead axis={axis} />
+      <AxisHead axis={axis} sort={sort} onSort={setSort} aName={a.name} bName={b.name} />
       <ul className="compare-duel-table">
-        {sortScoreRows(duel.dimensions, sort).map((d) => {
+        {sortScoreRows(duel.dimensions, sort.key, reversed).map((d) => {
           const items = itemsByDim.get(d.key);
           const shown = items && (withPrinciples || open.has(d.key));
           return (
             <li key={d.key} className="compare-duel-table__group">
               <ul className="compare-duel-table__rows">
                 <Row row={d} {...rowProps} toggle={items && !withPrinciples ? { open: open.has(d.key), onClick: () => toggleDim(d.key) } : null} />
-                {shown && sortScoreRows(items, sort).map((p) => <Row key={p.key} row={p} sub {...rowProps} />)}
+                {shown && sortScoreRows(items, sort.key, reversed).map((p) => <Row key={p.key} row={p} sub {...rowProps} />)}
               </ul>
             </li>
           );

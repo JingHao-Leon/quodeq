@@ -11,6 +11,7 @@
  */
 import { useState } from 'react';
 import { t } from '../../../strings/index.js';
+import { pluralKey } from '../../../utils/plural.js';
 import { relativeTime } from '../../../components/LastFetchedLine.jsx';
 import { scoreColorClass, scoreGradeColorVar } from '../../../utils/formatters.js';
 import ComparePanel from './ComparePanel.jsx';
@@ -48,7 +49,9 @@ function Head({ axis, sort, onSort, hasCoverage, showLastScan }) {
       <span>{t('compare.colProject')}</span>
       <span className="compare-fleettable__axis" aria-hidden="true">
         {axis.zones.map((z) => (
-          <span key={z.label} className="compare-fleettable__zone" style={{ left: `${axis.at(z.from)}%`, width: `${axis.at(z.to) - axis.at(z.from)}%` }}>{z.label}</span>
+          <span key={z.label} className="compare-fleettable__zone" style={{ left: `${axis.at(z.from)}%`, width: `${axis.at(z.to) - axis.at(z.from)}%` }}>
+            <span className="compare-fleettable__zonelabel">{z.label}</span>
+          </span>
         ))}
         {axis.ticks.map((v) => <span key={v} className="compare-fleettable__tick" style={{ left: `${axis.at(v)}%` }}>{v}</span>)}
       </span>
@@ -120,8 +123,13 @@ function PendingRows({ pending, unevaluated, errorsById, onOpenProject }) {
       ))}
       {unevaluated.length > 0 && (
         <li className="compare-fleettable__pending">
-          <span>{t('compare.noEvalsCollapsed', { count: unevaluated.length })}</span>
-          <span>{unevaluated.map((r) => r.name).join(', ')}</span>
+          <span>{t(pluralKey(unevaluated.length, 'compare.noEvalsCollapsedOne', 'compare.noEvalsCollapsed'), { count: unevaluated.length })}</span>
+          {/* The remote tag tells a shared copy apart from a local project of the same name. */}
+          <span className="compare-fleettable__unevaluated">
+            {unevaluated.map((r) => (
+              <span key={r.id}>{r.name}{r.remote && <span className="compare-row__remote">{t('compare.remoteTag')}</span>}</span>
+            ))}
+          </span>
         </li>
       )}
     </>

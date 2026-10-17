@@ -12,7 +12,7 @@ function seed(client) {
   client.setQueryData(projectKeys.scores(P, null), { trend: [row('A'), row('B')], availableRuns: [row('A'), row('B')], accumulated: { x: 1 } });
   client.setQueryData(projectKeys.scores(P, 'B'), { trend: [row('B')], availableRuns: [row('B')] });
   client.setQueryData(projectKeys.dashboard('proj-z', null), { trend: [row('B')] });
-  client.setQueryData(projectKeys.gradeExplain(P, 'B', 'security'), null);
+  client.setQueryData(projectKeys.runDiff(P, 'B'), null);
   client.setQueryData(projectKeys.runs(P), [row('B')]);
 }
 
@@ -38,14 +38,14 @@ describe('dropRunFromProjectQueries', () => {
     const client = new QueryClient();
     seed(client);
     dropRunFromProjectQueries(client, P, 'local', 'B');
-    expect(client.getQueryData(projectKeys.gradeExplain(P, 'B', 'security'))).toBeNull();
+    expect(client.getQueryData(projectKeys.runDiff(P, 'B'))).toBeNull();
     expect(client.getQueryData(projectKeys.runs(P))).toEqual([row('B')]);
   });
 
   it('does not touch the state of queries the run was not in', () => {
     const client = new QueryClient();
     seed(client);
-    const key = projectKeys.gradeExplain(P, 'B', 'security');
+    const key = projectKeys.runDiff(P, 'B');
     const before = client.getQueryState(key).dataUpdateCount;
     const untouchedKey = projectKeys.dashboard(P, 'C');
     client.setQueryData(untouchedKey, { trend: [row('A')] });

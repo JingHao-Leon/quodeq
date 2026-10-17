@@ -23,11 +23,17 @@ vi.mock('../../../utils/explorerUtils.js', async (importOriginal) => {
   return { ...m, buildProjectRootFile: (...a) => { calls.rootFile += 1; return m.buildProjectRootFile(...a); } };
 });
 vi.mock('../hooks/useStandardDescriptions.js', () => ({ useStandardDescriptions: () => ({ standardDescription: '' }) }));
+// The previous period's run is a query of its own; these pages have none.
+vi.mock('../../../hooks/usePrinciplePeriodDeltas.js', () => ({ usePrinciplePeriodDeltas: () => ({ principles: new Map(), previous: null }) }));
+// The since line's run comparisons read through react-query too.
+vi.mock('../../../hooks/usePeriodDiffs.js', () => ({ usePeriodDiffs: () => ({ runs: [], payloads: [] }) }));
+// The Map's areas read through react-query as well.
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
 vi.mock('./useExplorerPageSpecs.jsx', () => ({ useExplorerPageSpecs: () => {} }));
-vi.mock('./ExplorerStatsPanel.jsx', () => ({ default: () => null }));
-vi.mock('./ExplorerRadialPanel.jsx', () => ({ default: () => null }));
+vi.mock('./DimensionScoreHistoryPanel.jsx', () => ({ default: () => null }));
+vi.mock('../../../components/radial/RadialPanel.jsx', () => ({ default: () => null }));
 vi.mock('./PrinciplesCardsRow.jsx', () => ({ default: () => null }));
-vi.mock('../../dashboard/components/TopOffendingFilesTable.jsx', () => ({ default: () => null }));
+vi.mock('../../../components/TopOffendingFilesTable.jsx', () => ({ default: () => null, OffendingFilesHead: () => null }));
 
 import ExplorerPage from './ExplorerPage.jsx';
 

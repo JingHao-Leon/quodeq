@@ -15,12 +15,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.core.scoring.params import ScoringParams
-from quodeq.core.scoring.projector_scoring import compute_run_score
-from quodeq.services.ports import GradeTablesReader
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
+from quodeq.services.ports import StoreUnreadableError
+from quodeq.services.wiring_sync import has_event_log, has_retired_formula, is_archived  # noqa: F401 -- re-exported API
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
-    SQLiteStateStore,
+    SQLiteStateStore, SqliteFindingsRepository, has_evaluation_db,
     UnsupportedSchemaError,
     clear_rescore_pending,
     compute_run_grades,
@@ -68,8 +68,7 @@ def _event_log_runs(project_dir: Path) -> list[Path]:
     genuinely newer ones.
     """
     return sorted(
-        (r for r in project_dir.iterdir()
-         if r.is_dir() and (r / "events.jsonl").is_file()),
+        (r for r in project_dir.iterdir() if r.is_dir() and has_event_log(r)),
         key=_run_recency_key, reverse=True,
     )
 
@@ -119,17 +118,27 @@ def _iter_event_log_runs(reports_root: Path) -> Iterator[Path]:
         yield from runs
 
 
+def count_rescorable_runs(reports_root: Path) -> int:
+    """How many runs an apply rescores: every run dir with an events.jsonl."""
+    return sum(1 for _ in _iter_event_log_runs(reports_root))
+
+
 def _recompute_with_retries(run_dir: Path, params: ScoringParams) -> bool:
     """Recompute *run_dir*'s grades, retrying transient failures.
 
     Returns True on success. On exhausting the retries, logs the failure
     itself and returns False -- the caller decides what to do with that.
+    An unreadable store is permanent, so it fails at once without a retry.
     """
     last_exc: Exception | None = None
     for attempt in range(_APPLY_RETRIES + 1):
         try:
+            project_run(run_dir)
             recompute_grades(run_dir, params=params)
             return True
+        except StoreUnreadableError as exc:  # permanent (corrupt, newer schema, unrestorable archive)
+            _logger.warning("Rescore skipped for %s: %s; it keeps the old formula's grades.", run_dir, exc)
+            return False
         except (sqlite3.Error, OSError, ValueError, RuntimeError) as exc:
             last_exc = exc
             if attempt == _APPLY_RETRIES:
@@ -220,47 +229,13 @@ def _rescore_runs(
     return ApplyResult(rescored=rescored, failed=failed)
 
 
-def preview_scores(
-    reports_root: Path, project: str, params: ScoringParams,
-    *, store_factory: Callable[[Path], GradeTablesReader] | None = None,
-) -> dict | None:
-    """Recompute the project's latest event-log run in memory with *params*.
+def project_run(run_dir: Path) -> None:
+    """Build the run's database from its event log when it has none yet.
 
-    Read-only: never writes evaluation.db. Returns None when the project has
-    no run with an events.jsonl. The ``before`` numbers use the currently
-    SAVED params (what the dashboard shows today); the ``after`` numbers use
-    the candidate *params* being previewed. *store_factory* lets callers
-    inject a fake ``GradeTablesReader`` instead of a real SQLite file;
-    defaults to ``SQLiteStateStore``.
+    An archived run, or one a non-projecting reader restored, has an event
+    log but no database, so reading its findings straight away would grade
+    nothing. A run that has a database is left alone: preview writes nothing
+    and opens no extra database.
     """
-    project_dir = reports_root / project
-    if not project_dir.is_dir():
-        return None
-    run_dirs = _event_log_runs(project_dir)
-    if not run_dirs:
-        return None
-    run_dir = run_dirs[0]
-
-    saved = load_params()
-    store = (store_factory or SQLiteStateStore)(run_dir)
-    before_dims = store.read_dimension_scores()
-    before_overall = compute_run_score(before_dims, params=saved)
-
-    _, after_dims = compute_run_grades(run_dir, params)
-    after_overall = compute_run_score(after_dims, params=params)
-
-    def _payload(dims: list[dict], overall: dict) -> dict:
-        return {
-            "overall": overall,
-            "dimensions": [
-                {"dimension": d["dimension"], "score": d["score"], "grade": d["grade"]}
-                for d in sorted(dims, key=lambda x: x["dimension"] or "")
-            ],
-        }
-
-    return {
-        "project": project,
-        "runId": run_dir.name,
-        "before": _payload(before_dims, before_overall),
-        "after": _payload(after_dims, after_overall),
-    }
+    if is_archived(run_dir) or (has_event_log(run_dir) and not has_evaluation_db(run_dir)):
+        SqliteFindingsRepository(run_dir).ensure_projected()

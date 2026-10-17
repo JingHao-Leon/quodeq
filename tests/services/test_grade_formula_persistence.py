@@ -92,3 +92,31 @@ def test_rescore_dimensions_uses_saved_params(formula_path, monkeypatch):
 
     rescore_dimensions([], SuppressionKeys(set()))
     assert seen.get("called") is True
+
+
+def _write_retired(formula_path):
+    old = params_to_dict(dataclasses.replace(DEFAULT_PARAMS, base_k=0.12))
+    formula_path.write_text(json.dumps(old | {ALGO_VERSION_KEY: GRADE_ALGO_VERSION - 1}))
+    return old
+
+
+def test_a_retired_formula_is_reported_so_the_ui_can_say_so(formula_path):
+    assert grade_formula.has_retired_formula() is False
+    _write_retired(formula_path)
+    assert grade_formula.has_retired_formula() is True
+    grade_formula.save_params(dataclasses.replace(DEFAULT_PARAMS, base_k=0.3))
+    assert grade_formula.has_retired_formula() is False
+
+
+def test_saving_over_a_retired_formula_keeps_a_backup(formula_path):
+    old = _write_retired(formula_path)
+    grade_formula.save_params(dataclasses.replace(DEFAULT_PARAMS, base_k=0.3))
+    backup = formula_path.with_name(f"{formula_path.stem}.v{GRADE_ALGO_VERSION - 1}.json")
+    assert json.loads(backup.read_text())["baseK"] == old["baseK"]
+
+
+def test_resetting_a_retired_formula_keeps_a_backup(formula_path):
+    _write_retired(formula_path)
+    grade_formula.reset_params()
+    assert not formula_path.exists()
+    assert formula_path.with_name(f"{formula_path.stem}.v{GRADE_ALGO_VERSION - 1}.json").is_file()

@@ -8,9 +8,12 @@ cross-layer import.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
+import time
 
 from quodeq.shared.constants import PLATFORM_WIN32
+from quodeq.shared.env_resolve import resolve_env
 
 
 def is_pid_alive(pid: int) -> bool:
@@ -50,3 +53,96 @@ def is_pid_alive(pid: int) -> bool:
     except (OSError, ProcessLookupError):
         return False
     return True
+
+
+_PS_TIMEOUT_S = 5
+
+
+def _on_windows() -> bool:
+    return sys.platform == PLATFORM_WIN32
+
+
+def _command_line_cmd(pid: int) -> list[str]:
+    """The command that prints *pid*'s command line: ``ps`` on POSIX, CIM through PowerShell on Windows."""
+    if _on_windows():
+        query = f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"
+        return ["powershell", "-NoProfile", "-NonInteractive", "-Command", query]
+    return ["ps", "-o", "command=", "-p", str(pid)]
+
+
+def process_has_arg(pid: int, token: str) -> bool:
+    """True when *pid* is alive and *token* is one of its whole argv tokens.
+
+    Guards a PID read from a file before trusting or signalling it: the OS
+    reuses PIDs, so a stale file can name any program. A whole token, not a
+    substring: "quodeq" alone also sits in the interpreter's path
+    (``.../quodeq/.venv/bin/python``) of every process run from that venv.
+    A command line that cannot be read counts as not matching, on every
+    platform: never signal a process we could not identify.
+    """
+    if not is_pid_alive(pid):
+        return False
+    try:
+        out = subprocess.run(
+            _command_line_cmd(pid),
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=_PS_TIMEOUT_S, check=False,
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return token in (out or "").split()
+
+
+_START_SLACK_S = 2  # `ps lstart` has 1 s resolution; clocks and file mtimes can disagree slightly
+_LSTART_FORMAT = "%a %b %d %H:%M:%S %Y"  # `ps -o lstart=` under LC_ALL=C
+
+
+# pid -> start time. Fixed for as long as the process lives, and the dashboard
+# asks every poll tick, so one `ps` per process, not per tick. An entry is
+# dropped the moment its pid is seen dead (is_original_process), before the
+# OS can hand the number to anyone else.
+_START_TIMES: dict[int, float] = {}
+_START_TIMES_MAX = 1024
+
+
+def process_started_at(pid: int) -> float | None:
+    """Epoch seconds *pid* started at, or None when unknown (dead, Windows, odd ``ps``)."""
+    if sys.platform == PLATFORM_WIN32:
+        return None
+    if pid in _START_TIMES:
+        return _START_TIMES[pid]
+    started = _ps_start_time(pid)
+    if started is not None:
+        if len(_START_TIMES) >= _START_TIMES_MAX:
+            _START_TIMES.clear()
+        _START_TIMES[pid] = started
+    return started
+
+
+def _ps_start_time(pid: int) -> float | None:
+    try:
+        out = subprocess.run(
+            ["ps", "-o", "lstart=", "-p", str(pid)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=_PS_TIMEOUT_S, check=False, env={**resolve_env(None), "LC_ALL": "C"},
+        ).stdout.strip()
+        return time.mktime(time.strptime(out, _LSTART_FORMAT)) if out else None
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return None
+
+
+def is_original_process(pid: int, recorded_at: float) -> bool:
+    """True when *pid* is alive and is the process that recorded it at *recorded_at*.
+
+    For a PID a process wrote about itself (a run's ``.pid``, ``status.json``):
+    that process was already running when it wrote it, so a live *pid* that
+    started *after* the record is a stranger the OS handed the number to once
+    the original ended. Independent of how the process was launched, so an
+    in-process ``quodeq review`` run counts like a ``quodeq evaluate`` one.
+    Where the start time is unknown (Windows), liveness alone has to do.
+    """
+    if not is_pid_alive(pid):
+        _START_TIMES.pop(pid, None)
+        return False
+    started = process_started_at(pid)
+    return started is None or started <= recorded_at + _START_SLACK_S

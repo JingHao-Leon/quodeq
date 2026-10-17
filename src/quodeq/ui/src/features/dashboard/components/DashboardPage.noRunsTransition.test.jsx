@@ -3,6 +3,14 @@ import { describe, it, expect, vi } from 'vitest';
 import DashboardPage from './DashboardPage.jsx';
 import { SidePaneProvider } from '../../side-pane/index.js';
 
+// A never-evaluated local project's Overview heading (NeverEvaluatedPanel).
+const NEVER_EVALUATED = /has not been evaluated yet/;
+
+// The areas card reads the Map's history through react-query; this test is about the panels around it.
+vi.mock('../../map/components/RiskAreasPanel.jsx', () => ({ default: () => null }));
+// The header's previous period, since line and model read through react-query too.
+vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () => null, useOverviewSince: () => null, useRunModel: () => null }));
+
 // Split from DashboardPage.test.jsx: the no-runs -> first-run transition.
 
 // The no-runs -> first-run transition. The redundant
@@ -32,7 +40,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={{ ...baseNoRuns, isFetching: true }} callbacks={{}} runMode={false} />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
     expect(container.querySelector('.loading-screen')).toBeNull();
     expect(container.querySelector('.dashboard-page').className).toContain('section-pending');
   });
@@ -43,7 +51,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={baseNoRuns} callbacks={{}} runMode={false} />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
 
     // selectedRun flips to the new run id: new dashboard query key mounts,
     // same project/source, loading true, dashboard still null.
@@ -52,7 +60,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={{ ...baseNoRuns, loading: true, isFetching: true }} callbacks={{}} runMode={false} />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
     expect(container.querySelector('.loading-screen')).toBeNull();
     expect(container.querySelector('.dashboard-page').className).toContain('section-pending');
 
@@ -80,7 +88,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
     expect(container.querySelector('.loading-screen')).toBeNull();
     expect(container.querySelector('.dashboard-page').className).toContain('section-pending');
 
@@ -100,7 +108,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         />
       </SidePaneProvider>,
     );
-    expect(queryByText('No evaluations yet')).toBeNull();
+    expect(queryByText(NEVER_EVALUATED)).toBeNull();
     expect(container.querySelector('.loading-screen')).toBeNull();
   });
 
@@ -110,7 +118,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={baseNoRuns} callbacks={{}} runMode={false} />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
 
     rerender(
       <SidePaneProvider>
@@ -127,7 +135,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         />
       </SidePaneProvider>,
     );
-    expect(queryByText('No evaluations yet')).toBeNull();
+    expect(queryByText(NEVER_EVALUATED)).toBeNull();
     expect(container.querySelector('.overview-skeleton')).toBeTruthy();
     expect(container.querySelector('.loading-screen')).toBeNull();
   });
@@ -139,7 +147,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={{ ...baseNoRuns, selectedRun: 'r1' }} callbacks={{ onRetry }} runMode={true} />
       </SidePaneProvider>,
     );
-    expect(queryByText('No evaluations yet')).toBeNull();
+    expect(queryByText(NEVER_EVALUATED)).toBeNull();
     const page = container.querySelector('.dashboard-page');
     expect(page).toBeTruthy();
     expect(page.children.length).toBeGreaterThan(0);
@@ -164,7 +172,7 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={baseNoRuns} callbacks={{}} runMode={false} />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
 
     // User opens a run detail view for the same project+source, then returns
     // to Overview without DashboardPage ever unmounting (App.jsx's key is the
@@ -184,6 +192,6 @@ describe('DashboardPage no-runs -> first-run transition (P5-T2)', () => {
         <DashboardPage data={{ ...baseNoRuns, loading: true, isFetching: true }} callbacks={{}} runMode={false} />
       </SidePaneProvider>,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
   });
 });

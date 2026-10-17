@@ -1,5 +1,6 @@
 import { t, LOCALE } from '../../../../strings/index.js';
 import { relativeTime } from '../../../../utils/relativeTime.js';
+import { formatBytes } from '../../../../utils/formatSize.js';
 import Badge from '../../../../components/Badge.jsx';
 import { formatDate, formatPath } from '../projectCards/projectDisplayHelpers.js';
 import { PROJECT_LOCATION } from '../../../../models/project.js';
@@ -10,7 +11,8 @@ const EMPTY_CELL = '–';
 
 // The second line under a row's name: the folder (or git URL) for a local
 // project, "remote only" with the publish age for one that lives only on
-// the server. A missing folder says so first, in the warning color.
+// the server. A missing folder says so first, in the warning color; a git
+// checkout ends with its branch (short sha when detached).
 function NameSubline({ entry, project }) {
   if (!entry.local) {
     const rel = relativeTime(entry.shared?.publishedAt);
@@ -21,6 +23,7 @@ function NameSubline({ entry, project }) {
     <small className="projects-row__sub">
       {rowLocation(entry) === ROW_LOCATION.MISSING && <span className="projects-row__warn">{t('projects.pathNotFound')}</span>}
       {path && <span className="projects-row__path">{path}</span>}
+      {project.branch && <span className="projects-row__branch" title={t('projects.branchTitle')}>{project.branch}</span>}
     </small>
   );
 }
@@ -56,8 +59,41 @@ export function FilesCell({ project }) {
   return <div className="projects-row__num projects-row__files" role="cell">{files != null ? files.toLocaleString(LOCALE) : EMPTY_CELL}</div>;
 }
 
+// `stored` is the project's storage summary entry ({bytes, runs, archived}):
+// null before the summary loads and for a project that is not on this machine.
+export function SizeCell({ stored }) {
+  const bytes = stored?.bytes;
+  return <div className="projects-row__num projects-row__size" role="cell">{bytes != null ? formatBytes(bytes) : EMPTY_CELL}</div>;
+}
+
 export function LastRunCell({ project }) {
   return <div className="projects-row__num projects-row__last" role="cell">{formatDate(project.latestDate) ?? EMPTY_CELL}</div>;
+}
+
+// The grade, files and last-run columns a never-evaluated row has nothing
+// for: one muted cell across all three keeps the grid aligned.
+const RUN_COLUMNS = 4;
+
+/**
+ * The grade, files and last-run cells, or, for a project never evaluated,
+ * one quiet "not evaluated yet" across the three.
+ */
+export function RunCells({ project, notEvaluated, grade, size }) {
+  if (notEvaluated) {
+    return (
+      <div className="projects-row__not-evaluated projects-row__muted" role="cell" aria-colspan={RUN_COLUMNS}>
+        {t('projects.notEvaluatedYet')}
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="projects-row__grade" role="cell">{grade}</div>
+      <FilesCell project={project} />
+      <LastRunCell project={project} />
+      {size}
+    </>
+  );
 }
 
 const LOCATION_LABEL = {

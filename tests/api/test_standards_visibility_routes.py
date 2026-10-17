@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from quodeq.api.app import create_app
+from quodeq.shared.env_paths import get_evaluations_dir, get_quodeq_dir
 from quodeq.core.standards.visibility import DEFAULT_VISIBLE_STANDARDS, VISIBILITY_RELPATH
 
 # PUT is a state-changing request; the CSRF check in quodeq.api.security
@@ -19,20 +20,36 @@ def project_id() -> str:
 
 
 @pytest.fixture()
-def detached_project_id() -> str:
-    """A project id with no local working copy, driving the 404 branch."""
-    return "proj-detached"
-
-
-@pytest.fixture()
 def repo_root(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     root.mkdir()
     return root
 
 
+def _register(pid: str, repo: Path) -> None:
+    """Record *repo* as the local clone of *pid* under the sandboxed evaluations dir."""
+    info = Path(get_evaluations_dir()) / pid / "repository_info.json"
+    info.parent.mkdir(parents=True, exist_ok=True)
+    info.write_text(json.dumps({"name": "p", "path": str(repo)}), encoding="utf-8")
+
+
 @pytest.fixture()
-def client(repo_root: Path, project_id: str, monkeypatch: pytest.MonkeyPatch):
+def local_project(repo_root: Path, project_id: str):
+    _register(project_id, repo_root)
+    return project_id, repo_root
+
+
+@pytest.fixture()
+def local_project_with_repo_file(repo_root: Path, project_id: str):
+    _register(project_id, repo_root)
+    legacy = repo_root / VISIBILITY_RELPATH
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text(json.dumps({"version": 1, "visibleStandardIds": ["security"]}), encoding="utf-8")
+    return project_id, repo_root
+
+
+@pytest.fixture()
+def client():
     """A test client with no STANDARDS_* overrides, so knownStandardIds comes
     from the real bundled compiled standards (security, clean-architecture,
     etc.) -- unlike test_standards_overrides_routes.py's client, which stubs
@@ -40,12 +57,6 @@ def client(repo_root: Path, project_id: str, monkeypatch: pytest.MonkeyPatch):
     against specific params, not the full known-id catalog.
     """
     app = create_app(test_config={"TESTING": True})
-
-    import quodeq.api.standards_project as _guard
-    monkeypatch.setattr(
-        _guard, "resolve_repo_root",
-        lambda pid: str(repo_root) if pid == project_id else None,
-    )
 
     with app.test_client() as c:
         yield c
@@ -78,9 +89,9 @@ def test_put_persists_and_get_reads_back(client, project_id, repo_root):
                        headers=_LOCALHOST)
     assert resp.status_code == 200
     assert resp.get_json()["isDefault"] is False
-    saved = json.loads((repo_root / VISIBILITY_RELPATH).read_text(encoding="utf-8"))
-    assert saved == {"version": 1,
-                     "visibleStandardIds": ["security", "clean-architecture"]}
+    saved = json.loads((get_quodeq_dir() / "projects" / project_id / "standards.json").read_text(encoding="utf-8"))
+    assert saved["enabled"] == ["security", "clean-architecture"]
+    assert not (repo_root / VISIBILITY_RELPATH).exists()
     again = client.get(f"/api/projects/{project_id}/standards-visibility").get_json()
     assert again["visibleStandardIds"] == ["security", "clean-architecture"]
 
@@ -91,7 +102,7 @@ def test_put_rejects_unknown_standard(client, project_id, repo_root):
                        headers=_LOCALHOST)
     assert resp.status_code == 400
     assert resp.get_json()["code"] == "invalid_visibility"
-    assert not (repo_root / VISIBILITY_RELPATH).exists()
+    assert not (get_quodeq_dir() / "projects" / project_id / "standards.json").exists()
 
 
 def test_put_rejects_missing_key(client, project_id):
@@ -107,7 +118,7 @@ def test_put_accepts_empty_selection(client, project_id, repo_root):
                        headers=_LOCALHOST)
     assert resp.status_code == 200
     assert resp.get_json()["visibleStandardIds"] == []
-    assert (repo_root / VISIBILITY_RELPATH).is_file()
+    assert (get_quodeq_dir() / "projects" / project_id / "standards.json").is_file()
 
 
 def test_put_computes_known_ids_once(client, project_id, monkeypatch):
@@ -128,8 +139,23 @@ def test_put_computes_known_ids_once(client, project_id, monkeypatch):
     assert calls["n"] == 1, "the PUT must list all standards only once"
 
 
-def test_routes_404_when_project_has_no_local_repo(client, detached_project_id):
-    for call in (client.get, client.put):
-        resp = call(f"/api/projects/{detached_project_id}/standards-visibility",
-                    json={"visibleStandardIds": []}, headers=_LOCALHOST)
-        assert resp.status_code == 404
+def test_put_then_get_writes_machine_file_not_repo(client, local_project):
+    pid, repo = local_project
+    resp = client.put(f"/api/projects/{pid}/standards-visibility",
+                      json={"visibleStandardIds": ["security"]}, headers=_LOCALHOST)
+    assert resp.status_code == 200
+    assert not (repo / ".quodeq" / "standards-visibility.json").exists()
+    assert client.get(f"/api/projects/{pid}/standards-visibility").json["visibleStandardIds"] == ["security"]
+
+
+def test_unknown_or_shared_project_gets_defaults_and_can_save(client):
+    resp = client.get("/api/projects/not-local-uuid/standards-visibility")
+    assert resp.status_code == 200 and resp.json["isDefault"] is True
+    put = client.put("/api/projects/not-local-uuid/standards-visibility",
+                     json={"visibleStandardIds": ["security"]}, headers=_LOCALHOST)
+    assert put.status_code == 200 and put.json["visibleStandardIds"] == ["security"]
+
+
+def test_get_keeps_the_legacy_repo_selection(client, local_project_with_repo_file):
+    pid, _repo = local_project_with_repo_file
+    assert client.get(f"/api/projects/{pid}/standards-visibility").json["visibleStandardIds"] == ["security"]

@@ -219,7 +219,7 @@ def validate_evaluation_payload(payload: dict[str, Any]) -> str | None:
     Optional typed fields: ``discipline`` (str), ``dimensions`` (str),
     ``numerical``, ``verifyFindings``, ``cleanScan``,
     ``incremental`` (bool), ``aiCmd`` (str), ``aiModel`` (str),
-    ``subagentModel`` (str).
+    ``subagentModel``, ``aiEffort`` (str).
     """
     missing: list[str] = []
     invalid: list[str] = []
@@ -238,7 +238,7 @@ def validate_evaluation_payload(payload: dict[str, Any]) -> str | None:
         elif not isinstance(dims, str):
             invalid.append("dimensions (must be a string or array of strings)")
 
-    str_fields = ("discipline", "aiCmd", "aiCmdPath", "aiModel", "subagentModel")
+    str_fields = ("discipline", "aiCmd", "aiCmdPath", "aiModel", "subagentModel", "aiEffort")
     for field in str_fields:
         value = payload.get(field)
         if value is not None and not isinstance(value, str):

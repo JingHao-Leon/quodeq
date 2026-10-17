@@ -16,7 +16,6 @@ import { FRAME_TYPE } from './frameType.js';
 import { SCOPE_GATE_RULE } from './scopeGateRule.js';
 import { RESCORE_STATE } from './rescoreState.js';
 import { LOG_STREAM_STATUS } from './logStreamStatus.js';
-import { STAGE_STATUS } from './stageStatus.js';
 import { KEY } from './keyboard.js';
 import { NAV_TAB } from './navTab.js';
 import { REFRESH_OUTCOME } from './refreshOutcome.js';
@@ -52,13 +51,13 @@ test('vocab modules spell the wire values', () => {
   assert.deepEqual(LOG_STREAM_STATUS, { IDLE: 'idle', STREAMING: 'streaming', DONE: 'done', ERROR: 'error' });
   assert.deepEqual(REFRESH_OUTCOME, {
     UPDATED: 'updated', UP_TO_DATE: 'up_to_date', NOT_REFRESHABLE: 'not_refreshable', BUSY: 'busy',
-    DIRTY: 'dirty', NO_UPSTREAM: 'no_upstream', DIVERGED: 'diverged', FETCH_FAILED: 'fetch_failed',
+    DIRTY: 'dirty', NO_UPSTREAM: 'no_upstream',
+    UPSTREAM_GONE: 'upstream_gone', DIVERGED: 'diverged', FETCH_FAILED: 'fetch_failed',
   });
-  assert.deepEqual(STAGE_STATUS, { IDLE: 'idle', LOADING: 'loading', READY: 'ready', UNAVAILABLE: 'unavailable', ERROR: 'error' });
 });
 
 test('vocab modules are frozen', () => {
-  for (const obj of [RUN_STATE, JOB_STATUS, EXIT_REASON, SEVERITY, GRADE, DIM_STATE, FINDING_TYPE, PROJECT_SOURCE, FRAME_TYPE, SCOPE_GATE_RULE, RESCORE_STATE, LOG_STREAM_STATUS, STAGE_STATUS, REFRESH_OUTCOME]) {
+  for (const obj of [RUN_STATE, JOB_STATUS, EXIT_REASON, SEVERITY, GRADE, DIM_STATE, FINDING_TYPE, PROJECT_SOURCE, FRAME_TYPE, SCOPE_GATE_RULE, RESCORE_STATE, LOG_STREAM_STATUS, REFRESH_OUTCOME]) {
     assert.equal(Object.isFrozen(obj), true);
   }
 });
@@ -77,8 +76,9 @@ test('provider sets derive from PROVIDER', () => {
 
 test('KEY mirrors the DOM KeyboardEvent.key spellings', () => {
   assert.deepEqual(KEY, {
-    ENTER: 'Enter', ESCAPE: 'Escape', TAB: 'Tab',
+    ENTER: 'Enter', SPACE: ' ', ESCAPE: 'Escape', TAB: 'Tab',
     ARROW_UP: 'ArrowUp', ARROW_DOWN: 'ArrowDown', ARROW_LEFT: 'ArrowLeft', ARROW_RIGHT: 'ArrowRight',
+    HOME: 'Home', END: 'End',
   });
   assert.equal(Object.isFrozen(KEY), true);
 });

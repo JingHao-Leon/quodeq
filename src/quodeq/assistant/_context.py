@@ -39,7 +39,14 @@ _QUODEQ_TOOL_CONTEXT_SECTION = """
 Your scratch working directory is not the analyzed repository. Do not infer project
 contents from the scratch directory. Call get_context first when project, run, or
 repository scope is unclear. Use Quodeq tools for data:
-- get_overview, get_scores, get_report, and get_violations for dashboard/run data.
+- get_overview, get_scores, get_report, and get_violations for dashboard/run data;
+  get_violations(path=...) for one folder or file.
+- get_history for the score trend, compare_runs for what changed between two
+  runs, compare_projects for other projects, get_dismissed for dismissed and
+  verified findings.
+- get_help(query=...) before explaining what anything on screen means or how
+  it is computed (pass rate, per 100 files, grades, Risk zones); never guess.
+  get_grade_formula for the formula in effect and whether it is tuned.
 - search_findings for run-scoped finding details and snippets.
 - Read tools cover only the standards visible on this project's dashboard. When a
   payload carries a non-empty hiddenStandardIds, say so once ("you also have

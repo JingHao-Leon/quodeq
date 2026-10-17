@@ -80,6 +80,22 @@ def test_get_returns_defaults_and_is_custom_false(client, formula_path):
     assert body["defaults"] == params_to_dict(DEFAULT_PARAMS)
 
 
+def test_get_serves_the_bounds_the_put_validates(client, formula_path):
+    ranges = client.get("/api/grade-formula").get_json()["ranges"]
+    assert ranges["severityWeight"] == [0.05, 25.0]
+    assert ranges["baseK"] == [0.01, 1.0]
+    assert ranges["dimensionWeight"] == [0.1, 3.0]
+    assert set(ranges) == {"severityWeight", "baseK", "liftCompress", "ceilScale", "floorMinor", "floorMajor", "dimensionWeight"}
+
+
+def test_get_says_when_an_older_custom_formula_was_set_aside(client, formula_path):
+    import json
+    assert client.get("/api/grade-formula").get_json()["retiredCustom"] is False
+    formula_path.write_text(json.dumps(params_to_dict(DEFAULT_PARAMS) | {"gradeAlgoVersion": 1}))
+    body = client.get("/api/grade-formula").get_json()
+    assert body["retiredCustom"] is True and body["isCustom"] is False
+
+
 def test_get_carries_an_idle_rescore_on_a_fresh_app(client, formula_path):
     body = client.get("/api/grade-formula").get_json()
     assert body["rescore"] == {
@@ -154,38 +170,40 @@ def test_invalid_put_does_not_start_a_rescore(rescore_client, formula_path):
     assert rescorer.snapshot().generation == 0
 
 
-def test_preview_returns_404_when_no_runs(client, formula_path, monkeypatch):
-    monkeypatch.setattr(grade_formula, "preview_scores", lambda root, project, params: None)
-    resp = client.post(
-        "/api/grade-formula/preview",
-        json={"project": "nope", "params": params_to_dict(DEFAULT_PARAMS)},
-        headers=_ORIGIN,
-    )
-    assert resp.status_code == 404
+def test_preview_returns_every_project(client, formula_path, monkeypatch):
+    from quodeq.services import grade_formula_preview
 
-
-def test_preview_returns_before_after(client, formula_path, monkeypatch):
-    fake = {
-        "project": "p", "runId": "r1",
-        "before": {"overall": {"score": 7.4, "grade": "Good"}, "dimensions": []},
-        "after": {"overall": {"score": 6.8, "grade": "Adequate"}, "dimensions": []},
-    }
-    monkeypatch.setattr(grade_formula, "preview_scores", lambda root, project, params: fake)
+    fake = {"projects": [{
+        "id": "p",
+        "before": {"overall": {"score": 7.3, "grade": "Good"}, "dimensions": []},
+        "after": {"overall": {"score": 6.5, "grade": "Adequate"}, "dimensions": []},
+    }], "runsToRescore": 12}
+    seen = []
+    monkeypatch.setattr(grade_formula_preview, "preview_all", lambda root, params, **kw: seen.append(params) or fake)
     resp = client.post(
-        "/api/grade-formula/preview",
-        json={"project": "p", "params": params_to_dict(DEFAULT_PARAMS)},
-        headers=_ORIGIN,
+        "/api/grade-formula/preview", json={"params": params_to_dict(DEFAULT_PARAMS)}, headers=_ORIGIN,
     )
     assert resp.status_code == 200
     assert resp.get_json() == fake
+    assert params_to_dict(seen[0]) == params_to_dict(DEFAULT_PARAMS)
+
+
+def test_preview_with_no_projects_is_an_empty_list(client, formula_path, monkeypatch):
+    from quodeq.services import grade_formula_preview
+
+    monkeypatch.setattr(grade_formula_preview, "preview_all",
+                        lambda root, params, **kw: {"projects": [], "runsToRescore": 0})
+    resp = client.post(
+        "/api/grade-formula/preview", json={"params": params_to_dict(DEFAULT_PARAMS)}, headers=_ORIGIN,
+    )
+    assert resp.status_code == 200
+    assert resp.get_json() == {"projects": [], "runsToRescore": 0}
 
 
 def test_preview_rejects_invalid_params(client, formula_path):
     payload = params_to_dict(DEFAULT_PARAMS)
     payload["baseK"] = 99.0
-    resp = client.post(
-        "/api/grade-formula/preview", json={"project": "p", "params": payload}, headers=_ORIGIN,
-    )
+    resp = client.post("/api/grade-formula/preview", json={"params": payload}, headers=_ORIGIN)
     assert resp.status_code == 400
 
 
@@ -215,3 +233,13 @@ def test_post_rescore_runs_the_pass_again_with_the_saved_params(rescore_client, 
     assert rescorer.wait_idle(budget(5))
     landed = client.get("/api/grade-formula").get_json()["rescore"]
     assert (landed["state"], landed["appliedGeneration"], landed["done"]) == ("idle", 2, 3)
+
+
+def test_inputs_returns_every_projects_scoring_inputs(client, formula_path, monkeypatch):
+    from quodeq.services import grade_formula_inputs
+
+    fake = {"projects": [{"id": "p", "dimensions": []}]}
+    monkeypatch.setattr(grade_formula_inputs, "inputs_all", lambda root, **kw: fake)
+    resp = client.get("/api/grade-formula/inputs", headers=_ORIGIN)
+    assert resp.status_code == 200
+    assert resp.get_json() == fake

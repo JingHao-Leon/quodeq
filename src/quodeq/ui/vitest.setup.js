@@ -36,4 +36,6 @@ if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'func
 // into the next file's assertions.
 afterEach(() => {
   try { localStorage.clear(); } catch { /* storage shim absent */ }
+  // Same for the session's memory (the Where panel's view): one test's switch must not pick the next test's view.
+  try { sessionStorage.clear(); } catch { /* storage shim absent */ }
 });

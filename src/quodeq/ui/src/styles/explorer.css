@@ -853,3 +853,15 @@
 .violation-table-row--clickable:hover {
   background: var(--color-surface-alt);
 }
+
+/* A finding opened from History's resolved list: says which run resolved it
+   and that the card shows it as last seen. */
+.finding-detail-note {
+  margin: 0 0 var(--term-space-2);
+  padding: 8px 12px;
+  border-left: 2px solid var(--color-change-resolved);
+  background: color-mix(in srgb, var(--color-text) 4%, var(--color-surface));
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

@@ -48,24 +48,40 @@ describe('CliProviderTab', () => {
     expect(update).toHaveBeenCalledWith('model', 'claude-test');
   });
 
-  it('changing the Fast model calls update("model-fast", ...)', async () => {
-    const update = renderCopilot();
-    await screen.findAllByRole('option', { name: 'claude-test' });
-    fireEvent.change(screen.getByLabelText('Fast model'), { target: { value: 'claude-test' } });
-    expect(update).toHaveBeenCalledWith('model-fast', 'claude-test');
+  it('offers the provider effort levels when the CLI lists no models, and stores the one picked', () => {
+    const Wrapper = makeWrapper();
+    const update = vi.fn();
+    render(
+      <Wrapper>
+        <CliProviderTab providerId="claude" providerConfig={{ effort_levels: ['low', 'xhigh'] }} state={{ model: 'sonnet' }} update={update} />
+      </Wrapper>,
+    );
+    expect(screen.getByRole('button', { name: 'Default' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Extra high' }));
+    expect(update).toHaveBeenCalledWith('effort', 'xhigh');
   });
 
-  it('renders a free-text model input pre-populated from state', () => {
+  it('hides the effort row for a provider without effort levels', () => {
     const Wrapper = makeWrapper();
-    const state = { model: 'sonnet', subagents: '4', 'time-limit-min': '60' };
+    render(
+      <Wrapper>
+        <CliProviderTab providerId="gemini" providerConfig={{}} state={{ model: 'gemini-2.5-pro' }} update={() => {}} />
+      </Wrapper>,
+    );
+    expect(screen.queryByRole('group', { name: 'Effort' })).toBeNull();
+  });
+
+  it('renders a free-text model input for a CLI without a model catalog', () => {
+    const Wrapper = makeWrapper();
+    const state = { model: 'gemini-2.5-pro', subagents: '4', 'time-limit-min': '60' };
     const { container } = render(
       <Wrapper>
-        <CliProviderTab providerId="claude" state={state} update={() => {}} />
+        <CliProviderTab providerId="gemini" state={state} update={() => {}} />
       </Wrapper>,
     );
     const input = container.querySelector('input.settings-model-input[type="text"]');
     expect(input).toBeTruthy();
-    expect(input.value).toBe('sonnet');
+    expect(input.value).toBe('gemini-2.5-pro');
   });
 
   it('flags an invalid command override on blur with the server reason', async () => {
@@ -151,6 +167,6 @@ describe('CliProviderTab', () => {
     fireEvent.click(screen.getByLabelText('Model help'));
 
     expect(screen.queryByText('gpt-5-mini')).toBeNull();
-    expect(screen.getByText(/leave this blank to use the Codex CLI default/i)).toBeTruthy();
+    expect(screen.getByText(/the list comes from Codex/i)).toBeTruthy();
   });
 });

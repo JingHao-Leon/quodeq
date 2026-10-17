@@ -54,16 +54,18 @@ def test_dismiss_returns_without_waiting_for_projection(client, tmp_path):
             "line": 1,
         })
 
-    # Response must arrive before the projection finishes.
-    assert resp.status_code == 200
+        # Response must arrive before the projection finishes.
+        assert resp.status_code == 200
 
-    # Unblock background thread.
-    projection_may_finish.set()
+        # Confirm the thread was actually launched. Waited inside the patch:
+        # a busy shared runner can pick the task up after the request returns,
+        # and outside the patch it would call the real project_all_runs.
+        assert projection_started.wait(timeout=budget(2)), (
+            "Background projection thread never started."
+        )
 
-    # Confirm the thread was actually launched.
-    assert projection_started.wait(timeout=budget(2)), (
-        "Background projection thread never started."
-    )
+        # Unblock background thread.
+        projection_may_finish.set()
 
 
 def test_concurrent_dismisses_same_project_call_project_all_runs_once(

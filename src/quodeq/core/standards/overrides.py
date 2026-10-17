@@ -1,10 +1,11 @@
 """Per-project overrides for declared numeric requirement parameters.
 
 Requirements may declare a ``params`` block whose values fill ``{name}``
-placeholders in the requirement text. A project can override the defaults
-via ``<project root>/.quodeq/standards-overrides.json``:
-
-    {"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}
+placeholders in the requirement text. A project overrides the defaults in
+``~/.quodeq/projects/<owner>/standards.json`` (``{"overrides": {"M-ANA-2":
+{"max_lines": 60}}}``). ``OVERRIDES_RELPATH`` is the legacy repo location
+(``.quodeq/standards-overrides.json``), read once to migrate into the machine
+file.
 
 Invalid entries are skipped with a warning; a bad file never fails analysis.
 """

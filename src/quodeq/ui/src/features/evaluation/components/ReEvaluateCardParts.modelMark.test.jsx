@@ -6,8 +6,8 @@ import { IdentityHeader, RunBar } from './ReEvaluateCardParts.jsx';
 const info = { name: 'Spoon-Knife', path: '/u/repos/Spoon-Knife' };
 const scope = { isLocal: true, scopePath: null };
 
-function renderHeader(activeModel) {
-  render(<IdentityHeader info={info} project="p1" scope={scope} branchLabel={null} scopeValue="/u/repos/Spoon-Knife/ · whole project" activeModel={activeModel} onOpenScopeBrowser={vi.fn()} onGoToSettings={vi.fn()} onGoToProjects={vi.fn()} />);
+function renderHeader(activeModel, headerInfo = info) {
+  render(<IdentityHeader info={headerInfo} project="p1" scope={scope} branchLabel={null} scopeValue="/u/repos/Spoon-Knife/ · whole project" activeModel={activeModel} modelPopover={{ open: false, onOpen: vi.fn(), onClose: vi.fn() }} onOpenScopeBrowser={vi.fn()} onGoToSettings={vi.fn()} onGoToProjects={vi.fn()} />);
 }
 
 describe('the model cell', () => {
@@ -24,13 +24,27 @@ describe('the model cell', () => {
   });
 });
 
+describe('the scope cell', () => {
+  it('its tooltip names the repository path', () => {
+    renderHeader(null);
+    expect(screen.getByTitle('/u/repos/Spoon-Knife/ · Restrict the evaluation to a subfolder')).toBeInTheDocument();
+  });
+
+  it('without a path its tooltip is the plain hint', () => {
+    renderHeader(null, { name: 'Spoon-Knife' });
+    expect(screen.getByTitle('Restrict the evaluation to a subfolder')).toBeInTheDocument();
+    expect(screen.queryByTitle(/null/)).toBeNull();
+  });
+});
+
 describe('the run bar', () => {
   const base = { disabled: false, canStart: true, handleScan: vi.fn(), estimates: null, cleanScan: undefined, timeLimitS: 0 };
 
   it('says a model is missing before anything else', () => {
     render(<RunBar {...base} selectedDims={new Set()} hasModel={false} />);
-    expect(screen.getByText('no model selected · choose one to start a scan')).toBeInTheDocument();
+    expect(screen.getByText('pick a model to start')).toBeInTheDocument();
     expect(screen.queryByText('pick at least one dimension to start a scan')).toBeNull();
+    expect(screen.getByRole('button', { name: /scan/i })).toBeDisabled();
   });
 
   it('then asks for a dimension', () => {

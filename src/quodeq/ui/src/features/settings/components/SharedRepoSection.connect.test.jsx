@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom/vitest';
 import { makeFakeApi, renderWithApi } from './_sharedRepoSection.fixtures.jsx';
 import catalog from '../../../strings/en.json' with { type: 'json' };
 
@@ -50,7 +51,7 @@ describe('SharedRepoSection', () => {
     renderWithApi(fakeApi);
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue(testUrl)).toBeTruthy();
+      expect(screen.getByText(testUrl)).toBeTruthy();
     });
   });
 
@@ -157,5 +158,24 @@ describe('SharedRepoSection', () => {
     renderWithApi(fakeApi);
 
     await waitFor(() => expect(screen.getByRole('button', { name: /saving/i })).toBeDisabled());
+  });
+  it('when connected shows the URL once and hides the field until change', async () => {
+    const testUrl = 'https://github.com/team/results.git';
+    renderWithApi(makeFakeApi({ getSharedStatus: vi.fn(async () => ({ configured: true, url: testUrl })) }));
+    await waitFor(() => expect(screen.getAllByText(testUrl)).toHaveLength(1));
+    expect(screen.queryByRole('textbox', { name: /repository url/i })).not.toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: /^change$/i }));
+    expect(screen.getByRole('textbox', { name: /repository url/i })).toHaveValue(testUrl);
+  });
+
+  it('cancel closes the field and keeps the connected URL', async () => {
+    const testUrl = 'https://github.com/team/results.git';
+    renderWithApi(makeFakeApi({ getSharedStatus: vi.fn(async () => ({ configured: true, url: testUrl })) }));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^change$/i }));
+    await user.type(screen.getByRole('textbox', { name: /repository url/i }), 'x');
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    expect(screen.queryByRole('textbox', { name: /repository url/i })).not.toBeInTheDocument();
+    expect(screen.getByText(testUrl)).toBeInTheDocument();
   });
 });

@@ -10,10 +10,11 @@ from __future__ import annotations
 from typing import Any
 
 from quodeq.core.dismissals import DismissedKeys
-from quodeq.core.finding_identity import coerce_line
+from quodeq.core.finding_identity import SuppressionSubject, coerce_line, dismiss_fingerprints
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.types import ViolationResponse
-from quodeq.services.suppression_keys import FindingRef, is_dismissed
+from quodeq.core.types.suppression_rule import SuppressionRule
+from quodeq.services.suppression_keys import FindingRef, SuppressionKeys, is_dismissed
 
 
 def violation_location(v: dict, *, log: LogSink = NULL_LOG) -> tuple[str, int]:
@@ -39,14 +40,15 @@ def violation_location(v: dict, *, log: LogSink = NULL_LOG) -> tuple[str, int]:
 
 def _violation_dismissed(
     v: dict, dismissed: "DismissedKeys | set[tuple]", principle: str | None,
+    rules: "tuple[SuppressionRule, ...]" = (),
 ) -> bool:
-    """The shared predicate on a violation dict (snippet-aware, ``req || principle``)."""
+    """The shared predicate on a violation dict (snippet-aware, ``req || principle``, pattern rules)."""
     file, line = violation_location(v)
     return is_dismissed(dismissed, FindingRef(
         req=v.get("req"),
         principle=principle or v.get("practiceId") or v.get("principle"),
         file=file, line=line, snippet=v.get("snippet"),
-    ))
+    ), rules=rules)
 
 
 def deleted_key_for_violation(v: dict, dimension: str, principle: str | None = None) -> tuple:
@@ -64,6 +66,44 @@ def deleted_key_for_violation(v: dict, dimension: str, principle: str | None = N
     return (dimension or "", principle or "", raw_file)
 
 
+def is_suppressed_violation(
+    v: dict, keys: SuppressionKeys, dimension: str, principle: str | None = None,
+) -> bool:
+    """True when the app hides the violation dict *v*: dismissed, deleted, or matched by a pattern rule.
+
+    *principle* is None for a result's top-level list (each violation names
+    its own) and the group name for a principle group's list.
+    """
+    if _violation_dismissed(v, keys.dismissed, principle, keys.rules):
+        return True
+    return bool(keys.deleted) and deleted_key_for_violation(v, dimension, principle) in keys.deleted
+
+
+def suppression_subject(v: dict, dimension: str) -> SuppressionSubject:
+    """What :func:`is_suppressed_violation` reads of the top-level violation *v*, kept without its snippet.
+
+    The map history stores this per distinct violation and judges it later
+    with :func:`is_suppressed_subject`, so a dismissal never needs the report.
+    """
+    file, line = violation_location(v)
+    req = str(v.get("req") or "")
+    principle = str(v.get("practiceId") or v.get("principle") or "")
+    return SuppressionSubject(
+        dimension or "", req, principle, file, line,
+        dismiss_fingerprints(req, principle, v.get("snippet")),
+        deleted_key_for_violation(v, dimension)[2],
+    )
+
+
+def is_suppressed_subject(subject: SuppressionSubject, keys: SuppressionKeys) -> bool:
+    """:func:`is_suppressed_violation` for a stored subject: the same dismiss, rule and delete checks."""
+    ref = FindingRef(req=subject.req, principle=subject.principle, file=subject.file,
+                     line=subject.line, fingerprints=subject.fingerprints)
+    if is_dismissed(keys.dismissed, ref, rules=keys.rules):
+        return True
+    return bool(keys.deleted) and (subject.dimension, subject.principle, subject.deleted_file) in keys.deleted
+
+
 def unsuppressed(
     violations: list[dict], dkeys: "DismissedKeys | set[tuple]", delkeys: "set[tuple] | None",
     dimension: str, principle: str | None,
@@ -73,11 +113,8 @@ def unsuppressed(
     *principle* is None for a result's top-level list (each violation names
     its own) and the group name for a principle group's list.
     """
-    return [
-        v for v in violations
-        if not _violation_dismissed(v, dkeys, principle)
-        and (not delkeys or deleted_key_for_violation(v, dimension, principle) not in delkeys)
-    ]
+    keys = SuppressionKeys(dkeys, delkeys or frozenset())
+    return [v for v in violations if not is_suppressed_violation(v, keys, dimension, principle)]
 
 
 def filter_dismissed_from_result(

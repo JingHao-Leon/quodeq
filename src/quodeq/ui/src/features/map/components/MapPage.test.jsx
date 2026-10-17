@@ -1,8 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { useState } from 'react';
 import MapPage from './MapPage.jsx';
+import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
+import { t } from '../../../strings/index.js';
+import { fakeCanvasContext } from '../../../test-utils/fakeCanvasContext.js';
+
+// The circle pack observes its container size.
+beforeEach(() => { stubResizeObserver(); });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 // Covers evaluate CTA gating for shared projects and the shared read-only
 // chip. MapPage previously never
@@ -24,8 +32,18 @@ function baseData(overrides = {}) {
   };
 }
 
-function renderPage(data, callbacks = {}) {
-  return render(<MapPage data={data} callbacks={callbacks} />);
+const FORMULA = { current: { severityWeight: { critical: 4, major: 2, minor: 0.25 } } };
+
+function fakeApi(overrides = {}) {
+  return {
+    getMapHistory: vi.fn().mockResolvedValue({ activitySource: 'none', frames: [] }),
+    getGradeFormula: vi.fn().mockResolvedValue(FORMULA),
+    ...overrides,
+  };
+}
+
+function renderPage(data, callbacks = {}, api = fakeApi()) {
+  return render(<MapPage data={data} callbacks={callbacks} />, { wrapper: withStableQueryApi(api) });
 }
 
 describe('MapPage — evaluate CTA gating for shared (Critical 1)', () => {
@@ -172,34 +190,80 @@ describe('MapPage — drill-down and toggles live in the nav stack', () => {
 
   it('style toggle replaces, folder drill pushes, breadcrumb-up unwinds to the trail entry', () => {
     const log = [];
-    const { container } = render(<NavHarness data={data()} log={log} />);
+    render(<NavHarness data={data()} log={log} />, { wrapper: withStableQueryApi(fakeApi()) });
 
-    // Switch to the risk-matrix style: a replace, not a push.
-    fireEvent.click(screen.getByRole('button', { name: 'Risk Matrix' }));
-    expect(log).toEqual([['replace', 'vizStyle', 'riskmatrix']]);
+    // Away to Risk and back to the pack: replaces, not pushes.
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizRisk') }));
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizCirclePack') }));
+    expect(log).toEqual([['replace', 'vizStyle', 'risk'], ['replace', 'vizStyle', 'zoompack']]);
 
-    // Drill into the `src` folder circle: a push.
-    const circle = container.querySelector('circle[role="button"]');
-    expect(circle).not.toBeNull();
-    fireEvent.click(circle);
-    expect(log[1]).toEqual(['push', 'src']);
+    // The other pack tab, so the unwind below can show it kept.
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizActivity') }));
+    expect(log[2]).toEqual(['replace', 'vizStyle', 'activity']);
+
+    // Drill into the `src` folder (its keyboard stand-in): a push.
+    fireEvent.keyDown(screen.getByRole('button', { name: /^src\b/ }), { key: 'Enter' });
+    expect(log[3]).toEqual(['push', 'src']);
     // The controlled path round-tripped: breadcrumb now shows the folder.
     expect(screen.getAllByText('src').length).toBeGreaterThan(0);
 
     // Breadcrumb back to the project root: unwinds to the earlier entry
     // (the browser-back equivalent), never a fresh push.
     fireEvent.click(screen.getByRole('button', { name: 'proj' }));
-    expect(log[2]).toEqual(['goTo', 0]);
-    // The unwound entry still carries the style set by the replace.
-    expect(screen.getByRole('button', { name: 'Risk Matrix' })).toHaveAttribute('aria-pressed', 'true');
+    expect(log[4]).toEqual(['goTo', 0]);
+    // The unwound entry still carries the tab set by the replace.
+    expect(screen.getByRole('button', { name: t('map.vizActivity') })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('MapPage: the Activity tab', () => {
+  const DIMS = [{
+    dimension: 'security',
+    violations: [{ file: 'src/a.py', severity: 'minor', principle: 'P1' }, { file: 'main.py', severity: 'minor', principle: 'P2' }],
+    compliance: [],
+  }];
+  const local = () => baseData({ selectedSource: 'local', selectedProject: 'p1', projectName: 'p1', accumulated: { dimensions: DIMS } });
+
+  it('a project without history cannot pick Activity, and the button says why', async () => {
+    renderPage(local());
+    const button = screen.getByRole('button', { name: t('map.vizActivity') });
+    await waitFor(() => expect(button).toHaveAttribute('aria-disabled', 'true'));
+    expect(button).toHaveAttribute('title', t('map.activityUnavailable'));
+    expect(document.getElementById(button.getAttribute('aria-describedby'))).toHaveTextContent(t('map.activityUnavailable'));
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('view-mode toggle on the circle pack replaces in place', () => {
-    const log = [];
-    render(<NavHarness data={data()} log={log} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Violations' }));
-    expect(log).toEqual([['replace', 'viewMode', 'violations']]);
-    expect(screen.getByRole('button', { name: 'Violations' })).toHaveAttribute('aria-pressed', 'true');
+  it('a shared project with history can pick Activity', async () => {
+    const sharedGetMapHistory = vi.fn().mockResolvedValue({ activitySource: 'estimated', fileNames: [], frames: [] });
+    renderPage(baseData({ accumulated: { dimensions: DIMS } }), {}, fakeApi({ sharedGetMapHistory }));
+    const button = screen.getByRole('button', { name: t('map.vizActivity') });
+    await waitFor(() => expect(sharedGetMapHistory).toHaveBeenCalled());
+    await waitFor(() => expect(button).not.toHaveAttribute('aria-disabled'));
+  });
+
+  it('the history is not fetched on the Galaxy, and Activity stays open until it says so', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => fakeCanvasContext());
+    const api = fakeApi();
+    render(<MapPage data={local()} callbacks={{}} nav={{ vizStyle: 'galaxy' }} />, { wrapper: withStableQueryApi(api) });
+    expect(api.getMapHistory).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: t('map.vizActivity') })).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('Concentration draws without waiting for the history', () => {
+    const api = fakeApi({ getMapHistory: vi.fn(() => new Promise(() => {})) });
+    const { container } = renderPage(local(), {}, api);
+    expect(container.querySelector('canvas')).toBeInTheDocument();
+  });
+
+  it('a failed history under Activity is explained in the legend', async () => {
+    const rejects = [];
+    const api = fakeApi({ getMapHistory: vi.fn(() => new Promise((_, rej) => { rejects.push(rej); })) });
+    render(<NavHarness data={local()} log={[]} />, { wrapper: withStableQueryApi(api) });
+    fireEvent.click(screen.getByRole('button', { name: t('map.vizActivity') }));
+    await waitFor(() => expect(api.getMapHistory).toHaveBeenCalled());
+    rejects.forEach((reject) => reject(new Error('boom')));
+    expect(await screen.findByText(t('map.activityUnavailable'), { selector: '.pack-legend-note' })).toBeInTheDocument();
   });
 });
 

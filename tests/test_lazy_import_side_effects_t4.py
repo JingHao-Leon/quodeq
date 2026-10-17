@@ -136,6 +136,9 @@ class TestDiagStreamLazyImport:
         assert result.returncode == 0, result.stdout + result.stderr
         assert "OK" in result.stdout
         assert (tmp_path / ".quodeq" / "run" / "webview_debug.log").exists()
+        if sys.platform != "win32":  # owner-only (S-CON-18); Windows has no POSIX modes
+            assert (tmp_path / ".quodeq" / "run").stat().st_mode & 0o777 == 0o700
+            assert (tmp_path / ".quodeq" / "run" / "webview_debug.log").stat().st_mode & 0o777 == 0o600
 
     def test_webview_window_about_diag_old_name_matches_diag_stream(self, tmp_path):
         """M3: dashboard._webview_window_about.diag is its own __getattr__

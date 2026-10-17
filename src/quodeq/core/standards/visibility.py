@@ -1,19 +1,19 @@
-"""Per-project selection of which standards are shown.
+"""Which standards are shown for a project, and the pure rules around it.
 
 Hiding a standard is project configuration, not a per-browser view preference:
 the dashboard and the assistant must both agree on which standards are in
-play (there is no CLI consumer). The selection lives in the analyzed
-repository at
-``<project root>/.quodeq/standards-visibility.json``, alongside
-``standards-overrides.json``, so the whole team shares it:
+play. The selection lives on the machine, in
+``~/.quodeq/projects/<owner>/standards.json`` (see
+``data/fs/project_standards.py``); Quodeq never writes into the analyzed
+repository. ``VISIBILITY_RELPATH`` is the legacy repo location, read once to
+migrate an existing selection into the machine file.
 
-    {"version": 1, "visibleStandardIds": ["security", "reliability"]}
+An absent selection means the six ISO defaults, NOT "everything". Quodeq ships
+more built-in standards than the default selection shows, so treating absence
+as "no filtering" would leave a fresh install disagreeing with its own
+dashboard.
 
-An absent file means the six ISO defaults, NOT "everything". Quodeq ships more
-built-in standards than the default selection shows, so treating absence as
-"no filtering" would leave a fresh install disagreeing with its own dashboard.
-
-A malformed file never fails a read; it degrades to the defaults with a warning.\nRead/write of the file itself lives in ``data/fs/standards_prefs.py``.
+A malformed file never fails a read; it degrades to the defaults with a warning.
 """
 from __future__ import annotations
 

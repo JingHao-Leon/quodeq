@@ -20,12 +20,13 @@ import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from urllib.parse import urlparse
 
 from quodeq.assistant._worktree_git import (
     WorktreeError, WorktreeStatus, run_git, run_git_bytes, diff_stats, diff_text,
     mark_intent_to_add, worktrees_base,
 )
-from quodeq.shared.constants import GIT_BIN, GIT_DIR_NAME, GIT_FLAG_C
+from quodeq.shared.constants import GIT_BIN, GIT_DIR_NAME, GIT_FLAG_C, SCHEME_HTTPS
 
 _logger = logging.getLogger(__name__)
 
@@ -199,8 +200,20 @@ class WorktreeManager:
                        cwd=self.path)
         except WorktreeError as exc:
             return PrResult(None, self.branch, True, PrResultReason.GH_FAILED, str(exc))
-        url = out.strip().splitlines()[-1] if out.strip() else None
-        return PrResult(url, self.branch, True, PrResultReason.CREATED)
+        return PrResult(pr_url_from_gh_output(out), self.branch, True, PrResultReason.CREATED)
+
+
+def pr_url_from_gh_output(out: str) -> str | None:
+    """The PR URL ``gh pr create`` prints as its last line, or None when that line is not an https URL.
+
+    The UI renders it as a link, so anything else gh prints there stays text.
+    """
+    lines = out.strip().splitlines()
+    if not lines:
+        return None
+    candidate = lines[-1].strip()
+    parsed = urlparse(candidate)
+    return candidate if parsed.scheme == SCHEME_HTTPS and parsed.netloc else None
 
 
 def ensure_session_worktree(repository, *, repo_root: Path, project_id: str | None,

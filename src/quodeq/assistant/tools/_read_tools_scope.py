@@ -20,6 +20,7 @@ from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.scoring import rescore_accumulated, scored_run_dimensions
 from quodeq.services.wiring import iter_eval_reports
+from quodeq.services.wiring_sync import is_archived
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.lru import LRUDict
 from quodeq.shared.serialization import coerce_line, to_camel_dict
@@ -136,8 +137,9 @@ def _sql_finding_keys(ctx: ToolContext, keys: set[tuple]) -> bool:
     """Keys from the SQL findings table (the search_findings source). Read
     only an EXISTING db so a read-only draft never creates evaluation.db or
     kicks a projection on a run that has none -- when there is no db there
-    are no SQL findings to miss anyway. False when the db was unreadable."""
-    if not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file():
+    are no SQL findings to miss anyway. An archived run keeps its db in the
+    archive, so it is read (restored) too. False when the db was unreadable."""
+    if not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file() and not is_archived(ctx.run_dir):
         return True
     try:
         for req, file, line in findings_repo(ctx, ctx.run_dir).list_keys():
@@ -175,7 +177,7 @@ _RUN_KEYS_MEMO_SIZE = 64
 # mtime granularity (coarse on Linux) with the same size, so a stamp taken
 # over it cannot prove freshness: such reads are served but not memoized.
 _SETTLE_NS = 3_000_000_000
-_RUN_KEY_SOURCES = ("evaluation.db", "evaluation.db-wal", "events.jsonl")
+_RUN_KEY_SOURCES = ("evaluation.db", "evaluation.db-wal", "events.jsonl", "archive.tar.gz")
 _run_keys_memo: LRUDict[tuple, tuple[tuple, frozenset[tuple]]] = LRUDict(_RUN_KEYS_MEMO_SIZE)
 _run_keys_lock = threading.Lock()
 
@@ -250,3 +252,18 @@ def finding_keys_in_scope(ctx: ToolContext) -> set[tuple]:
     keys: set[tuple] = set()
     _accumulated_finding_keys(ctx, lambda v: keys.add(_identity(v)))
     return keys
+
+
+def project_location(ctx: ToolContext) -> tuple[Path, str]:
+    """``(reports_root, project)`` the project-level services read from.
+
+    The overview scope names them directly; a run-only context derives them
+    from the run directory's place in the evaluations tree. Raises the
+    no-scope ToolError when neither is attached.
+    """
+    if ctx.reports_dir is not None and ctx.project_id is not None:
+        return Path(ctx.reports_dir), ctx.project_id
+    if ctx.run_dir is not None:
+        project_dir = ctx.run_dir.parent
+        return project_dir.parent, project_dir.name
+    raise no_scope_error()

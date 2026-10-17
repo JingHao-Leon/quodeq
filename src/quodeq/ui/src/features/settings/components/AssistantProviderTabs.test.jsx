@@ -64,22 +64,18 @@ describe('AssistantProviderTabs', () => {
   });
   afterEach(() => localStorage.clear());
 
-  it('when explicitly disabled only the Enable toggle shows, no model source', async () => {
+  it('model source shows even while the assistant is off, without the enable row', async () => {
     localStorage.setItem('cc-assistant-enabled', 'false');
-    const { container, queryAllByRole, queryByText } = await renderPanel();
-    // Only the On/Off enable toggle is present — no Default/Custom, no note.
-    expect(queryAllByRole('tab').map((t) => t.textContent)).toEqual(['On', 'Off']);
-    expect(queryByText(/Follows Analysis/i)).toBeNull();
-    expect(container.querySelector('select')).toBeNull();
+    const { queryAllByRole, queryByText } = await renderPanel();
+    expect(queryAllByRole('tab').map((t) => t.textContent)).toEqual(['Default', 'Custom']);
+    expect(queryByText(/enable assistant/i)).toBeNull();
   });
 
-  it('default mode hides provider pills and shows the Follows Analysis note', async () => {
-    const { container, findByText, queryAllByRole } = await renderPanel();
-    // Two tablists now: the Enable (On/Off) toggle and the Default/Custom
-    // toggle. No provider pills in default mode.
-    await waitFor(() => expect(container.querySelectorAll('[role="tablist"]').length).toBe(2));
-    expect(queryAllByRole('tab').map((t) => t.textContent)).toEqual(['On', 'Off', 'Default', 'Custom']);
-    expect(await findByText(/Follows Analysis/i)).toBeTruthy();
+  it('default mode hides provider pills and repeats no follows-analysis note', async () => {
+    const { container, queryAllByRole, queryByText } = await renderPanel();
+    await waitFor(() => expect(container.querySelectorAll('[role="tablist"]').length).toBe(1));
+    expect(queryAllByRole('tab').map((t) => t.textContent)).toEqual(['Default', 'Custom']);
+    expect(queryByText(/Follows Analysis/i)).toBeNull();
     expect(container.querySelector('select')).toBeNull();
   });
 

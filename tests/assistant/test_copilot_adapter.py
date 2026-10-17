@@ -58,7 +58,8 @@ def test_copilot_streams_reply_once_and_keeps_all_messages(tmp_path, monkeypatch
     )
     assert text == "Checking.\n\nDone."
     assert [f["text"] for f in frames if f["type"] == "token"] == ["Checking.", "Done."]
-    assert {"type": "tool_call", "name": "get_scores"} in frames
+    assert any(f["type"] == "tool_call" and f["name"] == "get_scores" and f["status"] == "running"
+               for f in frames)
     assert repo.get_session("s1")["cli_session_id"] == "copilot-sid"
     assert not seen["path"].exists()
 

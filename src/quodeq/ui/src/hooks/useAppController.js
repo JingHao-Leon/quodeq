@@ -1,6 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { applyMutationDelta } from '../api/applyMutationDelta.js';
 import { recordDismissedEntry } from '../api/dismissedListCache.js';
+import { projectKeys, standardsKeys } from '../api/queryKeys.js';
+import { STANDARDS_CHANGED_REASON, notifyStandardsChanged } from '../constants.js';
 import { PROJECT_SOURCE } from '../vocab/projectSource.js';
 import {
   computeIsEvaluating, useAppBootExtras, useAppWizardBounce, useAppDerived,
@@ -9,6 +11,7 @@ import {
 } from './useAppShellHooks.js';
 import { useAssistantActionAppliedEffect } from './useAppEffects.js';
 import { findProject } from '../utils/projectIdentity.js';
+import { addVisibleStandardId } from '../utils/visibleStandards.js';
 import { selectLandedProject } from './selectLandedProject.js';
 import { shouldShowEvaluate } from '../appGating.js';
 import { useCloneStatus } from './useCloneStatus.js';
@@ -30,9 +33,24 @@ export function useAppDismissBridge(state) {
   // A dismiss is local-only, so the entry always lands in the local list.
   const recordDismissed = (project, entry) =>
     recordDismissedEntry(queryClient, project, PROJECT_SOURCE.LOCAL, entry);
+  // An assistant-created standard lands like a manual create on any screen:
+  // visible for the project, and the standards query and the Evaluate
+  // picker's own list refreshed.
+  const onStandardCreated = (standardId) => {
+    notifyStandardsChanged(STANDARDS_CHANGED_REASON.LIST);
+    queryClient.invalidateQueries({ queryKey: standardsKeys.list() });
+    if (!standardId) return;
+    const projectId = state.selectedProject;
+    addVisibleStandardId(standardId, { projectId })
+      .then(() => projectId && queryClient.invalidateQueries({ queryKey: projectKeys.standardsVisibility(projectId) }))
+      // A storage write that throws leaves the standard hidden, as before
+      // this handler existed; the user can still toggle it on.
+      .catch((err) => console.warn('[useAppController] could not show the new standard:', err));
+  };
   useAssistantActionAppliedEffect({
     applyDelta,
     recordDismissed,
+    onStandardCreated,
     scheduleReconcileForApply: state.scheduleDashboardReconcile,
     selectedProject: state.selectedProject,
   });

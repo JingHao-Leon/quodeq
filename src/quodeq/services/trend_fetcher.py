@@ -31,17 +31,19 @@ and must always be supplied.
 from __future__ import annotations
 
 import logging
-import sqlite3
 from pathlib import Path
 from typing import Callable
 
 from quodeq.core.scoring.params import DEFAULT_PARAMS, ScoringParams
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import read_scalar_dimensions
+from quodeq.services._archived_trend import cacheable_unless_frozen, serve_archived_runs_frozen
 from quodeq.services.scoring_deps import ScoringDeps, NO_DEPS
 from quodeq.services.deleted import deleted_keys as _default_deleted_keys
 from quodeq.services.dismissed import dismissed_keys as _default_dismissed_keys
-from quodeq.services.wiring import load_suppression_rules, read_run_scalars as _default_read_run_scalars
+from quodeq.services.wiring import (
+    ScoreCacheError, load_suppression_rules, read_run_scalars as _default_read_run_scalars, save_run_keys,
+)
 from quodeq.services.rescore import rescore_dimension, with_hidden_counts
 from quodeq.services.score_cache import VersionInputs, make_cache_backed_fetcher
 from quodeq.services.suppression_keys import SuppressionKeys
@@ -108,15 +110,14 @@ def _make_version_for(
     """
     from quodeq.services.run_keys import read_run_key_sets  # noqa: PLC0415
     from quodeq.services.score_cache import (  # noqa: PLC0415
-        memoized_run_version, open_score_cache, remember_run_version,
-        run_scoped_version, store_run_keys,
+        memoized_run_version, remember_run_version, run_scoped_version,
     )
 
-    state_fp = inputs.fingerprint
     keys_cache: dict[str, tuple] = {}
 
     def version_for(run_id: str) -> str:
         cacheable = cacheable_run_ids is None or run_id in cacheable_run_ids
+        state_fp, standards = inputs.run_state(run_id)
         if cacheable:
             memoized = memoized_run_version(project_dir, run_id, state_fp)
             if memoized is not None:
@@ -126,9 +127,8 @@ def _make_version_for(
             keys = read_run_key_sets(project_dir / run_id)
             if cacheable:
                 try:
-                    with open_score_cache() as _c:
-                        store_run_keys(_c, project, run_id, keys[0], keys[1])
-                except (OSError, sqlite3.Error):
+                    save_run_keys(project, run_id, keys[0], keys[1])
+                except ScoreCacheError:
                     _logger.debug(
                         "Could not store run keys in score cache for %s/%s",
                         project, run_id, exc_info=True,
@@ -136,7 +136,7 @@ def _make_version_for(
         keys_cache[run_id] = keys
         version = run_scoped_version(
             inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted,
-            standards=inputs.standards)
+            standards=standards)
         if cacheable:
             remember_run_version(project_dir, run_id, state_fp, version)
         return version
@@ -169,13 +169,13 @@ def _make_row_trend_fetcher(
         base_fetcher=deps.base_fetcher_factory(reports_root, project), deps=deps,
     )
     base = _read_untouched_runs_as_scalars(reports_root, project, base, deps)
+    frozen: set[str] = set()
+    base = serve_archived_runs_frozen(
+        reports_root, project, base, deps.read_run_scalars or _default_read_run_scalars, frozen, log=SHARED_LOG)
     version_for = _suppression_version_for(
         reports_root / project, project, params, cacheable_run_ids, deps,
     )
-    is_cacheable = (
-        None if cacheable_run_ids is None
-        else (lambda rid: rid in cacheable_run_ids)
-    )
+    is_cacheable = cacheable_unless_frozen(cacheable_run_ids, frozen)
     return make_cache_backed_fetcher(
         project, version_for, base, is_cacheable=is_cacheable, log=SHARED_LOG,
     )

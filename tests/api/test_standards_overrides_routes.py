@@ -2,7 +2,6 @@
 import json
 from pathlib import Path
 
-import pytest
 
 from quodeq.api.app import create_app
 from tests.api._standards_overrides_fixtures import (  # noqa: F401 -- pytest fixtures
@@ -10,7 +9,7 @@ from tests.api._standards_overrides_fixtures import (  # noqa: F401 -- pytest fi
     OVERRIDES_URL,
     client,
     client_with_custom,
-    client_without_repo_root,
+    machine_settings,
     project_root,
 )
 
@@ -25,8 +24,9 @@ def test_put_then_get_roundtrip(client, project_root: Path):
     resp = client.put(OVERRIDES_URL, json={"overrides": {"M-ANA-2": {"max_lines": 60}}},
                       headers=_LOCALHOST)
     assert resp.status_code == 200
-    saved = json.loads((project_root / ".quodeq" / "standards-overrides.json").read_text())
-    assert saved == {"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}
+    saved = json.loads(machine_settings().read_text())
+    assert saved["overrides"] == {"M-ANA-2": {"max_lines": 60}}
+    assert not (project_root / ".quodeq").exists()
     resp = client.get(OVERRIDES_URL)
     assert resp.get_json() == {
         "overrides": {"M-ANA-2": {"max_lines": 60}},
@@ -41,20 +41,27 @@ def test_put_rejects_out_of_bounds(client, project_root: Path):
     body = resp.get_json()
     assert "details" in body
     assert any("M-ANA-2.max_lines" in d for d in body["details"])
-    assert not (project_root / ".quodeq" / "standards-overrides.json").exists()
+    assert not machine_settings().exists()
 
 
-def test_put_empty_deletes_file(client, project_root: Path):
+def test_put_empty_clears_overrides(client):
     client.put(OVERRIDES_URL, json={"overrides": {"M-ANA-2": {"max_lines": 60}}},
                headers=_LOCALHOST)
     resp = client.put(OVERRIDES_URL, json={"overrides": {}}, headers=_LOCALHOST)
     assert resp.status_code == 200
-    assert not (project_root / ".quodeq" / "standards-overrides.json").exists()
+    assert client.get(OVERRIDES_URL).get_json()["overrides"] == {}
 
 
-def test_unknown_project_is_404(client_without_repo_root):
-    resp = client_without_repo_root.get(OVERRIDES_URL)
-    assert resp.status_code == 404
+def test_unknown_project_gets_empty_overrides_and_can_save(client):
+    url = "/api/projects/not-local-uuid/standards-overrides"
+    resp = client.get(url)
+    assert resp.status_code == 200
+    assert resp.get_json()["overrides"] == {}
+    put = client.put(url, json={"overrides": {}}, headers=_LOCALHOST)
+    assert put.status_code == 200
+    saved = client.put(url, json={"overrides": {"M-ANA-2": {"max_lines": 60}}}, headers=_LOCALHOST)
+    assert saved.status_code == 200
+    assert client.get(url).get_json()["overrides"] == {"M-ANA-2": {"max_lines": 60}}
 
 
 def test_put_accepts_override_for_evaluator_only_requirement(client_with_custom, project_root: Path):
@@ -65,7 +72,7 @@ def test_put_accepts_override_for_evaluator_only_requirement(client_with_custom,
         headers=_LOCALHOST,
     )
     assert resp.status_code == 200
-    saved = json.loads((project_root / ".quodeq" / "standards-overrides.json").read_text())
+    saved = json.loads(machine_settings().read_text())
     assert saved["overrides"]["CUST-1"] == {"max_items": 50}
 
 
@@ -80,7 +87,7 @@ def test_put_accepts_override_for_compiled_req_alongside_evaluator(client_with_c
         headers=_LOCALHOST,
     )
     assert resp.status_code == 200
-    saved = json.loads((project_root / ".quodeq" / "standards-overrides.json").read_text())
+    saved = json.loads(machine_settings().read_text())
     assert saved["overrides"]["M-ANA-2"] == {"max_lines": 60}
     assert saved["overrides"]["CUST-1"] == {"max_items": 200}
 
@@ -89,7 +96,7 @@ def test_put_accepts_override_for_compiled_req_alongside_evaluator(client_with_c
 # Fix 3: validate_overrides — missing bounds yields clean error, not 500
 # ---------------------------------------------------------------------------
 
-def test_put_malformed_spec_missing_bounds_does_not_500(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_put_malformed_spec_missing_bounds_does_not_500(tmp_path: Path):
     """A user-authored evaluator spec without min/max must yield a clean validation
     error (or accept unbounded integers), never raise a KeyError / 500."""
     compiled_dir = tmp_path / "compiled"
@@ -122,9 +129,6 @@ def test_put_malformed_spec_missing_bounds_does_not_500(tmp_path: Path, monkeypa
         "STANDARDS_DIMENSIONS_FILE": str(dims),
     })
 
-    import quodeq.api.standards_project as _guard
-    monkeypatch.setattr(_guard, "resolve_repo_root", lambda pid: str(project_root))
-
     with app.test_client() as c:
         # A value within "unbounded" range should be accepted (mirrors _is_valid)
         resp = c.put(
@@ -136,7 +140,7 @@ def test_put_malformed_spec_missing_bounds_does_not_500(tmp_path: Path, monkeypa
         assert resp.status_code != 500
 
 
-def test_put_shape_invalid_param_spec_does_not_500(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def test_put_shape_invalid_param_spec_does_not_500(tmp_path: Path):
     """A compiled dimension file whose params spec is a bare value (not a
     dict) must not crash _changed_dimensions with AttributeError. Same
     degrade-and-skip contract as an unreadable/unparseable compiled file --
@@ -172,9 +176,6 @@ def test_put_shape_invalid_param_spec_does_not_500(tmp_path: Path, monkeypatch: 
         "STANDARDS_DIMENSIONS_FILE": str(dims),
     })
 
-    import quodeq.api.standards_project as _guard
-    monkeypatch.setattr(_guard, "resolve_repo_root", lambda pid: str(project_root))
-
     with app.test_client() as c:
         resp = c.put(OVERRIDES_URL, json={"overrides": {}}, headers=_LOCALHOST)
         assert resp.status_code == 200
@@ -202,15 +203,15 @@ def test_put_accepts_a_severity_override(client, project_root: Path):
     resp = client.put(OVERRIDES_URL, json={"overrides": {"M-ANA-2": {"severity": "minor"}}},
                       headers=_LOCALHOST)
     assert resp.status_code == 200
-    saved = json.loads((project_root / ".quodeq" / "standards-overrides.json").read_text())
-    assert saved == {"version": 1, "overrides": {"M-ANA-2": {"severity": "minor"}}}
+    saved = json.loads(machine_settings().read_text())
+    assert saved["overrides"] == {"M-ANA-2": {"severity": "minor"}}
 
 
 def test_put_accepts_a_severity_override_for_an_evaluator_only_requirement(client_with_custom, project_root: Path):
     resp = client_with_custom.put(OVERRIDES_URL, json={"overrides": {"CUST-1": {"severity": "critical"}}},
                                   headers=_LOCALHOST)
     assert resp.status_code == 200
-    saved = json.loads((project_root / ".quodeq" / "standards-overrides.json").read_text())
+    saved = json.loads(machine_settings().read_text())
     assert saved["overrides"] == {"CUST-1": {"severity": "critical"}}
 
 
@@ -221,4 +222,4 @@ def test_put_rejects_a_bad_severity_with_a_code(client, project_root: Path):
     body = resp.get_json()
     assert body["code"] == "invalid_overrides"
     assert any("M-ANA-2.severity" in d for d in body["details"])
-    assert not (project_root / ".quodeq" / "standards-overrides.json").exists()
+    assert not machine_settings().exists()

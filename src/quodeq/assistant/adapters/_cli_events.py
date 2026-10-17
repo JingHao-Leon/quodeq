@@ -5,12 +5,14 @@ spawn/cleanup/finalize halves of the turn stay there.
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import IO, Callable, NamedTuple
 
 from quodeq.assistant.adapters import _stream
 from quodeq.assistant.adapters._linereader import iter_lines
 from quodeq.assistant.frame_type import FrameType
+from quodeq.assistant.tool_activity import end_frame, new_call_id, start_frame
 from quodeq.core.stream.events import EVENT_TYPE_RESULT
 
 _BENIGN_RAW_LINES = (
@@ -40,6 +42,8 @@ class _StreamState:
     last_full: str | None = None  # text of the last complete message, emitted or not
     partial_buf: str = ""  # delta text streamed since the last complete message
     saw_result: bool = False
+    # Tool calls announced but not yet finished: call id -> (raw name, start stamp).
+    running: dict[str, tuple[str, float]] = field(default_factory=dict)
 
 
 def _absorb_complete_message(event_texts: list[str], etype: str | None, state: _StreamState) -> None:
@@ -57,6 +61,17 @@ def _absorb_complete_message(event_texts: list[str], etype: str | None, state: _
     state.partial_buf = ""
 
 
+def _finish_tool_call(result: dict, state: _StreamState) -> None:
+    """Emit the end frame of the running call *result* closes: by id, or for
+    a dialect without ids, the oldest running call of the same name."""
+    call_id = result["id"] if result["id"] in state.running else next(
+        (cid for cid, (name, _) in state.running.items() if name == result["name"]), None)
+    if call_id is None:
+        return
+    name, started = state.running.pop(call_id)
+    state.emit(end_frame(call_id, name, result["ok"], started))
+
+
 def _handle_stream_event(event: dict, state: _StreamState) -> None:
     etype = event.get("type")
     if etype == EVENT_TYPE_RESULT and "exitCode" not in event:
@@ -72,10 +87,11 @@ def _handle_stream_event(event: dict, state: _StreamState) -> None:
     if event_texts:
         _absorb_complete_message(event_texts, etype, state)
     for tu in _stream.tool_use_details(event):
-        frame = {"type": FrameType.TOOL_CALL, "name": tu["name"]}
-        if tu["args_summary"]:
-            frame["argsSummary"] = tu["args_summary"]
-        state.emit(frame)
+        call_id = tu["id"] or new_call_id()
+        state.running[call_id] = (tu["name"], time.monotonic())
+        state.emit(start_frame(call_id, tu["name"], tu["args"]))
+    for tr in _stream.tool_result_details(event):
+        _finish_tool_call(tr, state)
     sid = _stream.session_id(event)
     if sid:
         state.session_id = sid

@@ -57,6 +57,18 @@ def _count_behind(repo: Path, tracking_ref: str) -> int:
     return int(out) if ok and out.isdigit() else 0
 
 
+def _branch_gone(
+    repo: Path, branch: str, config_flags: Sequence[str], timeout_s: int, env: Mapping[str, str] | None,
+) -> bool:
+    """True when origin answers but has no *branch* (deleted or renamed);
+    False when origin cannot be reached either, so the fetch failure stands."""
+    ok, out = run_git(
+        [*config_flags, "ls-remote", _REMOTE, f"refs/heads/{branch}"],
+        cwd=repo, timeout=timeout_s, env=env,
+    )
+    return ok and not out.strip()
+
+
 def refresh_working_copy(
     repo: Path, *, hard_reset: bool, timeout_s: int = _LOCAL_TIMEOUT_S,
     env: Mapping[str, str] | None = None, git_config: Sequence[str] = (),
@@ -80,7 +92,9 @@ def refresh_working_copy(
         cwd=repo, timeout=timeout_s, env=env,
     )
     if not ok:
-        return RefreshResult(RefreshOutcome.FETCH_FAILED, detail=output_tail(out))
+        gone = _branch_gone(repo, branch, config_flags, timeout_s, env)
+        outcome = RefreshOutcome.UPSTREAM_GONE if gone else RefreshOutcome.FETCH_FAILED
+        return RefreshResult(outcome, detail=output_tail(out))
 
     _, before = _local(repo, _REV_PARSE, "HEAD")
     new_commits = _count_behind(repo, tracking_ref)

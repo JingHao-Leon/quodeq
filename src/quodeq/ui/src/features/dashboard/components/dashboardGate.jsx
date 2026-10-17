@@ -4,6 +4,7 @@ import {
 } from './DashboardPageEmptyStates.jsx';
 import { LoadProjectFailedEmptyState, NoProjectsEmptyState } from '../../../components/ProjectEmptyStates.jsx';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
+import { t } from '../../../strings/index.js';
 
 // The early-return ladder of DashboardPage, as plain functions and not as
 // components: DashboardPage.fadeOnceIdentity.test.jsx pins the .dashboard-page
@@ -26,9 +27,8 @@ function gateFrame(className, children) {
 
 // `pending` mutes the page text (section-pending) itself: only for
 // gate states with no sections of their own to carry it.
-export function dashboardPageClassName({ appearClass = '', dimmed = false, pending = false }) {
-  const state = dimmed ? 'dashboard-loading' : `dashboard-ready${appearClass}`;
-  return `dashboard-page dashboard-fade ${state}${pending ? ' section-pending' : ''}`;
+export function dashboardPageClassName({ appearClass = '', pending = false }) {
+  return `dashboard-page dashboard-fade dashboard-ready${appearClass}${pending ? ' section-pending' : ''}`;
 }
 
 function renderNoProjectsGate({ sharedHasContent, onNavigate, readyClass }) {
@@ -54,22 +54,24 @@ function renderProjectErrorGate({ isFetching, projectName, error, onRetry, ready
   return gateFrame(readyClass, <LoadProjectFailedEmptyState error={error} onRetry={onRetry} />);
 }
 
-function renderRunModeGate({ isFetching, projectName, onRetry, readyClass }) {
+function renderRunModeGate({ isFetching, projectName, onRetry, readyClass, archivedRun }) {
   // createDashboard passes a falsy raw response through unchanged rather
   // than throwing (models/dashboard.js), so "settled, no error, no
   // dashboard" is a valid non-error outcome, not just a theoretical one --
   // this run's data didn't come back. Without this branch it fell through
   // every other check (all gated on runMode being false, or on dashboard
   // being truthy) to a genuinely blank .dashboard-page.
+  // An archived run is restored before it opens: say so, it takes a few seconds.
   if (isFetching) {
-    return gateFrame(readyClass, <LoadingProjectContent projectName={projectName} />);
+    const message = archivedRun ? t('history.restoringArchived') : undefined;
+    return gateFrame(readyClass, <LoadingProjectContent projectName={projectName} message={message} />);
   }
   return gateFrame(readyClass, <RunLoadFailedContent onRetry={onRetry} />);
 }
 
 // Returns null when no gate applies and the body should render; every branch
 // that does apply returns a fragment, so the caller tests the result directly.
-export function renderDashboardGate({ data, callbacks, runMode, projectName, projectInfo, pageState, onSetupComplete }) {
+export function renderDashboardGate({ data, callbacks, runMode, archivedRun = false, projectName, projectInfo, pageState, onSetupComplete }) {
   const { projects = [], selectedSource, sharedHasContent = false, selectedProject, dashboard, loading, error, isFetching } = data;
   const { onNavigate, onRetry } = callbacks;
   const readyClass = dashboardPageClassName({ appearClass: pageState.dashboardAppearClass });
@@ -84,10 +86,10 @@ export function renderDashboardGate({ data, callbacks, runMode, projectName, pro
   }
   if (pageState.showNoRunsEmpty) {
     const pendingClass = dashboardPageClassName({ appearClass: pageState.dashboardAppearClass, pending: isFetching });
-    return gateFrame(pendingClass, <NoRunsEmptyContent projectInfo={projectInfo} onComplete={onSetupComplete} projectName={projectName} onNavigate={onNavigate} />);
+    return gateFrame(pendingClass, <NoRunsEmptyContent projectInfo={projectInfo} onComplete={onSetupComplete} projectName={projectName} onNavigate={onNavigate} selectedSource={selectedSource} />);
   }
   if (runMode && !loading && !dashboard && !error) {
-    return renderRunModeGate({ isFetching, projectName, onRetry, readyClass });
+    return renderRunModeGate({ isFetching, projectName, onRetry, readyClass, archivedRun });
   }
   return null;
 }

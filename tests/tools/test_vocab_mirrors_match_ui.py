@@ -21,6 +21,7 @@ from quodeq.core.run.state import RunState
 from quodeq.core.scoring.constants import Grade
 from quodeq.analysis.mcp.scope_gate_rules import ScopeGateRule
 from quodeq.assistant.frame_type import FrameType
+from quodeq.assistant.tool_activity import ToolKind, ToolStatus
 from quodeq.assistant.tools.actions import ACTIONS
 from quodeq.core.types.dashboard_view import DashboardView
 from quodeq.core.types.finding_type import FindingType
@@ -50,6 +51,8 @@ _MIRRORS = [
     ("vocab/projectSource.js", "PROJECT_SOURCE", ProjectSource),
     ("vocab/dashboardView.js", "DASHBOARD_VIEW", DashboardView),
     ("vocab/frameType.js", "FRAME_TYPE", FrameType),
+    ("vocab/toolKind.js", "TOOL_KIND", ToolKind),
+    ("vocab/toolStatus.js", "TOOL_STATUS", ToolStatus),
     ("vocab/sseEvent.js", "SSE_EVENT", SseEvent),
     ("vocab/scopeGateRule.js", "SCOPE_GATE_RULE", ScopeGateRule),
     ("vocab/rescoreState.js", "RESCORE_STATE", RescoreState),
@@ -105,7 +108,8 @@ _UI_ONLY_VOCAB_MODULES = {
     "vocab/pointerEvent.js",   # pointer-drag DOM event names (DOM spec, not Python)
     "vocab/sortDirection.js",  # sort-toggle direction: purely client-side UI concept
     "vocab/dialogVariant.js",  # dialog action-button style: purely presentational choice
-    "vocab/stageStatus.js",    # grade-formula worked-example lifecycle: purely client-side state
+    "vocab/riskZone.js",       # Risk zones by density (fix first, watch, healthy): drawn by the UI only
+    "vocab/heroCardKind.js",   # the clickable findings numbers' kinds: purely client-side navigation
 }
 
 
@@ -118,14 +122,14 @@ def test_ui_log_stream_status_has_expected_members():
 
 
 def test_ui_action_type_mirrors_a_subset_of_the_backend_action_types():
-    """ACTION_TYPE names only the two action types the UI branches on by name
-    (assistantAppBridge.js, verifiedFindingsContext.jsx, ActionPreviewCard.jsx);
-    create_standard has no such UI-side effect, so it's absent by design. Not a
-    full mirror (and ACTIONS is dict keys, not a StrEnum), so not in _MIRRORS --
+    """ACTION_TYPE names the action types the UI branches on by name
+    (assistantAppBridge.js, verifiedFindingsContext.jsx, ActionPreviewCard.jsx,
+    StandardsPage.jsx). Not a full mirror (and ACTIONS is dict keys, not a StrEnum), so not in _MIRRORS --
     but every value present must still match a real assistant/tools/actions.py
     ACTIONS key exactly."""
     ui = _js_object(_UI_SRC / "vocab" / "actionType.js", "ACTION_TYPE")
-    assert ui == {"DISMISS_FINDING": "dismiss_finding", "VERIFY_FINDING": "verify_finding"}
+    assert ui == {"CREATE_STANDARD": "create_standard", "DISMISS_FINDING": "dismiss_finding",
+                  "VERIFY_FINDING": "verify_finding"}
     assert set(ui.values()) <= set(ACTIONS)
 
 

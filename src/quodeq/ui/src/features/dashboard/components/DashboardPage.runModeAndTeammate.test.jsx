@@ -1,5 +1,6 @@
 import { render as rtlRender, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import DashboardPage from './DashboardPage.jsx';
 import { SidePaneProvider } from '../../side-pane/index.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
@@ -13,10 +14,10 @@ const render = (ui) => rtlRender(ui, { wrapper: withStableQueryApi({ getRunScore
 // shared-selection/zero-local-projects teammate persona, and frame
 // stability across the empty branches.
 
-// Scenario 2 (collision): runMode renders RunOverviewPanel, which has its own
-// inline loading state (`!dashboard.dimensions`). Before the page's own
-// isLoading/DashboardContent-mount decision accounted for that, the page-level
-// grace loader and RunOverviewPanel's inline spinner could both mount at once.
+// Scenario 2 (collision): runMode renders RunOverviewPanel, which shows the
+// run page's skeleton itself until the run's dimensions land. The page-level
+// loader and the panel's own must never both mount: one skeleton, in the run
+// page's footprint (the Overview's layout), never the spinner.
 describe('DashboardPage runMode loading gate', () => {
   const runModeLoading = {
     projectsLoaded: true,
@@ -31,17 +32,23 @@ describe('DashboardPage runMode loading gate', () => {
     availableRuns: [{ runId: 'r1', status: 'done' }],
   };
 
-  it('renders exactly one LoadingScreen before the run payload has resolved', () => {
+  const expectOneRunSkeleton = (container) => {
+    expect(container.querySelectorAll('.overview-skeleton').length).toBe(1);
+    expect(container.querySelector('.overview-skeleton .term-header__name')).toHaveTextContent(/^run$/);
+    expect(container.querySelector('.loading-screen')).toBeNull();
+    expect(container.querySelector('.dashboard-page').className).not.toContain('dashboard-loading');
+  };
+
+  it('renders exactly one run skeleton before the run payload has resolved', () => {
     const { container } = render(
       <SidePaneProvider>
         <DashboardPage data={runModeLoading} callbacks={{}} runMode={true} />
       </SidePaneProvider>,
     );
-    expect(container.querySelectorAll('.loading-screen').length).toBe(1);
-    expect(container.querySelector('.loading-screen').className).toContain('loading-screen--inline');
+    expectOneRunSkeleton(container);
   });
 
-  it('renders exactly one LoadingScreen once the run payload resolves without dimensions yet', () => {
+  it('renders exactly one run skeleton once the run payload resolves without dimensions yet', () => {
     const { container } = render(
       <SidePaneProvider>
         <DashboardPage
@@ -54,7 +61,7 @@ describe('DashboardPage runMode loading gate', () => {
         />
       </SidePaneProvider>,
     );
-    expect(container.querySelectorAll('.loading-screen').length).toBe(1);
+    expectOneRunSkeleton(container);
   });
 });
 

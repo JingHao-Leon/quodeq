@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -19,6 +20,7 @@ from quodeq.assistant.adapters._fallback import (
 )
 from quodeq.assistant.cancel import CancelToken, TurnCancelled
 from quodeq.assistant.frame_type import FrameType
+from quodeq.assistant.tool_activity import end_frame, new_call_id, start_frame
 from quodeq.assistant.guard import MAX_TOOL_ITERATIONS, guard_tool_result
 from quodeq.assistant.message_role import MessageRole
 from quodeq.assistant.tools.registry import ToolRegistry
@@ -199,13 +201,15 @@ def _stream_once(client, config, messages, session: ApiTurnSession):
 
 def _run_tool(
     registry: ToolRegistry, emit: Callable[[dict], None], name: str, arguments: dict,
+    call_id: str | None = None,
 ) -> str:
-    """Run one tool call, emit its frame and any guard warnings, and return the fenced result."""
+    """Run one tool call between its start and end frames, emit any guard
+    warnings, and return the fenced result."""
+    call_id = call_id or new_call_id()
+    started = time.monotonic()
+    emit(start_frame(call_id, name, arguments))
     result = registry.dispatch(name, arguments)
-    frame = {"type": FrameType.TOOL_CALL, "name": name, "ok": result["ok"]}
-    if _args_summary(arguments):
-        frame["argsSummary"] = _args_summary(arguments)
-    emit(frame)
+    emit(end_frame(call_id, name, result["ok"], started))
     fenced, warnings = guard_tool_result(result, name)
     _emit_warnings(emit, warnings)
     return fenced
@@ -232,7 +236,7 @@ def _dispatch_tool_calls(
                                     "arguments": c["arguments"] or "{}"}}
                       for c in tool_calls]})
     for call in tool_calls:
-        fenced = _run_tool(registry, emit, call["name"], _parse_args(call["arguments"]))
+        fenced = _run_tool(registry, emit, call["name"], _parse_args(call["arguments"]), call["id"])
         convo.append({"role": MessageRole.TOOL, "tool_call_id": call["id"],
                       "content": fenced})
 
@@ -274,10 +278,6 @@ def run_api_turn(*, messages: list[dict], config: ApiTurnConfig,
                 return text
             _dispatch_tool_calls(convo, tool_calls, text, registry, emit)
     return text + _CAP_NOTE
-
-
-def _args_summary(arguments: dict) -> str:
-    return json.dumps(arguments, ensure_ascii=False)[:80] if arguments else ""
 
 
 def _parse_args(raw: str) -> dict:

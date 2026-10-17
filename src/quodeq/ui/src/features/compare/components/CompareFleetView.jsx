@@ -48,10 +48,8 @@ function partitionFleetRows(orderedRows, attention, errorsById) {
 }
 
 export default function CompareFleetView({
-  rows, orderedRows, fleet, board, attention, errorsById,
-  pickerOpen, setPickerOpen, scopeIds, scopeCount,
-  toggleProject, selectAll, selectFlagged, openDimension, openDuel, openDuelPair, onOpenProject,
-  onOpenProjectDimension,
+  orderedRows, fleet, board, attention, errorsById, picker,
+  openDimension, openDuel, openDuelPair, onOpenProject, onOpenProjectDimension,
 }) {
   const [hover, setHover] = useState(null);
   // Memoised so a hover (a re-render of this view) hands the charts the
@@ -65,11 +63,8 @@ export default function CompareFleetView({
   return (
     <>
       <CompareFleetHeader
-        scopeCount={scopeCount} totalFiles={fleet.totalFiles} scoredRows={scoredRows}
+        picker={picker} totalFiles={fleet.totalFiles} scoredRows={scoredRows} unevaluated={unevaluated.length}
         openDuelPair={openDuelPair} openDuel={openDuel} board={board} openDimension={openDimension}
-        rows={rows} scopeIds={scopeIds}
-        toggleProject={toggleProject} selectAll={selectAll} selectFlagged={selectFlagged}
-        pickerOpen={pickerOpen} setPickerOpen={setPickerOpen}
       />
       {scoredRows.length > 0 && <CompareFleetKpis rows={scoredRows} fleet={fleet} />}
       <CompareFleetTable

@@ -49,10 +49,10 @@ export function createCssVarStore({ doc = typeof document !== 'undefined' ? docu
 /** The app-wide cache every production chart panel shares. */
 export const defaultCssVarStore = createCssVarStore();
 // Observer lives at MODULE SCOPE, not inside a React effect: it is the sole
-// mechanism that invalidates stale colors on a theme switch for RunHistoryPanel,
-// HistoryChartPanel and DimensionScoreHistoryPanel (recharts stroke/fill props
-// that never re-render on their own). Moving it into a component effect would
-// make 3 panels race each other on mount/unmount instead of sharing one
+// mechanism that invalidates stale colors on a theme switch for RunHistoryPanel
+// and DimensionScoreHistoryPanel (recharts stroke/fill props that never
+// re-render on their own). Moving it into a component effect would make the
+// panels race each other on mount/unmount instead of sharing one
 // observer for the process's lifetime.
 defaultCssVarStore.observe();
 
@@ -125,15 +125,9 @@ export const HOVER_STROKE_WIDTH = 1.5;
 export const REF_LINE_OPACITY_EVEN = 0.3;
 export const REF_LINE_OPACITY_ODD = 0.2;
 
-/** Fixed chart height for the History tab's score chart (HistoryChartPanel),
- * shared with its Suspense placeholder so the two never drift apart. */
-export const HISTORY_CHART_HEIGHT = 220;
-
 // Fixed pixel height for the compact panel bar charts: the dashboard's
 // run-history panel, the explorer's dimension-score-history panel, and
-// history's per-dimension-scores-for-one-run panel. Not HISTORY_CHART_HEIGHT
-// above (220px, the History tab's own score line chart) — a different,
-// shorter chart shape, deliberately a different height.
+// history's per-dimension-scores-for-one-run panel.
 export const PANEL_CHART_HEIGHT_PX = 160;
 
 /**

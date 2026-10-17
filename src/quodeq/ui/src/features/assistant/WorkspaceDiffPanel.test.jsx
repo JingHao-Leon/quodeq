@@ -6,7 +6,7 @@ vi.mock('../../api/assistant.js', () => ({
     diff: 'diff --git a/x b/x\n@@ -1 +1 @@\n-a\n+b\n', stats: [{ file: 'x', added: 1, deleted: 1 }],
   }),
   applyAssistantWorkspace: vi.fn().mockResolvedValue({ applied: true, stats: [] }),
-  createAssistantWorkspacePr: vi.fn().mockResolvedValue({ prUrl: 'http://pr/1', branch: 'b', pushed: true, message: 'PR created' }),
+  createAssistantWorkspacePr: vi.fn().mockResolvedValue({ prUrl: 'https://github.com/o/r/pull/1', branch: 'b', pushed: true, message: 'PR created' }),
   discardAssistantWorkspace: vi.fn().mockResolvedValue({ discarded: true }),
 }));
 vi.mock('../../utils/confirmDialog.js', () => ({ confirmDialog: vi.fn() }));
@@ -23,7 +23,7 @@ function makeFakeApi(overrides = {}) {
     }),
     applyAssistantWorkspace: vi.fn().mockResolvedValue({ applied: true, stats: [] }),
     createAssistantWorkspacePr: vi.fn().mockResolvedValue({
-      prUrl: 'http://pr/1', branch: 'b', pushed: true, message: 'PR created',
+      prUrl: 'https://github.com/o/r/pull/1', branch: 'b', pushed: true, message: 'PR created',
     }),
     discardAssistantWorkspace: vi.fn().mockResolvedValue({ discarded: true }),
     ...overrides,
@@ -80,6 +80,26 @@ describe('WorkspaceDiffPanel', () => {
     await waitFor(() => expect(screen.getByText(/Branch pushed/i)).toBeTruthy());
     // terminal: Apply button is gone
     expect(screen.queryByText('Apply to repo')).toBeNull();
+  });
+
+  it('links the PR when prUrl is an https URL', async () => {
+    render(<WorkspaceDiffPanel sessionId="s1" onChanged={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Apply to repo')).toBeTruthy());
+    fireEvent.click(screen.getByText('Create PR...'));
+    fireEvent.click(screen.getByText('Create PR'));
+    const link = await screen.findByRole('link', { name: 'https://github.com/o/r/pull/1' });
+    expect(link.getAttribute('href')).toBe('https://github.com/o/r/pull/1');
+  });
+
+  it('never links a prUrl that is not an https URL', async () => {
+    const api = await import('../../api/assistant.js');
+    api.createAssistantWorkspacePr.mockResolvedValueOnce({ prUrl: 'javascript:alert(1)', branch: 'b', pushed: true, message: 'Branch pushed. Open the PR from your git host.' });
+    render(<WorkspaceDiffPanel sessionId="s1" onChanged={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('Apply to repo')).toBeTruthy());
+    fireEvent.click(screen.getByText('Create PR...'));
+    fireEvent.click(screen.getByText('Create PR'));
+    await waitFor(() => expect(screen.getByText(/Branch pushed/i)).toBeTruthy());
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it('shows an empty-state message when there are no changes', async () => {

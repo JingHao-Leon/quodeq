@@ -31,7 +31,7 @@ from quodeq.config.analysis_env import (
 )
 from quodeq.shared.csv_values import split_csv
 from quodeq.shared.logging import log_info
-from quodeq.shared.utils import get_ai_cmd_path
+from quodeq.shared.utils import get_ai_cmd_path, get_ai_effort
 
 from quodeq._cli_env import (
     ENV_MAX_DURATION,
@@ -60,6 +60,7 @@ class _RunLimits:
     dry_run: bool
     dispatch_policy: DispatchPolicy
     ai_cmd_path: str | None
+    ai_effort: str | None
     cache_root: Path
     failure_streak_threshold: int
     agent_failure_streak_limit: int
@@ -79,6 +80,7 @@ def resolve_limits(args: argparse.Namespace, env: dict[str, str] | None = None) 
         dry_run=getattr(args, "dry_run", False),
         dispatch_policy=default_dispatch_policy(env=environ),
         ai_cmd_path=get_ai_cmd_path(environ),
+        ai_effort=get_ai_effort(environ),
         cache_root=default_cache_root(environ),
         failure_streak_threshold=_failure_streak_threshold(environ),
         agent_failure_streak_limit=agent_failure_streak_limit(environ),
@@ -113,6 +115,7 @@ def build_analysis_options(
         diff_from=resolved.diff_from,
         skip_scoring=resolved.skip_scoring,
         ai_cmd_path=limits.ai_cmd_path,
+        ai_effort=limits.ai_effort,
         cache_root=limits.cache_root,
         failure_streak_threshold=limits.failure_streak_threshold,
         agent_failure_streak_limit=limits.agent_failure_streak_limit,
@@ -126,3 +129,16 @@ def dimensions_filter_for(args: argparse.Namespace) -> list[str] | None:
     dimensions_filter = split_csv(expanded_dimensions) if expanded_dimensions else None
     log_info(f"Dimensions: {', '.join(dimensions_filter)}" if dimensions_filter else "Dimensions: all")
     return dimensions_filter
+
+
+def standards_settings_for_run(evidence_dir: Path, src: Path, *, reports_root: Path) -> Path:
+    """The run project's settings file, migrated from *src*'s legacy repo files on first use.
+
+    *evidence_dir* is ``<reports>/<project>/<run>/evidence``, so the project
+    id is its grandparent's name. *reports_root* is the LOCAL evaluations
+    root: a scoped child resolves to its parent's file only from there, the
+    same lookup the API and the assistant make.
+    """
+    from quodeq.data.fs.standards_prefs import project_settings_file  # noqa: PLC0415
+    project_id = evidence_dir.parent.parent.name
+    return project_settings_file(reports_root, project_id, repo_root=src)

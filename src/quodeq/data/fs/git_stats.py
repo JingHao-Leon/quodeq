@@ -1,9 +1,9 @@
 """Local git repository statistics.
 
-A read-only ``git`` subprocess call over an analyzed repo's history. Fails
-open (returns None) on any git/subprocess trouble -- a missing repo, no git
-binary, a non-zero exit, a timeout -- so a staleness signal can never crash
-the caller that asks for it.
+A read-only ``git`` subprocess call over an analyzed repo's history, and
+plain reads of ``.git`` files. Fails open (returns None) on any git or file
+trouble -- a missing repo, no git binary, a non-zero exit, a timeout -- so
+a staleness signal can never crash the caller that asks for it.
 """
 from __future__ import annotations
 
@@ -50,3 +50,46 @@ def last_fetched_mtime(repo: Path) -> float | None:
         return candidate.stat().st_mtime
     except OSError:
         return None
+
+
+# Which branch a working copy has checked out. The project list asks this
+# for every local row on each rebuild, so it reads two small files instead
+# of spawning git. It follows a linked worktree's .git file to its own HEAD
+# and walks up from a scoped subfolder to the repository it sits in.
+_GIT_DIR_NAME = ".git"
+_GITDIR_PREFIX = "gitdir:"
+_HEAD_FILE = "HEAD"
+_REF_PREFIX = "ref: refs/heads/"
+_SHORT_SHA_LEN = 7
+
+
+def _git_dir(start: Path) -> Path | None:
+    """The git directory for *start* or the nearest folder above it."""
+    for folder in (start, *start.parents):
+        marker = folder / _GIT_DIR_NAME
+        if marker.is_dir():
+            return marker
+        if marker.is_file():
+            target = marker.read_text(encoding="utf-8").strip()
+            if not target.startswith(_GITDIR_PREFIX):
+                return None
+            gitdir = Path(target[len(_GITDIR_PREFIX):].strip())
+            return gitdir if gitdir.is_absolute() else folder / gitdir
+    return None
+
+
+def checked_out_branch(path: str | None) -> str | None:
+    """The branch checked out at *path*, the short sha on a detached HEAD,
+    or None when *path* is not inside a git working copy."""
+    if not path:
+        return None
+    try:
+        git_dir = _git_dir(Path(path))
+        if git_dir is None:
+            return None
+        head = (git_dir / _HEAD_FILE).read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if head.startswith(_REF_PREFIX):
+        return head[len(_REF_PREFIX):] or None
+    return head[:_SHORT_SHA_LEN] or None

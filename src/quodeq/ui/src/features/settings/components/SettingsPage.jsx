@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react';
-import { getHealth, getProviderConfigs } from '../../../api/index.js';
+import { getProviderConfigs } from '../../../api/index.js';
 import AboutSection from './AboutSection.jsx';
 import AppearanceSection from './AppearanceSection.jsx';
 import UpdatesSection from './UpdatesSection.jsx';
 import DesktopSection from './DesktopSection.jsx';
 import ProviderTabs from './ProviderTabs.jsx';
 import AssistantProviderTabs from './AssistantProviderTabs.jsx';
+import ToolbarSection from './ToolbarSection.jsx';
 import EvaluationSection from './EvaluationSection.jsx';
-import TerminalSection from './TerminalSection.jsx';
 import ServerSection from './ServerSection.jsx';
 import GitHubAccessSection from './GitHubAccessSection.jsx';
 import SharedRepoSection from './SharedRepoSection.jsx';
 import OnboardingSection from './OnboardingSection.jsx';
-import { TermHeader } from '../../../components/terminal/index.js';
-import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
+import SettingsGroup from './SettingsGroup.jsx';
+import useSettingsGroupStates from '../hooks/useSettingsGroupStates.js';
+import { SETTINGS_GROUPS, SETTINGS_GROUP } from '../settingsGroups.js';
 import { t } from '../../../strings/index.js';
-import { SettingsRowLabel } from './settingsRowParts.jsx';
+import { useUpdateStatus } from '../../updates/useUpdateStatus.js';
 
 const _SETTINGS_PHRASE_KEYS = [
   'settingsPhrase.cuore',
@@ -25,49 +26,61 @@ const _SETTINGS_PHRASE_KEYS = [
   'settingsPhrase.compass',
 ];
 
-export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome }) {
-  const { mode: themeMode, family: themeFamily, onApplyMode, onApplyFamily } = theme;
-  const [appVersion, setAppVersion] = useState(null);
+// What each group holds, keyed by group id. The sections keep their own
+// behaviour; the group panel only frames them.
+function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted, settingsPhrase }) {
+  return {
+    [SETTINGS_GROUP.EVALUATION]: (<>
+      <ProviderTabs providerConfigs={providerConfigs} />
+      <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} onEvaluationsDeleted={onEvaluationsDeleted} />
+    </>),
+    [SETTINGS_GROUP.ASSISTANT]: <AssistantProviderTabs providerConfigs={providerConfigs} />,
+    // Two explicit lines: GitHub and the shared repository side by side, the
+    // local server under them.
+    [SETTINGS_GROUP.CONNECTIONS]: (<>
+      <div className="settings-group__line">
+        <GitHubAccessSection />
+        <SharedRepoSection onDisconnected={onSharedDisconnected} />
+      </div>
+      <div className="settings-group__line">
+        <ServerSection />
+      </div>
+    </>),
+    // A missing Desktop section (not macOS) only narrows the line.
+    [SETTINGS_GROUP.APP]: (
+      <div className="settings-group__line">
+        <AppearanceSection themeMode={theme.mode} themeFamily={theme.family} onApplyMode={theme.onApplyMode} onApplyFamily={theme.onApplyFamily} />
+        <ToolbarSection />
+        <DesktopSection />
+      </div>
+    ),
+    [SETTINGS_GROUP.ABOUT]: (<>
+      <UpdatesSection update={update} />
+      <OnboardingSection onShowWelcome={onShowWelcome} />
+      <AboutSection settingsPhrase={settingsPhrase} />
+    </>),
+  };
+}
+
+export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted }) {
   const [settingsPhrase, setSettingsPhrase] = useState('');
   const [providerConfigs, setProviderConfigs] = useState({});
+  // One update status for the page: the Updates section and the About line
+  // must never disagree after a manual check.
+  const update = useUpdateStatus();
+  const states = useSettingsGroupStates({ providerConfigs, theme, update });
 
   useEffect(() => {
     setSettingsPhrase(t(_SETTINGS_PHRASE_KEYS[Math.floor(Math.random() * _SETTINGS_PHRASE_KEYS.length)]));
-    getHealth().then((d) => setAppVersion(d.version || null)).catch((err) => console.warn('Failed to fetch app version:', err));
     getProviderConfigs().then(setProviderConfigs).catch(() => setProviderConfigs({}));
   }, []);
 
+  const bodies = groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted, settingsPhrase });
   return (
-    <div className="settings-page settings-page--terminal">
-      <TermHeader
-        name={t('settings.termName')}
-        sub={t('settings.termSub')}
-      />
-      <div className="settings-grid">
-        <ProviderTabs providerConfigs={providerConfigs} />
-        <AssistantProviderTabs providerConfigs={providerConfigs} />
-        <EvaluationSection />
-        <TerminalSection />
-        <ServerSection />
-        <GitHubAccessSection />
-        <SharedRepoSection onDisconnected={onSharedDisconnected} />
-        <OnboardingSection onShowWelcome={onShowWelcome} />
-        <section className="panel settings-section">
-          <div className="panel-header">
-            <SectionLabel marker="▶">{t('settings.gradeFormula')}</SectionLabel>
-          </div>
-          <div className="settings-row">
-            <SettingsRowLabel hintSlot={false} label={t('settings.gradeFormula')} description={t('settings.gradeFormulaDesc')} />
-            <button type="button" className="settings-pill" onClick={onOpenGradeFormula}>
-              {t('settings.openEditor')}
-            </button>
-          </div>
-        </section>
-        <AppearanceSection themeMode={themeMode} themeFamily={themeFamily} onApplyMode={onApplyMode} onApplyFamily={onApplyFamily} />
-        <DesktopSection />
-        <UpdatesSection />
-        <AboutSection appVersion={appVersion} settingsPhrase={settingsPhrase} />
-      </div>
+    <div className="settings-page settings-page--terminal settings-sheet">
+      {SETTINGS_GROUPS.map((group) => (
+        <SettingsGroup key={group.id} group={group} state={states[group.id]}>{bodies[group.id]}</SettingsGroup>
+      ))}
     </div>
   );
 }

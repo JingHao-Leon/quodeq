@@ -21,4 +21,9 @@ describe('DetectedLine', () => {
     render(<DetectedLine scanData={scanData} estimates={null} />);
     expect(document.querySelector('.eval-detected-line')).toHaveTextContent(/^3,926 source files/);
   });
+
+  it('one file reads in the singular', () => {
+    render(<DetectedLine scanData={{ codeFiles: 1, languages: { py: 1 } }} estimates={null} />);
+    expect(document.querySelector('.eval-detected-line')).toHaveTextContent(/^1 source file · python$/);
+  });
 });

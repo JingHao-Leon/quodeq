@@ -1,4 +1,4 @@
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import { t } from '../../../strings/index.js';
 import { evalBlockedClass, evalBlockedProps } from '../../../utils/evalBlocked.js';
 import { pluralKey } from '../../../utils/plural.js';
@@ -8,10 +8,17 @@ export const EVAL_BLOCKED_TITLE = t('projects.evalBlockedTitle');
 
 // Until the list has loaded there is no count to report, so the header says
 // "loading" rather than "0 repositories evaluated". With a team repository
-// configured it counts both sides: "1 local · 5 published".
-function headerSub({ projectsLoaded, localCount, teamCount, configured }) {
+// configured it counts both sides: "1 local · 5 published". Otherwise it
+// counts what was evaluated: "3 repositories · none evaluated yet", "2 of 3
+// evaluated", "3 repositories evaluated". `evaluatedCount` left out reads as
+// all of them (the count callers had before it existed).
+function headerSub({ projectsLoaded, localCount, evaluatedCount = localCount, teamCount, configured }) {
   if (!projectsLoaded) return t('overview.loading');
   if (configured) return t('projects.headerLocalAndTeam', { local: localCount, team: teamCount });
+  if (localCount > 0 && evaluatedCount === 0) {
+    return t(pluralKey(localCount, 'projects.reposNoneEvaluatedOne', 'projects.reposNoneEvaluatedMany'), { count: localCount });
+  }
+  if (evaluatedCount < localCount) return t('projects.reposSomeEvaluated', { evaluated: evaluatedCount, count: localCount });
   return t(pluralKey(localCount, 'projects.reposEvaluatedOne', 'projects.reposEvaluatedMany'), { count: localCount });
 }
 
@@ -48,7 +55,7 @@ function MoreMenu({ configured, onConnectEvaluations, onImportProject }) {
 }
 
 /**
- * The Repositories header: title, counts, and two controls, on the empty
+ * The Repositories toolbar: counts, and two controls, on the empty
  * page too (they are the ways in). The primary `add project` opens the add
  * panel directly (never the welcome). `more ▾` holds the two rare actions:
  * `add evaluations repository` (or `change repository` once one is
@@ -58,8 +65,7 @@ function MoreMenu({ configured, onConnectEvaluations, onImportProject }) {
 export function ProjectsPageHeader({ counts, configured, onConnectEvaluations, onImportProject, onAddProject, isEvaluating }) {
   const showMore = Boolean(onConnectEvaluations || onImportProject);
   return (
-    <div className="projects-page__header">
-      <TermHeader name={t('projects.termName')} sub={headerSub({ ...counts, configured })} />
+    <PageToolbar title={t('projects.termName')} facts={headerSub({ ...counts, configured })}>
       <div className="projects-page__header-actions">
         {showMore && (
           <MoreMenu configured={configured} onConnectEvaluations={onConnectEvaluations} onImportProject={onImportProject} />
@@ -76,6 +82,6 @@ export function ProjectsPageHeader({ counts, configured, onConnectEvaluations, o
           </button>
         )}
       </div>
-    </div>
+    </PageToolbar>
   );
 }

@@ -9,6 +9,8 @@ import {
   setUpdateAutoCheck,
   markUpdateDisclosed,
   startSelfUpdate,
+  startUpgrade,
+  restartAfterUpgrade,
 } from './index.js';
 
 beforeEach(() => { request.mockClear(); });
@@ -43,6 +45,16 @@ describe('update api', () => {
   it('startSelfUpdate POSTs /update/selfupdate', () => {
     startSelfUpdate();
     expect(request).toHaveBeenCalledWith('/update/selfupdate', { method: 'POST' });
+  });
+
+  it('startUpgrade POSTs /update/upgrade', () => {
+    startUpgrade();
+    expect(request).toHaveBeenCalledWith('/update/upgrade', { method: 'POST' });
+  });
+
+  it('restartAfterUpgrade POSTs /update/restart', () => {
+    restartAfterUpgrade();
+    expect(request).toHaveBeenCalledWith('/update/restart', { method: 'POST' });
   });
 
   it('markUpdateDisclosed POSTs disclosed', () => {

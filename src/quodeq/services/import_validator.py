@@ -20,6 +20,9 @@ _FIELD_DESCRIPTION = "description"
 _NAME_AND_DESCRIPTION_LIMITS = ((_FIELD_NAME, _MAX_NAME), (_FIELD_DESCRIPTION, _MAX_DESCRIPTION))  # standard + principle
 _REQUIREMENT_LIMITS = (("text", _MAX_REQ_TEXT), (_FIELD_DESCRIPTION, _MAX_DESCRIPTION))  # requirement text fields
 
+# A requirement id is rendered into every evaluation prompt, so it stays a short token.
+_REQUIREMENT_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}")
+
 _INJECTION_PATTERNS = [
     re.compile(r"ignore\s+(all\s+|previous\s+)?(instructions|prompts)", re.IGNORECASE),
     re.compile(r"you\s+are\s+now", re.IGNORECASE),
@@ -118,7 +121,19 @@ def _one_principle_errors(index: int, principle: object) -> list[str]:
         errors.append(f"Principle {index} missing required field: requirements")
     elif not isinstance(principle["requirements"], list):
         errors.append(f"Principle {index} field 'requirements' must be a list")
+    else:
+        errors.extend(_requirement_id_errors(index, principle["requirements"]))
     return errors
+
+
+def _requirement_id_errors(index: int, requirements: list) -> list[str]:
+    """Complaints about requirement ids that are not short tokens (letters, digits, ``. _ : -``)."""
+    return [
+        f"Principle {index}, requirement {j}: id must be up to 64 letters, digits, '.', '_', ':' or '-'"
+        for j, req in enumerate(requirements)
+        if isinstance(req, dict) and req.get("id") not in (None, "")  # a missing id is reported elsewhere
+        and not (isinstance(req["id"], str) and _REQUIREMENT_ID.fullmatch(req["id"]))
+    ]
 
 
 def _principle_errors(data: dict) -> list[str]:
@@ -138,6 +153,11 @@ def _sanitized(data: dict) -> dict:
     cleaned = _pick(data, _ALLOWED_TOP, _NAME_AND_DESCRIPTION_LIMITS)
     _whitelist_children(cleaned, "principles", _whitelist_principle)
     return cleaned
+
+
+def sanitize_import(data: dict) -> dict:
+    """*data* reduced to the import allowlists with every text field truncated, without validating it."""
+    return _sanitized(data)
 
 
 def validate_import(data: dict) -> dict:
@@ -190,7 +210,7 @@ def scan_injection(data: dict) -> list[str]:
         for j, r in enumerate(p.get("requirements", [])):
             if not isinstance(r, dict):
                 continue
-            for field in ("text", _FIELD_DESCRIPTION):
+            for field in ("id", "text", _FIELD_DESCRIPTION):
                 if isinstance(r.get(field), str):
                     _check(r[field], f"principle '{p.get('name', i)}', requirement {j}")
 

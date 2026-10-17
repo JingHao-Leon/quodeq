@@ -16,7 +16,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  --page-flow-gap: var(--space-4);
+  gap: var(--page-flow-gap);
   flex: 1;
   min-height: 0;
 }
@@ -124,6 +125,65 @@
 .map-filter-item input[type="checkbox"] {
   accent-color: var(--color-accent);
   cursor: pointer;
+}
+
+.map-filter-item input[type="checkbox"]:disabled {
+  cursor: default;
+}
+
+/* The name keeps only its dimension; "only" appears on hover/focus so the
+   difference from the checkbox is discoverable without permanent chrome. */
+.map-filter-only,
+.map-filter-all {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-filter-only__name {
+  flex: 1;
+}
+
+.map-filter-only__hint {
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 100ms ease;
+}
+
+.map-filter-item:hover .map-filter-only__hint,
+.map-filter-only:focus-visible .map-filter-only__hint {
+  opacity: 1;
+}
+
+.map-filter-all {
+  width: 100%;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition: background 100ms ease;
+}
+
+.map-filter-all:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+}
+
+.map-filter-all.is-on {
+  color: var(--color-accent);
+}
+
+.map-filter-sep {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--color-border);
 }
 
 .map-breadcrumb-back {
@@ -542,9 +602,61 @@
 .type-row__text { margin-left: var(--space-2); font-size: var(--text-xs); }
 .type-row__closed { font-size: var(--text-xs); color: var(--color-success); border: 1px solid currentColor; border-radius: var(--radius-sm); padding: 0 4px; }
 .heat-grid-type-row--closed .type-row__code { color: var(--color-text-muted); }
-.type-row-menu { position: relative; margin-left: var(--space-2); }
-.type-row-menu__btn { background: none; border: 0; color: var(--color-text-muted); cursor: pointer; font: inherit; }
-.type-row-menu__btn:hover { color: var(--color-text); }
-.type-row-menu__list { position: absolute; right: 0; z-index: 30; display: flex; flex-direction: column; min-width: 16rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 4px; }
-.type-row-menu__list button { text-align: left; background: none; border: 0; color: var(--color-text); padding: 6px 8px; cursor: pointer; font: inherit; }
-.type-row-menu__list button:hover { background: var(--color-surface-alt); }
+
+/* ── Circle Pack legend ──────────────────────────────── */
+
+.pack-legend {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-3);
+  z-index: 2;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  /* No interactive children: hover and clicks reach the canvas beneath. */
+  pointer-events: none;
+}
+.pack-legend-title { color: var(--color-text); }
+.pack-legend-row { display: flex; align-items: center; gap: var(--space-2); }
+.pack-legend-bar {
+  display: inline-block;
+  width: 160px;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--color-map-better), var(--color-surface-alt), var(--color-map-worse));
+}
+.pack-legend-bar--activity {
+  background: linear-gradient(90deg, var(--color-surface-alt), var(--color-map-activity));
+}
+
+/* ── Risk tab ────────────────────────────────────────── */
+
+.map-empty-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.map-tooltip-path { font-size: 10px; color: var(--color-text-muted); margin: -2px 0 6px; word-break: break-all; }
+/* The pack and Risk tooltips, docked bottom-right above the Labels switch instead of following the pointer. */
+.map-tooltip--docked { position: absolute; right: var(--space-2); bottom: calc(var(--space-2) + 28px); z-index: 10; min-width: 200px; }
+.map-tooltip-tag { font-style: italic; margin-bottom: 4px; }
+.risk-zone { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px dashed; flex: none; }
+.risk-zone--fix { border-color: var(--color-sev-critical-text); background: color-mix(in srgb, var(--color-sev-critical-text) 35%, transparent); }
+.risk-zone--watch { border-color: var(--color-sev-major-text); background: color-mix(in srgb, var(--color-sev-major-text) 15%, transparent); }
+/* The Legend switch off: no map legend at all. */
+.map-viz-container.hide-legends .pack-legend { display: none; }
+.risk-ring {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--color-map-worse);
+}
+.risk-ring--dashed { border-style: dashed; }

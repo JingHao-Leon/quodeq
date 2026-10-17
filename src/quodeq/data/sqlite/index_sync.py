@@ -7,6 +7,7 @@ cancelled based on heartbeat mtime + PID liveness.
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import sqlite3
 import time
@@ -16,7 +17,7 @@ from quodeq.core.run.exit_reason import ExitReason
 from quodeq.core.run.job_status import external_job_id
 from quodeq.shared.clock import utc_iso_from_epoch
 from quodeq.shared.constants import EVIDENCE_DIRNAME, MANIFEST_FILENAME
-from quodeq.shared.process import is_pid_alive as _is_pid_alive
+from quodeq.shared.process import is_original_process, is_pid_alive as _is_pid_alive
 from quodeq.shared.run_heartbeat import HEARTBEAT_FILENAME
 from quodeq.data.fs.run_status_store import (
     RunState,
@@ -39,8 +40,9 @@ _DEFAULT_STALE_SECONDS = 30  # check_stale_and_promote's heartbeat-staleness thr
 _UPSERT_SQL = """
 INSERT INTO runs (
     job_id, project_uuid, run_id, run_dir, state, phase, current_dimension,
-    started_at, updated_at, finalized_at, heartbeat_at, pid, exit_reason, status_mtime
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    started_at, updated_at, finalized_at, heartbeat_at, pid, exit_reason, status_mtime,
+    ai_model, ai_provider, commit_sha, origin_json, dimensions_json
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(job_id) DO UPDATE SET
     project_uuid=excluded.project_uuid,
     run_id=excluded.run_id,
@@ -54,8 +56,31 @@ ON CONFLICT(job_id) DO UPDATE SET
     heartbeat_at=excluded.heartbeat_at,
     pid=excluded.pid,
     exit_reason=excluded.exit_reason,
-    status_mtime=excluded.status_mtime
+    status_mtime=excluded.status_mtime,
+    ai_model=excluded.ai_model,
+    ai_provider=excluded.ai_provider,
+    commit_sha=excluded.commit_sha,
+    origin_json=excluded.origin_json,
+    dimensions_json=excluded.dimensions_json
 """
+
+
+def run_pid_alive(run_dir: Path, pid: int) -> bool:
+    """True while *pid* is still the run's own process, not a reuse of its number.
+
+    The run writes ``.pid`` from inside that process, so a live *pid* that
+    started after the file was written got the number once the run ended.
+    No ``.pid`` naming the same pid (legacy runs) leaves liveness alone.
+    """
+    pid_path = run_dir / ".pid"
+    try:
+        recorded = int(pid_path.read_text(encoding="utf-8").strip())
+        written_at = pid_path.stat().st_mtime
+    except (OSError, ValueError):
+        return _is_pid_alive(pid)
+    if recorded != pid:
+        return _is_pid_alive(pid)
+    return is_original_process(pid, written_at)
 
 
 def _heartbeat_mtime(run_dir: Path) -> float | None:
@@ -79,6 +104,29 @@ def status_mtime_ns(run_dir: Path) -> int:
         return (run_dir / STATUS_FILENAME).stat().st_mtime_ns
     except OSError:
         return 0
+
+
+def _str_or_none(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _meta_params(status: dict) -> tuple[str | None, ...]:
+    """The run metadata columns, in ``_UPSERT_SQL`` order.
+
+    A hand-edited or foreign status.json may hold any JSON type here; a value
+    of the wrong type becomes NULL rather than failing the upsert, which would
+    drop the whole run from the index.
+    """
+    origin = status.get("origin")
+    dims = status.get("dimensions")
+    names = sorted(d for d in dims if isinstance(d, str)) if isinstance(dims, list) else []
+    return (
+        _str_or_none(status.get("ai_model")),
+        _str_or_none(status.get("ai_provider")),
+        _str_or_none(status.get("commit_sha")),
+        json.dumps(origin) if isinstance(origin, dict) else None,
+        json.dumps(names) if names else None,
+    )
 
 
 def upsert_from_status(
@@ -110,6 +158,7 @@ def upsert_from_status(
             status.get("pid"),
             status.get("exit_reason"),
             status_mtime_ns(run_dir),
+            *_meta_params(status),
         ),
     )
 
@@ -132,7 +181,7 @@ def sync_legacy_run(
     elif pid_path.exists():
         try:
             pid = int(pid_path.read_text(encoding="utf-8").strip())
-            alive = _is_pid_alive(pid)
+            alive = is_original_process(pid, pid_path.stat().st_mtime)
         except (OSError, ValueError):
             alive = False
         if alive:
@@ -157,6 +206,7 @@ def sync_legacy_run(
             started_iso, started_iso, started_iso if state in TERMINAL_STATES else None,
             None, None, exit_reason,
             0,
+            None, None, None, None, None,
         ),
     )
 
@@ -207,7 +257,7 @@ def check_stale_and_promote(
     heartbeat_stale = heartbeat_mtime is None or (time.time() - heartbeat_mtime) > stale_seconds
 
     pid = status.get("pid")
-    pid_alive = isinstance(pid, int) and _is_pid_alive(pid)
+    pid_alive = isinstance(pid, int) and run_pid_alive(run_dir, pid)
 
     if heartbeat_stale and not pid_alive:
         # from_status_dict needs a known "state"; fall back if status.json

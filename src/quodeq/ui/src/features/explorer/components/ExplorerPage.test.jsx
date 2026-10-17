@@ -19,9 +19,14 @@ vi.mock('../../side-pane/index.js', () => ({
 }));
 
 describe('ExplorerPage', () => {
-  it('shows the shared logo LoadingScreen while data loads, not a text fallback', () => {
+  it('while data loads, paints the page in its final shape: the skeleton header under the dimension name', () => {
+    const { container } = render(<ExplorerPage project="demo" dimension="Security" />);
+    expect(container.querySelector('.overview-skeleton .findings-head .term-header__name')).toHaveTextContent('security');
+  });
+
+  it('while data loads, the skeleton cards stand for the principles, with no bare title over a loader', () => {
     const { container } = render(<ExplorerPage project="demo" dimension="security" />);
-    expect(container.querySelector('.loading-screen')).toBeInTheDocument();
-    expect(container.textContent).not.toMatch(/loading/i);
+    expect(container.querySelector('.quality-dimensions')).toHaveTextContent(/principles/i);
+    expect(container.querySelector('.loading-screen')).not.toBeInTheDocument();
   });
 });

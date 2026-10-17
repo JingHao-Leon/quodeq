@@ -18,6 +18,7 @@ from typing import Any
 from quodeq.core.observability import LogSink
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.shared.validation import validate_path_segment, validate_resolved_within
+from quodeq.services.wiring_sync import has_event_log, is_archived
 
 
 class ProjectLockRegistry:
@@ -104,7 +105,9 @@ def project_all_runs(
         from quodeq.services.mutation_rescore import logger as log  # noqa: PLC0415
 
     for run_dir in sorted(p for p in project_dir.iterdir() if p.is_dir()):
-        if not (run_dir / "events.jsonl").is_file():
+        # An archived run is left packed: its projection replays the action-log
+        # delta (this dismissal included) when it is next opened and restored.
+        if not has_event_log(run_dir) or is_archived(run_dir):
             continue
         run_isolated(
             lambda run_dir=run_dir: repo_factory(run_dir).ensure_projected(),

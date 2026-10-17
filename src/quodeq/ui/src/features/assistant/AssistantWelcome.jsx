@@ -12,8 +12,8 @@ const DOT_TONES = ['info', 'accent', 'warning', 'success'];
  * never persisted, never sent to the model; reappears on every fresh
  * session.
  */
-export function AssistantWelcome({ catalog, view, onPick, readOnly = false }) {
-  const pills = pillsForView(catalog, view, { readOnly });
+export function AssistantWelcome({ catalog, view, page, onPick, readOnly = false }) {
+  const pills = pillsForView(catalog, view, { readOnly, page });
   return (
     <div className="assistant-welcome">
       <div className="assistant-welcome-hero">

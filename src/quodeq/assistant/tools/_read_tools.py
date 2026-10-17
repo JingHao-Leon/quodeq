@@ -5,6 +5,12 @@ import dataclasses
 
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import find_dimension, raw_run_dims, validate_dimension
+from quodeq.assistant.tools._read_tools_compare import register_compare_tools
+from quodeq.assistant.tools.help_tools import register_help_tools
+from quodeq.assistant.tools._formula_tool import register_formula_tool
+from quodeq.assistant.tools._map_tools import register_map_tools
+from quodeq.assistant.tools._read_tools_dismissed import register_dismissed_tools
+from quodeq.assistant.tools._read_tools_history import register_history_tools
 from quodeq.assistant.tools._read_tools_scope import (
     accumulated_dims,
     finding_keys_in_scope,  # noqa: F401 - re-export (actions.py, external tests)
@@ -27,7 +33,7 @@ from quodeq.assistant.tools.registry import ToolError, ToolRegistry, ToolSpec
 from quodeq.core.standards.visibility import partition_visible
 from quodeq.data.fs.report_parser.finding_details import read_eval_report
 from quodeq.data.fs.run_files import count_eval_files
-from quodeq.services.standards import StandardsService
+from quodeq.services.standards import StandardsService, shared_standards_provider
 from quodeq.core.utils.numbers import clamp
 
 # Cap violations embedded in a full report so a single get_report stays small.
@@ -157,7 +163,9 @@ def _get_report(ctx: ToolContext, dimension: str) -> dict:
 
 
 def _service(ctx: ToolContext) -> StandardsService:
-    return StandardsService(ctx.evaluators_dir, ctx.compiled_dir, ctx.dimensions_file)
+    # The shared reader adds each custom standard's sync state and the remote-only rows, like the Standards page.
+    return StandardsService(ctx.evaluators_dir, ctx.compiled_dir, ctx.dimensions_file,
+                            shared_standards=shared_standards_provider())
 
 
 def _list_standards(ctx: ToolContext, include_hidden: bool = False) -> dict:
@@ -192,10 +200,17 @@ def _register_findings_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
     registry.register(ToolSpec(
         "get_violations",
         "List violations for a dimension (or all dimensions if omitted), "
-        "severity-sorted with per-principle counts. Uses the selected run if "
-        "one is selected, otherwise the accumulated (per-dimension-latest) view.",
+        "severity-sorted with per-principle, per-requirement and per-file "
+        "counts. `path` narrows to one folder or file (repo-relative, matched "
+        "on whole path segments, e.g. the folder open in the Map or the file "
+        "open in the Explorer); use it for 'why does this module/file have so "
+        "many findings'. `paths` takes several at once, e.g. a Risk area's "
+        "`paths` from the page or get_risk_areas. Uses the selected run if one is selected, otherwise "
+        "the accumulated (per-dimension-latest) view.",
         {"type": JSON_SCHEMA_TYPE_OBJECT, "properties": {
             "dimension": {"type": JSON_SCHEMA_TYPE_STRING},
+            "path": {"type": JSON_SCHEMA_TYPE_STRING},
+            "paths": {"type": "array", "items": {"type": JSON_SCHEMA_TYPE_STRING}},
             "limit": {"type": "integer", "minimum": 1, "maximum": VIOLATIONS_MAX_LIMIT},
         }},
         lambda **kw: get_violations(ctx, **kw)))
@@ -244,4 +259,10 @@ def _register_standards_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
 def register_read_tools(registry: ToolRegistry, ctx: ToolContext) -> None:
     _register_findings_tools(registry, ctx)
     _register_score_tools(registry, ctx)
+    register_history_tools(registry, ctx)
+    register_compare_tools(registry, ctx)
+    register_dismissed_tools(registry, ctx)
+    register_help_tools(registry)
+    register_formula_tool(registry)
+    register_map_tools(registry, ctx)
     _register_standards_tools(registry, ctx)

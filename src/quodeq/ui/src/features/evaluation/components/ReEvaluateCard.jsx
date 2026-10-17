@@ -7,6 +7,7 @@ import { readActiveProviderModel } from './providerLabel.js';
 import { UrlRestoreSection, DetectedLine, BudgetChips, RunBar, IdentityHeader, ScopeBrowserOverlay } from './ReEvaluateCardParts.jsx';
 import { TermHeader } from '../../../components/terminal/index.js';
 import HelpHint from '../../../components/HelpHint.jsx';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import { t } from '../../../strings/index.js';
 import { buildDimMetas, buildUpToDateIds } from '../dimMetas.js';
@@ -22,16 +23,13 @@ const EVAL_OPTIONS_HINT = (
   </>
 );
 
-function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScopeBrowser, onCloseScopeBrowser, isReadOnlyEphemeral, urlActions, activeModel, branchLabel, scopeValue, estimates, onGoToSettings, onGoToProjects }) {
+function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScopeBrowser, onCloseScopeBrowser, isReadOnlyEphemeral, urlActions, activeModel, modelPopover, branchLabel, scopeValue, estimates, onGoToSettings, onGoToProjects }) {
   const { urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = urlActions;
   return (
     <>
-      <div className="evaluate-panel__top evaluate-panel__top--row">
-        <TermHeader name={t('evaluate.termNewEvaluation')} />
-        <div className="re-eval-toggle-row">
-          <HelpHint label={t('evaluate.optionsHelpAria')}>{EVAL_OPTIONS_HINT}</HelpHint>
-        </div>
-      </div>
+      <PageToolbar title={t('evaluate.pageTitle')} facts={t('evaluate.toolbarFacts', { project: info.name || project })}>
+        <HelpHint label={t('evaluate.optionsHelpAria')}>{EVAL_OPTIONS_HINT}</HelpHint>
+      </PageToolbar>
 
       <IdentityHeader
         info={info}
@@ -40,6 +38,7 @@ function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScope
         branchLabel={branchLabel}
         scopeValue={scopeValue}
         activeModel={activeModel}
+        modelPopover={modelPopover}
         onOpenScopeBrowser={onOpenScopeBrowser}
         onGoToSettings={onGoToSettings}
         onGoToProjects={onGoToProjects}
@@ -62,7 +61,7 @@ function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScope
   );
 }
 
-function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, allDimensions, selectedDims, toggleDim, selectAll, clearAll, dimMetas, upToDateIds, estimatesLoading, handleScan, estimates, budget, hasModel }) {
+function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, allDimensions, selectedDims, toggleDim, selectAll, clearAll, dimMetas, upToDateIds, estimatesLoading, handleScan, estimates, budget, hasModel, isFirstRun }) {
   return (
     <>
       <ScanModeCards value={cleanScan} onChange={setCleanScan} disabled={!canStart} />
@@ -78,6 +77,7 @@ function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, a
           dimMetas={dimMetas}
           upToDateIds={upToDateIds}
           metasLoading={estimatesLoading}
+          neutral={isFirstRun}
         />
       )}
 
@@ -104,25 +104,28 @@ function computeReEvalViewState({ info, scope, disabled, cleanScan, estimates })
   const dimMetas = buildDimMetas(estimates, isClean);
   const upToDateIds = buildUpToDateIds(estimates, isClean);
   const branchLabel = scope.isLocal ? (scope.scanData?.currentBranch || scope.branch) : null;
-  const scopeValue = scope.scopePath
-    ? `${scope.scopePath}/`
-    : `${info.path}/ · ${t('evaluate.wholeProject')}`;
+  // No sub-path: just "whole project"; the absolute path lives in the
+  // cell's tooltip (IdentityHeader), never in the cell itself.
+  const scopeValue = scope.scopePath ? `${scope.scopePath}/` : t('evaluate.wholeProject');
   return { isReadOnlyEphemeral, canStart, dimMetas, upToDateIds, branchLabel, scopeValue };
 }
 
-function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scope, estimates, estimatesLoading, budget, onGoToSettings, onGoToProjects }) {
+function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scope, estimates, estimatesLoading, budget, isFirstRun, onGoToSettings, onGoToProjects }) {
   const { all: allDimensions, selected: selectedDims } = dimensions;
   const {
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
   } = actions;
   const [scopeBrowserOpen, setScopeBrowserOpen] = useState(false);
+  // The popover's open state lives here: closing it after "use" re-renders
+  // this view, which re-reads the active model below.
+  const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
   const activeModel = readActiveProviderModel();
   const { isReadOnlyEphemeral, canStart, dimMetas, upToDateIds, branchLabel, scopeValue } =
     computeReEvalViewState({ info, scope, disabled, cleanScan, estimates });
 
   return (
-    <div className="panel evaluate-panel evaluate-panel--terminal">
+    <div className="evaluate-form">
       <ReEvaluateCardTop
         info={info}
         project={project}
@@ -133,6 +136,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
         isReadOnlyEphemeral={isReadOnlyEphemeral}
         urlActions={{ urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore }}
         activeModel={activeModel}
+        modelPopover={{ open: modelPopoverOpen, onOpen: () => setModelPopoverOpen(true), onClose: () => setModelPopoverOpen(false) }}
         branchLabel={branchLabel}
         estimates={estimates}
         scopeValue={scopeValue}
@@ -156,7 +160,8 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
         handleScan={handleScan}
         estimates={estimates}
         budget={budget}
-        hasModel={Boolean(activeModel)}
+        hasModel={Boolean(activeModel?.model)}
+        isFirstRun={isFirstRun}
       />
     </div>
   );
@@ -168,7 +173,7 @@ export default function ReEvaluateCard({ project, projectInfo, onStart, disabled
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
     isLocal, scanData, estimates, estimatesLoading, branch, setBranch, scopePath, setScopePath,
-    timeLimitS, setTimeLimitS,
+    timeLimitS, setTimeLimitS, isFirstRun,
   } = useReEvaluateCard(project, onStart, projectInfo, preselectDims);
 
   if (error) return (
@@ -206,6 +211,7 @@ export default function ReEvaluateCard({ project, projectInfo, onStart, disabled
       estimates={estimates}
       estimatesLoading={estimatesLoading}
       budget={{ timeLimitS, setTimeLimitS }}
+      isFirstRun={isFirstRun}
       onGoToSettings={onGoToSettings}
       onGoToProjects={onGoToProjects}
     />

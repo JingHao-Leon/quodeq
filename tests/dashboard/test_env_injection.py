@@ -67,7 +67,7 @@ def test_run_npm_build_passes_the_injected_env_to_the_child(monkeypatch, tmp_pat
     calls: list[dict] = []
     monkeypatch.setattr(_build_npm.shutil, "which", lambda _name: "/usr/bin/npm")
     monkeypatch.setattr(
-        _build_npm.subprocess, "run",
+        _build_npm, "run_quiet",
         lambda cmd, **kwargs: calls.append(kwargs) or None,
     )
     monkeypatch.setenv("QUODEQ_FROM_PROCESS", "leaked")
@@ -81,14 +81,14 @@ def test_run_npm_build_passes_the_injected_env_to_the_child(monkeypatch, tmp_pat
 
     calls.clear()
     _build_npm.run_npm_build(tmp_path, static_dir, env={})
-    assert calls[-1]["env"] == {"QUODEQ_BUILD_OUTDIR": str(static_dir)}
+    assert calls[-1]["env"] == {"QUODEQ_BUILD_OUTDIR": str(static_dir), "QUODEQ_BUILD_QUIET": "1"}
 
 
 def test_run_npm_build_reads_its_timeouts_from_the_injected_env(monkeypatch, tmp_path: Path):
     calls: list[dict] = []
     monkeypatch.setattr(_build_npm.shutil, "which", lambda _name: "/usr/bin/npm")
     monkeypatch.setattr(
-        _build_npm.subprocess, "run",
+        _build_npm, "run_quiet",
         lambda cmd, **kwargs: calls.append(kwargs) or None,
     )
     monkeypatch.setenv("QUODEQ_NPM_INSTALL_TIMEOUT_S", "11")
@@ -172,3 +172,34 @@ def test_ensure_action_api_forced_writes_the_launch_token_into_the_injected_env(
 
     assert target[ENV_WEBVIEW_TOKEN]
     assert ENV_WEBVIEW_TOKEN not in os.environ
+
+
+def _record_npm_commands(monkeypatch) -> list[list[str]]:
+    commands: list[list[str]] = []
+    monkeypatch.setattr(_build_npm.shutil, "which", lambda _name: "npm")
+    monkeypatch.setattr(_build_npm, "run_quiet", lambda cmd, **_kwargs: commands.append(cmd[1:]))
+    return commands
+
+
+def test_run_npm_build_skips_the_install_while_the_lockfile_is_unchanged(monkeypatch, tmp_path: Path):
+    commands = _record_npm_commands(monkeypatch)
+    (tmp_path / "package-lock.json").write_text('{"v": 1}', encoding="utf-8")
+    (tmp_path / "node_modules").mkdir()
+
+    _build_npm.run_npm_build(tmp_path, tmp_path / "static", env={})
+    _build_npm.run_npm_build(tmp_path, tmp_path / "static", env={})
+    assert commands == [["ci", "--no-audit"], ["run", "build"], ["run", "build"]]
+
+    (tmp_path / "package-lock.json").write_text('{"v": 2}', encoding="utf-8")
+    _build_npm.run_npm_build(tmp_path, tmp_path / "static", env={})
+    assert commands[-2:] == [["ci", "--no-audit"], ["run", "build"]]
+
+
+def test_run_npm_build_reinstalls_when_forced(monkeypatch, tmp_path: Path):
+    commands = _record_npm_commands(monkeypatch)
+    (tmp_path / "package-lock.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "node_modules").mkdir()
+    _build_npm.run_npm_build(tmp_path, tmp_path / "static", env={})
+
+    _build_npm.run_npm_build(tmp_path, tmp_path / "static", env={}, force_install=True)
+    assert commands[-2:] == [["ci", "--no-audit"], ["run", "build"]]

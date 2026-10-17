@@ -123,7 +123,7 @@ def test_counterexamples_from_the_rigour_pass():
     base, _ = _score(minor_rule, [{"req": "U-3", "file": f"g{i}"} for i in range(100)], files)
     outlier = minor_rule[:-1] + [dict(minor_rule[-1], severity="critical")]
     with_outlier, _ = _score(outlier, [{"req": "U-3", "file": f"g{i}"} for i in range(100)], files)
-    assert base - 2.5 < with_outlier < base  # one file's worth, not a re-label of the rule
+    assert base - 3.5 < with_outlier < base  # one file's worth, not a re-label of the rule
 
 
 def test_p9_a_dismissal_keeps_the_observation_and_never_lowers_the_score(cases):

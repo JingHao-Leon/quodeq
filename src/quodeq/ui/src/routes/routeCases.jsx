@@ -29,10 +29,11 @@ const PrincipleDetailPage = lazy(() => import('../features/explorer/components/P
  * @param {() => void} props.onGoToProjects - escape hatch from an empty state.
  * @param {() => void} props.onGoToSettings - escape hatch when no provider is
  *   configured yet.
+ * @param {(t: {dimension: string, runId: string, fromProject: string}) => void} [props.onOpenDimension]
  * @param {Array} [props.preselectDims] - dimensions to tick on entry.
  * @returns {JSX.Element}
  */
-export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoToSettings, preselectDims }) {
+export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoToSettings, preselectDims, onOpenDimension }) {
   const job = useLiveJob();
   const jobError = useLiveJobError();
   const liveViolations = useLiveFindings();
@@ -54,7 +55,7 @@ export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoTo
     <EvaluateScreen
       evaluation={{ job, jobError, liveViolations }}
       context={{ selectedProject, projectInfo, jobProjectInfo, startedProjectInfo, preselectDims }}
-      actions={{ onStart: startEvaluation, onDismiss: dismissEvaluation, onCancel: cancelEvaluation, onGoToProjects, onGoToSettings }}
+      actions={{ onStart: startEvaluation, onDismiss: dismissEvaluation, onCancel: cancelEvaluation, onGoToProjects, onGoToSettings, onOpenDimension }}
     />
   );
 }
@@ -63,12 +64,13 @@ export function EvaluateCase({ selectedProject, projects, onGoToProjects, onGoTo
  * @param {{ settings: Object }} props
  * @returns {JSX.Element}
  */
-export function SettingsCase({ settings, onOpenGradeFormula, onSharedDisconnected, onShowWelcome }) {
+export function SettingsCase({ settings, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted }) {
   return (
     <SettingsPage
       theme={{ mode: settings.themeMode, family: settings.themeFamily, onApplyMode: settings.applyMode, onApplyFamily: settings.applyFamily }}
       onOpenGradeFormula={onOpenGradeFormula}
       onSharedDisconnected={onSharedDisconnected}
+      onEvaluationsDeleted={onEvaluationsDeleted}
       onShowWelcome={onShowWelcome}
     />
   );
@@ -91,6 +93,17 @@ export function resolveSelectionAfterSharedDisconnect({ selectedSource, projects
   const first = (projects || [])[0];
   const id = first ? projectIdOrSelf(first) : '';
   return { id, source: PROJECT_SOURCE.LOCAL };
+}
+
+/**
+ * After Settings' delete all, a local selection points at a project whose
+ * evaluations are gone: drop to the app's no-project state, like deleting the
+ * selected project does. A shared selection reads the shared repository, so
+ * it stays.
+ */
+export function reselectAfterDeleteAll({ selectedProject, selectedSource, handleProjectChange }) {
+  if (selectedSource === PROJECT_SOURCE.SHARED || !selectedProject) return;
+  handleProjectChange('', PROJECT_SOURCE.LOCAL);
 }
 
 /**

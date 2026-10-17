@@ -137,6 +137,30 @@ describe('useNavStack navReplace (repositories tab flips must not grow history)'
   });
 });
 
+describe('useNavStack navReplace for a page no longer on top', () => {
+  it('is dropped: a page flushing its view state as it unmounts never overwrites the page that replaced it', () => {
+    const historyAdapter = { pushState: vi.fn(), replaceState: vi.fn(), back: vi.fn(), go: vi.fn() };
+    const { result } = renderHook(() => useNavStack({ historyAdapter }), { wrapper: strictWrapper });
+    act(() => { result.current.navTab('violations'); });
+    act(() => { result.current.navPush({ page: 'file', file: 'a.py' }); });
+    historyAdapter.replaceState.mockClear();
+    act(() => { result.current.navReplace({ page: 'violations', _tabKey: 1, wb: { q: 'x' } }); });
+    expect(result.current.navStack.at(-1)).toEqual({ page: 'file', file: 'a.py' });
+    expect(historyAdapter.replaceState).not.toHaveBeenCalled();
+  });
+
+  it('is dropped for an older visit of the same tab', () => {
+    const historyAdapter = { pushState: vi.fn(), replaceState: vi.fn(), back: vi.fn(), go: vi.fn() };
+    const { result } = renderHook(() => useNavStack({ historyAdapter }), { wrapper: strictWrapper });
+    act(() => { result.current.navTab('violations'); });
+    act(() => { result.current.navTab('violations'); });
+    act(() => { result.current.navReplace({ page: 'violations', _tabKey: 1, wb: { q: 'x' } }); });
+    expect(result.current.navStack.at(-1).wb).toBeUndefined();
+    act(() => { result.current.navReplace({ page: 'violations', _tabKey: 2, wb: { q: 'y' } }); });
+    expect(result.current.navStack.at(-1).wb).toEqual({ q: 'y' });
+  });
+});
+
 describe('useNavStack navSwapAt (breadcrumb sibling swaps)', () => {
   let historyAdapter;
 

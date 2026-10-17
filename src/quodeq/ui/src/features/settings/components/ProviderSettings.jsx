@@ -1,7 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { DEFAULT_TIME_LIMIT_S, PROVIDER_SETTING_KEY } from '../../../constants.js';
 import { t } from '../../../strings/index.js';
-import { STORED_TRUE, STORED_FALSE } from '../../../adapters/storage.js';
 import { SECONDS_PER_MINUTE } from '../../../utils/time.js';
 import { PROVIDER_CLASSIFICATION } from './providerUtils.js';
 import { SettingsRowLabel } from './settingsRowParts.jsx';
@@ -9,14 +8,6 @@ import { SettingsRowLabel } from './settingsRowParts.jsx';
 const MIN_MINUTES = 1;
 const MAX_MINUTES = 60;
 const DEFAULT_TIME_LIMIT_MINUTES = Math.max(MIN_MINUTES, Math.round(DEFAULT_TIME_LIMIT_S / SECONDS_PER_MINUTE));
-
-const VERIFY_HINT = (
-  <>
-    <p>{t('settings.verifyHintIntro')}</p>
-    <p><strong>{t('settings.verifyHintOnTerm')}</strong> {t('settings.verifyHintOnBody')}</p>
-    <p><strong>{t('settings.verifyHintOffTerm')}</strong> {t('settings.verifyHintOffBody')}</p>
-  </>
-);
 
 export function TimeLimitSetting({ state, update, providerType }) {
   const timeLimit = parseInt(state[PROVIDER_SETTING_KEY.TIME_LIMIT] || '0', 10);
@@ -68,35 +59,5 @@ export function TimeLimitSetting({ state, update, providerType }) {
         />
       </div>
     </div>
-  );
-}
-
-export function AdvancedAnalysisSettings({ state, update }) {
-  const verify = state[PROVIDER_SETTING_KEY.VERIFY] !== STORED_FALSE;
-
-  return (
-    <>
-      <div className="settings-row">
-        <SettingsRowLabel
-          label={t('settings.verifyFindings')}
-          hint={VERIFY_HINT}
-          hintAria={t('settings.verifyHelpAria')}
-          description={t('settings.verifyFindingsDesc')}
-        />
-        <div className="settings-pill-group" role="radiogroup" aria-label={t('settings.verifyFindingsAria')}>
-          <button type="button" role="radio" aria-checked={verify} className={`settings-pill${verify ? ' settings-pill--active' : ''}`} onClick={() => update(PROVIDER_SETTING_KEY.VERIFY, STORED_TRUE)}>{t('settings.on')}</button>
-          <button type="button" role="radio" aria-checked={!verify} className={`settings-pill${!verify ? ' settings-pill--active' : ''}`} onClick={() => update(PROVIDER_SETTING_KEY.VERIFY, STORED_FALSE)}>{t('settings.off')}</button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-export default function ProviderSettings({ state, update }) {
-  return (
-    <>
-      <TimeLimitSetting state={state} update={update} />
-      <AdvancedAnalysisSettings state={state} update={update} />
-    </>
   );
 }

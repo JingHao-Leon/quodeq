@@ -1,10 +1,19 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import MapPage from './MapPage.jsx';
+import { stubResizeObserver } from '../../../test-utils/packFixture.js';
+import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
+
+const API = { getMapHistory: vi.fn(() => new Promise(() => {})), getGradeFormula: vi.fn(() => new Promise(() => {})) };
+const WRAP = { wrapper: withStableQueryApi(API) };
+
+// The circle pack observes its container size.
+beforeEach(() => { stubResizeObserver(); });
+afterEach(() => { vi.unstubAllGlobals(); });
 
 // The Map is the heaviest tab: the file tree over every finding, then the
-// pack layout, then one SVG node per circle. Its first commit must be the
+// pack layout, then its canvas paint. Its first commit must be the
 // frame alone (header, controls, an empty slot), with the tree build and
 // the visualisation following in a later commit.
 
@@ -31,7 +40,7 @@ function data() {
 describe('MapPage paints its frame first', () => {
   it('builds the tree from nothing on the first commit and from the findings only after', () => {
     buildFileTree.mockClear();
-    render(<MapPage data={data()} callbacks={{}} />);
+    render(<MapPage data={data()} callbacks={{}} />, WRAP);
     const sizes = buildFileTree.mock.calls.map(([dims]) => dims.length);
     expect(sizes[0]).toBe(0);
     expect(sizes.at(-1)).toBe(DIMS.length);
@@ -41,8 +50,8 @@ describe('MapPage paints its frame first', () => {
   });
 
   it('settles on the visualisation once the deferred body mounts', () => {
-    const { container } = render(<MapPage data={data()} callbacks={{}} />);
-    expect(container.querySelector('.term-header')).toBeInTheDocument();
+    const { container } = render(<MapPage data={data()} callbacks={{}} />, WRAP);
+    expect(container.querySelector('.page-toolbar')).toBeInTheDocument();
     expect(container.querySelector('.map-viz-container--skeleton')).toBeNull();
     expect(container.querySelector('.map-viz-container')).toBeInTheDocument();
     expect(container.textContent).toContain('2 violations');

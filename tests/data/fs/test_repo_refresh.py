@@ -133,3 +133,13 @@ def test_unreachable_remote_reports_fetch_failure(tmp_path: Path, clone: Path) -
 
     assert result.outcome == RefreshOutcome.FETCH_FAILED
     assert result.detail
+
+
+def test_deleted_upstream_branch_is_reported_as_gone(remote: Path, clone: Path) -> None:
+    # Upstream renamed its default branch: the tracked one no longer exists.
+    _git(remote, "branch", "-m", "main", "trunk")
+
+    result = refresh_working_copy(clone, hard_reset=False)
+
+    assert result.outcome == RefreshOutcome.UPSTREAM_GONE
+    assert "main" in result.detail

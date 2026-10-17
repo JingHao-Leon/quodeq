@@ -1,6 +1,7 @@
 import DimensionGaugeCard from '../../dashboard/components/DimensionGaugeCard.jsx';
 import { GRADE } from '../../../vocab/grade.js';
 import { EVIDENCE_CONFIDENCE } from '../../../vocab/evidenceConfidence.js';
+import { weakestFirst } from '../../../models/scoreOrder.js';
 
 /**
  * Renders one DimensionGaugeCard per principle. Adapts a principleGrade-style
@@ -21,22 +22,43 @@ function principleToItem(p) {
   };
 }
 
-export default function PrinciplesCardsRow({ principles = [], onPrincipleClick }) {
+// Up to this many principles sit on one row; more wrap onto two even rows, so names stay readable.
+const ONE_ROW_MAX = 5;
+const TWO_ROWS = 2;
+
+/** How many columns `n` cards take on a wide screen: all on one row up to ONE_ROW_MAX, else two even rows. */
+export const columnsFor = (n) => (n <= ONE_ROW_MAX ? Math.max(1, n) : Math.ceil(n / TWO_ROWS));
+
+/** Weakest first, so the principle to open leads the row; ungraded ones last, ties by name. */
+const weakestPrincipleFirst = weakestFirst((p) => p.score, (p) => p.principle);
+
+/**
+ * The principle cards, compact, weakest first. `highlighted` lights one
+ * (hovered or focused here or on the radial); `onHover` reports the one
+ * the pointer or keyboard is on, null when it leaves; `deltas` holds each
+ * principle's change since the previous period.
+ */
+export default function PrinciplesCardsRow({ principles = [], onPrincipleClick, highlighted = null, onHover, deltas = null }) {
   return (
     <div
       className="qd-cards-row"
-      style={{ '--qd-cards-count': Math.max(1, principles.length) }}
+      style={{ '--qd-cards-count': Math.max(1, principles.length), '--qd-cards-cols': columnsFor(principles.length) }}
     >
-      {principles.map((p) => {
+      {[...principles].sort(weakestPrincipleFirst).map((p) => {
         const isInsufficient = (p.grade || '').toLowerCase() === GRADE.INSUFFICIENT.toLowerCase();
         const item = principleToItem(p);
         return (
           <DimensionGaugeCard
             key={p.principle}
+            delta={deltas?.get(p.principle) ?? null}
             item={item}
             isInsufficient={isInsufficient}
             thinEvidence={p.confidence === EVIDENCE_CONFIDENCE.LOW}
             onDimensionClick={() => onPrincipleClick?.(p.principle)}
+            showDate={false}
+            compact
+            highlighted={highlighted === p.principle}
+            onHover={onHover ? (on) => onHover(on ? p.principle : null) : undefined}
           />
         );
       })}

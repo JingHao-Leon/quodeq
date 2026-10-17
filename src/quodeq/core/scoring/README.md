@@ -8,19 +8,19 @@ Quodeq computes quality scores on a 0-10 scale for each evaluation principle (e.
 
 - `files`: the project's source file count for the run, floored at 100. Never the files read. When the count is unknown the spread multiplier is 1 for every requirement.
 - `spread(n) = 1 + log2(1 + 100 * n / files)` for `n >= 1`, and `spread(0) = 0`. A rule hit in one file of 4,000 weighs 1.04; in 1 file per 100 weighs 2; in 300 of 2,800 files weighs 4.5; in every file weighs 7.7.
-- Severity ladder minor < major < critical with weights `w_minor = 0.25`, `w_major = 2.0`, `w_critical = 4.0`. The weights must be strictly increasing.
+- Severity ladder minor < major < critical with weights `w_minor = 0.15`, `w_major = 2.0`, `w_critical = 7.5`. The weights must be strictly increasing.
 
 ## Constants
 
 | Constant | Value |
 |---|---|
-| weight critical | 4.0 |
+| weight critical | 7.5 |
 | weight major | 2.0 |
-| weight minor | 0.25 |
-| K | 0.08 |
-| lift compress | 2.2 |
+| weight minor | 0.15 |
+| K | 0.07 |
+| lift compress | 2.0 |
 | ceiling scale | 0.5 |
-| floor major-only | 3.0 |
+| floor major-only | 2.5 |
 | floor minor-only | 5.0 |
 
 Sensitivity of the final grade to each constant, moved by 20% one at a time (mean absolute change over the fitting corpus; benchmark maximum; Exemplary share):
@@ -59,8 +59,8 @@ lift  = (compliance_mass / (compliance_mass + violation_mass)) ^ compress
 raw   = base + (10 - base) * lift
 ```
 
-- **K = 0.08** controls how fast the base falls as mass grows; the curve has diminishing returns, so the first broken rules hurt most (inspired by CISQ's density-based approach).
-- **compress = 2.2** makes the top hard to reach (asymmetric curve).
+- **K = 0.07** controls how fast the base falls as mass grows; the curve has diminishing returns, so the first broken rules hurt most (inspired by CISQ's density-based approach).
+- **compress = 2.0** makes the top hard to reach (asymmetric curve).
 - The lift is a fraction [0, 1] of the gap `(10 - base)` that gets filled.
 
 ### 3. Violation Ceiling
@@ -81,7 +81,7 @@ The grade label cannot be worse than the worst effective severity justifies.
 |---|---|
 | None | 10.0 |
 | Minor | 5.0 |
-| Major (no critical) | 3.0 |
+| Major (no critical) | 2.5 |
 | Critical | 0.0 |
 
 `final = min(ceiling, max(floor, raw))`, rounded to one decimal. The ceiling beats the floor. The floor is the guard that makes grade labels honest (a Critical label needs a critical rule), not a working part of the curve: under the current constants it binds on none of the principles in the fitting corpus.
@@ -166,7 +166,7 @@ The model was designed to address specific fairness issues observed in real eval
 
 3. **Grade names should match reality.** A "Critical" grade should mean there are actual critical violations. The severity floor ensures grade labels are semantically honest.
 
-4. **The top should be hard to reach.** The compressed lift curve (exponent 2.2) and the violation ceiling (log2-based) together ensure that Exemplary requires genuinely clean code, not just a favorable ratio.
+4. **The top should be hard to reach.** The compressed lift curve (exponent 2.0) and the violation ceiling (log2-based) together ensure that Exemplary requires genuinely clean code, not just a favorable ratio.
 
 ## Industry Influences
 

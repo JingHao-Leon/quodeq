@@ -1,15 +1,16 @@
 """Request plumbing for assistant routes: repo/context construction, busy check.
 
-A thin facade over three modules:
+A thin facade over four modules:
   - _assistant_hygiene.py: ``run_assistant_hygiene``, ``session_ttl_days``,
     ``SharedSourceUnavailable``.
   - _assistant_location.py: ``resolve_run_location``,
     ``resolve_shared_run_location``, ``repo_attach_info``,
     ``resolve_repo_root``, ``get_repository``.
   - _assistant_events.py: ``event_frames``, ``POLL_SECONDS``, ``IDLE_LIMIT``.
+  - assistant_action_context.py: ``build_action_context``.
 
 Their names are re-exported here, so callers and tests can import or patch
-"quodeq.api._assistant_helpers.<name>". None of the three modules imports
+"quodeq.api._assistant_helpers.<name>". None of the four modules imports
 through this facade (each imports its own dependencies directly), so a
 patch on one of those names here only reaches code that, like this module,
 reads it via the facade at call time; see each module's docstring for its
@@ -22,9 +23,9 @@ from typing import Callable
 
 from flask import Flask, current_app
 
-from quodeq.assistant.tools import ActionContext, ToolContext, default_findings_repo_factory
+from quodeq.assistant.tools import ToolContext, default_findings_repo_factory
 from quodeq.assistant import LOCAL_PROVIDERS as _LOCAL_PROVIDERS
-from quodeq.services.standards_prefs import load_visible_standard_ids
+from quodeq.services.standards_prefs import load_project_standards, settings_reports_root
 from quodeq.services.shared_repo import (
     RepoFormat,
     read_state,
@@ -52,23 +53,8 @@ from quodeq.api._assistant_events import (  # noqa: F401 — re-export/patch tar
     POLL_SECONDS,
     event_frames,
 )
+from quodeq.api.assistant_action_context import build_action_context  # noqa: F401 — re-export/patch target
 from quodeq.api.routes_common import standards_compiled_dir
-
-
-def build_action_context(app: Flask) -> ActionContext:
-    """Build an ActionContext from app.config, resolved fresh per request.
-
-    ``EVALUATIONS_DIR`` must be read at apply time, not baked in at
-    ``create_app`` — tests monkeypatch ``app.config`` before POSTing to
-    ``/api/assistant/actions/<id>/apply`` and expect that to take effect
-    (see tests/api/test_assistant_routes.py's apply-action tests).
-    """
-    return ActionContext(
-        evaluations_dir=Path(app.config.get("EVALUATIONS_DIR") or get_evaluations_dir()),
-        evaluators_dir=Path(app.config["STANDARDS_EVALUATORS_DIR"]),
-        compiled_dir=standards_compiled_dir(app),
-        dimensions_file=Path(app.config["STANDARDS_DIMENSIONS_FILE"]),
-    )
 
 
 def _resolve_shared_source(session: dict) -> tuple[Path, Path | None]:
@@ -134,7 +120,7 @@ def build_tool_context(
         reports_dir=reports_dir,
         read_only=(source == ProjectSource.SHARED),
         score_cache_path=score_cache_path,
-        visible_standard_ids=load_visible_standard_ids(repo_root),
+        visible_standard_ids=load_project_standards(settings_reports_root(), session.get("project_id")).visible_ids,
         findings_repo_factory=default_findings_repo_factory,
     )
 

@@ -82,13 +82,19 @@ export const projectKeys = {
   dashboard: (projectId, run, source = DEFAULT_PROJECT_SOURCE) =>
     projectScope(projectId, source, DASHBOARD_KIND, run || LATEST_RUN_ID),
   runs: (projectId, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runs"),
-  // The help page's worked example. Inside the project subtree so dismiss and
-  // formula invalidations reach it like every other per-run read.
-  gradeExplain: (projectId, run, dimension, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "gradeExplain", run || LATEST_RUN_ID, dimension),
+  runLog: (projectId, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runLog"),
+  // One entry per frames mode and finding selection (selectionKey, see
+  // features/map/model/riskSelection.js); every finding keeps the bare key.
+  mapHistory: (projectId, frames, source = DEFAULT_PROJECT_SOURCE, selectionKey = null) => (selectionKey
+    ? projectScope(projectId, source, "mapHistory", frames, selectionKey)
+    : projectScope(projectId, source, "mapHistory", frames)),
   // The run diff (baseline counts per requirement, since-baseline lists).
   // In the project subtree so dismissals invalidate it with the rest.
   runDiff: (projectId, run, against = null, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "runDiff", run || LATEST_RUN_ID, against),
   info: (projectId, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "info"),
+  // One dimension's per-principle score series (the dimension and principle
+  // pages). In the project subtree so dismiss and formula invalidations refetch it.
+  principleSeries: (projectId, dimension, source = DEFAULT_PROJECT_SOURCE) => projectScope(projectId, source, "principleSeries", dimension),
   // Explorer (dimension detail) queries. Distinct from `scores`: that one is
   // GET /projects/<p>/scores?as_of= (full payload incl. trend/availableRuns),
   // runScores is the slim GET /projects/<p>/scores/<run> used for the rescore
@@ -174,7 +180,6 @@ const STANDARDS_SCOPE = "standards"; // query-key prefix for the standardsKeys.*
 export const standardsKeys = {
   all: () => [STANDARDS_SCOPE],
   list: () => [STANDARDS_SCOPE, LIST_KEY],
-  library: () => [STANDARDS_SCOPE, "library"],
   cwes: () => [STANDARDS_SCOPE, "cwes"],
   overrides: (projectId) => [STANDARDS_SCOPE, "overrides", projectId],
   detail: (standardId) => [STANDARDS_SCOPE, "detail", standardId],
@@ -203,6 +208,18 @@ export const sharedKeys = {
 // The grade-formula editor's rescore-progress poll. Outside the `project`
 // scope on purpose: when a pass lands the editor drops projectKeys.all(),
 // and that must not also refetch the poll that noticed it.
+const GRADE_FORMULA = "gradeFormula";
 export const gradeFormulaKeys = {
-  rescore: () => ["gradeFormula", "rescore"],
+  rescore: () => [GRADE_FORMULA, "rescore"],
+  current: () => [GRADE_FORMULA, "current"],
+  inputs: () => [GRADE_FORMULA, "inputs"],
+};
+
+// Settings › Storage. The clean progress and the preview sit OUTSIDE the
+// summary's prefix on purpose: invalidating ['storage'] after a change must
+// not refetch the poll or re-run the preview's disk walk.
+export const storageKeys = {
+  summary: () => ["storage"],
+  clean: () => ["storageClean"],
+  preview: () => ["storagePreview"],
 };

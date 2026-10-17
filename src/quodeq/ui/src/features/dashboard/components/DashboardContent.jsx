@@ -2,13 +2,14 @@ import DimensionCard from './DimensionCard.jsx';
 import AccumulatedOverviewPanel from './AccumulatedOverviewPanel.jsx';
 import RunOverviewPanel from './RunOverviewPanel.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
+import NeverEvaluatedPanel from './NeverEvaluatedPanel.jsx';
 import { SharedNoCompletedEvalEmptyState } from '../../../components/ProjectEmptyStates.jsx';
 import { t } from '../../../strings/index.js';
 import { RUN_STATE } from '../../../vocab/runState.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 
-function NoCompletedEvalPanel({ availableRuns = [], onNavigate, selectedSource }) {
+function NoCompletedEvalPanel({ availableRuns = [], onNavigate, selectedSource, projectName, projectInfo }) {
   const hasRunning = availableRuns.some((r) => r?.status === RUN_STATE.RUNNING);
   if (hasRunning) {
     // First-ever evaluation is still running. There's no prior data to
@@ -30,6 +31,11 @@ function NoCompletedEvalPanel({ availableRuns = [], onNavigate, selectedSource }
   // there's an action to take here.
   if (selectedSource === PROJECT_SOURCE.SHARED) {
     return <SharedNoCompletedEvalEmptyState />;
+  }
+  // No run at all: there were no attempts, so say what comes next instead
+  // of the did-not-finish copy below (kept for failed/cancelled runs).
+  if (availableRuns.length === 0) {
+    return <NeverEvaluatedPanel projectName={projectName} projectInfo={projectInfo} onNavigate={onNavigate} />;
   }
   return (
     <EmptyState
@@ -82,7 +88,7 @@ function AccumulatedContent({ data, callbacks }) {
 export default function DashboardContent({ runMode, data, focus, callbacks }) {
   const { accumulatedDimensions, availableRuns, selectedProject, projectInfo, selectedSource } = data;
   const { dimension: focusedDimension, setDimension: setFocusedDimension, dimensionData: focusedDimensionData } = focus;
-  const { onDimensionCardClick, onFileClick, onNavigate } = callbacks;
+  const { onDimensionCardClick, onNavigate } = callbacks;
   // No readiness check here on purpose: the page only mounts this component
   // once contentReady is true (see DashboardPage's return), so there is
   // exactly one place in the whole page that decides whether a loader is
@@ -98,20 +104,27 @@ export default function DashboardContent({ runMode, data, focus, callbacks }) {
         selectedSource={selectedSource}
         availableRuns={data.availableRuns}
         projectName={projectInfo?.displayName || projectInfo?.name || selectedProject}
+        projectInfo={projectInfo}
         onDimensionClick={onDimensionCardClick}
-        onFileClick={onFileClick}
         onNavigate={onNavigate}
       />
     );
   }
   if (accumulatedDimensions.length === 0) {
-    // Project has runs (otherwise the upstream `!dashboard` empty
-    // state would have fired) but none have terminated cleanly yet —
-    // first evaluation in progress, or every prior attempt was
-    // cancelled/failed. Render a clear waiting-for-results state in
-    // place of the empty stat strip and dim cards (the page header
-    // above still shows project name, language mix, file count).
-    return <NoCompletedEvalPanel availableRuns={availableRuns} onNavigate={onNavigate} selectedSource={selectedSource} />;
+    // No run has terminated cleanly yet: the first evaluation is in
+    // progress, every prior attempt was cancelled/failed, or there is no
+    // run at all (never evaluated). Render that state in place of the
+    // empty stat strip and dim cards (the page header above still shows
+    // project name, language mix, file count).
+    return (
+      <NoCompletedEvalPanel
+        availableRuns={availableRuns}
+        onNavigate={onNavigate}
+        selectedSource={selectedSource}
+        projectName={projectInfo?.displayName || projectInfo?.name || selectedProject}
+        projectInfo={projectInfo}
+      />
+    );
   }
   if (focusedDimension) {
     return (

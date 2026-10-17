@@ -92,6 +92,19 @@ describe('ComparePage remote projects', () => {
     expect(sharedGetFleetCompare.mock.calls.flat(2)).not.toContain('alpha');
   });
 
+  it('a never-evaluated remote copy sharing a local name is tagged remote in the collapsed line', async () => {
+    // Another machine published its own 'beta' (different id, no origin URL,
+    // no runs): a separate project, so it is not merged into the local beta.
+    const COPY = { id: 'beta-elsewhere', name: 'beta', displayName: 'beta', languageStats: {}, runsCount: 0 };
+    sharedListProjects.mockResolvedValue({ projects: [COPY], lastSynced: null, stale: false });
+    sharedGetFleetCompare.mockImplementation(fleetOf(() => ({ summary: {}, dimensions: [], trend: [], runsCount: 0, lastRun: null })));
+    const { container } = renderPage();
+    const line = (await screen.findByText(/1 project without evaluations/)).closest('li');
+    expect(line.querySelector('.compare-fleettable__unevaluated')).toHaveTextContent(/^betaremote$/);
+    // The scope still counts it, and the counts line says why the table has one fewer.
+    expect(container).toHaveTextContent('3 projects, 1 not evaluated');
+  });
+
   it('leaves the fleet local-only when no shared repository is configured', async () => {
     sharedListProjects.mockRejectedValue(Object.assign(new Error('no shared repository configured'), { status: 409 }));
     renderPage();

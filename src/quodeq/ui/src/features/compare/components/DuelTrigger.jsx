@@ -4,9 +4,9 @@ import {
   LauncherButton,
   LauncherMenu,
   LauncherRoot,
-  LauncherScore,
   useLauncherPopover,
-} from './compareLauncherParts.jsx';
+} from '../../../components/launcher/launcherParts.jsx';
+import LauncherScore from './LauncherScore.jsx';
 
 
 function DuelTriggerMenu({ menuRef, pos, pinned, list, setPinned, pick }) {

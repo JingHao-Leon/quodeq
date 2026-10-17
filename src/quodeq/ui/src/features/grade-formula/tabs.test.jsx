@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { DimensionsTab } from './tabs.jsx';
+import { SERVER_RANGES } from './knobs/_serverRanges.fixtures.js';
 import GradeBoundaryBar from './GradeBoundaryBar.jsx';
 
 const THRESHOLDS = [[9, 'Exemplary'], [7, 'Good'], [5, 'Adequate'], [3, 'Poor']];
@@ -24,19 +25,19 @@ function baseDraft(overrides = {}) {
 describe('DimensionsTab', () => {
   it('toggle flips dimensionWeightsEnabled', () => {
     const update = vi.fn();
-    render(<DimensionsTab draft={baseDraft()} update={update} />);
+    render(<DimensionsTab draft={baseDraft()} ranges={SERVER_RANGES} update={update} />);
     fireEvent.click(screen.getByText('apply dimension weights'));
     expect(update).toHaveBeenCalledWith({ dimensionWeightsEnabled: true });
   });
 
   it('dimension sliders are disabled when weighting is off', () => {
-    render(<DimensionsTab draft={baseDraft()} update={vi.fn()} />);
+    render(<DimensionsTab draft={baseDraft()} ranges={SERVER_RANGES} update={vi.fn()} />);
     expect(screen.getByLabelText('security')).toBeDisabled();
     expect(screen.getByLabelText('maintainability')).toBeDisabled();
   });
 
   it('dimension sliders are enabled when weighting is on', () => {
-    render(<DimensionsTab draft={baseDraft({ dimensionWeightsEnabled: true })} update={vi.fn()} />);
+    render(<DimensionsTab draft={baseDraft({ dimensionWeightsEnabled: true })} ranges={SERVER_RANGES} update={vi.fn()} />);
     expect(screen.getByLabelText('security')).toBeEnabled();
   });
 });
@@ -57,7 +58,7 @@ describe('GradeBoundaryBar', () => {
 
   it('renders five segments', () => {
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
-    ['CRITICAL', 'POOR', 'ADEQUATE', 'GOOD', 'EXEMPLARY'].forEach((label) => {
+    ['Critical', 'Poor', 'Adequate', 'Good', 'Exemplary'].forEach((label) => {
       expect(screen.getByText(label)).toBeInTheDocument();
     });
   });
@@ -65,9 +66,9 @@ describe('GradeBoundaryBar', () => {
   it('emits a descending thresholds array on a simulated drag', () => {
     const onChange = vi.fn();
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={onChange} />);
-    // Boundary 4 is the topmost ascending divider (asc index 3, value 9).
+    // Where Exemplary starts is the topmost ascending divider (asc index 3, value 9).
     // Drag it to clientX 80 -> 8.0 on the 0..10 scale (width 100).
-    const divider = screen.getByLabelText('Boundary 4');
+    const divider = screen.getByLabelText('Where Exemplary starts');
     fireEvent.pointerDown(divider, { clientX: 90 });
     fireEvent.pointerMove(window, { clientX: 80 });
     fireEvent.pointerUp(window);
@@ -87,9 +88,9 @@ describe('GradeBoundaryBar', () => {
   it('clamps a divider against its neighbour with the minimum gap', () => {
     const onChange = vi.fn();
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={onChange} />);
-    // Boundary 1 is asc index 0 (value 3); its upper neighbour is 5.
+    // Where Poor starts is asc index 0 (value 3); its upper neighbour is 5.
     // Try to drag it to 9.0 -> must clamp to 5 - 0.5 = 4.5.
-    const divider = screen.getByLabelText('Boundary 1');
+    const divider = screen.getByLabelText('Where Poor starts');
     fireEvent.pointerDown(divider, { clientX: 30 });
     fireEvent.pointerMove(window, { clientX: 90 });
     fireEvent.pointerUp(window);
@@ -102,7 +103,7 @@ describe('GradeBoundaryBar', () => {
   it('removes all window listeners after pointercancel so subsequent moves are silent', () => {
     const onChange = vi.fn();
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={onChange} />);
-    const divider = screen.getByLabelText('Boundary 2');
+    const divider = screen.getByLabelText('Where Adequate starts');
     fireEvent.pointerDown(divider, { clientX: 50 });
     // One move during the drag — onChange fires.
     fireEvent.pointerMove(window, { clientX: 55 });
@@ -113,5 +114,14 @@ describe('GradeBoundaryBar', () => {
     fireEvent.pointerMove(window, { clientX: 60 });
     fireEvent.pointerMove(window, { clientX: 70 });
     expect(onChange).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('DimensionsTab ranges', () => {
+  it('bounds each dimension slider by the server range', () => {
+    render(<DimensionsTab draft={baseDraft({ dimensionWeightsEnabled: true })} ranges={{ ...SERVER_RANGES, dimensionWeight: [0.2, 5] }} update={vi.fn()} />);
+    const slider = screen.getAllByRole('slider')[0];
+    expect(slider).toHaveAttribute('min', '0.2');
+    expect(slider).toHaveAttribute('max', '5');
   });
 });

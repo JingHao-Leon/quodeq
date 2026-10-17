@@ -17,6 +17,7 @@ from quodeq.core.types.finding_type import FindingType
 from quodeq.core.scoring.params import DEFAULT_PARAMS
 from quodeq.core.scoring.projector_scoring import compute_run_score
 from quodeq.data.sqlite.connection import open_evaluation_db
+from quodeq.data.sqlite.grade_rows import select_dimension_scores, select_principle_grades
 from quodeq.data.sqlite._schema import DELETE_DIMENSION_SCORES_SQL, INSERT_FINDING_SQL
 from quodeq.data.sqlite.row_mappers import judgment_to_row
 from quodeq.data.sqlite._state_store_meta import StateStoreMetaMixin
@@ -254,30 +255,12 @@ class SQLiteStateStore(StateStoreMetaMixin, UnmappedFindingsMixin):
     def read_dimension_scores(self) -> list[dict]:
         """Return every ``dimension_scores`` row as a dict, ordered by dimension."""
         with self._db() as conn:
-            rows = conn.execute(
-                "SELECT dimension, score, grade, exit_reason, files_read, source_count, coverage_pct, confidence "
-                "FROM dimension_scores ORDER BY dimension"
-            ).fetchall()
-        return [
-            {"dimension": r[0], "score": r[1], "grade": r[2], "exit_reason": r[3],
-             "files_read": r[4], "source_count": r[5], "coverage_pct": r[6], "confidence": r[7]}
-            for r in rows
-        ]
+            return select_dimension_scores(conn)
 
     def read_principle_grades(self) -> list[dict]:
         """Return the ``principle_grades`` rows as dicts, ordered by dimension then id."""
         with self._db() as conn:
-            rows = conn.execute(
-                "SELECT dimension, principle_id, score, grade, finding_count, dismissed_count, confidence "
-                "FROM principle_grades ORDER BY dimension, principle_id"
-            ).fetchall()
-        return [
-            {
-                "dimension": r[0], "principle_id": r[1], "score": r[2], "grade": r[3],
-                "finding_count": r[4], "dismissed_count": r[5], "confidence": r[6],
-            }
-            for r in rows
-        ]
+            return select_principle_grades(conn)
 
     def read_run_score_from_dim_scores(self, params: "ScoringParams | None" = None) -> dict:
         """Compute the run-level score from non-null dimension scores (weighted when params enable dimension weights)."""

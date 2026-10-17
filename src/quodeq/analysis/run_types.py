@@ -76,6 +76,7 @@ class AnalysisOptions:
     # copied onto every AnalysisConfig; None leaves ``run_analysis`` to fill
     # them from its own environment.
     ai_cmd_path: str | None = None
+    ai_effort: str | None = None
     cache_root: Path | None = None
     # Consecutive `file_done: error` markers that trip the dim-runner's
     # circuit breaker. 0 disables. The CLI resolves the QUODEQ_FAILURE_STREAK
@@ -113,6 +114,10 @@ class RunConfig:
     dimensions_data: DimensionsConfig | None = None
     target: AnalysisTarget | None = None
     evaluators_dir: Path | None = None
+    # Machine-local standards settings file for this run's project
+    # (~/.quodeq/projects/<owner>/standards.json). Overrides are read from it;
+    # None (tests, one-shot callers) means no overrides.
+    standards_settings: Path | None = None
     # Prompts directory whose rules-bearing *.md files fold into cache
     # provenance (``prompts_hash``). Composition roots pass it explicitly;
     # the default keeps direct constructors (tests, one-shot callers) on the

@@ -26,10 +26,6 @@
   transition: opacity 250ms ease;
 }
 
-.dashboard-loading {
-  opacity: 0.4;
-}
-
 .dashboard-appear {
   animation: dashboard-fadein 400ms ease;
 }
@@ -45,49 +41,6 @@
 @keyframes dashboard-fadein {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-/* ── Run overview transitions ─────────────────────────── */
-
-.run-overview-fade {
-  transition: opacity 250ms ease;
-}
-
-.run-overview-loading {
-  opacity: 0.4;
-}
-
-.run-overview-ready {
-  animation: run-overview-fadein 300ms ease;
-}
-
-.run-overview-spinner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-}
-
-.run-overview-spinner .loading-screen {
-  position: static;
-  inset: auto;
-  z-index: auto;
-  width: auto;
-  height: auto;
-}
-
-@keyframes run-overview-fadein {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* ── Stat cards ───────────────────────────────────────── */
-
-.acc-eval-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin-bottom: 28px;
 }
 
 /* --- Trend Section --- */
@@ -411,6 +364,19 @@
   text-transform: uppercase;
 }
 
+/* Standards switched on without results: one quiet line under the cards. */
+.not-evaluated-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: var(--space-3) 0 0;
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.not-evaluated-line__names { color: var(--color-text); }
+
 /* ── Dimension cards ──────────────────────────────────── */
 
 .dimension-grid {
@@ -427,6 +393,12 @@
      below the 180px min — no half-empty rows just because a fixed max didn't
      divide cleanly. */
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+/* The run page: History's run card tracks (.rl-cards), so cards keep the
+   Overview's size and a run with one dimension shows one card on the left. */
+.dimensions-grid--fill {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
 }
 
 .dimension-card {
@@ -1237,7 +1209,7 @@
 .offending-file-tags {
   display: inline-flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
   gap: 4px;
 }
@@ -1909,52 +1881,68 @@
 
 /* ── Overview loading skeleton ──────────────────────────
    Static dimmed blocks (no shimmer/animation -- house idiom, see
-   SidePane.css:186-201) standing in for the stat-strip and dimension-card
-   content areas while the Overview is loading. OverviewSkeleton.jsx rides
-   the real .term-stat / .dim-gauge-card classes for layout; only these bar
-   elements are skeleton-specific. */
+   SidePane.css) standing in for the Overview's content while it loads.
+   OverviewSkeleton.jsx rides the real .findings-head / .overview-since /
+   .dim-gauge-card--compact / .qd-top-grid / .explorer-bottom classes for
+   layout; only these blocks are skeleton-specific, each sized to the text
+   or graphic it stands in for so the panels keep the loaded footprint.
+   A flex column like .dashboard-page, so the panels' margins add up as
+   they do on the loaded page instead of collapsing. */
+.overview-skeleton { display: flex; flex-direction: column; }
+/* The run page (History, "open run"): the Overview's panels for one run, a flex column the same way. */
+.run-page { display: flex; flex-direction: column; }
+/* The run page's rescored note: its help button a little apart from the words. */
+.run-page .findings-head__hint .help-hint { margin-left: 4px; }
 .overview-skeleton__bar {
   display: inline-block;
+  flex: none;
   border-radius: 4px;
   background: var(--color-surface-alt);
   opacity: 0.6;
 }
-.overview-skeleton__bar--label { width: 45%; height: 8px; }
-/* 31px matches the real .term-stat__value box (font-size 28px, line-height
-   1.1, terminal.css:119-124) so the stat card's footprint doesn't shrink. */
-.overview-skeleton__bar--value { width: 55%; height: 31px; }
-/* The score slot's last known grade: real text at the bar's dimness. */
-.overview-skeleton__last-known { opacity: 0.55; }
-.overview-skeleton__bar--hint { width: 70%; height: 8px; }
-.overview-skeleton__bar--name { width: 60%; height: 14px; }
-/* 100px matches DimensionGaugeCard's RING_SIZE (DimensionGaugeCard.jsx) so the
-   card's overall height footprint lines up with the real gauge, not just the
-   head/sev-row min-heights. */
-.overview-skeleton__bar--gauge { width: 100px; height: 100px; border-radius: 50%; }
-.overview-skeleton__bar--meta { width: 50%; height: 8px; }
-.overview-skeleton__bar--sev { width: 40%; height: 12px; }
-/* Dimension-score table row slots. The spans they sit in carry the real
-   flex sizing (dashboard.css .dim-score-*), so the bars only need to fill
-   the text's height: rows stay the real ~28px (6px padding + content). */
-.overview-skeleton__bar--dim-label { width: 70%; height: 10px; }
-.overview-skeleton__bar--spark { width: 100%; height: 14px; }
-.overview-skeleton__bar--dim-value { width: 100%; height: 12px; }
-.overview-skeleton__bar--dim-trend { width: 100%; height: 10px; }
-.overview-skeleton__bar--dim-viol { width: 60%; height: 10px; }
-/* Offending-files placeholder rows: full-width dense-table rows. 25px
-   matches the real GridTable dense row (content + padding + row border). */
-.overview-skeleton__file-row {
-  display: block;
-  width: 100%;
-  height: 25px;
-  margin-top: 4px;
+/* The header: the ring's place (76px, the header ring's size, with a
+   ring-thick border) and the grade word under it; the tiles' label, value
+   (the 23px value line) and sub line. */
+.overview-skeleton__ring {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box;
+  width: 76px; height: 76px; border-radius: 50%; border: 6px solid var(--color-surface-alt);
 }
+.overview-skeleton__ring-score { font-family: var(--font-mono); font-size: 20px; font-weight: var(--weight-semibold); color: var(--color-text); }
+/* The ring's last known score and grade: real text at the blocks' dimness. */
+.overview-skeleton__last-known { opacity: 0.55; }
+.overview-skeleton__bar--gradeword { width: 40px; height: 10px; }
+.overview-skeleton__bar--tile-label { width: 80px; height: 10px; }
+.overview-skeleton__bar--tile-value { width: 56px; height: 23px; }
+.overview-skeleton__bar--tile-sub { width: 112px; height: 10px; }
+/* The since line in the header: its label and the counts. */
+.overview-skeleton__bar--since-label { width: 140px; height: 10px; }
+.overview-skeleton__bar--since-num { width: 64px; height: 12px; }
+/* A compact dimension card: the name, the 56px ring, the grade word, the
+   severity pills and the pass rate beside it. */
+.overview-skeleton__bar--name { width: 60%; height: 16px; }
+/* the top line as tall as a trend badge, which most rows of cards carry */
+.overview-skeleton .dim-gauge-card__top { min-height: 25px; align-items: center; }
+.overview-skeleton__bar--mini-ring { width: 56px; height: 56px; border-radius: 50%; }
+.overview-skeleton__bar--card-grade { width: 56px; height: 10px; }
+.overview-skeleton__bar--card-pills { width: 110px; height: 20px; }
+/* The real pass line is 11px text on an 18px line: the same box, so the card keeps its height. */
+.overview-skeleton__bar--card-pass { width: 64px; height: 11px; margin-block: 4px 3px; }
+/* The radial's disc, as tall as the drawn radial. */
+.overview-skeleton__bar--radial { width: 290px; max-width: 100%; aspect-ratio: 1; border-radius: 50%; }
+/* The list panels' rows (Fix first, the areas): the dense two-line row's
+   height, the panels' foot (the show-more, the link out), and the Where
+   switch above the areas. */
+.overview-skeleton__rows { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
+.overview-skeleton__bar--row { display: block; width: 100%; height: 43px; }
+/* Holds a real control's box (the not-evaluated line's button) without showing it. */
+.overview-skeleton__ghost { visibility: hidden; }
+.overview-skeleton__bar--foot { width: 160px; height: 14px; }
+.overview-skeleton__bar--where-switch { width: 173px; height: 30px; }
 
-/* The real .dim-gauge-card and .dim-score-row are cursor:pointer + hover
-   affordances (dim-gauge-card.css, dashboard.css) -- the placeholders are
-   not clickable, so neutralize both rather than let them look interactive. */
-.overview-skeleton .dim-gauge-card,
-.overview-skeleton .dim-score-row {
+/* The real .dim-gauge-card is cursor:pointer with hover affordances
+   (dim-gauge-card.css); the placeholders are not clickable, so neutralize
+   both rather than let them look interactive. */
+.overview-skeleton .dim-gauge-card {
   cursor: default;
   pointer-events: none;
 }
@@ -2191,7 +2179,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  --page-flow-gap: var(--space-4);
+  gap: var(--page-flow-gap);
 }
 
 .violations-pill-nav {
@@ -2240,45 +2229,6 @@
 .run-history-panel .run-history-panel__chart-slot {
   flex: 1;
   min-height: 160px;
-}
-
-.run-history-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.run-history-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  flex: 1;
-}
-
-.dim-panel-run-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.dim-panel-run-date {
-  font-size: 0.68rem;
-  color: var(--color-text-muted);
-  line-height: 1.2;
-}
-
-.dim-panel-run-id {
-  font-size: 0.62rem;
-  color: var(--color-text-subtle);
-  font-family: monospace;
-  line-height: 1.2;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .run-history-tooltip {
@@ -2396,7 +2346,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  --page-flow-gap: var(--space-4);
+  gap: var(--page-flow-gap);
   width: 100%;
   /* The narrow layout (two-line rows, no column headers) follows the page's
      own width, so a narrow desktop window gets it too. */
@@ -2581,13 +2532,13 @@
 
 .projects-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 72px 72px 80px 88px 28px;
+  grid-template-columns: minmax(200px, 1fr) 72px 72px 80px 72px 88px 28px;
   align-items: center;
   column-gap: var(--space-6);
   padding: 0 var(--space-5);
 }
 .projects-table--server .projects-row {
-  grid-template-columns: minmax(200px, 1.5fr) 72px 72px 80px 104px minmax(150px, 1fr) 88px 28px;
+  grid-template-columns: minmax(200px, 1.5fr) 72px 72px 80px 72px 104px minmax(150px, 1fr) 88px 28px;
 }
 
 .projects-row--head {
@@ -2669,6 +2620,9 @@
   white-space: nowrap;
 }
 .projects-row__path { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+/* The branch keeps its width; a long path gives way first. */
+.projects-row__branch { flex-shrink: 0; }
+.projects-row__branch::before { content: "\00B7"; margin-right: 6px; }
 .projects-row--child .projects-row__name { position: relative; padding-left: 20px; }
 .projects-row--child .projects-row__name::before {
   content: "└";
@@ -2701,6 +2655,14 @@
   white-space: nowrap;
 }
 .projects-row__muted { color: var(--color-text-subtle, var(--color-text-muted)); }
+/* A never-evaluated row: one quiet cell across grade, files, last run and size. */
+.projects-row__not-evaluated {
+  grid-column: span 4;
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
 .projects-row__warn { color: var(--color-warning-text); }
 .projects-row__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .projects-row__dot--ok { background: var(--color-success); }
@@ -2765,6 +2727,15 @@
 .projects-row__detail--lines { display: grid; gap: 4px; }
 .projects-row__detail p { margin: 0; }
 .projects-row__note { color: var(--color-text-muted); }
+.projects-row__detail .inline-error { margin: 0; }
+/* git's own output under a refused fetch: muted, kept verbatim. */
+.projects-row__error-detail {
+  margin: 2px 0 0;
+  font: inherit;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 
 /* The clone row: name, then the progress across the data columns. */
 .projects-row--ghost { cursor: default; }
@@ -2783,6 +2754,9 @@
 .projects-row__ghost-progress .sync-strip__bar { flex: 0 0 120px; margin: 0; }
 .projects-row__ghost-meta { white-space: nowrap; }
 .projects-row__ghost-error { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+
+/* The empty page's three ways in, the welcome's cards at reading width. */
+.projects-empty-paths { max-width: 560px; margin: var(--space-8) auto; padding: 0 var(--space-4); }
 
 /* Connect's reading placeholders: one quiet row per project found. */
 .projects-row--placeholder { cursor: default; gap: 6px; grid-template-columns: 1fr !important; }
@@ -2809,6 +2783,7 @@
   .projects-row__name { grid-area: name; }
   .projects-row__sub { display: none; }
   .projects-row__grade { grid-area: grade; justify-content: flex-end; }
+  .projects-row__not-evaluated { grid-area: grade; grid-column: auto; text-align: right; }
   .projects-row__more { grid-area: more; }
   .projects-row__action { grid-area: action; }
   .projects-row__action:empty { display: none; }
@@ -2899,15 +2874,6 @@
    (composed in JSX). The rules below only handle layout: keep the
    header in two columns when there's room, drop the CTA below the
    title at narrow widths, and stretch it to full width on mobile. */
-
-.projects-page__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
-}
 
 /* Header actions are compact, the same height as the strip's buttons below
    them (26 px, small mono), so the title row stays the loudest thing. */
@@ -3479,15 +3445,32 @@
   background: color-mix(in srgb, var(--color-warning) 22%, transparent);
 }
 
-/* "remote · read-only" chip on a shared project's page header (Overview).
-   Same squared-tag shape as the Badge tag variant but in the cyan/accent-info family
-   so it doesn't read as a warning — a shared project isn't a problem state,
-   just a different (read-only) one. */
+/* "remote · read-only" note on a remote project's page header. Header
+   language, not a pill: an accent dot and muted mono text on the title line,
+   so it reads as context, never as a warning or an action. */
 .badge-shared-readonly-group {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
   margin-left: 4px;
+}
+.shared-readonly-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--term-font-mono, var(--font-mono, ui-monospace, monospace));
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: default;
+}
+.shared-readonly-tag__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
 }
 .badge-shared-readonly-pub {
   font-size: 11px;
@@ -3529,24 +3512,6 @@
 }
 .violations-skeleton__bar--group-header { width: 30%; height: 20px; }
 .violations-skeleton__bar--card { width: 100%; height: 72px; }
-
-/* ── History loading skeleton ───────────────────────────
-   Chart shell (HistoryChartPanelPlaceholder) + dense evaluations-table
-   rows while the trend data loads. Same idiom as .overview-skeleton. */
-.history-skeleton__table {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: var(--space-6);
-}
-.history-skeleton__row {
-  display: block;
-  width: 100%;
-  height: 25px;
-  border-radius: 4px;
-  background: var(--color-surface-alt);
-  opacity: 0.6;
-}
 
 /* ── Detail-page card-list skeleton ─────────────────────
    DeferredMount fallback for card lists and tables (detail pages,
@@ -3626,3 +3591,230 @@
   gap: var(--space-2);
   margin: 0;
 }
+
+/* Violations as of a past day: a quiet strip naming the day, with the way back to today. */
+.violations-asof {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.violations-asof .wb-link { margin-left: auto; white-space: nowrap; }
+
+/* A scoped Findings view: the header, then one bar (kinds, order, list or cards) above the findings. */
+.findings-scope__bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
+.findings-scope__sort .term-btn { font-size: 11px; }
+/* Overview: areas needing rework (the Map's Risk zones). */
+.risk-zone-chip { display: inline-block; padding: 1px 6px; border: 1px solid; border-radius: 3px; font-size: 10px; letter-spacing: 0.04em; white-space: nowrap; }
+.risk-zone-chip--fixFirst { color: var(--color-sev-critical-text); border-color: var(--color-sev-critical-border); background: var(--color-sev-critical-bg); }
+.risk-zone-chip--watch { color: var(--color-sev-major-text); border-color: var(--color-sev-major-border); background: var(--color-sev-major-bg); }
+.risk-areas-panel__none { padding: var(--space-3); color: var(--color-text-muted); font-size: var(--text-sm); }
+/* A row opens its area: the name is a button stretched over the row (as .term-stat__hitbox); the map icon sits above it. */
+.risk-areas-panel .term-grid__row { position: relative; transition: background-color 0.12s; }
+.risk-areas-panel__open {
+  appearance: none; display: block; width: 100%; min-width: 0; margin: 0; padding: 0;
+  border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+.risk-areas-panel__open::after { content: ''; position: absolute; inset: 0; }
+.risk-areas-panel__open:focus-visible { outline: none; }
+.risk-areas-panel__open:is(:hover, :focus-visible) .offending-file-name { color: var(--color-accent); }
+.risk-areas-panel .term-grid__row:has(.risk-areas-panel__open:hover) { background: var(--color-surface-alt); }
+.risk-areas-panel .term-grid__row:has(.risk-areas-panel__open:focus-visible) {
+  background: var(--color-surface-alt); box-shadow: inset 2px 0 0 var(--color-accent);
+}
+/* A row's end: the area in the Risk map, a muted glyph that takes the accent on hover and focus. */
+.risk-areas-panel__map {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; padding: 0;
+  border: none; border-radius: 4px; background: transparent;
+  color: var(--color-text-muted); cursor: pointer;
+}
+.risk-areas-panel__map:hover, .risk-areas-panel__map:focus-visible { color: var(--color-accent); }
+.risk-areas-panel__map:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+/* Under an area's name: its zone chip, then its density, lift and kind. */
+.risk-areas-panel__sub { display: flex; align-items: center; gap: 6px; }
+.risk-areas-panel__sub .risk-zone-chip { font-size: 9.5px; padding: 0 5px; }
+
+/* The Findings header (scoped views, the dimension page) and the scoped views' list and cards. */
+.findings-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3) var(--space-5); padding: 12px 18px; margin-bottom: var(--space-3); }
+.findings-head .term-header { margin-bottom: 0; }
+/* the Overview's sub line wraps between its parts, never inside one (a part wider than the line still wraps) */
+.overview-sub__part { display: inline-block; max-width: 100%; }
+/* The header panel opens the page on the line every page's first row shares (the tool pages' toolbar too). */
+.findings-head.qd-cards-panel { margin-top: var(--page-top-gap); }
+.findings-head__ring { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.findings-head__ring .dim-gauge-card__gauge { padding: 0; }
+.findings-head__ring svg { width: 76px; height: 76px; }
+.findings-head__ring .dim-gauge-card__insuf-line { display: none; }
+/* The ring keeps its own column; the name and the tiles wrap inside the body, so tiles that do not fit
+   beside the name sit under it, next to the ring, instead of on a row of their own below the ring. */
+.findings-head__body { display: flex; flex: 1 1 260px; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); min-width: 0; }
+.findings-head__who { flex: 1 1 400px; min-width: 0; }
+.findings-head__desc { margin: 8px 0 0; max-width: 64ch; color: var(--color-text-secondary); font-size: var(--text-sm); line-height: 1.45; }
+.findings-head__hint { margin: 4px 0 0; color: var(--color-text-muted); font-size: var(--text-xs); }
+.findings-head__stats { display: flex; flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
+.findings-head__stat { display: flex; flex-direction: column; gap: 5px; min-width: 104px; padding: 2px 16px; border-left: 1px solid var(--color-border); }
+/* A tile that opens something: its label and value are a button stretched over the tile (as .term-stat__hitbox);
+   the line under it lets clicks fall through to it, its severity badges are buttons of their own above it. */
+.findings-head__stat--link { position: relative; cursor: pointer; }
+.findings-head__hit { appearance: none; display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 0; border: 0; background: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.findings-head__hit::after { content: ''; position: absolute; inset: 0; }
+.findings-head__hit:focus-visible { outline: none; }
+.findings-head__stat--link:has(.findings-head__hit:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.findings-head__stat--link .findings-head__sub { position: relative; z-index: 1; pointer-events: none; }
+.findings-head__stat--link .findings-head__sub :is(button, a) { pointer-events: auto; }
+.findings-head__stat--link:hover { border-left-color: var(--color-accent); }
+.findings-head__stat--link:hover .findings-head__value { color: var(--color-accent); }
+.findings-head__label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); white-space: nowrap; }
+.findings-head__value { font-size: 20px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--color-text); }
+.findings-head__value .risk-zone-chip { font-size: 12px; padding: 2px 8px; vertical-align: middle; }
+.findings-head__small { font-size: 13px; color: var(--color-text-muted); }
+/* a principle's Risk tile: its areas per zone, a number line at text size */
+.findings-head__areas { font-size: 14px; white-space: nowrap; }
+.findings-head__value--alarm { color: var(--color-sev-critical-text); }
+.findings-head__sub { display: flex; gap: 4px; flex-wrap: nowrap; white-space: nowrap; font-size: 11px; color: var(--color-text-muted); }
+.risk-zone-chip--healthy { color: var(--color-grade-top-text); border-color: color-mix(in srgb, var(--color-grade-top-text) 48%, transparent); background: var(--color-grade-top-bg); }
+
+/* Areas panel: every area judged, split into the three zones, above the foot. */
+.risk-zone-strip { margin-top: auto; padding: 10px var(--space-4) 8px; display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--color-border); }
+.risk-zone-strip + .panel-foot { margin-top: 0; }
+.risk-zone-strip__bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--color-surface-alt); }
+.risk-zone-strip__seg { min-width: 4px; }
+.risk-zone-strip__seg--fixFirst { background: var(--color-sev-critical-text); }
+.risk-zone-strip__seg--watch { background: color-mix(in srgb, var(--color-sev-major-text) 50%, var(--color-surface-alt)); }
+.risk-zone-strip__seg--healthy { background: var(--color-grade-top-text); }
+.risk-zone-strip__legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--term-font-mono); font-size: 11px; color: var(--color-text-muted); }
+.risk-zone-strip__item { display: inline-flex; align-items: center; gap: 6px; }
+.risk-zone-strip__item .risk-zone-chip { font-size: 9.5px; padding: 0 5px; }
+.findings-scope__seg .term-btn { font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
+.findings-scope__count { opacity: .6; font-variant-numeric: tabular-nums; }
+.findings-card { border: 1px solid var(--color-border); border-left: 3px solid var(--color-border); border-radius: 6px; padding: 12px 14px; margin: 0 0 12px; background: var(--color-surface); }
+.findings-card--critical { border-left-color: var(--color-sev-critical-text); }
+.findings-card--major { border-left-color: var(--color-sev-major-text); }
+.findings-card--minor { border-left-color: var(--color-sev-minor-text); }
+.findings-card__head { display: flex; align-items: center; gap: 10px; }
+.findings-card__head .vrow-actions { margin-left: auto; }
+.findings-card__title { margin: 0; font-size: var(--text-sm); font-weight: 600; color: var(--color-text); }
+.findings-card__meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; color: var(--color-text-muted); font-size: var(--text-xs); }
+.findings-card__reason { margin: 0 0 10px; color: var(--color-text); font-size: var(--text-sm); line-height: 1.5; }
+.findings-card__reason--muted { color: var(--color-text-muted); }
+.findings-check { border-bottom: 1px solid var(--color-border); }
+.findings-check__line { display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 7px 4px; border: none; background: none; color: var(--color-text); text-align: left; cursor: pointer; font: inherit; font-size: var(--text-xs); }
+.findings-check__line:hover { background: color-mix(in srgb, var(--color-text) 5%, transparent); }
+.findings-check__mark { color: var(--color-map-better, var(--color-accent)); }
+.findings-check__meta { margin-left: auto; color: var(--color-text-muted); white-space: nowrap; }
+.findings-check__body { padding: 4px 4px 12px 22px; }
+.findings-scope__split { margin-top: var(--space-2); gap: 0; }
+/* The list's detail is the card without its frame. */
+.findings-scope__split .wb-detail__body .findings-card { border: 0; padding: 0; background: none; }
+/* A finding reads the same in the list's detail and in the cards: its title and meta line (severity, principle,
+   file:line) in the app's monospace, its reason in the body font. */
+.findings-card__head, .findings-card__meta { font-family: var(--term-font-mono); }
+.findings-card__reason { font-family: var(--font-sans); }
+.wb-row--compliant { border-left-color: color-mix(in srgb, var(--color-accent) 50%, transparent); }
+.findings-scope__divider { cursor: col-resize; position: relative; touch-action: none; }
+.findings-scope__divider::after { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 1px; background: var(--color-border); transition: background .15s; }
+.findings-scope__divider:hover::after, .findings-scope__divider:focus-visible::after { background: var(--color-accent); }
+.findings-scope__divider:focus-visible { outline: none; }
+.wb-split--resizable { gap: 0; }
+
+/* the header ring: the score inside, the grade word under it at text size in the ring's colour */
+.findings-head__gradeword { font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1; }
+.findings-head__ring .dim-gauge-card__grade { display: none; }
+.findings-head__ring .dim-gauge-card__score { font-size: 1.7rem; transform: translateY(4px); }
+
+/* a row the view is narrowed to, and a row lit from elsewhere on the page (its principle hovered) */
+.term-grid__row--lit { background: color-mix(in srgb, var(--color-accent) 7%, transparent); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent); }
+
+/* principle page: requirements rail | findings list | finding */
+.findings-scope__work { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.findings-scope__main { min-width: 0; }
+.req-rail { margin: 0; display: flex; flex-direction: column; height: max(480px, calc(100vh - 210px)); }
+.req-rail__list { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; min-height: 0; }
+.req-rail__item { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 9px 14px; border: 0; border-left: 3px solid transparent; background: none; color: inherit; font: inherit; cursor: pointer; }
+.req-rail__item:hover { border-left-color: color-mix(in srgb, var(--color-accent) 45%, transparent); }
+.req-rail__item.is-sel { border-left-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 7%, transparent); }
+.req-rail__item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+.req-rail__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.req-rail__id { font-family: var(--font-mono); font-size: 11px; color: var(--color-accent); letter-spacing: .02em; }
+.req-rail__all { font-size: 12px; }
+.req-rail__n { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
+.req-rail__sev { display: inline-flex; gap: 4px; }
+.req-rail__text { font-size: 12px; line-height: 1.35; color: var(--color-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.req-rail__files { font-size: 10px; color: var(--color-text-muted); }
+.req-rail__group { padding: 12px 14px 4px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-muted); border-top: 1px solid var(--color-border); margin-top: 6px; }
+.req-rail__item--pass .req-rail__id { color: var(--color-text-muted); }
+.req-rail__item--pass .req-rail__text { color: var(--color-text-muted); }
+.findings-scope__work .findings-scope__bar { margin-top: 0; }
+.findings-scope__work > .req-rail { margin: 0; }
+/* list view: the rail takes the findings column's height (size-contained, so its own content never sets the row's) */
+.findings-scope__work--list { align-items: stretch; }
+.findings-scope__work--list > .req-rail { height: auto; contain: size; }
+
+/* description cut to two lines */
+.findings-head__desc--clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.findings-head__more { border: 0; background: none; padding: 0; margin-top: 2px; font: inherit; font-size: var(--text-xs); color: var(--color-text-muted); cursor: pointer; }
+.findings-head__more:hover { color: var(--color-accent); }
+/* the slim bar pinned at the top once the header scrolls away; its top offsets the dashboard scroll area's top padding, so the bar meets the top bar */
+.findings-head__sticky { position: sticky; top: calc(-1 * var(--space-8)); height: 0; z-index: 20; }
+.findings-head__slim { position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 18px;
+  font-family: var(--font-mono); font-size: 12px; opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .15s, transform .15s;
+  box-shadow: 0 6px 16px -10px rgba(0, 0, 0, .45); }
+/* beats the panels' own margin and border: the bar meets the top bar */
+.findings-head__sticky > .findings-head__slim { margin: 0; padding: 8px 16px; border-top: 0; border-radius: 0 0 var(--term-radius, 4px) var(--term-radius, 4px); }
+.findings-head__slim.is-shown { opacity: 1; transform: none; pointer-events: auto; }
+.findings-head__slim-name { color: var(--color-text); font-weight: 600; }
+.findings-head__slim-score { font-variant-numeric: tabular-nums; }
+.findings-head__slim-num { color: var(--color-text-muted); }
+
+/* a tile's change since the previous period, and the note on a past run */
+.findings-head__change { margin-left: 8px; font-size: 12px; vertical-align: middle; }
+.findings-head__change .trend-badge { font-size: 12px; }
+/* narrow screens: the requirements stack above the findings, scrolling on their own */
+@media (max-width: 900px) {
+  .findings-scope__work { grid-template-columns: minmax(0, 1fr); }
+  .req-rail, .findings-scope__work--list > .req-rail { height: auto; max-height: 280px; contain: none; }
+}
+
+/* ring | name and description | tiles share a row only while the name keeps room to read (its basis);
+   otherwise the tiles go under the name as one block, at their natural width, and wrap there on narrow screens */
+@media (max-width: 600px) {
+  .findings-head__who { flex-basis: 200px; }
+}
+/* a divider reads only between two things on one row: none on a tile that starts a row (hooks/useRowStarts).
+   The marks only change how the tiles look, never their size: a size that changed with the mark would move the
+   wrap point, so the tiles would flip between beside and under the name at the same width. The tile keeps its
+   border and padding and the row is shifted left over them (translate does not touch layout). */
+.findings-head__stats { --head-tile-indent: 17px; } /* the tile's 1px border and 16px padding */
+.findings-head__stats[data-row-start] > .findings-head__stat:first-child,
+.findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; }
+.findings-head__stats[data-row-start],
+.findings-head__stats:not([data-row-start]) > .findings-head__stat[data-row-start]:not(:first-child) { translate: calc(-1 * var(--head-tile-indent)) 0; }
+/* the Violations tile's severity pills wrap inside the tile; one width in both layouts, for the same reason */
+.findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
+
+/* a principle's score per period, under its description */
+.score-spark { display: flex; align-items: center; gap: 12px; margin-top: 8px; max-width: 520px; }
+.score-spark__svg { flex: 1; height: 36px; overflow: visible; }
+.score-spark__line { stroke: var(--color-accent); stroke-width: 1.6; }
+.score-spark__dot { fill: var(--color-accent); opacity: .7; }
+.score-spark__dot--last { opacity: 1; }
+.score-spark__range { font-size: 10px; color: var(--color-text-muted); white-space: nowrap; }
+
+/* a past run on show: a quiet band, when it ran in plain words, and the way back as a button */
+.findings-head__past { margin: 8px 0 0; display: inline-flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px;
+  border-left: 2px solid var(--color-accent); border-radius: 0 6px 6px 0; background: color-mix(in srgb, var(--color-accent) 7%, transparent);
+  font-size: var(--text-xs); flex-wrap: wrap; row-gap: 4px; }
+.findings-head__past-label { color: var(--color-text-muted); white-space: nowrap; }
+.findings-head__past-when { color: var(--color-text); font-family: var(--font-mono); white-space: nowrap; }
+/* the way back is the app's small button (as History's "open run") */
+.findings-head__back { margin-left: 4px; height: 24px; }
+.findings-head__back:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }

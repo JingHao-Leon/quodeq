@@ -13,6 +13,7 @@ import { DIM_STATE } from '../../../vocab/dimState.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { isDiffReview, checksPassed } from '../externalRun.js';
+import { DimensionResult, ResultsLink, DoneDimensionRow, useFinishedDimensions } from './liveDimensionRows.jsx';
 
 // A collapsed row: 38px min-height plus its 1px border. The virtualizer
 // measures the real height, this only sizes rows it has not mounted yet.
@@ -60,7 +61,7 @@ function severityMix(violations) {
   return mix;
 }
 
-function DimensionHeader({ dim, violations, open, scanning, onToggle }) {
+function DimensionHeader({ dim, violations, open, scanning, result, onToggle }) {
   const count = violations.length;
   const mix = severityMix(violations);
   return (
@@ -68,6 +69,7 @@ function DimensionHeader({ dim, violations, open, scanning, onToggle }) {
       <span className={`vlive-dimension-caret${open ? ' vlive-dimension-caret--open' : ''}`} aria-hidden="true">▸</span>
       <span className="vlive-dimension-name">{dim}</span>
       {scanning && <span className="vlive-dimension-scanning">{t('evaluate.dimScanning')}</span>}
+      <DimensionResult result={scanning ? null : result} />
       <span className="vlive-dimension-mix">
         {SEVERITY_ORDER.map((level) => (mix[level] > 0
           ? <SevBadge key={level} level={level} format="count-abbr" count={mix[level]} />
@@ -112,10 +114,13 @@ function DimensionRows({ dim, violations }) {
 }
 
 // Memoised so a finding landing in one dimension does not re-render the others.
-const DimensionGroup = memo(function DimensionGroup({ dim, violations, open, scanning, onToggle }) {
+const DimensionGroup = memo(function DimensionGroup({ dim, violations, open, scanning, result, onOpenResults, onToggle }) {
   return (
     <div className={`vlive-dimension-group${open ? '' : ' vlive-dimension-group--collapsed'}`}>
-      <DimensionHeader dim={dim} violations={violations} open={open} scanning={scanning} onToggle={() => onToggle(dim)} />
+      <div className="vlive-dimension-row">
+        <DimensionHeader dim={dim} violations={violations} open={open} scanning={scanning} result={result} onToggle={() => onToggle(dim)} />
+        {!scanning && result && <ResultsLink dim={dim} onOpen={onOpenResults} />}
+      </div>
       {open && <DimensionRows dim={dim} violations={violations} />}
     </div>
   );
@@ -175,7 +180,7 @@ function CleanDimensionRow({ dim }) {
   );
 }
 
-function LiveViolationsCard({ liveViolations, orderedDims, open, currentDimension, isRunning, queued, review }) {
+function LiveViolationsCard({ liveViolations, orderedDims, open, currentDimension, isRunning, queued, review, resultOf, openResults, doneWithout }) {
   const { openGroup, toggleDim, latestOpen, toggleLatest } = open;
   return (
     <div className="vlive-card">
@@ -187,10 +192,13 @@ function LiveViolationsCard({ liveViolations, orderedDims, open, currentDimensio
           violations={violations}
           open={openGroup === dim}
           scanning={isRunning && sameDim(dim, currentDimension)}
+          result={resultOf(dim)}
+          onOpenResults={openResults}
           onToggle={toggleDim}
         />
       ))}
       {review.cleanDims.map((d) => <CleanDimensionRow key={d.id} dim={d} />)}
+      {doneWithout.map((d) => <DoneDimensionRow key={d.id} dim={d} result={resultOf(d.id)} onOpenResults={openResults} />)}
       {isRunning && (
         <div className="vlive-footer">
           <span className="vlive-footer__dot" aria-hidden="true" />
@@ -211,7 +219,7 @@ function diffReviewOf(progress, orderedDims) {
   return { passed: checksPassed(progress), cleanDims };
 }
 
-export default function LiveViolationsFeed({ liveViolations, job = null, hiddenCarriedCount = 0, newCount = null }) {
+export default function LiveViolationsFeed({ liveViolations, job = null, hiddenCarriedCount = 0, newCount = null, onOpenDimension, projectName }) {
   // Per-dim activity timestamps power "latest active dimension on top".
   const lastActivity = useDimensionActivity(liveViolations);
 
@@ -232,6 +240,7 @@ export default function LiveViolationsFeed({ liveViolations, job = null, hiddenC
 
   const totalCount = orderedDims.reduce((sum, d) => sum + d.violations.length, 0);
   const review = diffReviewOf(progress, orderedDims);
+  const { resultOf, openResults, doneWithout } = useFinishedDimensions({ job, progress, orderedDims, review, onOpenDimension, projectName });
   // The list shows while there is something in it, while the run is live (the
   // latest header says so before the first finding), and for a clean diff
   // review (the checks that passed are its result).
@@ -254,6 +263,9 @@ export default function LiveViolationsFeed({ liveViolations, job = null, hiddenC
           isRunning={isRunning}
           queued={queued}
           review={review}
+          resultOf={resultOf}
+          openResults={openResults}
+          doneWithout={doneWithout}
         />
       )}
     </div>

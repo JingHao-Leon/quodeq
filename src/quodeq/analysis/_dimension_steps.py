@@ -42,6 +42,7 @@ def run_dimension_analysis(
     ac_kwargs: dict[str, Any] = dict(
         ai_cmd=config.ai_cmd,
         ai_cmd_path=config.options.ai_cmd_path,
+        ai_effort=config.options.ai_effort,
         cache_root=config.options.cache_root,
         ai_model=config.options.ai_model,
         jsonl_file=jsonl_file,
@@ -57,6 +58,7 @@ def run_dimension_analysis(
         # on the run_config-gated per-file API cache writer.
         drop_counter=config.drop_counter,
         mcp_registry=config.mcp_registry,
+        standards_settings=config.standards_settings,
     )
     # Left out rather than passed as None so AnalysisConfig's own defaults win
     # for every budget the run did not set.

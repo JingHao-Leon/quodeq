@@ -13,7 +13,7 @@
  */
 
 export { listDismissedFindings, dismissFinding, dismissByType, restoreFinding, restoreAllFindings, getRescore, deleteFinding, deleteAllFindings, listVerifiedFindings, unverifyFinding } from './findings.js';
-export { listStandards, getStandard, createStandard, updateStandard, deleteStandard, duplicateStandard, listLibrary, listCwes, importFromLibrary, importStandard, exportStandard, getStandardsOverrides, putStandardsOverrides } from './standards.js';
+export { listStandards, getStandard, createStandard, updateStandard, deleteStandard, duplicateStandard, listCwes, importStandard, exportStandard, getStandardsOverrides, putStandardsOverrides, shareStandard, installStandard, updateStandardFromShared } from './standards.js';
 export {
   createAssistantSession, fetchAssistantWorkspace, postAssistantMessage, stopAssistantTurn,
   applyAssistantAction, rejectAssistantAction, assistantEventsUrl,
@@ -49,15 +49,14 @@ export {
 
 export {
   getGradeFormula, saveGradeFormula, resetGradeFormula,
-  rescoreGradeFormula, previewGradeFormula,
+  rescoreGradeFormula, previewGradeFormula, getGradeFormulaInputs,
 } from './gradeFormula.js';
 
-export { getGradeExplain, previewGradeExplain } from './gradeExplain.js';
 export { getRunDiff } from './runDiff.js';
 
 export {
   getAiClients, getClientModels, checkCmdPath, testProviderConnection,
-  getKnownModels, getProviderConfigs,
+  getKnownModels, getProviderConfigs, getProviderKeyStatus,
 } from './providers.js';
 
 export {
@@ -68,9 +67,14 @@ export {
 
 export {
   getUpdateStatus, checkForUpdates, dismissUpdate, setUpdateAutoCheck, markUpdateDisclosed,
-  startSelfUpdate,
+  startSelfUpdate, startUpgrade, restartAfterUpgrade,
 } from './updates.js';
 
 export { getMenubar, setMenubar } from './menubar.js';
 
 export { probeGit, getGithubAccount, startDeviceFlow, getDeviceFlow, pasteGithubToken, signOutGithub } from './githubAccess.js';
+
+export { getRunLog } from './runLog.js';
+export { getMapHistory, sharedGetMapHistory } from './mapHistory.js';
+export { getPrincipleSeries, sharedGetPrincipleSeries } from './principleSeries.js';
+export { getStorage, getCleanStatus, putStorageSettings, getCleanPreview, startClean, deleteAllEvaluations } from './storage.js';

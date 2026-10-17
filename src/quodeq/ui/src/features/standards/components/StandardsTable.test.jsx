@@ -155,9 +155,9 @@ describe('StandardsTable WCAG standard', () => {
     description: '', principleCount: 5, requirementCount: 34,
   };
 
-  it('shows the family and edition and, like ISO, offers no delete', () => {
+  it('shows the family as its type and, like ISO, offers no delete', () => {
     render(<StandardsTable grouped={{ wcag: [wcag] }} actions={actions} customizedCounts={{}} />);
-    expect(screen.getByText('wcag-2.2')).toBeInTheDocument();
+    expect(screen.getByText('wcag')).toBeInTheDocument();
     expect(screen.queryByLabelText(`${t('violations.delete')} Accessibility`)).not.toBeInTheDocument();
   });
 });
@@ -190,5 +190,44 @@ describe('StandardsTable row keyboard', () => {
     const event = fireEvent.keyDown(downloadBtn, { key: 'Enter' });
     expect(event).toBe(true); // not preventDefault'ed, so the native click still fires
     expect(actions.onToggleVisibility).not.toHaveBeenCalled();
+  });
+});
+
+describe('StandardsTable columns', () => {
+  it('shows the source line, type and version columns', () => {
+    const grouped = {
+      iso: [{ id: 'security', name: 'Security', type: 'iso', subtype: '25010', sources: ['iso25010'], version: '2023.11', principleCount: 4, requirementCount: 38 }],
+      custom: [{ id: 'android', name: 'Android', type: 'custom', source: 'Android Developers', version: '2026.10.15', createdAt: '2026-10-14', updatedAt: '2026-10-15', principleCount: 9, requirementCount: 41 }],
+    };
+    render(<StandardsTable grouped={grouped} actions={actions} />);
+    expect(screen.getByText('ISO 25010')).toBeInTheDocument();
+    expect(screen.getByText('Android Developers')).toBeInTheDocument();
+    expect(screen.getByText('2023.11')).toBeInTheDocument();
+    expect(screen.getByText('2026.10.15')).toHaveAttribute('title', 'created 2026.10.14 · updated 2026.10.15');
+    expect(screen.getByText(t('standards.colVersion'))).toBeInTheDocument();
+  });
+
+  it('renders no empty sub-line when a standard has no source', () => {
+    const grouped = { custom: [{ id: 'x', name: 'X', type: 'custom', principleCount: 0, requirementCount: 0 }] };
+    const { container } = render(<StandardsTable grouped={grouped} actions={actions} />);
+    expect(container.querySelector('.standards-row-subtitle')).toBeNull();
+  });
+});
+
+describe('StandardsTable empty state', () => {
+  it('renders the create-or-import copy when there are no standards', () => {
+    render(<StandardsTable grouped={{}} actions={actions} customizedCounts={{}} />);
+    expect(screen.getByText('No standards yet. Create one or import a standard file.')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});
+
+describe('StandardsTable type column', () => {
+  it('shows the kind without the edition, which the source line already carries', () => {
+    const grouped = { iso: [{ id: 'security', name: 'Security', type: 'iso', subtype: '25010', sources: ['iso25010'], principleCount: 1, requirementCount: 1 }] };
+    render(<StandardsTable grouped={grouped} actions={actions} />);
+    expect(screen.getByText('iso')).toBeInTheDocument();
+    expect(screen.queryByText('iso-25010')).toBeNull();
+    expect(screen.getByText('ISO 25010')).toBeInTheDocument();
   });
 });

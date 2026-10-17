@@ -34,12 +34,12 @@ jobs:
           sudo apt-get install -y xvfb python3 python3-pip python3-gi gir1.2-webkit2-4.1
 
       - name: Set up Node (to build the bundled UI)
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version: 22
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
 
       - name: Build UI + wheel
         run: |
@@ -51,9 +51,9 @@ jobs:
           python3 -m pip install --break-system-packages dist/*.whl
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Launch native window under xvfb; assert server + window survive
+      - name: Foreground launch under xvfb-run; assert server + window survive
         run: |
-          xvfb-run -a quodeq dashboard --no-build &
+          xvfb-run -a quodeq dashboard --no-build --foreground &
           APP=$!
           ok=0
           for _ in $(seq 1 30); do
@@ -63,3 +63,28 @@ jobs:
           done
           kill "$APP" 2>/dev/null || true
           test "$ok" -eq 1
+
+      # The default launch hands the terminal back once the window is up: the
+      # launcher exits and the window keeps the API alive. xvfb-run would take
+      # the display down with the launcher, so this lane runs its own Xvfb.
+      - name: Detached launch; the window keeps the API after the launcher exits
+        run: |
+          Xvfb :99 -screen 0 1280x800x24 >/dev/null 2>&1 &
+          XVFB=$!
+          export DISPLAY=:99
+          sleep 1
+          timeout 90 quodeq dashboard --no-build
+          echo "launcher exited with $?"
+          ok=0
+          for _ in $(seq 1 10); do
+            if curl -fsS http://127.0.0.1:7863/api/health >/dev/null 2>&1; then ok=$((ok + 1)); fi
+            sleep 1
+          done
+          echo "API answered $ok of 10 times after the launcher exited"
+          quodeq status | tee status.txt
+          grep -q "open" status.txt
+          quodeq stop
+          sleep 2
+          if curl -fsS http://127.0.0.1:7863/api/health >/dev/null 2>&1; then echo "API still up after quodeq stop"; exit 1; fi
+          kill "$XVFB" 2>/dev/null || true
+          test "$ok" -ge 9

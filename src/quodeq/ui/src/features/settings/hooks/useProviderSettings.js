@@ -6,25 +6,21 @@ import { useSidePane } from '../../side-pane/SidePaneContext.jsx';
 import { saveProviderKey } from '../../../api/providers.js';
 import { t } from '../../../strings/index.js';
 import { apiErrorKey, apiErrorMessage } from '../../../strings/apiErrors.js';
-import { STORED_TRUE } from '../../../adapters/storage.js';
 
 export { PROVIDER_CONFIGURED_MARKER };
 
 const SETTINGS = [
-  PROVIDER_SETTING_KEY.MODEL, PROVIDER_SETTING_KEY.MODEL_ANALYSIS, PROVIDER_SETTING_KEY.MODEL_FAST,
-  PROVIDER_SETTING_KEY.MODEL_BALANCED, PROVIDER_SETTING_KEY.MODEL_THOROUGH, PROVIDER_SETTING_KEY.SUBAGENTS,
-  PROVIDER_SETTING_KEY.TIME_LIMIT, PROVIDER_SETTING_KEY.VERIFY,
+  PROVIDER_SETTING_KEY.MODEL, PROVIDER_SETTING_KEY.MODEL_ANALYSIS, PROVIDER_SETTING_KEY.EFFORT,
+  PROVIDER_SETTING_KEY.SUBAGENTS,
+  PROVIDER_SETTING_KEY.TIME_LIMIT,
   PROVIDER_SETTING_KEY.API_KEY, PROVIDER_SETTING_KEY.API_BASE, PROVIDER_SETTING_KEY.CMD_PATH,
 ];
 const DEFAULTS = {
   [PROVIDER_SETTING_KEY.MODEL]: '',
   [PROVIDER_SETTING_KEY.MODEL_ANALYSIS]: '',
-  [PROVIDER_SETTING_KEY.MODEL_FAST]: '',
-  [PROVIDER_SETTING_KEY.MODEL_BALANCED]: '',
-  [PROVIDER_SETTING_KEY.MODEL_THOROUGH]: '',
+  [PROVIDER_SETTING_KEY.EFFORT]: '',
   [PROVIDER_SETTING_KEY.SUBAGENTS]: '1',
   [PROVIDER_SETTING_KEY.TIME_LIMIT]: '0',
-  [PROVIDER_SETTING_KEY.VERIFY]: STORED_TRUE,
   [PROVIDER_SETTING_KEY.API_KEY]: '',
   [PROVIDER_SETTING_KEY.API_BASE]: '',
   [PROVIDER_SETTING_KEY.CMD_PATH]: '',
@@ -37,9 +33,9 @@ const LEGACY_KEY_MAP = { [PROVIDER_SETTING_KEY.TIME_LIMIT]: PROVIDER_SETTING_KEY
  * Reads one provider's settings, falling back to `overrides` and then the
  * shipped defaults for anything unset.
  *
- * The api-key slot comes back blank when the backend holds the key (the local
- * value is only a "configured" marker), so a caller can never send the marker
- * to a provider as a credential. Legacy key names are migrated on read;
+ * The api-key slot always comes back blank: the local value is a "configured"
+ * marker or a legacy raw key awaiting the boot migration, and neither may be
+ * sent to a provider from the page. Legacy key names are migrated on read;
  * `onPersistError` reports a migration that could not be written back.
  */
 export function loadProviderState(providerId, overrides, storage = localStorage, { onPersistError } = {}) {
@@ -47,14 +43,13 @@ export function loadProviderState(providerId, overrides, storage = localStorage,
   const state = {};
   for (const key of SETTINGS) {
     let value = storage.getItem(providerKey(providerId, key));
-    if (key === PROVIDER_SETTING_KEY.API_KEY && value === PROVIDER_CONFIGURED_MARKER) {
-      // The sentinel means "the backend holds a key", not "here is a key".
-      // Consumers of state['api-key'] (OmlxTab hands it straight to
-      // getOmlxModels / testOmlxConcurrency as a real credential) would
-      // otherwise send the literal '•configured•' to a provider. Blank it
-      // out. A genuine legacy raw value is still returned as-is below, so
-      // installs that saved one before the secure-storage change keep
-      // working.
+    if (key === PROVIDER_SETTING_KEY.API_KEY && value !== null) {
+      // Neither stored value is a credential the page may send. The sentinel
+      // means "the backend holds a key"; a raw key saved before the
+      // secure-storage change waits there only until migrateLegacyProviderKeys
+      // (run at boot) moves it to the backend. Consumers of state['api-key']
+      // (OmlxTab hands it to getOmlxModels / testOmlxConcurrency) send an
+      // empty key, and the backend uses the one in its secure store.
       state[key] = '';
       continue;
     }
@@ -138,22 +133,25 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
   }, [showToast]);
 
   const update = useCallback((key, value) => {
-    setState(prev => ({ ...prev, [key]: String(value) }));
+    // A raw API key never enters live state: it goes straight to the keychain.
+    if (key !== PROVIDER_SETTING_KEY.API_KEY) setState(prev => ({ ...prev, [key]: String(value) }));
     const onPersistError = () => showToast(t('settings.persistError'));
+    let saved;
     if (key === PROVIDER_SETTING_KEY.API_KEY) {
       // A coded backend refusal (e.g. KEYRING_UNAVAILABLE) says what to do;
       // anything else keeps the generic persist copy.
       const onKeyError = (err) => showToast(
         apiErrorKey(err?.code) ? apiErrorMessage(err, 'settings.persistError') : t('settings.persistError'));
-      // Fire and forget: saveProviderApiKey catches its own failures, reports
-      // them through onPersistError and resolves false, so there is nothing
-      // left here to reject.
-      void saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
+      // saveProviderApiKey catches its own failures, reports them through
+      // onPersistError and resolves false, so the returned promise never
+      // rejects; it resolves to whether the keychain write landed.
+      saved = saveProviderApiKey(providerId, String(value), storage, { onPersistError: onKeyError }).then((ok) => {
         // Clear the field rather than parking the sentinel in live state:
         // state['api-key'] is passed to providers as a real credential (see
         // OmlxTab), and the sentinel is not one. Storage still records it,
         // which is what survives a reload.
         if (ok) setState(prev => ({ ...prev, [key]: '' }));
+        return ok;
       });
     } else {
       saveProviderSetting(providerId, key, value, storage, { onPersistError });
@@ -161,6 +159,7 @@ export default function useProviderSettings(providerId, defaults, { storage = lo
     // Let the assistant gate re-read: in Default mode it mirrors the analysis
     // model, so a model change here must update its display live.
     notifyProviderSettingsChanged();
+    return saved;
   }, [providerId, storage, showToast]);
 
   return { state, update };

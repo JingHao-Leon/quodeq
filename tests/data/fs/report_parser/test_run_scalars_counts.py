@@ -105,3 +105,19 @@ def test_scalars_leave_the_manifest_metadata_unset_without_a_manifest(tmp_path: 
     (dim,) = read_run_scalars(tmp_path, _PROJECT, _RUN)
 
     assert (dim.exit_reason, dim.source_file_count, dim.discipline) == (None, None, None)
+
+
+def test_scalars_carry_each_principles_counts(tmp_path: Path) -> None:
+    """The per-principle series counts come from the same findings scan as the dimension's."""
+    from quodeq.core.types.report import PrincipleCounts
+
+    rows = [_violation("S-CON-1", "critical", 0), _violation("S-CON-2", "major", 1),
+            _violation("S-CON-3", "minor", 2), _violation("S-CON-4", "minor", 3), _violation("S-CON-5", "minor", 4),
+            _compliance("S-CON-1", 5)]
+    _seed_run(tmp_path, _PROJECT, _RUN, rows)
+
+    (dim,) = read_run_scalars(tmp_path, _PROJECT, _RUN)
+
+    assert {p.principle: p.counts for p in dim.principles} == {
+        "Confidentiality": PrincipleCounts(violations=5, critical=1, major=1),
+    }

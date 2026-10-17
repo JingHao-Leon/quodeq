@@ -26,6 +26,7 @@ import webview
 from quodeq.dashboard._build_npm import quodeq_dir
 from quodeq.dashboard._instance import InstanceController
 from quodeq.dashboard._webview_token import read_token_from_stdin
+from quodeq.dashboard.instances import clear_window_pid, record_window_pid
 from quodeq.dashboard._webview_window_about import (  # noqa: F401 — re-export
     set_app_icon,
     set_macos_app_identity,
@@ -236,11 +237,13 @@ def _run_webview(window: webview.Window, webview_token: str, instance: InstanceC
                  api_pid: int) -> None:
     """Block in the webview loop; release the socket and the API process on exit."""
     storage_dir = str(quodeq_dir() / "webview")
+    pid_file = record_window_pid()
     try:
         webview.start(private_mode=False, storage_path=storage_dir,
                       user_agent=webview_user_agent(webview_token),
                       menu=non_macos_menu(window) or [])
     finally:
+        clear_window_pid(pid_file)
         instance.shutdown()
         if api_pid:
             kill_api(api_pid)

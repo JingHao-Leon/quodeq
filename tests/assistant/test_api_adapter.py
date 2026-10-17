@@ -32,7 +32,11 @@ def test_native_tool_loop_dispatches_and_feeds_result_back():
                         client_factory=lambda c: client)
     assert text == "Grade is C"
     tool_frames = [f for f in frames if f["type"] == "tool_call"]
-    assert tool_frames == [{"type": "tool_call", "name": "get_scores", "ok": True}]
+    assert tool_frames[0] == {"type": "tool_call", "callId": "c1", "name": "get_scores",
+                              "kind": "quodeq", "status": "running"}
+    assert tool_frames[1].pop("durationMs") >= 0
+    assert tool_frames[1] == {"type": "tool_call", "callId": "c1", "name": "get_scores",
+                              "kind": "quodeq", "status": "ok"}
     # second call got the assistant tool_calls msg + fenced tool result
     msgs = client.calls[1]["messages"]
     assert msgs[-2]["role"] == "assistant"
@@ -60,7 +64,7 @@ def test_fallback_mode_uses_prompted_json_and_no_tools_param():
     assert "arguments schema:" in system
 
 
-def test_tool_call_frame_carries_args_summary():
+def test_tool_call_frame_carries_args():
     turn1 = [_delta('{"tool_call": {"name": "get_scores", "arguments": {"dimension": "security"}}}'),
              _delta(finish="stop")]
     turn2 = [_delta("C grade"), _delta(finish="stop")]
@@ -70,7 +74,8 @@ def test_tool_call_frame_carries_args_summary():
                  config=_config(native=False), session=_session(frames.append),
                  client_factory=lambda c: client)
     tool_frames = [f for f in frames if f["type"] == "tool_call"]
-    assert tool_frames and tool_frames[0]["argsSummary"].startswith('{"')
+    assert tool_frames[0]["args"] == {"dimension": "security"}
+    assert "args" not in tool_frames[1] and tool_frames[1]["status"] != "running"
 
 
 def test_iteration_cap_ends_turn():

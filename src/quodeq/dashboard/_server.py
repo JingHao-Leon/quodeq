@@ -14,6 +14,7 @@ from pathlib import Path
 
 from quodeq.dashboard._api_health import ApiConfig
 from quodeq.dashboard._config import DashboardConfig
+from quodeq.dashboard._detach import choose_detach, handed_to_window
 from quodeq.dashboard._networking import MAX_PORT_SCAN_TRIES, allow_plaintext_http
 from quodeq.dashboard._frozen import subprocess_cmd
 from quodeq.dashboard._probes import ApiProbes, NativeShell
@@ -22,6 +23,7 @@ from quodeq.dashboard._webview_token import (
     ENV_WEBVIEW_TOKEN,
     get_webview_token,
     warn_reused_api_token_mismatch,
+    open_webview_log,
     spawn_window_with_token,
 )
 from quodeq.shared.constants import SCHEME_HTTP
@@ -151,6 +153,9 @@ def _register_serve_signal_handlers(stop_children: typing.Callable) -> None:
     if hasattr(signal, "SIGTSTP"):
         signal.signal(signal.SIGTSTP, _make_tstp_handler(stop_children))
     signal.signal(signal.SIGTERM, _make_term_handler(stop_children))
+    # A closing terminal, else the API is orphaned; `nohup` (SIGHUP ignored) means keep running.
+    if hasattr(signal, "SIGHUP") and signal.getsignal(signal.SIGHUP) != signal.SIG_IGN:
+        signal.signal(signal.SIGHUP, _make_term_handler(stop_children))
 
 
 def _serve_and_wait(
@@ -164,8 +169,9 @@ def _serve_and_wait(
     stop_children = lambda: _stop_children_for(action_api_process)  # noqa: E731
     _register_serve_signal_handlers(stop_children)
 
+    detach = choose_detach(config)
     if config.build.use_native and config.build.open_browser:
-        _serve_native(action_api_url, action_api_process, stop_children, shell=shell)
+        _serve_native(action_api_url, action_api_process, stop_children, shell=shell, detach=detach)
     elif config.build.open_browser:
         webbrowser.open(action_api_url)
         _serve_blocking(action_api_process, stop_children)
@@ -216,23 +222,12 @@ def _try_focus_existing_instance(instance, stop_children: typing.Callable) -> bo
     return True
 
 
-def _open_webview_log():
-    # Route webview stderr to a log file (not DEVNULL) so a platform import
-    # failure or GTK error is actually recoverable from ~/.quodeq/run/.
-    webview_log_path = Path.home() / ".quodeq" / "run" / "webview.log"
-    try:
-        webview_log_path.parent.mkdir(parents=True, exist_ok=True)
-        return webview_log_path.open("a", encoding="utf-8")
-    except OSError:
-        return subprocess.DEVNULL
-
-
 def _serve_native(
     action_api_url: str,
     action_api_process: subprocess.Popen | None,
     stop_children: typing.Callable,
     *, shell: NativeShell | None = None,
-    serve_blocking: typing.Callable[..., None] | None = None,
+    serve_blocking: typing.Callable[..., None] | None = None, detach: bool = False,
 ) -> None:
     """Open a PyWebView native window with single-instance support.
 
@@ -261,14 +256,16 @@ def _serve_native(
 
     # Pass Flask PID so the webview process can kill it on window close.
     api_pid = str(action_api_process.pid) if action_api_process else ""
-    webview_stderr = _open_webview_log()
+    webview_stderr = open_webview_log()
 
     # The launch token goes over stdin inside here, never argv.
-    spawn_window_with_token(
+    window_proc = spawn_window_with_token(
         shell.spawn_window,
         subprocess_cmd("webview", [action_api_url, str(instance.sock_path), api_pid]),
         stderr=webview_stderr,
     )
+    if detach and handed_to_window(window_proc, instance.sock_path):
+        return  # the window stops the API when it closes
 
     # Block on the API process, not the webview. If the webview subprocess
     # crashes (missing platform bindings, GTK errors, etc.) the API survives

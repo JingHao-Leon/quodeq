@@ -36,11 +36,6 @@ export const TIME_LIMIT_STORAGE_KEY = 'cc-time-limit';
 
 export const AI_CMD_STORAGE_KEY = 'cc-ai-cmd';
 
-// The analysis-power tier (fast/balanced/thorough): canonical home for
-// powerLevels.js's STORAGE_KEY, so hook-layer code (evaluationLifecycleHelpers.js)
-// doesn't have to import a UI components module for a storage key.
-export const ANALYSIS_POWER_STORAGE_KEY = 'quodeq-analysis-power';
-
 export const ACTIVE_PROVIDER_KEY = 'cc-active-provider';
 
 export function providerKey(providerId, setting) {
@@ -67,12 +62,9 @@ export const PROVIDER_CONFIGURED_MARKER = '•configured•';
 export const PROVIDER_SETTING_KEY = Object.freeze({
   MODEL: 'model',
   MODEL_ANALYSIS: 'model-analysis',
-  MODEL_FAST: 'model-fast',
-  MODEL_BALANCED: 'model-balanced',
-  MODEL_THOROUGH: 'model-thorough',
+  EFFORT: 'effort',
   SUBAGENTS: 'subagents',
   TIME_LIMIT: 'time-limit',
-  VERIFY: 'verify',
   API_KEY: 'api-key',
   API_BASE: 'api-base',
   CMD_PATH: 'cmd-path',
@@ -119,7 +111,7 @@ export const SCORE_HISTORY_GRANULARITY_STORAGE_KEY = 'quodeq-score-history-granu
 export const DEFAULT_SCORE_HISTORY_GRANULARITY = GRANULARITY.DAY;
 
 // Fired (same-tab) by the assistant's ActionPreviewCard after a successful
-// apply, with { actionType, scores, delta } as detail. App-level effects and
+// apply, with { actionType, standardId, scores, delta } as detail. App-level effects and
 // the verified-findings context listen so caches converge like a manual dismiss.
 export const ASSISTANT_ACTION_APPLIED_EVENT = 'quodeq:assistant-action-applied';
 
@@ -130,7 +122,7 @@ export function notifyAssistantActionApplied(detail) {
 }
 
 // Fired (same-tab) after Settings kills every terminal session server-side,
-// so TerminalPane can reconcile its stale views. See TerminalSection.jsx
+// so TerminalPane can reconcile its stale views. See TerminalRows.jsx
 // (dispatcher) and TerminalPane.jsx (listener).
 export const TERMINAL_RESTART_EVENT = 'quodeq:terminal-restart';
 
@@ -154,7 +146,7 @@ export const APP_VISIBILITY_EVENT = 'quodeq:visibility';
 // HTTP status codes the UI branches on by name (a 409 collision, a 404
 // gone-missing). Not a full status enum, only the codes callers compare
 // against res.status / err.status.
-export const HTTP_STATUS = Object.freeze({ CONFLICT: 409, NOT_FOUND: 404 });
+export const HTTP_STATUS = Object.freeze({ BAD_REQUEST: 400, CONFLICT: 409, NOT_FOUND: 404 });
 
 // URL.protocol values (trailing colon included, per the URL spec) the UI
 // branches on: openExternal's web-scheme allowlist and terminalSocketUrl's

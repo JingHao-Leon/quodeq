@@ -32,6 +32,8 @@ class AnalysisConfig:
     ai_model: str | None = None
     # Binary override for the CLI spawn (AI_CMD_PATH); None spawns ``ai_cmd``.
     ai_cmd_path: str | None = None
+    # Reasoning effort (AI_EFFORT); None leaves the CLI on its own default.
+    ai_effort: str | None = None
     # Result-cache root the findings server writes under (``--cache-root``).
     # ``run_analysis`` fills it from the environment when the caller left it unset.
     cache_root: Path | None = None
@@ -65,6 +67,10 @@ class AnalysisConfig:
     # back to ``run_config``'s owner, then the module-level default.
     drop_counter: DropStatsCounter | None = None
     mcp_registry: "CliMcpRegistry | None" = None
+    # The run project's machine standards settings file, carried directly
+    # for the same reason: the API runner reads requirement overrides from
+    # it even on the single-agent path, which leaves ``run_config`` unset.
+    standards_settings: Path | None = None
 
 
 @dataclass(frozen=True)

@@ -8,18 +8,56 @@ and permission rules (managed/builtin/collision).
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import date
 from pathlib import Path
 
 from quodeq.core.types.standard import StandardDetail
 from quodeq.services.ports import StandardNotFoundError, StandardProtectedError, StandardsStore
 from quodeq.services._standards_io import (
     TYPE_CUSTOM, build_custom_meta, build_detail, count_principles_and_requirements,
+    dotted_version, iso_date,
 )
 from quodeq.services.import_validator import (
     StandardImportValidationError, validate_import, scan_injection,
 )
+from quodeq.services.standards_sharing import SHARED_HASH_KEY
 
 _CUSTOM_DEFAULTS = {"type": TYPE_CUSTOM, "managed": False, "origin": None, "origin_hash": None}
+
+
+def today_iso() -> str:
+    """Today as an ISO date: the default clock for the save stamps."""
+    return date.today().isoformat()
+
+
+def _fresh(payload: dict, today: str) -> dict:
+    """*payload* stamped as new: created, updated and version all *today*."""
+    return {**payload, "createdAt": today, "updatedAt": today, "version": dotted_version(today)}
+
+
+def _content(payload: dict) -> dict:
+    """What makes a standard itself, with defaults applied: the editor sends back the
+    GET detail (extra default fields, dropped empty ones), and an unchanged save must
+    compare equal to the stored file."""
+    return {
+        "name": payload.get("name") or payload.get("id"),
+        "description": payload.get("description") or "",
+        "weight": payload.get("weight", 1.0),
+        "source": payload.get("source") or "",
+        "principles": payload.get("principles") or [],
+    }
+
+
+def _edited(payload: dict, existing: dict, created_fallback: str | None, today: str) -> dict:
+    """*payload* as an edit of *existing*: updated and version move only when the content changed."""
+    created = iso_date(existing.get("createdAt")) or created_fallback or today
+    previous = iso_date(existing.get("updatedAt")) or created_fallback
+    if previous and _content(payload) == _content(existing):
+        updated, version = previous, existing.get("version") or dotted_version(previous)
+    else:
+        updated, version = today, dotted_version(today)
+    return {**payload, "createdAt": created, "updatedAt": updated, "version": version}
+
 
 # import_from_file()'s result["status"] on a name collision with an existing
 # standard id (its other value, "imported", is not branched on by callers).
@@ -69,19 +107,26 @@ def _reject_managed(payload: dict, standard_id: str, action: str) -> None:
         raise StandardProtectedError(f"Cannot {action} managed standard '{standard_id}'")
 
 
-def create(data: dict, evaluators_dir: Path, store: StandardsStore) -> StandardDetail:
+def create(data: dict, evaluators_dir: Path, store: StandardsStore,
+           *, today: Callable[[], str] = today_iso) -> StandardDetail:
     """Create a new custom standard and persist it to disk."""
     path = _claim_new_id(store, evaluators_dir, data["id"])
-    return _write_and_load_detail(store, path, {**data, **_CUSTOM_DEFAULTS})
+    return _write_and_load_detail(store, path, _fresh({**data, **_CUSTOM_DEFAULTS}, today()))
 
 
-def update(standard_id: str, data: dict, evaluators_dir: Path, store: StandardsStore) -> StandardDetail:
+def update(standard_id: str, data: dict, evaluators_dir: Path, store: StandardsStore,
+           *, today: Callable[[], str] = today_iso) -> StandardDetail:
     """Update an existing custom standard with new *data*."""
     path, exists = _locate(store, evaluators_dir, standard_id)
     if not exists:
         raise StandardNotFoundError(f"Standard not found: {standard_id}")
-    _reject_managed(store.read(path), standard_id, "edit")
-    payload = {**data, "id": standard_id, "type": TYPE_CUSTOM, "managed": False}
+    existing = store.read(path)
+    _reject_managed(existing, standard_id, "edit")
+    payload = _edited({**data, "id": standard_id, "type": TYPE_CUSTOM, "managed": False},
+                      existing, store.modified_date(path), today())
+    payload.pop(SHARED_HASH_KEY, None)  # machine-local: carried from the file, never the request
+    if isinstance(existing.get(SHARED_HASH_KEY), str):
+        payload[SHARED_HASH_KEY] = existing[SHARED_HASH_KEY]
     store.write(path, payload)
     return build_detail(payload)
 
@@ -99,17 +144,19 @@ def delete(standard_id: str, evaluators_dir: Path, compiled_dir: Path,
 
 
 def duplicate(new_id: str, source_detail: StandardDetail,
-              evaluators_dir: Path, store: StandardsStore) -> StandardDetail:
+              evaluators_dir: Path, store: StandardsStore,
+              *, today: Callable[[], str] = today_iso) -> StandardDetail:
     """Duplicate an existing standard under *new_id* as a custom copy."""
     new_path = _claim_new_id(store, evaluators_dir, new_id)
     s = source_detail
     payload = {"id": new_id, "name": s.name, "description": s.description,
                "weight": s.weight, "source": s.source, "principles": s.principles,
                **_CUSTOM_DEFAULTS}
-    return _write_and_load_detail(store, new_path, payload)
+    return _write_and_load_detail(store, new_path, _fresh(payload, today()))
 
 
-def import_from_file(data: dict, force: bool, evaluators_dir: Path, store: StandardsStore) -> dict:
+def import_from_file(data: dict, force: bool, evaluators_dir: Path, store: StandardsStore,
+                     *, today: Callable[[], str] = today_iso) -> dict:
     """Import an evaluator from parsed file data."""
     validation = validate_import(data)
     if not validation["valid"]:
@@ -129,6 +176,6 @@ def import_from_file(data: dict, force: bool, evaluators_dir: Path, store: Stand
     if existing is not None:
         _reject_managed(existing, standard_id, "overwrite")
     store.ensure_dir(evaluators_dir)
-    detail = _write_and_load_detail(store, path, {**cleaned, **_CUSTOM_DEFAULTS})
+    detail = _write_and_load_detail(store, path, _fresh({**cleaned, **_CUSTOM_DEFAULTS}, today()))
     return {"status": "imported", "detail": detail,
             "existing": None, "warnings": warnings}

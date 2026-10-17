@@ -23,3 +23,20 @@ def utc_now_iso(*, timespec: str = _ISO_AUTO) -> str:
 def utc_iso_from_epoch(epoch_s: float) -> str:
     """*epoch_s* (a POSIX timestamp, e.g. a file mtime) as a second-precision UTC ISO-8601 string."""
     return datetime.fromtimestamp(epoch_s, tz=timezone.utc).isoformat(timespec=ISO_SECONDS)
+
+
+_ISO_MICROSECONDS = "microseconds"  # fixed width, so string order is time order
+
+
+def normalise_utc_iso(raw: str | None) -> str | None:
+    """*raw* (``Z`` or an offset, any fraction, naive taken as UTC) as a
+    fixed-width UTC ISO-8601 string that sorts by real time; None when unparseable."""
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat(timespec=_ISO_MICROSECONDS)

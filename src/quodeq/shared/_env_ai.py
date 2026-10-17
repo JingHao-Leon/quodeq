@@ -38,3 +38,12 @@ def get_ai_cmd_path(env: dict[str, str] | None = None) -> str | None:
     that switches CLAUDE_CONFIG_DIR) run with unchanged provider behavior.
     """
     return resolve_env(env).get("AI_CMD_PATH") or None
+
+
+def get_ai_effort(env: dict[str, str] | None = None) -> str | None:
+    """Return the reasoning effort for the AI CLI (AI_EFFORT), or None.
+
+    None leaves the CLI on its own default. The provider's ai_providers.json
+    entry decides whether and how the value reaches the command line.
+    """
+    return resolve_env(env).get("AI_EFFORT") or None

@@ -19,7 +19,7 @@ import { PROVIDER_SETTING_KEY } from '../../../constants.js';
  * @param {(field: string, value: string) => void} options.update Settings updater.
  * @param {boolean} [options.enabled=true] When false, the button's handler is a no-op.
  * @returns {{testing: boolean, testResult: Object|null, testError: string|null, onRunTest: () => Promise<void>}}
- *   Ready to spread onto LocalApiAdvancedPanel.
+ *   Ready to spread onto LocalApiSubagentsRow.
  */
 export function useLocalApiTabTest({ probe, errorKey, update, enabled = true }) {
   const { testing, testResult, testError: rawTestError, runTest: runConcurrencyTest } =

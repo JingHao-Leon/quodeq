@@ -198,100 +198,30 @@ def test_import_standard_log_sanitization_strips_line_breaks(client, caplog, raw
             assert logged_id in msg
 
 
-class _FakeLibraryHttpClient:
-    """Minimal HttpClient stand-in for StandardsLibraryClient, mirroring
-    tests/services/test_standards_library.py's FakeHttpClient."""
-
-    def __init__(self, responses=None, raise_exc=None):
-        self._responses = responses or {}
-        self._raise_exc = raise_exc
-
-    def get_json(self, url, headers=None):
-        if self._raise_exc is not None:
-            raise self._raise_exc
-        if url in self._responses:
-            return self._responses[url]
-        raise ConnectionError(f"Not found: {url}")
+def test_library_routes_are_gone(client):
+    assert client.get("/api/standards/library").status_code == 404
+    resp = client.post("/api/standards/library/import", json={"file": "standards/x.json"},
+                       headers={"Origin": "http://localhost"})
+    assert resp.status_code == 404
 
 
-def _library_client(dirs, monkeypatch, http_client):
-    from quodeq.services.standards_library import StandardsLibraryClient
-    library = StandardsLibraryClient(base_url="https://example.com", http_client=http_client)
-    monkeypatch.setattr("quodeq.api.standards_routes._get_library_client", lambda app_instance: library)
-    return create_app(test_config={
-        "TESTING": True,
-        "STANDARDS_EVALUATORS_DIR": str(dirs["evaluators"]),
-        "STANDARDS_COMPILED_DIR": str(dirs["compiled"]),
-        "STANDARDS_DIMENSIONS_FILE": str(dirs["dimensions"]),
-    })
+class _RecordingLogger:
+    def __init__(self):
+        self.messages: list[str] = []
+
+    def _record(self, msg, *args, **_kwargs):
+        self.messages.append(msg % args)
+
+    info = debug = warning = _record
 
 
-def test_import_from_library_conflict_returns_409(dirs, monkeypatch):
-    # A standard with the same ID already exists locally from a different origin.
-    existing = {
-        "id": "clean-arch", "name": "Clean Architecture", "description": "",
-        "weight": 1.0, "source": "", "principles": [],
-        "origin": "other-repo/clean-arch.json", "managed": False, "type": "custom",
-    }
-    dirs["evaluators"].joinpath("clean-arch.json").write_text(json.dumps(existing))
-    remote_standard = {
-        "id": "clean-arch", "name": "Clean Architecture", "description": "Test",
-        "weight": 1.0, "source": "Martin", "principles": [],
-    }
-    http = _FakeLibraryHttpClient({"https://example.com/standards/clean-arch.json": remote_standard})
-    app = _library_client(dirs, monkeypatch, http)
-    with app.test_client() as c:
-        resp = c.post(
-            "/api/standards/library/import",
-            json={"file": "standards/clean-arch.json"},
-            headers={"Origin": "http://localhost"},
-        )
-    assert resp.status_code == 409
-    body = resp.get_json()
-    assert body["code"] == "conflict"
-
-
-def test_import_from_library_malformed_json_returns_502_not_conflict(dirs, monkeypatch):
-    # The "server" returns a body that fails JSON decoding -- a
-    # transport/parse failure, not a business-logic conflict.
-    malformed_json_error = json.JSONDecodeError("Expecting value", "not json", 0)
-    http = _FakeLibraryHttpClient(raise_exc=malformed_json_error)
-    app = _library_client(dirs, monkeypatch, http)
-    with app.test_client() as c:
-        resp = c.post(
-            "/api/standards/library/import",
-            json={"file": "standards/clean-arch.json"},
-            headers={"Origin": "http://localhost"},
-        )
-    assert resp.status_code == 502
-    body = resp.get_json()
-    assert body["code"] == "import_error"
-    assert body["code"] != "conflict"
-
-
-def test_import_from_library_log_sanitization_file(dirs, caplog, monkeypatch):
-    from unittest.mock import MagicMock
-    import logging
-    caplog.set_level(logging.INFO, logger="quodeq.api.standards_import_routes")
-    mock_library = MagicMock()
-    mock_library.import_standard.return_value = None
-
-    def get_mock_library(app_instance):
-        return mock_library
-    monkeypatch.setattr("quodeq.api.standards_routes._get_library_client", get_mock_library)
-    app = create_app(test_config={
-        "TESTING": True,
-        "STANDARDS_EVALUATORS_DIR": str(dirs["evaluators"]),
-        "STANDARDS_COMPILED_DIR": str(dirs["compiled"]),
-        "STANDARDS_DIMENSIONS_FILE": str(dirs["dimensions"]),
-    })
-    with app.test_client() as c:
-        payload = {"file": "test-file\nFAKE_LOG_ENTRY\rCAR_RETURN"}
-        resp = c.post("/api/standards/library/import", json=payload, headers={"Origin": "http://localhost"})
-        assert resp.status_code == 201
-        for record in caplog.records:
-            msg = record.getMessage()
-            if "standards.import_from_library" in msg and "file=" in msg:
-                assert "\n" not in msg
-                assert "\r" not in msg
-                assert "test-fileFAKE_LOG_ENTRYCAR_RETURN" in msg
+def test_route_ids_cannot_forge_log_lines(client, monkeypatch):
+    recorder = _RecordingLogger()
+    monkeypatch.setattr("quodeq.api.standards_crud_routes.logger", recorder)
+    origin = {"Origin": "http://localhost"}
+    client.delete("/api/standards/x%0Aforged-entry", headers=origin)
+    client.post("/api/standards/security/duplicate", json={"newId": "copy\nforged-entry"}, headers=origin)
+    messages = recorder.messages
+    assert any("standards.delete" in m for m in messages)
+    assert any("standards.duplicate" in m for m in messages)
+    assert not any("\n" in m for m in messages)

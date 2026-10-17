@@ -16,7 +16,7 @@ def _run_options(tmp_path):
         legacy_incremental=False,
     )
     inputs = ResolvedInputs(src=tmp_path, language="python", manifest=None, dims_data={})
-    return build_run_config(args, inputs=inputs, evidence_dir=tmp_path).options
+    return build_run_config(args, inputs=inputs, reports_root=tmp_path, evidence_dir=tmp_path).options
 
 
 def test_invalid_max_turns_env_falls_back_to_default(monkeypatch, tmp_path):

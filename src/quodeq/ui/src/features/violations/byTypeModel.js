@@ -3,7 +3,6 @@
  * dimension, with the baseline count (from the run diff), the current count
  * (from the dimension's active findings) and the standard's text.
  */
-import { buildProjectRootFile } from '../../utils/explorerUtils.js';
 
 export const TYPE_GROUP = Object.freeze({ DIMENSION: 'dimension', PRINCIPLE: 'principle', TYPE: 'type' });
 
@@ -86,11 +85,6 @@ export function buildTypeRows({ dimensions, diffsByRun, standardsByDim }) {
     }
   }
   return rows.sort(compareRows);
-}
-
-/** The synthetic file the file page opens for one type row. */
-export function typeFile(row, dim, label) {
-  return buildProjectRootFile([{ ...dim, violations: row.violations }], label);
 }
 
 function header(type, name, rows) {

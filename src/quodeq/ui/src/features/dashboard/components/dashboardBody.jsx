@@ -1,6 +1,6 @@
 import IncompleteSetupCard from './IncompleteSetupCard.jsx';
 import OverviewSkeleton from './OverviewSkeleton.jsx';
-import LoadingScreen from '../../../components/LoadingScreen.jsx';
+import { recallShape } from '../overviewShape.js';
 import { t } from '../../../strings/index.js';
 import DashboardContent from './DashboardContent.jsx';
 import { dashboardPageClassName } from './dashboardGate.jsx';
@@ -19,7 +19,7 @@ function renderReadyContent({ data, callbacks, runMode, projectInfo, selectedRun
       runMode={runMode}
       data={{ dashboard, selectedRunId, accumulated, accumulatedDimensions, availableRuns, dailyRuns, overviewRunIndex, selectedProject, projectInfo, granularity, selectedSource, scoresPending, customFormula, formulaUpdated, refreshing }}
       focus={focus}
-      callbacks={{ onRunSelect, onRunHover, onRunHoverEnd, onDimensionCardClick: handlers.handleDimensionCardClick, onAccumulatedDimensionClick: handlers.handleAccumulatedDimensionClick, onFileClick: handlers.handleFileClick, onNavigate, onGranularityChange }}
+      callbacks={{ onRunSelect, onRunHover, onRunHoverEnd, onDimensionCardClick: handlers.handleDimensionCardClick, onAccumulatedDimensionClick: handlers.handleAccumulatedDimensionClick, onNavigate, onGranularityChange }}
     />
   );
 }
@@ -39,13 +39,13 @@ function renderReadyContent({ data, callbacks, runMode, projectInfo, selectedRun
  * @param {object} ctx.focus current focused dimension (dimension, setDimension,
  *   dimensionData)
  * @param {object} ctx.handlers click handlers from useDashboardHandlers
- *   (handleDimensionCardClick, handleAccumulatedDimensionClick, handleFileClick)
+ *   (handleDimensionCardClick, handleAccumulatedDimensionClick)
  * @param {Array} ctx.accumulatedDimensions pre-rescored accumulated dimensions
  * @param {string} [ctx.selectedRunId]
  * @param {() => void} ctx.onSetupComplete
  */
 export function renderDashboardBody(ctx) {
-  const { data, runMode, projectInfo, projectName, pageState, onSetupComplete } = ctx;
+  const { data, runMode, archivedRun, projectInfo, projectName, pageState, onSetupComplete } = ctx;
   const { dashboard, error, isFetching } = data;
   const { contentReady, isLoading, showOverviewSkeleton, dashboardAppearClass } = pageState;
   // True while a *background* fetch is running but we're already showing
@@ -56,33 +56,26 @@ export function renderDashboardBody(ctx) {
   // showOverviewSkeleton comes from useDashboardPageState (beside the appear
   // latch, which needs it too) -- from the user's perspective this covers both
   // loader windows as one continuous OverviewSkeleton, no handoff between them.
-  // The `dashboard-loading` 40% dim exists to fade *stale* content sitting
-  // under the loader overlay. For the Overview the skeleton IS the content
-  // (nothing stale is underneath it), so it never dims -- only a runMode
-  // load, which still uses the sibling LoadingScreen below, does.
-  const isDimmed = isLoading && runMode;
+  // A runMode load (the run page) shows the same skeleton in the run page's
+  // footprint. The skeleton IS the content (nothing stale is underneath it),
+  // so the page never dims.
+  const showRunSkeleton = isLoading && runMode;
   return (
     <>
-      {/* Sibling to .dashboard-page, not a child of it: that div carries the
-          `dashboard-loading` opacity-.4 class for exactly as long as this loader
-          is shown, and a loader dimmed by its own "still loading" state renders
-          its logo at an unreadable 6% opacity. Names the project being loaded --
-          a project switch now clears the old payload (placeholderData is
-          project-scoped -- see samePlaceholderScope), so this spinner is what
-          the user sees right after picking a project; saying which one makes
-          the wait legible instead of looking like the page hung. runMode only
-          -- the Overview shows the OverviewSkeleton (inside .dashboard-page,
-          see showOverviewSkeleton) instead. */}
-      {isLoading && runMode && <LoadingScreen variant="inline" message={projectName ? t('overview.loadingProjectMsg', { name: projectName }) : undefined} />}
-      <div className={dashboardPageClassName({ appearClass: dashboardAppearClass, dimmed: isDimmed })}>
+      {/* The sibling slot the gate frames hold with {null} (see gateFrame):
+          keeps .dashboard-page at child index 1 in every branch. */}
+      {null}
+      <div className={dashboardPageClassName({ appearClass: dashboardAppearClass })}>
         <IncompleteSetupCard projectInfo={projectInfo} onComplete={onSetupComplete} />
         {error && <p className="inline-error">{t('overview.loadFailed')}</p>}
-        {showOverviewSkeleton && <OverviewSkeleton projectName={projectName} lastKnown={data.lastKnown} />}
+        {showOverviewSkeleton && <OverviewSkeleton projectName={projectName} lastKnown={data.lastKnown} shape={recallShape(data.selectedProject)} />}
+        {showRunSkeleton && <OverviewSkeleton run projectName={projectName} sub={archivedRun ? t('history.restoringArchived') : undefined} />}
         {/* No runMode equivalent of the Overview's grace-fallback loader: in
             runMode contentReady is `!!dashboard`, so the instant dashboard lands
             contentReady is already true -- there's no window where dashboard is
-            in but content isn't ready yet. The `isLoading && runMode`
-            LoadingScreen above is the only loader runMode needs. */}
+            in but content isn't ready yet. The run skeleton above is the only
+            loader runMode needs (the run page shows it again itself until the
+            run's dimensions land). */}
         {dashboard && contentReady && renderReadyContent({ ...ctx, refreshing: isRefreshing })}
       </div>
     </>

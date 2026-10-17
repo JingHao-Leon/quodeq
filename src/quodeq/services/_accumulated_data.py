@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Callable
 
 from quodeq.services.wiring import RunInfo, read_run_data, read_run_manifest, read_run_scalars, run_fingerprint
+from quodeq.services.wiring_sync import is_archived, read_archived_run_data
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.dimension import open_types_of
@@ -149,6 +150,8 @@ def read_scalar_dimensions(
     re-read in full by the caller.
     """
     def _full(root: Path, proj: str, rid: str) -> list[DimensionResult]:
+        if is_archived(root / proj / rid):  # never restored here: the walk reads every run
+            return read_archived_run_data(root / proj / rid)
         if full_reader is not None:
             return full_reader(root, proj, rid)
         return _read_run_data_safely(root, proj, rid, log=log)

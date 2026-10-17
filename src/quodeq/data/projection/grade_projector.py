@@ -141,7 +141,7 @@ def compute_run_grades(
     principle_rows: ``[(dimension, principle_grade_dict), ...]``
     dimension_rows: ``[{"dimension":..., "score":..., "grade":...}, ...]``
 
-    ``recompute_grades`` layers persistence on top; ``preview_scores`` uses
+    ``recompute_grades`` layers persistence on top; the grade-formula preview uses
     the result directly.
     """
     inputs = load_grade_inputs(run_dir)

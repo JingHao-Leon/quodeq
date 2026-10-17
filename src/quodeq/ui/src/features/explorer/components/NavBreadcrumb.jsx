@@ -9,6 +9,7 @@ import { buildSwitcherRows } from './projectSwitcherModel.js';
 import { useProjectSwitcherHotkey } from '../../../hooks/useProjectSwitcherHotkey.js';
 import { t } from '../../../strings/index.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
+import { scopeLabel } from '../../violations/scope/scopeModel.js';
 
 const PAGE_LABELS = {
   overview: t('explorer.overviewCrumb'),
@@ -57,6 +58,12 @@ export function labelFor(entry) {
   // its tab label.
   if (entry.page === NAV_TAB.MAP && entry.path) {
     return entry.path.split('/').filter(Boolean).pop() || t('explorer.mapCrumb');
+  }
+  // A scoped Findings view reads as its scope: the file, the folder, the
+  // requirement, the dimension, the project, the area.
+  if (entry.page === NAV_TAB.VIOLATIONS && entry.scope) {
+    const scoped = scopeLabel(entry.scope);
+    if (scoped) return scoped;
   }
   // hasOwn, not a plain lookup: `entry.page` comes off a stack entry, so a
   // page named 'constructor' or 'toString' would otherwise hit Object's

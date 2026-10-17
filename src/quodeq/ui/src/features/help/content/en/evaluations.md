@@ -18,6 +18,14 @@ The **Evaluate** tab is where you start, watch, and finish a run. The same scree
 - **Sub-agents** how many parallel agents run. Higher is faster, costs more.
 - **Time budget** a hard cap on run length. When the timer expires the run stops, whatever completed is scored, and the remaining files carry over to the next run.
 
+### Who reviews this run
+
+The strip at the top of the card names the repository, the scope (*whole project*, or the subfolder you picked) and the model, written as provider, model and effort. Clicking the model cell opens *Who reviews this run* in place: the providers as pills (one that is not installed cannot be picked), then the selected provider's model and effort. The confirm button, **use** followed by the model's name, saves that choice, exactly as choosing it in **Settings** would, and closes the panel; it does not start a scan. **all model settings** opens Settings for everything else, such as API keys. Escape or a click outside closes the panel without saving. Until a model is chosen the model cell is marked and the scan button stays disabled, with *pick a model to start* beside it.
+
+### A project's first run
+
+On a project that has never been evaluated, the card starts with every dimension selected and the time limit set to **no limit**, so the first run reads the whole project once. Untick dimensions or set a limit before you press **scan** if you want less. Later runs start from your usual time limit with the dimensions you pick.
+
 ### Excluding paths
 
 Add a `.quodeqignore` file at the scan root to keep fixture, vendored, or generated code out of every evaluation. One glob per line, relative to the root; naming a directory excludes everything under it. Exclusions apply everywhere files are collected, on top of the built-in skips (`node_modules`, `dist`, dot-directories).
@@ -53,7 +61,7 @@ Not every run ends with a clean *done*, and the run names its exit reason:
 
 ### When it finishes
 
-The result card offers **View results**, **Evaluate again**, or **Back to project**. Each completed run is added to history with its grade, score, and delta from the previous run.
+When a project's first run finishes cleanly and you are still on **Evaluate**, the app moves to the project's **Overview**, where its first grades land. Otherwise the result card offers **View results**, **Evaluate again**, or **Back to project**. Each completed run is added to history with its grade, score, and delta from the previous run.
 
 > **Re-evaluating an existing project**
 >

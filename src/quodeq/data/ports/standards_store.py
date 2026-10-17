@@ -47,3 +47,7 @@ class StandardsStore(Protocol):
     def write(self, path: Path, data: dict) -> None:
         """Write *data* as the standard payload, creating parents as needed."""
         ...
+
+    def modified_date(self, path: Path) -> str | None:
+        """ISO date of the file's last modification, None when absent."""
+        ...

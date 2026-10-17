@@ -97,8 +97,8 @@ def split_userinfo(url: str) -> tuple[str, str] | None:
     when the authority has no "@", or when the "@" belongs to a path segment.
     ``_userinfo_end`` documents how the credential boundary is found.
 
-    The two callers differ only in what they put back: the registration path
-    drops the userinfo, the API error path masks it as ``***@``.
+    The callers differ only in what they put back: the registration path
+    drops the userinfo, ``mask_userinfo`` masks it as ``***@``.
     """
     match = SCHEME_RE.match(url)
     if not match:
@@ -107,6 +107,18 @@ def split_userinfo(url: str) -> tuple[str, str] | None:
     rest = url[len(scheme):]
     end = _userinfo_end(rest)
     return None if end is None else (scheme, rest[end:])
+
+
+def mask_userinfo(url: str) -> str:
+    """*url* with any embedded credentials masked as ``***@``, for messages and logs.
+
+    ``split_userinfo`` documents which URLs count as carrying credentials.
+    """
+    parts = split_userinfo(url)
+    if parts is None:
+        return url
+    scheme, after = parts
+    return f"{scheme}***@{after}"
 
 
 def normalize_remote_url(url: str) -> str | None:

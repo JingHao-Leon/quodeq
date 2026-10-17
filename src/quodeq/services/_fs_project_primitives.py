@@ -10,13 +10,22 @@ from pathlib import Path
 from typing import Any
 
 from quodeq.core.types.project_source import ProjectLocation
-from quodeq.services.wiring import read_repository_info
+from quodeq.services.wiring import checked_out_branch, read_repository_info
+from quodeq.services.wiring_sync import is_shared_clone_root
 
 
 def check_path_exists(path: str | None, location: str | None) -> bool | None:
     """Return whether a local path exists, or None if not applicable."""
     if location == ProjectLocation.LOCAL and path:
         return Path(path).exists()
+    return None
+
+
+def checked_out_branch_for(path: str | None, location: str | None) -> str | None:
+    """The branch a local project's folder has checked out, or None when
+    not applicable (not local, not a git working copy)."""
+    if location == ProjectLocation.LOCAL:
+        return checked_out_branch(path)
     return None
 
 
@@ -66,3 +75,14 @@ def local_repo_root(reports_root: Path, entry_name: str) -> Path | None:
     """
     path, _ = repo_attach_reason(read_repo_info(reports_root, entry_name))
     return Path(path) if path else None
+
+
+def trusted_repo_root(reports_root: Path, entry_name: str) -> Path | None:
+    """``local_repo_root`` for a project this machine evaluated; None under a shared clone.
+
+    A shared clone's ``repository_info.json`` and run files were written by
+    someone else, so the path they name is never handed to git.
+    """
+    if is_shared_clone_root(reports_root):
+        return None
+    return local_repo_root(reports_root, entry_name)

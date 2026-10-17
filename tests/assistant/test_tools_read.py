@@ -18,9 +18,9 @@ def ctx(tmp_path):
 def test_registry_registers_expected_tools(ctx):
     reg = build_registry(ctx)
     assert reg.names() == [
-        "draft_action", "get_context", "get_overview", "get_report", "get_scores",
-        "get_standard", "get_violations", "list_repo_dir", "list_standards",
-        "read_repo_file", "search_findings",
+        "compare_projects", "compare_runs", "draft_action", "get_context", "get_dismissed",
+        "get_grade_formula", "get_help", "get_history", "get_overview", "get_principle_history", "get_report", "get_risk_areas",
+        "get_scores", "get_standard", "get_violations", "list_repo_dir", "list_standards", "read_repo_file", "search_findings",
     ]
 
 

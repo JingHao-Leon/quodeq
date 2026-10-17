@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from typing import NamedTuple
 
 _WS_RE = re.compile(r"\s+")
 
@@ -108,3 +109,29 @@ def finding_dismiss_keys(
         if fp is not None:
             keys.add((ident, file_key, fp))
     return keys
+
+
+class SuppressionSubject(NamedTuple):
+    """What the app's suppression predicate reads of one violation, its snippet reduced to fingerprints.
+
+    ``fingerprints`` holds one :func:`snippet_fingerprint` per
+    ``dismiss_identities(req, principle)`` identity, in that order, so a stored
+    subject can be judged without its snippet. ``deleted_file`` is the file part
+    of the violation's delete key: it differs from ``file`` only for a combined
+    ``path:suffix`` spelling whose suffix is not a line number.
+    """
+
+    dimension: str
+    req: str
+    principle: str
+    file: str
+    line: int
+    fingerprints: tuple[str | None, ...]
+    deleted_file: str
+
+
+def dismiss_fingerprints(
+    req: str | None, principle: str | None, snippet: str | None,
+) -> tuple[str | None, ...]:
+    """The snippet fingerprint under each identity a dismissal of this finding may be recorded under."""
+    return tuple(snippet_fingerprint(ident, snippet) for ident in dismiss_identities(req, principle))

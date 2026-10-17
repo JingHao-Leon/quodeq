@@ -83,6 +83,13 @@ describe('buildAssistantActionAppliedHandler', () => {
 
   const dismissEvent = (detail) => ({ detail: { actionType: 'dismiss_finding', ...detail } });
 
+  it('refreshes the standards list after a create-standard apply, and nothing else', () => {
+    const d = deps({ onStandardCreated: vi.fn() });
+    buildAssistantActionAppliedHandler(d)({ detail: { actionType: 'create_standard', standardId: 'x' } });
+    expect(d.onStandardCreated).toHaveBeenCalledWith('x');
+    expect(d.scheduleDashboardReconcile).not.toHaveBeenCalled();
+  });
+
   it('schedules the active dashboard reconcile after a dismiss apply', () => {
     const d = deps();
     buildAssistantActionAppliedHandler(d)(dismissEvent({ delta: { project: 'proj1' }, scores: {} }));

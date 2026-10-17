@@ -14,7 +14,7 @@ from quodeq.api.helpers import ClientMessageError, json_error
 from quodeq.core.types.provider import ProviderType
 from quodeq.services.tooling_mixin import get_allowed_client_ids as _get_allowed_ai_cmds
 from quodeq.shared.cmd_path_policy import ai_cmd_path_error  # noqa: F401 — re-export/patch target
-from quodeq.shared.repo import split_userinfo
+from quodeq.shared.repo import mask_userinfo
 
 if TYPE_CHECKING:
     from quodeq.api._rate_limit import RateLimitStore
@@ -108,14 +108,9 @@ def coerce_int(value: object, default: int, field: str) -> int:
 def sanitize_url(url: str) -> str:
     """Remove embedded credentials from a URL for safe logging/error messages.
 
-    The userinfo is masked as ``***@``. ``split_userinfo`` documents how the
-    credential boundary is found.
+    The userinfo is masked as ``***@`` (see ``mask_userinfo``).
     """
-    parts = split_userinfo(url)
-    if parts is None:
-        return url
-    scheme, after = parts
-    return f"{scheme}***@{after}"
+    return mask_userinfo(url)
 
 
 def validate_ai_cmd(ai_cmd: str | None, env: dict[str, str] | None = None) -> tuple[Response, int] | None:
@@ -131,6 +126,24 @@ def validate_ai_cmd(ai_cmd: str | None, env: dict[str, str] | None = None) -> tu
             CODE_INVALID_INPUT,
         )
     return None
+
+
+def validate_ai_effort(
+    ai_cmd: str | None, ai_effort: str | None, provider_configs: Mapping[str, dict],
+) -> tuple[Response, int] | None:
+    """An effort must be one of the provider's ``effort_levels``.
+
+    The error names the accepted levels, never the requested value, so
+    nothing from the request is echoed back.
+    """
+    levels = provider_configs.get(ai_cmd or "", {}).get("effort_levels", ())
+    if not ai_effort or ai_effort in levels:
+        return None
+    message = (
+        f"Unsupported effort. This provider accepts: {', '.join(levels)}."
+        if levels else "This provider has no effort setting."
+    )
+    return json_error(message, HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT)
 
 
 def validate_ai_model(

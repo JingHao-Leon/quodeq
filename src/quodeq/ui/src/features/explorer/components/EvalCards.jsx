@@ -78,7 +78,7 @@ function ViolationDetail({ item }) {
   );
 }
 
-export function EvalViolationCard({ v, principle, index, onDismiss }) {
+export function EvalViolationCard({ v, principle, index, onDismiss, readOnly = false }) {
   const { filename, ref, display } = fileInfo(v.file, v.line, v.endLine);
   return (
     <div
@@ -89,7 +89,7 @@ export function EvalViolationCard({ v, principle, index, onDismiss }) {
         <SevBadge level={v.severity} format="long" />
         <span className="vrow-label">[{v.principle || principle}]</span>
         {filename && <span className="vlive-detail-file" title={ref}>{display}</span>}
-        <ViolationActions v={v} principle={v.principle || principle} onDismiss={onDismiss} />
+        <ViolationActions v={v} principle={v.principle || principle} onDismiss={onDismiss} readOnly={readOnly} />
       </div>
       <ViolationDetail item={v} />
     </div>

@@ -13,11 +13,14 @@ import sqlite3
 from dataclasses import dataclass
 
 from quodeq.core.types import DimensionResult
-from quodeq.data.sqlite.score_cache_db import open_score_cache
+from quodeq.data.sqlite.read_only import is_read_only
+from quodeq.data.sqlite.score_cache_db import open_score_cache, rollback_quietly
+from quodeq.data.sqlite.score_cache_map_snapshot import load_map_snapshots, save_map_snapshots  # noqa: F401
 from quodeq.data.sqlite.score_cache_principles import (
     attach_principles, principle_rows, read_principle_rows, write_principle_rows,
 )
 from quodeq.data.sqlite.score_cache_rows import RUN_SCALARS_COLUMNS, dimension_from_row, row_values
+from quodeq.data.sqlite.score_cache_run_payloads import RUN_CHANGE, RunKey, load_run_payloads, prune_run_payloads, store_run_payload
 
 _logger = logging.getLogger(__name__)
 
@@ -51,8 +54,11 @@ def write_cached_rows(
 
     Each dimension's scalars go to ``run_scalars`` and its principle grades to
     ``run_principle_scalars``, in one commit. Best-effort: logs and returns on
-    any SQLite error (the caller still has the computed result).
+    any SQLite error (the caller still has the computed result), and skips a
+    connection the cache opened read-only.
     """
+    if is_read_only(conn):
+        return
     try:
         conn.execute("DELETE FROM run_scalars WHERE project=? AND run_id=?", (project, run_id))
         write_principle_rows(conn, project, run_id, version, principle_rows(dims))
@@ -64,6 +70,7 @@ def write_cached_rows(
         conn.commit()
     except sqlite3.Error:
         _logger.warning("score cache write failed for %s/%s", project, run_id, exc_info=True)
+        rollback_quietly(conn)
 
 
 @dataclass(frozen=True)
@@ -102,6 +109,8 @@ def _write_payload(
     conn: sqlite3.Connection, slot: _PayloadSlot, project: str, version: str, payload: dict,
 ) -> None:
     """Replace *project*'s payload in *slot* with *payload* at *version* (best-effort)."""
+    if is_read_only(conn):
+        return
     try:
         blob = json.dumps(payload)
     except (TypeError, ValueError):
@@ -115,6 +124,7 @@ def _write_payload(
         conn.commit()
     except sqlite3.Error:
         _logger.warning(slot.write_failed_log, project, exc_info=True)
+        rollback_quietly(conn)
 
 
 def read_cached_project_summary(
@@ -139,6 +149,8 @@ def store_run_keys(
     dismiss_keys: set[tuple], class_keys: set[tuple],
 ) -> None:
     """Persist a run's key sets (best-effort)."""
+    if is_read_only(conn):
+        return
     try:
         conn.execute(
             "INSERT OR REPLACE INTO run_keys (project, run_id, dismiss_keys, class_keys) "
@@ -185,6 +197,25 @@ def _decode_keys(dj: str, cj: str) -> tuple[set[tuple], set[tuple]] | None:
         return ({tuple(k) for k in json.loads(dj)}, {tuple(k) for k in json.loads(cj)})
     except (ValueError, TypeError):
         return None
+
+
+def store_run_change(conn: sqlite3.Connection, project: str, run_id: str, key: str, payload: dict) -> None:
+    """Persist one run's History change data under *key* (best-effort)."""
+    if is_read_only(conn):
+        return
+    store_run_payload(conn, RUN_CHANGE, RunKey(project, run_id, key), payload)
+
+
+def load_run_changes(conn: sqlite3.Connection, project: str, keys: dict[str, str]) -> dict[str, dict]:
+    """The cached change data of *keys*' runs whose stored key still matches; {} on any error."""
+    return load_run_payloads(conn, RUN_CHANGE, project, keys)
+
+
+def prune_run_changes(conn: sqlite3.Connection, project: str, keep_run_ids: set[str]) -> None:
+    """Drop *project*'s change rows for runs outside *keep_run_ids* (best-effort)."""
+    if is_read_only(conn):
+        return
+    prune_run_payloads(conn, RUN_CHANGE, project, keep_run_ids)
 
 
 def read_all_cached_rows(

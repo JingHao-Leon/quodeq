@@ -3,8 +3,11 @@ import { KEY } from '../../vocab/keyboard.js';
 import { POINTER_EVENT } from '../../vocab/pointerEvent.js';
 import { SCORE_SCALE_MAX } from '../../constants.js';
 import { roundOneDecimal } from '../../utils/rounding.js';
+import { t } from '../../strings/index.js';
+import { GRADE_ORDER } from './impact/impactModel.js';
 
-const SEG_LABELS = ['CRITICAL', 'POOR', 'ADEQUATE', 'GOOD', 'EXEMPLARY'];
+// The grade under the lowest threshold; the thresholds name the other four.
+const BOTTOM_GRADE = GRADE_ORDER[GRADE_ORDER.length - 1];
 const GRADE_COLOR_VARS = [
   'var(--color-grade-bottom-text)', 'var(--color-grade-low-text)',
   'var(--color-grade-mid-text)', 'var(--color-grade-high-text)',
@@ -12,9 +15,15 @@ const GRADE_COLOR_VARS = [
 ];
 const MIN_GAP = 0.5;
 
-function clampToNextValue(dividerIdx, live, rawValue) {
+// How far a divider can move: up to half a point from each neighbour (or the scale's ends).
+function dividerBounds(dividerIdx, live) {
   const lo = (dividerIdx === 0 ? 0 : live[dividerIdx - 1]) + MIN_GAP;
   const hi = (dividerIdx === live.length - 1 ? SCORE_SCALE_MAX : live[dividerIdx + 1]) - MIN_GAP;
+  return [lo, hi];
+}
+
+function clampToNextValue(dividerIdx, live, rawValue) {
+  const [lo, hi] = dividerBounds(dividerIdx, live);
   return roundOneDecimal(Math.min(hi, Math.max(lo, rawValue)));
 }
 
@@ -68,8 +77,10 @@ function makeStepKey({ ascRef, thresholds, onChange }) {
 export default function GradeBoundaryBar({ thresholds = [], onChange }) {
   const barRef = useRef(null);
   // ascending boundary values, e.g. [3,5,7,9]
-  const asc = [...thresholds].map(([t]) => t).reverse();
+  const asc = [...thresholds].map(([value]) => value).reverse();
   const edges = [0, ...asc, SCORE_SCALE_MAX];
+  // Segment names, lowest first, from the thresholds' own labels.
+  const names = [BOTTOM_GRADE, ...[...thresholds].map(([, label]) => label).reverse()];
 
   const ascRef = useRef(asc);
   ascRef.current = asc;
@@ -82,11 +93,14 @@ export default function GradeBoundaryBar({ thresholds = [], onChange }) {
       <div className="gf-boundary-bar" ref={barRef}>
         {edges.slice(0, -1).map((edge, i) => (
           <Segment
-            key={SEG_LABELS[i]}
+            key={names[i]}
             i={i}
+            name={names[i]}
+            nextName={names[i + 1]}
             width={edges[i + 1] - edge}
             hasDivider={i < asc.length}
             dividerValue={asc[i]}
+            bounds={i < asc.length ? dividerBounds(i, asc) : null}
             onDrag={startDrag}
             onStepKey={stepKey}
           />
@@ -102,22 +116,25 @@ export default function GradeBoundaryBar({ thresholds = [], onChange }) {
   );
 }
 
-function Segment({ i, width, hasDivider, dividerValue, onDrag, onStepKey }) {
+function Segment({ i, name, nextName, width, hasDivider, dividerValue, bounds, onDrag, onStepKey }) {
   return (
     <>
+      {/* A segment too narrow for its name shows the initial; the name stays for screen readers and hover. */}
       <div
         className="gf-boundary-seg"
         style={{ flex: width, background: GRADE_COLOR_VARS[i] }}
+        title={name}
       >
-        {SEG_LABELS[i]}
+        <span className="gf-boundary-seg__name">{name}</span>
+        <span className="gf-boundary-seg__initial" aria-hidden="true">{name[0]}</span>
       </div>
       {hasDivider ? (
         <div
           className="gf-boundary-divider"
           role="slider"
-          aria-label={`Boundary ${i + 1}`}
-          aria-valuemin={0}
-          aria-valuemax={SCORE_SCALE_MAX}
+          aria-label={t('gradeFormula.boundaryAria', { grade: nextName })}
+          aria-valuemin={bounds[0]}
+          aria-valuemax={bounds[1]}
           aria-valuenow={dividerValue}
           tabIndex={0}
           onPointerDown={onDrag(i)}

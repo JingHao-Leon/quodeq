@@ -1,12 +1,11 @@
 """Read-through wrappers over the score-cache tables.
 
 Each one is hit -> return cached, miss -> compute + persist best-effort. The
-kill switch (``QUODEQ_DISABLE_SCORE_CACHE``) and any SQLite error degrade to a
-plain recompute, so no caller has to handle cache failure.
+kill switch (``QUODEQ_DISABLE_SCORE_CACHE``) and any ``ScoreCacheError`` degrade
+to a plain recompute, so no caller has to handle cache failure.
 """
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from typing import Callable
 
@@ -14,19 +13,19 @@ from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.types import DimensionResult
 from quodeq.services.wiring import (
     DEFAULT_SINGLE_FLIGHT,
+    ScoreCacheError,
     SingleFlight,
-    open_score_cache,
-    read_all_cached_rows,
-    read_cached_project_summary,
+    read_project_rows,
+    read_project_summary,
     row_dimension,
     scalar_dimension,
-    write_cached_project_summary,
-    write_cached_rows,
+    write_project_summary,
+    write_run_rows,
 )
 from quodeq.shared.env import score_cache_disabled
 
 
-def _log_write_failure(operation: str, exc: sqlite3.Error, *, log: LogSink) -> None:
+def _log_write_failure(operation: str, exc: ScoreCacheError, *, log: LogSink) -> None:
     """Log a best-effort cache write failure before degrading to recompute.
 
     A persistently broken cache (disk full, corrupt DB) must not be silently
@@ -43,12 +42,16 @@ def _log_write_failure(operation: str, exc: sqlite3.Error, *, log: LogSink) -> N
 
 @dataclass(frozen=True)
 class CacheTable:
-    """One read-through score-cache table: how to read and write its rows."""
+    """One read-through score-cache table: how to read and write its rows.
+
+    *read* takes ``(project, version)`` and *write* ``(project, version, payload)``;
+    both own their cache connection and raise ``ScoreCacheError`` on failure.
+    """
 
     kind: str
     label: str
-    read: Callable[[sqlite3.Connection, str, str], dict | None]
-    write: Callable[[sqlite3.Connection, str, str, dict], None]
+    read: Callable[[str, str], dict | None]
+    write: Callable[[str, str, dict], None]
     write_name: str
 
 
@@ -88,36 +91,29 @@ def read_through(
     if not enabled:
         return compute()
     try:
-        cached = _read_row(table, project, version)
+        cached = table.read(project, version)
         if cached is not None:
             return cached
-    except sqlite3.Error as exc:
+    except ScoreCacheError as exc:
         log.warning(f"score-cache read failed for {table.label} {project}: {exc}")
         return compute()
     flight = slot.single_flight if slot.single_flight is not None else DEFAULT_SINGLE_FLIGHT
     with flight.hold((table.kind, project, version)):
         # Re-check: a caller we waited on may have computed and cached it.
         try:
-            cached = _read_row(table, project, version)
+            cached = table.read(project, version)
             if cached is not None:
                 return cached
-        except sqlite3.Error as exc:
+        except ScoreCacheError as exc:
             log.debug(f"score-cache re-check read failed for {table.label} {project}: {exc}")
         result = compute()
         if cacheable is not None and not cacheable(result):
             return result
         try:
-            with open_score_cache() as conn:
-                table.write(conn, project, version, result)
-        except sqlite3.Error as exc:
+            table.write(project, version, result)
+        except ScoreCacheError as exc:
             _log_write_failure(table.write_name, exc, log=log)
         return result
-
-
-def _read_row(table: CacheTable, project: str, version: str) -> dict | None:
-    """The exact-version cached payload, or None on a miss. SQLite errors propagate."""
-    with open_score_cache() as conn:
-        return table.read(conn, project, version)
 
 
 def cached_project_summary(
@@ -131,8 +127,8 @@ def cached_project_summary(
     ``log=SHARED_LOG`` through both of its production call sites, so a write
     failure reaches a real sink there.
     """
-    table = CacheTable("summary", "project summary", read_cached_project_summary,
-                        write_cached_project_summary, "write_cached_project_summary")
+    table = CacheTable("summary", "project summary", read_project_summary,
+                        write_project_summary, "write_project_summary")
     return read_through(
         CacheSlot(table, project, version), compute, None, log, not score_cache_disabled(),
     )
@@ -157,9 +153,8 @@ class RowFetcher:
         self._project, self._version_for, self._base = project, version_for, base_fetcher
         self._is_cacheable, self._log = is_cacheable, log
         try:
-            with open_score_cache() as conn:
-                self._by_run_version = read_all_cached_rows(conn, project)
-        except sqlite3.Error as exc:
+            self._by_run_version = read_project_rows(project)
+        except ScoreCacheError as exc:
             log.warning(f"score-cache bulk read failed for {project}: {exc}")
             self._by_run_version = {}
 
@@ -177,10 +172,9 @@ class RowFetcher:
         self._by_run_version[(run_id, version)] = rows
         if self._is_cacheable is None or self._is_cacheable(run_id):
             try:
-                with open_score_cache() as conn:
-                    write_cached_rows(conn, self._project, run_id, version, rows)
-            except sqlite3.Error as exc:
-                _log_write_failure("write_cached_rows", exc, log=self._log)
+                write_run_rows(self._project, run_id, version, rows)
+            except ScoreCacheError as exc:
+                _log_write_failure("write_run_rows", exc, log=self._log)
         return rows
 
 

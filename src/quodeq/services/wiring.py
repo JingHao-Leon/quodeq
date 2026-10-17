@@ -14,7 +14,7 @@ from __future__ import annotations
 
 # Per-project JSON artifacts: repository_info.json, scan.json.
 from quodeq.data.fs.project_files import (  # noqa: F401
-    list_project_dirs,
+    list_project_dirs, project_dir_exists,
     read_repository_info,
     read_scan_json,
     read_scan_total_files,
@@ -48,17 +48,14 @@ from quodeq.data.fs.dimension_report.report_io import write_dimension_report  # 
 # Run-directory readers and discard-time cleanup mechanics.
 from quodeq.data.fs.run_files import (  # noqa: F401
     count_eval_files,
-    dimension_evidence_file,
-    dimension_queue_file,
+    dimension_evidence_file, dimension_queue_file,
     dimension_report_exists,
-    evidence_file_size,
-    file_mtime,
+    evidence_file_size, file_mtime,
     has_fingerprint_files,
     list_dimension_evidence,
     queue_file_exists,
     read_dispatched_cache_keys,
-    read_queue_files_count,
-    read_queue_state,
+    read_queue_files_count, read_queue_state,
     read_run_manifest,
     read_run_state,
     read_run_status_json,
@@ -68,7 +65,10 @@ from quodeq.data.fs.run_files import (  # noqa: F401
 )
 
 # Run-directory removal (rmtree) and reports-root fallback scanning.
-from quodeq.data.fs.run_dirs import remove_run_directory, scan_reports_root_for_run  # noqa: F401
+from quodeq.data.fs.run_dirs import (  # noqa: F401
+    project_run_dirs, remove_run_directory, run_dimension_ids, run_listing_stamp, scan_reports_root_for_run,
+)
+from quodeq.data.fs.standards_scan import file_stamp, scoring_content_hash, standard_files  # noqa: F401
 
 # Run-artifact copy/replace mechanics (shared-repo publish staging).
 from quodeq.data.fs.run_artifacts import (  # noqa: F401
@@ -91,7 +91,7 @@ from quodeq.data.fs.stream_files import (  # noqa: F401
 # Legacy per-run evaluation/*.json finding details (SQL twin:
 # quodeq.data.sqlite.findings_queries.read_finding_details).
 from quodeq.data.fs.report_parser.finding_details import (  # noqa: F401
-    iter_eval_reports,
+    eval_report_dimensions, iter_eval_reports,
     iter_readable_eval_reports,
     read_eval_report,
     read_finding_details_from_json_eval,
@@ -120,9 +120,9 @@ from quodeq.data.sqlite.connection import evaluation_db_stamp  # noqa: F401
 
 # Custom-standard file mechanics (see StandardsStore in services/ports.py).
 from quodeq.data.fs.standards_store import (  # noqa: F401
-    compiled_exists,
-    ensure_evaluators_dir,
+    compiled_exists, ensure_evaluators_dir,
     read_standard_payload,
+    standard_modified_date,
     remove_standard,
     resolve_jailed_standard_path,
     standard_exists,
@@ -149,7 +149,7 @@ from quodeq.data.fs.standards_loader import (  # noqa: F401
 )
 
 # Per-project standards-visibility preferences.
-from quodeq.data.fs.standards_prefs import load_visible_standard_ids  # noqa: F401
+from quodeq.data.fs.standards_prefs import load_project_standards, settings_reports_root  # noqa: F401
 
 # Filesystem report parser: JSON/markdown eval-report parsing.
 from quodeq.data.fs.report_parser import OVERALL_PRINCIPLE, parse_eval_from_json, parse_eval_markdown  # noqa: F401
@@ -158,7 +158,7 @@ from quodeq.data.fs.report_parser import OVERALL_PRINCIPLE, parse_eval_from_json
 from quodeq.data.events.reader import EventLogReader  # noqa: F401
 
 # SQLite run index (module, for its attribute-style callers) + the specific
-# names services import by name, plus the stale-run cancellation helper.
+# names services import by name, plus the store that owns the index connection.
 from quodeq.data.sqlite import run_index  # noqa: F401
 from quodeq.data.sqlite.run_index import (  # noqa: F401
     RunRow,
@@ -166,7 +166,7 @@ from quodeq.data.sqlite.run_index import (  # noqa: F401
     open_index,
     sync_index,
 )
-from quodeq.data.sqlite.index_sync import force_promote_to_cancelled_stale  # noqa: F401
+from quodeq.data.sqlite.run_index_store import RunIndexStore  # noqa: F401
 
 # External (CLI-started) run liveness resolution: safe run-id segment check
 # and the .pid file read.
@@ -176,9 +176,8 @@ from quodeq.data.fs.report_parser.external_pid import (  # noqa: F401
 )
 
 # AI client discovery: CLI ``/models`` subprocess + Anthropic HTTP API.
-from quodeq.data.cli_models import run_cli_models_command  # noqa: F401
+from quodeq.data.cli_models import CatalogUnavailable, fetch_cli_model_catalog, run_cli_models_command, supports_model_catalog  # noqa: F401,E501
 from quodeq.data.copilot_models import fetch_copilot_models  # noqa: F401
-from quodeq.data.anthropic_models import fetch_anthropic_models  # noqa: F401
 
 # Run discovery + report aggregation (filesystem report parser).
 from quodeq.data.fs.report_parser.runs import (  # noqa: F401
@@ -245,15 +244,14 @@ from quodeq.data.sqlite.score_cache_db import (  # noqa: F401
 )
 from quodeq.data.sqlite.score_cache_rows import row_dimension, scalar_dimension  # noqa: F401
 from quodeq.data.sqlite.score_cache_store import (  # noqa: F401
-    load_run_key_sets,
-    read_all_cached_rows,
-    read_cached_project_summary,
-    read_cached_rows,
-    read_last_project_summary_cached,
-    read_project_summary_or_last,
-    store_run_keys,
-    write_cached_project_summary,
-    write_cached_rows,
+    load_map_snapshots, load_run_changes, load_run_key_sets, read_cached_project_summary, read_cached_rows,
+    read_last_project_summary_cached, read_project_summary_or_last, save_map_snapshots, store_run_keys,
+    write_cached_project_summary, write_cached_rows,
+)
+# Connection-owning score-cache operations: services never open the cache or catch driver errors.
+from quodeq.data.sqlite.score_cache_access import (  # noqa: F401
+    RunKeyStore, ScoreCacheError, persisted_run_key_sets, read_project_rows, read_project_summary, run_key_store,
+    save_run_change, save_run_keys, take_run_changes, write_project_summary, write_run_rows,
 )
 
 # Live evidence tally (heartbeat + scan-progress counters).
@@ -261,7 +259,7 @@ from quodeq.data.fs.evidence_tally import FindingTally, IncrementalTally, classi
 from quodeq.services._process_owners import DEFAULT_LIVE_TALLY_MEMO, DEFAULT_SINGLE_FLIGHT, DEFAULT_WALK_CACHE, LiveTallyMemo, SingleFlight, WalkCache  # noqa: F401
 
 # Local git repo statistics.
-from quodeq.data.fs.git_stats import count_commits_since, last_fetched_mtime  # noqa: F401
+from quodeq.data.fs.git_stats import checked_out_branch, count_commits_since, last_fetched_mtime  # noqa: F401
 
 # Project-identity index (project_index.json): load/save + the identity key
 # a project resolves to. The api layer reaches this via the public facade

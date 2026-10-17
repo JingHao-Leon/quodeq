@@ -12,7 +12,7 @@
  * Sides are fixed for the whole screen: A is always the first project
  * (accent), B the second (sand), and every gap reads A minus B.
  */
-import { TermHeader } from '../../../components/terminal/index.js';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import { t } from '../../../strings/index.js';
 import ComparePanel from './ComparePanel.jsx';
 import CompareDuelVerdict from './CompareDuelVerdict.jsx';
@@ -80,16 +80,9 @@ export default function CompareDuelView({ duel, onOpenProject }) {
   const { a, b } = duel;
   return (
     <>
-      <div className="term-page-top compare-page__top">
-        {/* No local back button: the app breadcrumb already walks back,
-            same as the dimension screen. */}
-        <div className="compare-page__titles">
-          <TermHeader
-            name={t('compare.duelTitle')}
-            sub={t('compare.duelSubtitle', { a: a.name, b: b.name, count: duel.sharedCount })}
-          />
-        </div>
-      </div>
+      {/* No local back button: the app breadcrumb already walks back,
+          same as the dimension screen. */}
+      <PageToolbar title={t('compare.duelTitle')} facts={t('compare.duelSubtitle', { a: a.name, b: b.name, count: duel.sharedCount })} />
       {duel.ready ? <DuelBody duel={duel} onOpenProject={onOpenProject} /> : (
         <section className="compare-panel" aria-label={t('compare.duelAria')}>
           <p className="compare-panel__fallback">{t('compare.duelNeedsBoth')}</p>

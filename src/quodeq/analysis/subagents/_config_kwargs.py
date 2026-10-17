@@ -24,7 +24,9 @@ def shared_analysis_config_kwargs(config: "RunConfig") -> dict[str, Any]:
         "max_duration": config.options.max_duration,
         "ai_cmd": config.ai_cmd,
         "ai_cmd_path": config.options.ai_cmd_path,
+        "ai_effort": config.options.ai_effort,
         "cache_root": config.options.cache_root,
         "drop_counter": config.drop_counter,
         "mcp_registry": config.mcp_registry,
+        "standards_settings": config.standards_settings,
     }

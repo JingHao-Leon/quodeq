@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStandards } from './hooks/useStandards.js';
 import { useVisibleStandards } from './hooks/useVisibleStandards.js';
 import { useStandardsOverrides } from './hooks/useStandardsOverrides.js';
+import { useStandardsSharing } from './hooks/useStandardsSharing.js';
 import StandardsTable from './components/StandardsTable.jsx';
+import StandardsSharedBand from './components/StandardsSharedBand.jsx';
 import StandardEditor from './components/StandardEditor.jsx';
 import ImportModal from './components/ImportModal.jsx';
-import { TermHeader } from '../../components/terminal/index.js';
+import PageToolbar from '../../components/PageToolbar.jsx';
 import { useAppState } from '../../hooks/useAppState.js';
 import { t } from '../../strings/index.js';
-import { PROJECT_SOURCE } from '../../vocab/projectSource.js';
+import { ACTION_TYPE } from '../../vocab/actionType.js';
+import { ASSISTANT_ACTION_APPLIED_EVENT } from '../../constants.js';
+import { usePageFocus } from '../../hooks/usePageFocus.js';
 
 // Which screen the page shows: the table, or the editor in create/edit mode.
 const VIEW_MODE = { LIST: 'list', EDIT: 'edit', NEW: 'new' };
@@ -33,6 +37,10 @@ export function useStandardsPageActions(refresh, handleDelete, addVisible, remov
     }
   };
 
+  useAssistantCreatedStandard({ view, setView, addVisible });
+  // The standard open in the editor (or a new one being written), for the assistant.
+  usePageFocus('standardEditor', view.mode === VIEW_MODE.LIST ? null : { mode: view.mode, standardId: view.standardId ?? null });
+
   return {
     view,
     showImport, setShowImport,
@@ -41,32 +49,50 @@ export function useStandardsPageActions(refresh, handleDelete, addVisible, remov
   };
 }
 
-function StandardsListView({ grouped, loading, error, actions, customizedCounts }) {
+// A standard the assistant created while this page is open: make it visible
+// for the project, as a manual create does, and open it from the list. An
+// open editor stays put so unsaved edits are never thrown away; the app-level
+// handler refetches the list either way.
+function useAssistantCreatedStandard({ view, setView, addVisible }) {
+  const latest = useRef(null);
+  latest.current = { view, addVisible };
+  useEffect(() => {
+    const onApplied = (event) => {
+      const { actionType, standardId } = event.detail || {};
+      if (actionType !== ACTION_TYPE.CREATE_STANDARD || !standardId) return;
+      latest.current.addVisible(standardId);
+      if (latest.current.view.mode === VIEW_MODE.LIST) setView({ mode: VIEW_MODE.EDIT, standardId });
+    };
+    window.addEventListener(ASSISTANT_ACTION_APPLIED_EVENT, onApplied);
+    return () => window.removeEventListener(ASSISTANT_ACTION_APPLIED_EVENT, onApplied);
+  }, [setView]);
+}
+
+function StandardsListView({ grouped, loading, error, actions, customizedCounts, sharing }) {
   return (
     <>
       {error && <p className="inline-error inline-error--spaced">{error}</p>}
+      {sharing.band && <StandardsSharedBand {...sharing.band} />}
       {loading ? (
         <div className="standards-loading">{t('standards.loadingStandards')}</div>
       ) : (
-        <StandardsTable grouped={grouped} actions={actions} customizedCounts={customizedCounts} />
+        <StandardsTable grouped={grouped} actions={actions} customizedCounts={customizedCounts} shared={sharing.shared} />
       )}
     </>
   );
 }
 
 export default function StandardsPage({ onRescan }) {
-  const { selectedProject, selectedSource } = useAppState();
-  // A shared (read-only) project has no local standards file to write; the
-  // per-project PUT would 404 and vanish in persist()'s fire-and-forget
-  // catch. The toggle still lands in the browser-local visible set, which
-  // is what every screen filters by.
-  const visibilityProjectId = selectedSource === PROJECT_SOURCE.SHARED ? null : selectedProject;
-  const { isVisible, toggle, add: addVisible, remove: removeVisible } = useVisibleStandards({ projectId: visibilityProjectId });
+  const { selectedProject } = useAppState();
+  // Every project, shared ones included, keeps its toggles in the server's
+  // per-project settings file; the browser set is only the read cache.
+  const { isVisible, toggle, add: addVisible, remove: removeVisible } = useVisibleStandards({ projectId: selectedProject });
   // A new standard only reaches the Evaluate picker once it is visible for
   // this project. Create does that in handleSaved; duplicate and import
   // land here and in handleImported.
   const { grouped, loading, error, refresh, handleDelete, handleDuplicate } = useStandards({ onDuplicated: addVisible });
   const { counts: customizedCounts } = useStandardsOverrides(selectedProject);
+  const sharing = useStandardsSharing({ grouped, refresh });
   const {
     view,
     showImport,
@@ -83,23 +109,26 @@ export default function StandardsPage({ onRescan }) {
     return <StandardEditor standardId={view.standardId} isNew={view.mode === VIEW_MODE.NEW} onBack={handleEditorBack} onSaved={handleSaved} onRescan={onRescan} />;
   }
 
+  // Remote-only rows are not installed, so they never count as active.
   const activeCount = grouped
-    ? Object.values(grouped).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0)
+    ? Object.values(grouped).reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.filter((s) => !s.remote).length : 0), 0)
     : 0;
+  const facts = (
+    <>
+      {t('standards.activeCount', { count: activeCount })}
+      {sharing.remoteCount > 0 && <> · {t('standards.remoteCount', { count: sharing.remoteCount })}</>}
+    </>
+  );
 
   return (
     <div className="standards-page standards-page--terminal">
-      <div className="standards-page-header standards-page-header--terminal">
-        <TermHeader
-          name={t('standards.termName')}
-          sub={t('standards.termSub', { count: activeCount })}
-        />
-        <div className="standards-page-header-actions">
+      <PageToolbar title={t('standards.termName')} facts={facts}>
+        <span className="standards-page-header-actions">
           <button type="button" className="btn-secondary" onClick={() => setShowImport(true)}>{t('standards.importBtn')}</button>
           <button type="button" className="btn-primary" onClick={handleNewStandard}>{t('standards.newStandardBtn')}</button>
-        </div>
-      </div>
-      <StandardsListView grouped={grouped} loading={loading} error={error} actions={{ onEdit: handleEdit, onDelete: handleDeleteWithCleanup, onDuplicate: handleDuplicate, isVisible, onToggleVisibility: toggle }} customizedCounts={customizedCounts} />
+        </span>
+      </PageToolbar>
+      <StandardsListView grouped={grouped} loading={loading} error={error} actions={{ onEdit: handleEdit, onDelete: handleDeleteWithCleanup, onDuplicate: handleDuplicate, isVisible, onToggleVisibility: toggle }} customizedCounts={customizedCounts} sharing={sharing} />
       {showImport && <ImportModal onClose={() => setShowImport(false)} onImported={handleImported} />}
     </div>
   );

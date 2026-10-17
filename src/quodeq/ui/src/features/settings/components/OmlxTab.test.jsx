@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, fireEvent, screen } from '@testing-library/react';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 import OmlxTab from './OmlxTab.jsx';
@@ -9,6 +9,7 @@ const fakeApi = {
   testOmlxConcurrency: vi.fn(),
   // useOmlxServerStatus depends on this; return offline by default
   getOmlxStatus: vi.fn().mockResolvedValue({ running: false }),
+  getProviderKeyStatus: vi.fn().mockResolvedValue({ configured: false }),
 };
 
 function makeWrapper() {
@@ -45,6 +46,17 @@ describe('OmlxTab', () => {
       expect([...opts].some((o) => o.value === 'mlx-community/gemma-3-4b-it-4bit')).toBe(true);
       expect([...opts].some((o) => o.value === 'mlx-community/qwen3-8b')).toBe(true);
     });
+  });
+
+  it('reloads the model list once a saved key has landed', async () => {
+    fakeApi.getOmlxModels.mockResolvedValue([]);
+    const update = vi.fn(() => Promise.resolve());
+    const Wrapper = makeWrapper();
+    render(<Wrapper><OmlxTab state={{ model: '' }} update={update} /></Wrapper>);
+    await waitFor(() => expect(fakeApi.getOmlxModels).toHaveBeenCalledTimes(1));
+    fireEvent.change(await screen.findByLabelText(/api key/i, { selector: 'input' }), { target: { value: 'k' } });
+    fireEvent.click(screen.getByRole('button', { name: /save key/i }));
+    await waitFor(() => expect(fakeApi.getOmlxModels).toHaveBeenCalledTimes(2));
   });
 
   it('shows the models error when getOmlxModels rejects', async () => {

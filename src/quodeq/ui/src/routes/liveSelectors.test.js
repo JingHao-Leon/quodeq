@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { liveFileFor, liveEvalPrincipalFor } from './liveSelectors.js';
+import { latestRunOf, latestFilesReadOf, liveFileFor, liveEvalPrincipalFor } from './liveSelectors.js';
 
 // The File and Principle pages used to render only the object the navigation
 // call built from the payload the client held at click time. A selector in
@@ -29,26 +29,9 @@ test('liveFileFor: a dimension selector rebuilds the dimension file from the liv
   assert.equal(file.total, 3);
 });
 
-test('liveFileFor: a type selector rebuilds the requirement file from the live payload', () => {
-  const file = liveFileFor({ fileSelector: { kind: 'type', dimension: 'security', req: 'S-1', text: 'Hash it' } }, accumulated());
-  assert.equal(file.file, 'S-1 · Hash it');
-  assert.equal(file.total, 2);
-});
-
-test('liveFileFor: a folder selector rebuilds that folder\'s findings across its dimensions', () => {
-  const acc = accumulated();
-  acc.dimensions[0].violations.push(violation('src/x/e.py', 5, 'S-3', 'P1'));
-  acc.dimensions[1].violations.push(violation('src/x/f.py', 6, 'P-1', 'P9'));
-  const file = liveFileFor({ fileSelector: { kind: 'folder', dir: 'src/x', dimensions: ['security', 'perf'], label: 'src/x/' } }, acc);
-  assert.equal(file.file, 'src/x/');
-  assert.equal(file.total, 2);
-  const onlySecurity = liveFileFor({ fileSelector: { kind: 'folder', dir: 'src/x', dimensions: ['security'] } }, acc);
-  assert.equal(onlySecurity.total, 1);
-});
-
-test('liveFileFor: a folder with no findings left, or no payload, yields null', () => {
-  assert.equal(liveFileFor({ fileSelector: { kind: 'folder', dir: 'gone', dimensions: ['security'] } }, accumulated()), null);
-  assert.equal(liveFileFor({ fileSelector: { kind: 'folder', dir: '', dimensions: ['security'] } }, null), null);
+test('liveFileFor: a requirement or folder selector is no longer read (they open as scoped Findings views)', () => {
+  assert.equal(liveFileFor({ fileSelector: { kind: 'type', dimension: 'security', req: 'S-1' } }, accumulated()), null);
+  assert.equal(liveFileFor({ fileSelector: { kind: 'folder', dir: 'src/x', dimensions: ['security'] } }, accumulated()), null);
 });
 
 test('liveFileFor: no selector, no payload or an unknown dimension yields null so the snapshot is used', () => {
@@ -70,4 +53,19 @@ test('liveEvalPrincipalFor: no selector or an unknown principle yields null', ()
   assert.equal(liveEvalPrincipalFor({ evalPrincipal: { principle: 'snap' } }, accumulated()), null);
   assert.equal(liveEvalPrincipalFor({ principleSelector: { dimension: 'security', principle: 'P9' } }, accumulated()), null);
   assert.equal(liveEvalPrincipalFor({ principleSelector: { dimension: 'security', principle: 'P1' } }, undefined), null);
+});
+
+test('latestRunOf: today\'s run of a dimension, never the selected run\'s', () => {
+  const props = { dashboardData: { latestAccumulated: accumulated(), accumulated: { dimensions: [{ dimension: 'security', fromRunId: 'old' }] } } };
+  assert.equal(latestRunOf(props, 'security'), 'run-9');
+  assert.equal(latestRunOf(props, 'gone'), null);
+  assert.equal(latestRunOf({ dashboardData: { accumulated: accumulated() } }, 'security'), null);
+});
+
+test('latestFilesReadOf: the files today\'s run of a dimension read, null when unknown', () => {
+  const props = { dashboardData: { latestAccumulated: { dimensions: [{ dimension: 'security', filesRead: 158 }, { dimension: 'reliability' }] } } };
+  assert.equal(latestFilesReadOf(props, 'security'), 158);
+  assert.equal(latestFilesReadOf(props, 'reliability'), null);
+  assert.equal(latestFilesReadOf(props, 'gone'), null);
+  assert.equal(latestFilesReadOf({}, 'security'), null);
 });

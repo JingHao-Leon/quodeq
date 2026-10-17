@@ -19,3 +19,16 @@ export function switchProject(navigation, id, source, { rootTab = NAV_TAB.PROJEC
   if (rootTab === NAV_TAB.PROJECTS) navigation.navTab(NAV_TAB.OVERVIEW);
   else if (depth > 1) navigation.navTab(rootTab);
 }
+
+/**
+ * Make `id` the active project and open Evaluate on it: a never-evaluated
+ * Repositories row's `evaluate` button.
+ *
+ * @param {{ handleProjectChange: Function, navTab: Function }} navigation
+ * @param {string} id
+ * @param {string} [source] - PROJECT_SOURCE value; the selection default when omitted
+ */
+export function evaluateProject(navigation, id, source) {
+  navigation.handleProjectChange(id, source);
+  navigation.navTab(NAV_TAB.EVALUATE);
+}

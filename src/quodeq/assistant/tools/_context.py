@@ -41,11 +41,10 @@ class ToolContext:
     # with_shared_root mechanism). Wrapped in the messages-route worker and
     # the MCP server main.
     score_cache_path: Path | None = None
-    # Per-project visible-standards selection
-    # (<repo>/.quodeq/standards-visibility.json, see
-    # core.standards.visibility). General-purpose read tools filter to this set
+    # Per-project visible-standards selection (the machine settings file,
+    # see core.standards.visibility). General-purpose read tools filter to this set
     # so the assistant never quotes dimensions the dashboard hides. Production
-    # always resolves a concrete selection (load_visible_standard_ids falls
+    # always resolves a concrete selection (load_project_standards falls
     # back to DEFAULT_VISIBLE_STANDARDS even with no repo root); None is the
     # explicit "no filtering" opt-out, kept for any future caller that wants
     # it, not something production code paths produce.

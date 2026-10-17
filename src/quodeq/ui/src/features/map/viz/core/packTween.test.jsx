@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { easeInOut, lerpTransform, useTweenedTransform, PACK_TWEEN_MS } from './packTween.js';
+import { easeInOut, lerpTransform, useTweenedTransform, useFollowingTransform, useFadeTween, PACK_TWEEN_MS, FADE_TWEEN_MS } from './packTween.js';
 
 const A = { k: 1, tx: 0, ty: 0 };
 const B = { k: 3, tx: -100, ty: -50 };
@@ -87,6 +87,72 @@ describe('useTweenedTransform', () => {
     const sameAsA = { ...A };
     rerender({ target: sameAsA });
     expect(result.current).toBe(sameAsA);
+    expect(frames.hasFrame()).toBe(false);
+  });
+});
+
+describe('useFollowingTransform', () => {
+  const C = { k: 3, tx: -90, ty: -40 };
+  const follow = (props) => renderHook(({ target, key }) => useFollowingTransform(target, key), { initialProps: props });
+
+  it('follows a moving target at once while the key stays the same', () => {
+    const frames = fakeFrames();
+    const { result, rerender } = follow({ target: B, key: 1 });
+    rerender({ target: C, key: 1 });
+    expect(result.current).toBe(C);
+    expect(frames.hasFrame()).toBe(false);
+  });
+
+  it('eases from the camera shown to the live target when the key changes', () => {
+    const frames = fakeFrames();
+    const { result, rerender } = follow({ target: A, key: 0 });
+    rerender({ target: B, key: 1 });
+    expect(result.current).toEqual(A);
+    act(() => frames.tick(PACK_TWEEN_MS / 2));
+    expect(result.current.k).toBeGreaterThan(A.k);
+    expect(result.current.k).toBeLessThan(B.k);
+    // The target moves mid-zoom (a run moving under it): the zoom lands on where it is now.
+    rerender({ target: C, key: 1 });
+    act(() => frames.tick(PACK_TWEEN_MS));
+    expect(result.current).toBe(C);
+    expect(frames.hasFrame()).toBe(false);
+  });
+
+  it('snaps to the new key under reduced motion', () => {
+    const frames = fakeFrames();
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { result, rerender } = follow({ target: A, key: 0 });
+    rerender({ target: B, key: 1 });
+    expect(result.current).toBe(B);
+    expect(frames.hasFrame()).toBe(false);
+  });
+});
+
+describe('useFadeTween', () => {
+  const LOW = Float32Array.from([1, 0.15]);
+  const HIGH = Float32Array.from([1, 1]);
+  const fade = (target) => renderHook(({ t }) => useFadeTween(t), { initialProps: { t: target } });
+
+  it('eases each opacity toward the new target', () => {
+    const frames = fakeFrames();
+    const { result, rerender } = fade(LOW);
+    rerender({ t: HIGH });
+    act(() => frames.tick(FADE_TWEEN_MS / 2));
+    expect(result.current[1]).toBeGreaterThan(0.15);
+    expect(result.current[1]).toBeLessThan(1);
+    act(() => frames.tick(FADE_TWEEN_MS));
+    expect(result.current).toBe(HIGH);
+  });
+
+  it('snaps under reduced motion and when the circles change', () => {
+    const frames = fakeFrames();
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { result, rerender } = fade(LOW);
+    rerender({ t: HIGH });
+    expect(result.current).toBe(HIGH);
+    const more = Float32Array.from([1, 1, 0.15]);
+    rerender({ t: more });
+    expect(result.current).toBe(more);
     expect(frames.hasFrame()).toBe(false);
   });
 });

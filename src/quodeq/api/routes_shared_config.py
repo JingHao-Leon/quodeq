@@ -67,6 +67,7 @@ def shared_status() -> Response:
     # dicts are service-internal snake_case structures, so rename at the boundary.
     publish = get_publish_status()
     publish["finishedAt"] = publish.pop("finished_at", None)
+    publish["skippedStandards"] = publish.pop("skipped_standards", [])
     connect = sync_block(get_connect_status())
     refresh = sync_block(get_refresh_status())
     pull = sync_block(get_pull_status())

@@ -9,9 +9,9 @@ FP source in the audit corpus.
 Detection cannot fix this on its own. The manifest of a loopback Flask app is
 byte-identical to that of a hosted one; whether an untrusted party can open a
 socket is information only the team has. So the model is DECLARED, in the
-analyzed repository at ``<project root>/.quodeq/project-profile.json``,
-alongside ``standards-visibility.json`` and ``standards-overrides.json`` so the
-whole team shares it:
+analyzed repository at ``<project root>/.quodeq/project-profile.json``, so the
+whole team shares it (standards settings, by contrast, live per machine under
+``~/.quodeq/projects``):
 
     {"version": 1, "multiTenant": false, "networkExposure": "loopback",
      "deploymentTopology": "single-host"}

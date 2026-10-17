@@ -73,7 +73,7 @@ def test_cli_path_and_api_path_compute_same_cache_key(tmp_path):
     assert len(entry.findings) == 1
 
 
-def test_cli_path_and_api_path_agree_with_standards_dir_and_override(tmp_path):
+def test_cli_path_and_api_path_agree_with_standards_dir_and_override(tmp_path, monkeypatch):
     """LOAD-BEARING (final-review fix): with a real standards dir AND a
     project threshold override in force, the CLI-path cache writer (wired
     the way findings_server.py wires it in production, via ServerArgs
@@ -98,11 +98,10 @@ def test_cli_path_and_api_path_agree_with_standards_dir_and_override(tmp_path):
     src_root = tmp_path / "src"
     src_root.mkdir()
     (src_root / "auth.py").write_text("class Auth: pass")
-    # A project threshold override -- the exact scenario the bug poisons.
-    (src_root / ".quodeq").mkdir()
-    (src_root / ".quodeq" / "standards-overrides.json").write_text(
-        '{"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}'
-    )
+    # The override the bug poisons, in the project's settings file (by findings path).
+    monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
+    settings = tmp_path / "home" / "projects" / "project" / "standards.json"
+    _write(settings, '{"version": 2, "overrides": {"M-ANA-2": {"max_lines": 60}}}')
 
     standards_dir = tmp_path / "standards"
     (standards_dir / "compiled").mkdir(parents=True)
@@ -123,6 +122,7 @@ def test_cli_path_and_api_path_agree_with_standards_dir_and_override(tmp_path):
         standards_dir=standards_dir,
         work_dir=src_root,
         options=AnalysisOptions(subagent_model="sonnet", ai_model="sonnet"),
+        standards_settings=settings,
     )
     parent_key = build_cache_key_for_file(config, "auth.py", "maintainability")
 
@@ -219,3 +219,57 @@ def test_cli_path_key_matches_api_path_when_language_missing(tmp_path):
         "CLI-path key must equal the API-path key regardless of --language."
     )
     assert entry.language == ""  # recorded as information, not keyed
+
+
+def test_server_and_run_resolve_the_same_settings_file(tmp_path, monkeypatch):
+    """The findings server (its own process) and the run's RunConfig must
+    read overrides from the SAME settings file, or the two cache writers
+    key one file's results under different params hashes. A scoped child
+    project (recorded under the local evaluations root) resolves to its
+    parent's file on both sides."""
+    from quodeq.analysis.mcp.findings_server import findings_standards_settings
+    from quodeq.cli_evaluation import standards_settings_for_run
+    from pathlib import Path
+
+    from quodeq.shared.env_paths import get_evaluations_dir
+
+    monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
+    reports = Path(get_evaluations_dir())
+    (reports / "parent").mkdir(parents=True)
+    (reports / "parent" / "repository_info.json").write_text(json.dumps({"name": "m"}))
+    (reports / "child").mkdir()
+    (reports / "child" / "repository_info.json").write_text(
+        json.dumps({"name": "m/app", "parent": "parent"}))
+    evidence = reports / "child" / "run-1" / "evidence"
+    evidence.mkdir(parents=True)
+    src = tmp_path / "src"
+    src.mkdir()
+
+    run_side = standards_settings_for_run(evidence, src, reports_root=reports)
+    server_side = findings_standards_settings(str(evidence / "security_evidence.jsonl"))
+
+    assert server_side == run_side
+    assert run_side == tmp_path / "home" / "projects" / "parent" / "standards.json"
+
+
+def test_server_resolution_never_migrates(tmp_path, monkeypatch):
+    """The findings server is a read-only resolver: even with legacy repo
+    files on the project's recorded path, it never writes the settings file."""
+    from quodeq.analysis.mcp.findings_server import findings_standards_settings
+
+    monkeypatch.setenv("QUODEQ_DIR", str(tmp_path / "home"))
+    repo = tmp_path / "repo"
+    _write(repo / ".quodeq" / "standards-overrides.json",
+           '{"version": 1, "overrides": {"M-ANA-2": {"max_lines": 60}}}')
+    project = tmp_path / "evaluations" / "proj"
+    _write(project / "repository_info.json", json.dumps({"name": "p", "path": str(repo)}))
+
+    path = findings_standards_settings(str(project / "run-1" / "evidence" / "x_evidence.jsonl"))
+
+    assert path == tmp_path / "home" / "projects" / "proj" / "standards.json"
+    assert not path.exists()
+
+
+def _write(path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)

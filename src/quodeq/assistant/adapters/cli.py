@@ -20,6 +20,7 @@ from quodeq.assistant.adapters._cli_spawn import (
     build_chat_env, external_sandbox_prefix, scratch_cwd, spawn_turn)
 from quodeq.assistant.adapters._cli_events import StreamOutcome, consume_stream_events
 from quodeq.assistant.cancel import CancelToken, TurnCancelled
+from quodeq.config.assistant_env import assistant_mcp_log_path
 from quodeq.assistant.frame_type import FrameType
 from quodeq.assistant.mcp import mcp_config
 from quodeq.assistant.message_role import MessageRole
@@ -97,13 +98,16 @@ def _external_sandbox(cfg: CliTurnConfig, cwd: Path) -> tuple[list[str], object 
 
     codex needs its internal sandbox bypassed for MCP to work, so we wrap it
     in an OS sandbox WE control that blocks writes outside the scratch cwd,
-    temp, ~/.codex and the assistant db (which draft_action writes).
+    temp, ~/.codex, the assistant db (which draft_action writes) and the MCP
+    server's log file. Evaluation stores stay read-only: the server opens
+    them through ``open_evaluation_db``'s read-only fallback.
     """
     db = str(cfg.db_path)
+    log = str(assistant_mcp_log_path())
     return external_sandbox_prefix(
         writable_dirs=[str(cwd), str(Path.home() / ".codex"),
                        *([str(cfg.worktree_dir)] if cfg.worktree_dir else [])],
-        writable_files=[db, db + "-wal", db + "-shm", db + "-journal"])
+        writable_files=[db, db + "-wal", db + "-shm", db + "-journal", log, log + ".1"])
 
 
 def _arm_kill_guards(proc, session: CliTurnSession) -> threading.Timer:

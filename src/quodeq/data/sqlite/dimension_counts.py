@@ -1,27 +1,30 @@
 """Per-dimension counts of active violations and compliance from the findings table.
 
 The scalar read path serves grades without findings; these counts let the
-trend show violations, majors and open requirement types per run without
-loading the findings themselves.
+trend show violations, majors and open requirement types per run, and each
+principle's violations, without loading the findings themselves.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import sqlite3
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from quodeq.core.types.finding_type import FindingType
+from quodeq.core.types.report import PrincipleCounts
 from quodeq.core.types.severity import Severity
 from quodeq.data.sqlite._db_stamp_memo import memoized_by_db_stamp
 from quodeq.shared.stamp_memo import StampCache
 from quodeq.data.sqlite.connection import EVALUATION_DB_FILENAME, open_evaluation_db
 
 _LEGACY_HIGH = "high"  # older rows spell major as high
-# One scan per run: per dimension, verdict and severity, the row count and the
-# distinct requirement codes among rows that carry one.
+# The severity buckets, named after the DimensionCounts fields they fill.
+_CRITICAL, _MAJOR, _MINOR = Severity.CRITICAL.value, Severity.MAJOR.value, Severity.MINOR.value
+# One scan per run: the row count per dimension, principle, verdict and severity.
 _SELECT_COUNTS = (
-    "SELECT dimension, verdict, severity, COUNT(*), "
-    "COUNT(DISTINCT CASE WHEN requirement IS NOT NULL AND requirement != '' THEN requirement END) "
-    "FROM findings WHERE verdict IN ('violation', 'compliance') GROUP BY dimension, verdict, severity"
+    "SELECT dimension, practice_id, verdict, severity, COUNT(*) "
+    "FROM findings WHERE verdict IN ('violation', 'compliance') "
+    "GROUP BY dimension, practice_id, verdict, severity"
 )
 _SELECT_TYPES = (
     "SELECT dimension, COUNT(DISTINCT requirement) FROM findings "
@@ -37,13 +40,18 @@ _COUNTS_CACHE = StampCache(max_entries=512, name="dimension_counts")
 
 @dataclass(frozen=True, slots=True)
 class DimensionCounts:
-    """Active violations of one dimension by severity, distinct requirement codes, and compliance."""
+    """Active violations of one dimension by severity, distinct requirement codes, and compliance.
+
+    ``principles`` holds each principle's active violations (a principle with
+    none is absent: it counts zero).
+    """
 
     critical: int = 0
     major: int = 0
     minor: int = 0
     open_types: int = 0
     compliance: int = 0
+    principles: dict[str, PrincipleCounts] = field(default_factory=dict)
 
     @property
     def violations(self) -> int:
@@ -63,22 +71,45 @@ def read_dimension_counts(run_dir: Path) -> dict[str, DimensionCounts]:
 
 
 def _read_counts(run_dir: Path) -> dict[str, DimensionCounts]:
-    by_dim: dict[str, dict[str, int]] = {}
     with open_evaluation_db(run_dir) as conn:
-        rows = conn.execute(_SELECT_COUNTS).fetchall()
-        type_rows = conn.execute(_SELECT_TYPES).fetchall()
-    for dimension, verdict, severity, count, _types in rows:
-        bucket = by_dim.setdefault(dimension, {})
+        return counts_from_connection(conn)
+
+
+def counts_from_connection(conn: sqlite3.Connection) -> dict[str, DimensionCounts]:
+    """``read_dimension_counts`` on a connection the caller owns (the archive's ``scalars.json``)."""
+    by_dim: dict[str, dict[str, int]] = {}
+    by_principle: dict[str, dict[str, dict[str, int]]] = {}
+    rows = conn.execute(_SELECT_COUNTS).fetchall()
+    type_rows = conn.execute(_SELECT_TYPES).fetchall()
+    for dimension, principle, verdict, severity, count in rows:
         key = FindingType.COMPLIANCE if verdict == FindingType.COMPLIANCE else _bucket_for(severity)
-        bucket[key] = bucket.get(key, 0) + int(count)
+        _add(by_dim.setdefault(dimension, {}), key, int(count))
+        if key != FindingType.COMPLIANCE and principle:
+            _add(by_principle.setdefault(dimension, {}).setdefault(principle, {}), key, int(count))
     for dimension, types in type_rows:
         by_dim.setdefault(dimension, {})["open_types"] = int(types)
-    return {dim: DimensionCounts(**fields) for dim, fields in by_dim.items()}
+    return {
+        dim: DimensionCounts(**fields, principles=_principle_counts(by_principle.get(dim, {})))
+        for dim, fields in by_dim.items()
+    }
+
+
+def _add(bucket: dict[str, int], key: str, count: int) -> None:
+    bucket[key] = bucket.get(key, 0) + count
+
+
+def _principle_counts(by_principle: dict[str, dict[str, int]]) -> dict[str, PrincipleCounts]:
+    """Each principle's severity buckets as its ``PrincipleCounts``."""
+    return {
+        principle: PrincipleCounts(violations=sum(buckets.values()), critical=buckets.get(_CRITICAL, 0),
+                                   major=buckets.get(_MAJOR, 0))
+        for principle, buckets in by_principle.items()
+    }
 
 
 def _bucket_for(severity: str | None) -> str:
     if severity == Severity.CRITICAL:
-        return "critical"
+        return _CRITICAL
     if severity in (Severity.MAJOR, _LEGACY_HIGH):
-        return "major"
-    return "minor"
+        return _MAJOR
+    return _MINOR

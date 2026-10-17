@@ -150,3 +150,45 @@ def test_publish_race_rebase_retry(tmp_path):
     subprocess.run(["git", "clone", url, str(verify)], check=True, capture_output=True)
     assert (verify / "evaluations" / "proj-uuid-1" / "run-2").exists()
     assert (verify / "evaluations" / "other-proj").exists()
+
+
+def test_publish_race_with_a_modified_tracked_file_elsewhere_still_publishes(tmp_path, monkeypatch):
+    """A tracked file another project's reader rewrote (a rebuilt database) must not stop the rebase retry."""
+    from quodeq.services.wiring import refresh_shared_clone as real_refresh
+    from quodeq.services.wiring_sync import secure_clone_tree as real_secure
+
+    url = _bare_origin(tmp_path)
+    root = _local_project(tmp_path)
+    other = tmp_path / "other"
+    publish_project("proj-uuid-1", url, evaluations_root=root)
+    subprocess.run(["git", "clone", url, str(other)], check=True, capture_output=True)
+    (other / "evaluations" / "other-proj").mkdir(parents=True)
+    (other / "evaluations" / "other-proj" / "evaluation.db").write_text("force-added")
+    for cmd in (["git", "add", "-f", "."], ["git", "commit", "-m", "other"], ["git", "push", "origin", "HEAD"]):
+        subprocess.run(cmd, cwd=other, check=True, capture_output=True)
+    secured: list[object] = []
+
+    def refresh_then_race(u, env=None):
+        result = real_refresh(u, env)
+        clone = shared_repo_path(u)
+        (clone / "evaluations" / "other-proj" / "evaluation.db").write_text("rebuilt here")
+        (other / "evaluations" / "third").mkdir(exist_ok=True)
+        (other / "evaluations" / "third" / "repository_info.json").write_text("{}")
+        for cmd in (["git", "add", "."], ["git", "commit", "-m", "third"], ["git", "push", "origin", "HEAD"]):
+            subprocess.run(cmd, cwd=other, check=True, capture_output=True)
+        return result
+
+    target = "quodeq.services._publish_git"
+    monkeypatch.setattr(f"{target}.refresh_shared_clone", refresh_then_race)
+    monkeypatch.setattr(f"{target}.secure_clone_tree", lambda repo: secured.append(repo) or real_secure(repo))
+    run2 = root / "proj-uuid-1" / "run-2"
+    (run2 / "evidence").mkdir(parents=True)
+    (run2 / "status.json").write_text(json.dumps({"state": "done", "schema_version": 2}))
+    (run2 / "dimensions.json").write_text("{}")
+    (run2 / "events.jsonl").write_text("{}\n")
+    publish_project("proj-uuid-1", url, evaluations_root=root)
+    verify = tmp_path / "verify"
+    subprocess.run(["git", "clone", url, str(verify)], check=True, capture_output=True)
+    assert (verify / "evaluations" / "proj-uuid-1" / "run-2").exists()
+    assert (verify / "evaluations" / "third").exists()
+    assert secured, "the clone tree is secured again after the rebase pulled files in"

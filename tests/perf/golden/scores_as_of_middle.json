@@ -12,13 +12,13 @@
         "fromProject": "golden-child",
         "fromRunId": "20260202T000000",
         "overallGrade": "Exemplary",
-        "overallScore": "9.3/10",
+        "overallScore": "9.6/10",
         "principles": [
           {
             "confidence": "low",
             "grade": "Exemplary",
             "principle": "Confidentiality",
-            "score": "9.3/10"
+            "score": "9.6/10"
           }
         ],
         "quarantinedCount": 0,
@@ -80,13 +80,13 @@
         "fromProject": "golden-child",
         "fromRunId": "20260210T000000",
         "overallGrade": "Exemplary",
-        "overallScore": "9.1/10",
+        "overallScore": "9.5/10",
         "principles": [
           {
             "confidence": "medium",
             "grade": "Exemplary",
             "principle": "Confidentiality",
-            "score": "9.1/10"
+            "score": "9.5/10"
           }
         ],
         "quarantinedCount": 0,
@@ -163,7 +163,7 @@
     "project": "golden",
     "summary": {
       "dimensionCount": 2,
-      "numericAverage": 9.2,
+      "numericAverage": 9.6,
       "overallGrade": "Exemplary",
       "previousNumericAverage": null,
       "severity": {
@@ -209,7 +209,7 @@
   ],
   "scoring": {
     "customFormula": false,
-    "formulaVersion": 6
+    "formulaVersion": 7
   },
   "trend": [
     {
@@ -225,7 +225,7 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 3,
-          "score": 9.7,
+          "score": 9.8,
           "violations": 3
         }
       ],
@@ -234,11 +234,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.7,
+      "numericAverage": 9.8,
       "openTypes": 3,
       "overallGrade": "Exemplary",
       "runId": "20260205T000000",
-      "runNumericAverage": 9.7,
+      "runNumericAverage": 9.8,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 3
@@ -251,12 +251,12 @@
       "dimensionDetails": [
         {
           "critical": 0,
-          "delta": 0.4,
+          "delta": 0.2,
           "dimension": "security",
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 2,
-          "score": 9.8,
+          "score": 9.9,
           "violations": 2
         }
       ],
@@ -265,11 +265,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.8,
+      "numericAverage": 9.9,
       "openTypes": 2,
       "overallGrade": "Exemplary",
       "runId": "20260204T000000",
-      "runNumericAverage": 9.8,
+      "runNumericAverage": 9.9,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 2
@@ -287,7 +287,7 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 3,
-          "score": 9.4,
+          "score": 9.7,
           "violations": 3
         }
       ],
@@ -296,11 +296,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.4,
+      "numericAverage": 9.7,
       "openTypes": 3,
       "overallGrade": "Exemplary",
       "runId": "20260202T000000",
-      "runNumericAverage": 9.4,
+      "runNumericAverage": 9.7,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 3
@@ -313,12 +313,12 @@
       "dimensionDetails": [
         {
           "critical": 0,
-          "delta": 0.2,
+          "delta": 0.1,
           "dimension": "security",
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 4,
-          "score": 9.3,
+          "score": 9.6,
           "violations": 4
         }
       ],
@@ -327,11 +327,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.3,
+      "numericAverage": 9.6,
       "openTypes": 4,
       "overallGrade": "Exemplary",
       "runId": "20260201T000000",
-      "runNumericAverage": 9.3,
+      "runNumericAverage": 9.6,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 4
@@ -349,7 +349,7 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 5,
-          "score": 9.1,
+          "score": 9.5,
           "violations": 5
         }
       ],
@@ -358,11 +358,11 @@
       ],
       "dimensionsCount": 1,
       "majors": 0,
-      "numericAverage": 9.1,
+      "numericAverage": 9.5,
       "openTypes": 5,
       "overallGrade": "Exemplary",
       "runId": "20260200T000000",
-      "runNumericAverage": 9.1,
+      "runNumericAverage": 9.5,
       "runOverallGrade": "Exemplary",
       "status": "done",
       "violations": 5

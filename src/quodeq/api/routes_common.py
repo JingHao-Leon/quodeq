@@ -37,9 +37,15 @@ def standards_compiled_dir(app: Flask) -> Path:
 LOCALHOST_ADDRS = frozenset({"127.0.0.1", "::1"})
 
 
+# Hosts a loopback request may name. A DNS-rebinding page reaches 127.0.0.1
+# under its own name, so an unauthenticated request must also say it is local.
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "[::1]"})
+
+
 def is_local_request() -> bool:
-    """True when the current request comes from a loopback address."""
-    return (request.remote_addr or "") in LOCALHOST_ADDRS
+    """True when the current request comes from a loopback address and names a loopback host."""
+    host = request.host.rsplit(":", 1)[0] if not request.host.endswith("]") else request.host
+    return (request.remote_addr or "") in LOCALHOST_ADDRS and host.lower() in LOOPBACK_HOSTS
 
 
 def sync_block(snapshot: dict) -> dict:

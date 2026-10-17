@@ -8,6 +8,7 @@ for its existing callers/tests) is a thin static-method delegate to it. The
 """
 from __future__ import annotations
 
+from quodeq.core.run.origin import ORIGIN_APP, RUN_ORIGIN_ENV
 from quodeq.services.base import EvaluationOptions
 from quodeq.shared.constants import ENV_TRUTHY
 from quodeq.shared.env_resolve import resolve_env
@@ -40,6 +41,7 @@ def build_eval_env(
     """
     base = resolve_env(env)
     built_env = {**base, "PYTHONUNBUFFERED": ENV_TRUTHY}
+    built_env[RUN_ORIGIN_ENV] = ORIGIN_APP
     built_env["AI_CMD"] = ai_cmd
     # Validated at the API boundary (validate_ai_cmd_path); the scan
     # subprocess spawns it as argv[0] while AI_CMD keeps keying the
@@ -53,6 +55,8 @@ def build_eval_env(
         built_env["AI_MODEL"] = ai_model
     if subagent_model:
         built_env["SUBAGENT_MODEL"] = subagent_model
+    if options.ai_effort:
+        built_env["AI_EFFORT"] = options.ai_effort
     if not options.verify_findings:
         built_env["QUODEQ_NO_VERIFY"] = ENV_TRUTHY
     # Always propagate the limit, including 0 (unlimited). The CLI

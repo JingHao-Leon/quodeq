@@ -11,9 +11,14 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
+from quodeq.data.sqlite.read_only import connect_read_only, unwritable
 
 _logger = logging.getLogger(__name__)
 
+# Shared with every installed quodeq: the index file lives in the state dir all
+# binaries use, so a bump makes older and newer processes rebuild it from
+# under each other. Additive columns are feature-detected instead (see
+# _ensure_meta_columns) and leave the version alone.
 SCHEMA_VERSION = 2
 
 _RUN_INDEX_BUSY_TIMEOUT_MS = 3000  # kept at its historical value; the other sqlite stores use 5000 (SQLITE_BUSY_TIMEOUT_MS)
@@ -44,7 +49,12 @@ CREATE TABLE IF NOT EXISTS runs (
     heartbeat_at      TEXT,
     pid               INTEGER,
     exit_reason       TEXT,
-    status_mtime      INTEGER NOT NULL
+    status_mtime      INTEGER NOT NULL,
+    ai_model          TEXT,
+    ai_provider       TEXT,
+    commit_sha        TEXT,
+    origin_json       TEXT,
+    dimensions_json   TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_runs_state      ON runs(state);
 CREATE INDEX IF NOT EXISTS idx_runs_started_at ON runs(started_at DESC);
@@ -67,11 +77,64 @@ CREATE TABLE IF NOT EXISTS run_dates (
 );
 """
 
+# Run metadata (model, provider, commit, origin, dimensions) kept on the row.
+# Snapshots prefer it and fall back to status.json, which they still read for
+# the deadline and time limit. Nullable and named explicitly by every writer,
+# so binaries that predate the columns keep working beside them; their rows
+# simply carry NULL metadata.
+_META_COLUMNS = (
+    ("ai_model", "TEXT"), ("ai_provider", "TEXT"), ("commit_sha", "TEXT"),
+    ("origin_json", "TEXT"), ("dimensions_json", "TEXT"),
+)
+
+# An unreleased build stamped the metadata columns as schema version 3. Such an
+# index is a version-2 index with the columns already present; it is stamped
+# back to 2 rather than rebuilt, so released binaries stop discarding it.
+_UNRELEASED_META_VERSION = 3
+
+
+_DUPLICATE_COLUMN = "duplicate column name"
+
+
+def add_meta_columns(db: sqlite3.Connection) -> bool:
+    """Add the metadata columns an older ``runs`` table lacks; True if any was added.
+
+    DDL autocommits and ``_open_lock`` only serializes threads, so another
+    process may add a column between the PRAGMA read and the ALTER; that
+    loser's "duplicate column name" is the desired end state, not an error.
+    """
+    have = {r[1] for r in db.execute("PRAGMA table_info(runs)")}
+    added = False
+    for name, kind in _META_COLUMNS:
+        if name in have:
+            continue
+        try:
+            db.execute(f"ALTER TABLE runs ADD COLUMN {name} {kind}")
+            added = True
+        except sqlite3.OperationalError as exc:
+            if _DUPLICATE_COLUMN not in str(exc):
+                raise
+    return added
+
+
+def _ensure_meta_columns(db: sqlite3.Connection) -> None:
+    """Feature-detect the metadata columns; mark existing rows for one re-read when added.
+
+    Rows written before the columns existed carry no metadata, and a zero
+    mtime makes the next sync rewrite each of them once. Once the columns are
+    there nothing is reset, so rows a released binary writes later keep their
+    NULL metadata until their status.json changes (readers fall back to it).
+    """
+    with db:
+        if add_meta_columns(db):
+            db.execute("UPDATE runs SET status_mtime = 0")
+
 
 def _apply_schema(db: sqlite3.Connection) -> None:
     """Create the full current schema on a fresh (or wiped) index."""
     with db:
         db.executescript(_SCHEMA_V1 + _SCHEMA_V2)
+        add_meta_columns(db)
         have_version = db.execute("SELECT COUNT(*) FROM schema_version").fetchone()[0]
         if have_version == 0:
             db.execute("INSERT INTO schema_version(version) VALUES (?)", (SCHEMA_VERSION,))
@@ -197,10 +260,12 @@ def _open_or_rebuild(db_path: Path) -> sqlite3.Connection:
     """``open_index``'s body, run under that path's ``_open_lock``."""
     try:
         db = _connect_retrying(db_path)
-    except sqlite3.OperationalError:
-        # Lock contention or an I/O hiccup, NOT a bad file. Deleting a healthy
-        # database that another connection still holds open is what crashed the
-        # process with SIGBUS, so surface this and let the caller retry.
+    except sqlite3.OperationalError as exc:
+        # Contention or an I/O hiccup, not a bad file: never delete a healthy
+        # database another connection holds (that SIGBUSed). A file this process
+        # may not write to is served read-only; its callers skip their writes.
+        if db_path.is_file() and unwritable(exc):
+            return connect_read_only(db_path)
         raise
     except sqlite3.DatabaseError as exc:
         # Genuinely unusable bytes ("file is not a database", "database disk
@@ -213,6 +278,10 @@ def _open_or_rebuild(db_path: Path) -> sqlite3.Connection:
     if version is None:
         _apply_schema(db)
         return db
+    if version == _UNRELEASED_META_VERSION:
+        with db:
+            db.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
+        version = SCHEMA_VERSION
     if version > SCHEMA_VERSION:
         # Downgrade: a newer quodeq migrated the index forward. It's a derived
         # projection, so discard and rebuild rather than crash — mirrors the
@@ -227,4 +296,5 @@ def _open_or_rebuild(db_path: Path) -> sqlite3.Connection:
         return db
     if version < SCHEMA_VERSION:
         _migrate(db, version)
+    _ensure_meta_columns(db)
     return db

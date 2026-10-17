@@ -1,15 +1,15 @@
 """Rebuild-vs-update decision and the staleness checks behind ``ensure_projected``."""
 from __future__ import annotations
 
-from contextlib import nullcontext
-
 import threading
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 
+from quodeq.data.fs.run_archive import restore_for_read
 from quodeq.data.projection.engine import ProjectionEngine
+from quodeq.data.sqlite.read_only import is_read_only
 from quodeq.data.sqlite.state_store import SQLiteStateStore
 
 
@@ -259,22 +259,36 @@ class Projector:
         *,
         project_dir: Path | None = None,
     ) -> ProjectionResult:
-        """Fast no-op if both event and action logs are fresh; else project deltas."""
+        """Fast no-op if both event and action logs are fresh; else project deltas.
+
+        Restores an archived run first (again when it is archived before the log
+        check); an unrestorable one projects nothing, as does one archived mid-read.
+        """
+        if not restore_for_read(run_dir, events_path):
+            return ProjectionResult(events_projected=0, rebuilt=False)
         if not events_path.is_file():
             raise FileNotFoundError(f"Event log not found: {events_path}")
+        try:
+            return self._project_locked(events_path, run_dir, project_dir)
+        except FileNotFoundError:
+            if events_path.is_file():
+                raise
+            return ProjectionResult(events_projected=0, rebuilt=False)
 
+    def _project_locked(self, events_path: Path, run_dir: Path, project_dir: Path | None) -> ProjectionResult:
         with self._locks.acquire(run_dir):
-            if project_dir is not None:
-                from quodeq.data.migrations.dismissed_json_to_actions_log import (  # noqa: PLC0415
-                    migrate_if_needed,
-                )
-                migrate_if_needed(project_dir)
             store = self._store_factory(run_dir)
-
-            # One connection for every run_meta read the check makes; each read
-            # used to open and configure its own.
+            # One connection for every run_meta read the check makes.
             held = store.connection() if hasattr(store, "connection") else nullcontext()
-            with held:
+            with held as conn:
+                # A store this process may only read (the assistant's MCP server
+                # inside the Codex sandbox): serve what the dashboard projected,
+                # never migrate or project here.
+                if conn is not None and is_read_only(conn):
+                    return ProjectionResult(events_projected=0, rebuilt=False)
+                if project_dir is not None:
+                    from quodeq.data.migrations.dismissed_json_to_actions_log import migrate_if_needed  # noqa: PLC0415
+                    migrate_if_needed(project_dir)
                 staleness = self._detect_staleness(store, events_path, project_dir)
 
             if not (staleness.events_changed or staleness.actions_changed

@@ -9,7 +9,7 @@
  * Data arrives progressively (one query per project — see useCompareData);
  * rows for projects still computing render as pending instead of blocking
  * the whole screen. Row/aggregate building lives in useCompareRows, scope
- * selection in useCompareScopeActions, and the principle drill-down fetch in
+ * selection in useCompareScopeActions, and the principle drill-down in
  * useOpenPrinciple — this component only owns navigation state and layout.
  */
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
@@ -36,9 +36,10 @@ function buildSharedProps({
   selectFlagged, openDimension, onOpenProjectDimension, onOpenDuel, openProject, now,
 }) {
   return {
-    rows, orderedRows, scopeRows, fleet, board, attention, errorsById,
-    hasCoverage, pickerOpen, setPickerOpen, scopeIds, scopeCount, toggleProject,
-    selectAll, selectFlagged, openDimension,
+    orderedRows, scopeRows, fleet, board, attention, errorsById, hasCoverage, openDimension,
+    // The scope picker's state and actions travel as one object down to
+    // ScopePicker; the fleet view and its header only pass it on.
+    picker: { rows, scopeIds, scopeCount, toggleProject, selectAll, selectFlagged, pickerOpen, setPickerOpen },
     // Expanded-row dimension chips jump to that project's own dimension
     // screen; the compare drill-down stays on the DIMENSIONS panel.
     onOpenProjectDimension,
@@ -85,13 +86,13 @@ function useFleetProjects(projects) {
 /**
  * Everything view/scope-state-shaped: score ordering, the scope picker,
  * the built rows/aggregates (useCompareRows), scope actions
- * (useCompareScopeActions), the principle drill-down fetch
+ * (useCompareScopeActions), the principle drill-down
  * (useOpenPrinciple), and the dimension-open callback (which follows the
  * push-vs-replace nav contract described on the component below).
  */
 function useComparePageState({
   fleetProjects, summariesById, dimension, duel, onOpenProject, onOpenDimension,
-  onSwitchDimension, onOpenEvalPrincipal,
+  onSwitchDimension, onOpenProjectPrinciple,
 }) {
   const view = dimension || COMPARE_VIEW_FLEET;
   // Rows arrive best-first; the fleet tables re-rank by their own column headers.
@@ -105,7 +106,7 @@ function useComparePageState({
 
   const rowsState = useCompareRows({ fleetProjects, summariesById, now, scopeIds, sortDir, view, duel, onOpenProject });
   const { toggleProject, selectAll, selectFlagged } = useCompareScopeActions({ scopeIds, setScopeIds, rows: rowsState.rows });
-  const openPrinciple = useOpenPrinciple({ onOpenEvalPrincipal, openProject: rowsState.openProject });
+  const openPrinciple = useOpenPrinciple({ onOpenProjectPrinciple, openProject: rowsState.openProject });
 
   const openDimension = useCallback((key) => {
     setPickerOpen(false);
@@ -158,7 +159,7 @@ function ComparePageBody({ duelView, dimensionView, board, selectedProject, open
         onOpenProject={openProject}
         onOpenPrinciple={openPrinciple}
         onOpenProjectDimension={onOpenProjectDimension}
-        scopeCount={shared.scopeCount}
+        scopeCount={shared.picker.scopeCount}
       />
     );
   }
@@ -171,7 +172,7 @@ export default function ComparePage({
   dimension = null,
   onOpenDimension,
   onSwitchDimension,
-  onOpenEvalPrincipal,
+  onOpenProjectPrinciple,
   onOpenProjectDimension,
   duel = null,
   onOpenDuel,
@@ -185,7 +186,7 @@ export default function ComparePage({
     toggleProject, selectAll, selectFlagged, openPrinciple, openDimension,
   } = useComparePageState({
     fleetProjects, summariesById, dimension, duel, onOpenProject, onOpenDimension,
-    onSwitchDimension, onOpenEvalPrincipal,
+    onSwitchDimension, onOpenProjectPrinciple,
   });
 
   // The route component stays mounted across the fleet <-> dimension swap,

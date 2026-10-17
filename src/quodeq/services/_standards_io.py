@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import date
 from pathlib import Path
 
 from quodeq.core.types.standard import StandardDetail, StandardMeta
@@ -32,6 +33,24 @@ def default_read_json(path: Path) -> dict:
 def default_write_json(path: Path, data: dict) -> None:
     """Serialize *data* as pretty-printed JSON and write it to *path*."""
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def dotted_version(iso_date_text: str) -> str:
+    """"2026-10-15" -> "2026.10.15": the custom-standard version format."""
+    return iso_date_text.replace("-", ".")
+
+
+_ISO_DATE_LEN = len("2026-10-15")
+
+
+def iso_date(value: object) -> str | None:
+    """*value*'s ISO date (``YYYY-MM-DD``) when it starts with a real one, else None."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return date.fromisoformat(value[:_ISO_DATE_LEN]).isoformat()
+    except ValueError:
+        return None
 
 
 def count_principles_and_requirements(data: dict) -> tuple[int, int]:
@@ -70,6 +89,8 @@ def _custom_fields(data: dict, sid: str, type_default: str) -> dict[str, object]
         "origin_hash": data.get("origin_hash"),
         "subtype": data.get("subtype"),
         "version": data.get("version"),
+        "created_at": iso_date(data.get("createdAt")),
+        "updated_at": iso_date(data.get("updatedAt")),
     }
 
 

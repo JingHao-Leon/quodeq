@@ -4,7 +4,7 @@
  * Split out of useEvaluation.js (see that file's header for the hook's
  * overall data-flow doc). Kept logic-identical to the pre-split version.
  */
-import { ACTIVE_PROVIDER_KEY, providerKey } from "../../../constants.js";
+import { ACTIVE_PROVIDER_KEY, PROVIDER_SETTING_KEY, providerKey } from "../../../constants.js";
 import { resolveProviderSettings } from "../../../utils/effectiveProviderSettings.js";
 import { t } from "../../../strings/index.js";
 import { STREAM_STATE } from "./runEventSourceRegistry.js";
@@ -71,12 +71,12 @@ export function preparePayload(payload, storage = localStorage) {
     maxSubagents: settings.subagents,
     timeLimit: payload.timeLimit ?? settings.timeLimitS,
   };
-  if (!settings.verify) result.verifyFindings = false;
-  const apiBase = get("api-base");
-  if (apiBase) result.apiBase = apiBase;
   // The Settings field pre-fills the provider id as its default; only a
   // real change is an override worth sending.
   const cmdPath = get("cmd-path");
   if (cmdPath && cmdPath !== provider) result.aiCmdPath = cmdPath;
+  // Blank means the CLI's own default: send nothing rather than a level.
+  const effort = get(PROVIDER_SETTING_KEY.EFFORT);
+  if (effort) result.aiEffort = effort;
   return result;
 }

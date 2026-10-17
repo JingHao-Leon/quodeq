@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { rescoreGradeFormula } from '../../api/index.js';
 import { useRescoreTracker } from '../grade-formula/rescore/RescoreTrackerContext.js';
 import { useWarmupSnapshot } from './warmupSnapshot.js';
+import { useRefreshAfterWarmup } from './useRefreshAfterWarmup.js';
 import { REBUILD_STATE, isBusyState, pickRebuildState } from './rebuildState.js';
 
 // How long the done row stays after the work ends, long enough to read.
@@ -42,6 +43,7 @@ export function useRebuildStatus() {
   const warmup = useWarmupSnapshot();
   const picked = pickRebuildState({ rescore, tracking: target !== null, warmup });
   const busy = isBusyState(picked.kind);
+  useRefreshAfterWarmup(picked.kind);
   const finishedRef = useRef(null);
   if (busy) finishedRef.current = { kind: picked.kind, total: picked.total };
   const doneBeat = useDoneBeat(busy, DONE_LINGER_MS);

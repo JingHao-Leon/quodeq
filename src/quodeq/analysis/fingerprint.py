@@ -19,12 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar, cast
 
-from quodeq.core.standards.overrides import (
-    OVERRIDES_RELPATH,
-    dimension_params,
-    hash_non_default_params,
-)
-from quodeq.data.fs.standards_prefs import load_project_overrides
+from quodeq.core.standards.overrides import dimension_params, hash_non_default_params
+from quodeq.data.fs.standards_prefs import load_overrides_file
 from quodeq.shared.lru import LRUDict
 
 _HASH_CHUNK_SIZE = 1 << 16  # 64 KiB
@@ -54,23 +50,24 @@ def stat_key(path: Path) -> tuple[int, int] | None:
     return st.st_size, st.st_mtime_ns
 
 
-def _compute_override_hash(project_root: Path) -> str:
+def _compute_override_hash(settings_file: Path) -> str:
     """Hash of the *parsed* resolved threshold overrides mapping.
 
     Hashes the *parsed* mapping (canonical JSON) rather than raw file
     bytes, so the fingerprint tracks exactly what analysis consumes via
-    ``load_project_overrides``: a formatting-only rewrite or a malformed
-    file (ignored by analysis) does not shift the hash. Empty overrides
-    hash to "" so callers can fall back to the plain standards hash.
+    ``load_overrides_file``: a formatting-only rewrite, a malformed file
+    (ignored by analysis), or a visibility toggle rewriting the same
+    settings file does not shift the hash. Empty overrides hash to "" so
+    callers can fall back to the plain standards hash.
     """
-    overrides = load_project_overrides(project_root)
+    overrides = load_overrides_file(settings_file)
     if not overrides:
         return ""
     canonical = json.dumps(overrides, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def _compute_dimension_params(compiled: Path, project_root: Path | None) -> tuple[str, dict]:
+def _compute_dimension_params(compiled: Path, settings_file: Path | None) -> tuple[str, dict]:
     """(params_hash, effective_params) for one compiled dimension file."""
     try:
         data = json.loads(compiled.read_text(encoding="utf-8"))
@@ -81,7 +78,7 @@ def _compute_dimension_params(compiled: Path, project_root: Path | None) -> tupl
         # per-dimension cache-keying path, so any escape here fails the run
         # rather than degrading to an unkeyed hash.
         return "", {}
-    overrides = load_project_overrides(project_root) if project_root else {}
+    overrides = load_overrides_file(settings_file)
     try:
         effective, non_default = dimension_params(data, overrides)
     except (AttributeError, TypeError):
@@ -152,11 +149,11 @@ class HashCache:
         """Memoized :func:`hash_file`, keyed by (path, size, mtime_ns)."""
         return self._memo(self._file_hashes, (path, size, mtime_ns), lambda: hash_file(path))
 
-    def override_hash(self, project_root: Path, size: int, mtime_ns: int) -> str:
+    def override_hash(self, settings_file: Path, size: int, mtime_ns: int) -> str:
         """Memoized :func:`_compute_override_hash`, keyed by (path, size, mtime_ns)."""
         return self._memo(
-            self._override_hashes, (project_root, size, mtime_ns),
-            lambda: _compute_override_hash(project_root),
+            self._override_hashes, (settings_file, size, mtime_ns),
+            lambda: _compute_override_hash(settings_file),
         )
 
     def dimension_params_state(
@@ -164,13 +161,13 @@ class HashCache:
     ) -> tuple[str, dict]:
         """Memoized :func:`_compute_dimension_params`, keyed by both files' stats.
 
-        ``overrides`` carries the project root plus the stat of its overrides
-        file (zeros when absent), or None when there is no project root.
+        ``overrides`` carries the settings file plus its stat (zeros when
+        absent), or None when the run has no settings file.
         """
-        project_root = overrides.path if overrides is not None else None
+        settings_file = overrides.path if overrides is not None else None
         return self._memo(
             self._dimension_params, (compiled, overrides),
-            lambda: _compute_dimension_params(compiled.path, project_root),
+            lambda: _compute_dimension_params(compiled.path, settings_file),
         )
 
     def reset(self) -> None:
@@ -184,20 +181,20 @@ class HashCache:
 _hash_cache = HashCache()
 
 
-def _hash_overrides(project_root: Path, *, cache: HashCache | None = None) -> str:
-    """Hash of ``<project_root>/.quodeq/standards-overrides.json``; "" when
-    the file is absent, empty, or malformed (analysis ignores all three)."""
-    key = stat_key(Path(project_root) / OVERRIDES_RELPATH)
+def _hash_overrides(settings_file: Path, *, cache: HashCache | None = None) -> str:
+    """Hash of the overrides in the project's settings file; "" when the
+    file is absent, has no overrides, or is malformed (analysis ignores all three)."""
+    key = stat_key(settings_file)
     if key is None:
         return ""
-    return (cache or _hash_cache).override_hash(Path(project_root), *key)
+    return (cache or _hash_cache).override_hash(settings_file, *key)
 
 
 def dimension_params_state(
-    standards_dir: Path | None, dimension: str, project_root: Path | None,
+    standards_dir: Path | None, dimension: str, settings_file: Path | None,
     *, cache: HashCache | None = None,
 ) -> tuple[str, dict]:
-    """(params_hash, effective_params) for *dimension* under *project_root*.
+    """(params_hash, effective_params) for *dimension* under *settings_file*'s overrides.
 
     ``params_hash`` is "" when every effective param equals its declared
     default, the dimension declares no params, or the compiled file is
@@ -215,13 +212,13 @@ def dimension_params_state(
     ckey = stat_key(compiled)
     if ckey is None:
         return "", {}
-    root = Path(project_root) if project_root else None
-    overrides = FileStat(root, *(stat_key(root / OVERRIDES_RELPATH) or (0, 0))) if root else None
+    path = Path(settings_file) if settings_file else None
+    overrides = FileStat(path, *(stat_key(path) or (0, 0))) if path else None
     return (cache or _hash_cache).dimension_params_state(FileStat(compiled, *ckey), overrides)
 
 
 def hash_standards(
-    standards_dir: Path, dimension: str, project_root: Path | None = None,
+    standards_dir: Path, dimension: str, settings_file: Path | None = None,
     *, cache: HashCache | None = None,
 ) -> str | None:
     """SHA-256 of the compiled standards JSON for a dimension.
@@ -229,8 +226,8 @@ def hash_standards(
     Uses the same chunked hashing approach as ``hash_file`` to avoid
     reading the entire file into memory at once.
 
-    When *project_root* is given, the project's threshold overrides
-    (``.quodeq/standards-overrides.json``) are folded in, so tuning a
+    When *settings_file* is given, the threshold overrides in the project's
+    machine settings file are folded in, so tuning a
     numeric threshold changes the effective-standards fingerprint even
     though the shared compiled JSON is untouched. The overrides file is
     not per-dimension, so an override on any requirement shifts every
@@ -250,9 +247,9 @@ def hash_standards(
     if key is None:
         return None
     base = cache.file_hash(compiled, *key)
-    if base is None or project_root is None:
+    if base is None or settings_file is None:
         return base
-    overrides_hash = _hash_overrides(project_root, cache=cache)
+    overrides_hash = _hash_overrides(Path(settings_file), cache=cache)
     if not overrides_hash:
         return base
     return hashlib.sha256(f"{base}\x00overrides\x00{overrides_hash}".encode()).hexdigest()

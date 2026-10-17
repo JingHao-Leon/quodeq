@@ -105,3 +105,41 @@ def test_verify_finding_skill_is_card_gated():
     # pinned: the skill must never claim or instruct direct application
     assert "auto-apply" not in body.lower()
     assert "never claim the action was applied" in body
+
+
+def test_create_standard_skill_interviews_before_drafting():
+    """The skill is an interview: questions first, an outline to confirm, and
+    draft_action only after the user says yes. Hollow drafts were the symptom
+    of the old 'ask or infer' wording."""
+    body = load_skills()["create-standard"].instructions
+    assert "One question per message" in body
+    assert "outline" in body.lower()
+    assert "Do not call `draft_action` until the user has confirmed the outline" in body
+    assert "infer" not in body.lower()
+
+
+def test_create_standard_skill_attaches_source_refs():
+    body = load_skills()["create-standard"].instructions
+    assert "`refs`" in body
+    assert '"url"' in body
+
+
+def test_create_standard_skill_keeps_labels_out_of_requirement_text():
+    """A drafted Android standard came back with every requirement titled
+    "Explicit: ..." or "Recommended: ...". Strength lives in the sentence
+    (must/should) and the source's own label in the description."""
+    body = load_skills()["create-standard"].instructions
+    assert "Never prefix the text with a label" in body
+    assert "must" in body and "should" in body
+
+
+def test_create_standard_skill_sizes_by_scope():
+    """An Android best-practices standard came back as 4 principles of 3
+    requirements: the old '2-5 principles, 2-6 requirements' range invited the
+    low end. Broad standards cover the source in full, every requirement is
+    checkable in code."""
+    body = load_skills()["create-standard"].instructions
+    assert "2-5 principles" not in body
+    assert "6-10 principles with 5-10 requirements" in body
+    assert "at least 3 requirements" in body
+    assert "checkable by reading the repository" in body

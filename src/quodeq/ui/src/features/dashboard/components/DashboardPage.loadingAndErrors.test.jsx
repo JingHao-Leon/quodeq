@@ -2,6 +2,9 @@ import { render, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import DashboardPage from './DashboardPage.jsx';
 
+// A never-evaluated local project's Overview heading (NeverEvaluatedPanel).
+const NEVER_EVALUATED = /has not been evaluated yet/;
+
 // Split from DashboardPage.test.jsx: the first-load skeleton gate,
 // no-completed-evaluation empty state, and the fetch-failure state.
 
@@ -179,11 +182,11 @@ describe('DashboardPage fetch-failure state', () => {
     availableRuns: [],
   };
 
-  it('renders an error state, not "No evaluations yet"', () => {
+  it('renders an error state, not the never-evaluated panel', () => {
     const { getByText, queryByText } = render(
       <DashboardPage data={errorData} callbacks={{}} runMode={false} />,
     );
-    expect(queryByText('No evaluations yet')).toBeNull();
+    expect(queryByText(NEVER_EVALUATED)).toBeNull();
     expect(getByText("Couldn't load this project")).toBeTruthy();
   });
 
@@ -196,11 +199,11 @@ describe('DashboardPage fetch-failure state', () => {
     expect(onRetry).toHaveBeenCalled();
   });
 
-  it('without an error, the settled empty state still says No evaluations yet', () => {
+  it('without an error, the settled empty state says the project has not been evaluated yet', () => {
     const { getByText } = render(
       <DashboardPage data={{ ...errorData, error: null }} callbacks={{}} runMode={false} />,
     );
-    expect(getByText('No evaluations yet')).toBeTruthy();
+    expect(getByText(NEVER_EVALUATED)).toBeTruthy();
   });
 
   // Clicking Retry sets isFetching while loading stays false and

@@ -209,7 +209,7 @@ def test_codex_partial_text_then_turn_failed_raises(tmp_path):
                      session=_session(repo, spawn_fn=lambda argv, *, cwd, env: FakeProc(lines)))
 
 
-def test_codex_mcp_tool_call_emits_single_frame(tmp_path):
+def test_codex_mcp_tool_call_emits_start_and_end_frames(tmp_path):
     repo = _repo(tmp_path)
     lines = [
         '{"type": "item.started", "item": {"type": "mcp_tool_call", "server": "quodeq-assistant", "tool": "get_context", "arguments": {}, "status": "in_progress"}}',
@@ -222,8 +222,12 @@ def test_codex_mcp_tool_call_emits_single_frame(tmp_path):
                         session=_session(repo, emit=frames.append,
                                          spawn_fn=lambda argv, *, cwd, env: FakeProc(lines)))
     assert text == "The scope is X."
-    assert [f for f in frames if f["type"] == "tool_call"] == [
-        {"type": "tool_call", "name": "get_context"}]
+    tool_frames = [f for f in frames if f["type"] == "tool_call"]
+    assert [(f["name"], f["kind"], f["status"]) for f in tool_frames] == [
+        ("get_context", "quodeq", "running"), ("get_context", "quodeq", "ok")]
+    # Codex items without ids are matched by name, so both frames share one call id.
+    assert tool_frames[0]["callId"] == tool_frames[1]["callId"]
+    assert tool_frames[1]["durationMs"] >= 0
 
 
 class TestReleaseTurnResourcesIsolatesCleanupFailures:

@@ -55,3 +55,19 @@ export function startSelfUpdate() {
 export function markUpdateDisclosed() {
   return request(SETTINGS_PATH, { method: 'POST', body: JSON.stringify({ disclosed: true }) });
 }
+
+/**
+ * Upgrades a pip-style install with its own tool (pipx, uv, Homebrew or pip).
+ * Progress is polled through getUpdateStatus.
+ */
+export function startUpgrade() {
+  return request('/update/upgrade', { method: 'POST' });
+}
+
+/**
+ * Restarts Quodeq after a finished upgrade so the new version loads. The
+ * window closes and reopens, so the caller never sees a later response.
+ */
+export function restartAfterUpgrade() {
+  return request('/update/restart', { method: 'POST' });
+}

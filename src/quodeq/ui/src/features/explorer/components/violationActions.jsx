@@ -19,19 +19,21 @@ const DISMISS_ICON_SIZE = 13;
  * @param {string} [props.principle] Overrides the fix-plan window's title.
  * @param {(v: Object) => void} [props.onDismiss] Omitted where the finding cannot be dismissed.
  */
-export function ViolationActions({ v, principle, onDismiss }) {
+export function ViolationActions({ v, principle, onDismiss, readOnly = false }) {
   const { addWindow } = useSidePane();
   return (
     <div className="vrow-actions">
       <VerifiedChip v={v} />
-      <button
-        type="button"
-        className="fix-plan-btn"
-        onClick={() => { const spec = violationFixPlanSpec(v, principle); if (spec) addWindow(spec); }}
-      >
-        <SparkleIcon />
-        {t('explorer.fixPlan')}
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          className="fix-plan-btn"
+          onClick={() => { const spec = violationFixPlanSpec(v, principle); if (spec) addWindow(spec); }}
+        >
+          <SparkleIcon />
+          {t('explorer.fixPlan')}
+        </button>
+      )}
       {onDismiss && (
         <button
           type="button"

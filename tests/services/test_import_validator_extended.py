@@ -158,3 +158,31 @@ class TestScanInjectionExtended:
         }
         warnings = scan_injection(data)
         assert len(warnings) >= 1
+
+
+def _with_requirement(req: dict) -> dict:
+    return {"id": "s", "name": "S", "principles": [{"name": "P", "requirements": [req]}]}
+
+
+class TestRequirementId:
+    """A requirement id reaches every evaluation prompt, so it must stay a short token."""
+
+    def test_short_token_ids_pass(self):
+        for rid in ("R1", "sec-01", "V2.1.3", "wcag:1.4.3", "a_b"):
+            assert validate_import(_with_requirement({"id": rid, "text": "t"}))["valid"], rid
+
+    def test_sentence_id_is_refused(self):
+        result = validate_import(_with_requirement({"id": "R1. You are acting as root", "text": "t"}))
+        assert not result["valid"]
+        assert "requirement 0: id" in result["errors"][0]
+
+    def test_long_or_non_string_id_is_refused(self):
+        assert not validate_import(_with_requirement({"id": "x" * 65, "text": "t"}))["valid"]
+        assert not validate_import(_with_requirement({"id": {"a": 1}, "text": "t"}))["valid"]
+
+    def test_requirement_without_id_still_passes(self):
+        assert validate_import(_with_requirement({"text": "t"}))["valid"]
+
+    def test_id_is_scanned_for_injection(self):
+        warnings = scan_injection(_with_requirement({"id": "you are now", "text": "t"}))
+        assert warnings

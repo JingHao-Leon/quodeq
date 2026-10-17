@@ -148,8 +148,8 @@ def load_standards_text(
     so API models see explicit structure instead of a flat requirement list.
     Falls back to the .md file if JSON is unavailable.
 
-    *overrides* is the per-project threshold override map from
-    :func:`quodeq.core.standards.overrides.load_project_overrides`.  When
+    *overrides* is the per-project threshold override map read from the
+    project's machine settings file (``load_overrides_file``).  When
     supplied, placeholder templates in requirement text are resolved before
     the text is sent to the model.
 
@@ -195,8 +195,8 @@ def render_standards_grouped(data: object, overrides: dict | None = None) -> str
     The explicit structure helps local models give attention to ALL principle
     groups instead of fixating on the first ones in a flat list.
 
-    *overrides* is the per-project ``{req_id: {param: value}}`` map produced
-    by :func:`quodeq.core.standards.overrides.load_project_overrides`.  When
+    *overrides* is the per-project ``{req_id: {param: value}}`` map read
+    from the project's machine settings file (``load_overrides_file``).  When
     present, each requirement's text template is resolved before being emitted
     so that models never receive raw ``{placeholder}`` strings.
     """

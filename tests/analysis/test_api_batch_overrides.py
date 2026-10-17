@@ -10,7 +10,7 @@ from quodeq.analysis.subprocess import AnalysisConfig, build_api_batch_context
 def test_uses_injected_overrides_loader_instead_of_the_data_layer_default(tmp_path):
     """overrides_loader is a call-time seam: when set, build_api_batch_context
     must resolve standards overrides through it instead of calling the
-    concrete load_project_overrides. The lazy import means the concrete
+    concrete load_overrides_file, called with the run's settings file. The lazy import means the concrete
     loader is never even imported in this path, so the proof is what
     reaches load_standards_text."""
     real_file = tmp_path / "real.py"
@@ -20,13 +20,14 @@ def test_uses_injected_overrides_loader_instead_of_the_data_layer_default(tmp_pa
     evidence_dir.mkdir()
     jsonl_file = evidence_dir / "security_evidence.jsonl"
     stream_file = evidence_dir / "agent.stream"
-    cfg = AnalysisConfig(jsonl_file=jsonl_file)
+    settings_file = tmp_path / "home" / "projects" / "p" / "standards.json"
+    cfg = AnalysisConfig(jsonl_file=jsonl_file, standards_settings=settings_file)
 
     calls: list = []
     sentinel_overrides = {"S-CON-1": {"floorMajor": 9.0}}
 
-    def _fake_loader(work_dir):
-        calls.append(work_dir)
+    def _fake_loader(path):
+        calls.append(path)
         return sentinel_overrides
 
     with patch(
@@ -36,6 +37,6 @@ def test_uses_injected_overrides_loader_instead_of_the_data_layer_default(tmp_pa
             tmp_path, cfg, {}, stream_file, overrides_loader=_fake_loader,
         )
 
-    assert calls == [tmp_path]
+    assert calls == [settings_file]
     assert spy_load_text.call_args.kwargs["overrides"] is sentinel_overrides
     assert ctx is not None

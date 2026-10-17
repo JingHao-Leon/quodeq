@@ -19,23 +19,6 @@ export function readBudgetSeconds(storage = localStorage) {
   return resolveProviderSettings(provider, storage).timeLimitS;
 }
 
-function EvaluateHeader() {
-  // Page title stays steady ("evaluate"); the live "in progress / failed /
-  // done" state is carried by the JobHeader card title below to avoid
-  // doubling the same status on screen. Budget lives in the progress footer
-  // while a run is on; the model lives in the cards' identity strips.
-  return (
-    <header className="evaluate-header evaluate-header--terminal">
-      <div className="evaluate-header__left">
-        <TermHeader
-          name={t('evaluate.termName')}
-          sub={t('evaluate.termSub')}
-        />
-      </div>
-    </header>
-  );
-}
-
 function sanitizeErrorMessage(message) {
   if (typeof message !== 'string') return t('evaluate.errorOccurred');
   if (message.includes('\n') || /[/\\](?:usr|home|tmp|var|etc|src|node_modules)/.test(message) || message.length > MESSAGE_TRUNCATE_LENGTH) {
@@ -90,7 +73,7 @@ function NoProjectSelected({ onGoToProjects }) {
 export default function EvaluateScreen({ evaluation, context, actions }) {
   const { job, jobError, liveViolations } = evaluation;
   const { selectedProject, projectInfo, jobProjectInfo, startedProjectInfo, preselectDims } = context;
-  const { onStart: onStartEvaluation, onDismiss, onCancel, onGoToProjects, onGoToSettings } = actions;
+  const { onStart: onStartEvaluation, onDismiss, onCancel, onGoToProjects, onGoToSettings, onOpenDimension } = actions;
   const [toastKey, setToastKey] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
   // Stable identity: ErrorToast's timer effect depends on onDismiss, and a
@@ -111,8 +94,6 @@ export default function EvaluateScreen({ evaluation, context, actions }) {
 
   return (
     <section className="evaluate-screen">
-      <EvaluateHeader />
-
       <div className="evaluate-content">
         {!job && selectedProject && (
           // Keyed by project: the card's seeded selection is per project.
@@ -131,6 +112,7 @@ export default function EvaluateScreen({ evaluation, context, actions }) {
           onDismiss={onDismiss}
           onCancel={onCancel}
           onGoToProjects={onGoToProjects}
+          onOpenDimension={onOpenDimension}
         />
       </div>
 

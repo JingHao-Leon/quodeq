@@ -42,7 +42,20 @@ test('computeLevelInfo: the detail action hands the node data to the click handl
   const data = { name: 'pkg/mod', violations: 0, compliance: 1 };
   const clicked = [];
   const info = computeLevelInfo(node(data, { parent: root }), root, (d) => clicked.push(d));
-  assert.equal(info.title, 'pkg');
+  assert.equal(info.title, 'mod');
+  assert.equal(info.path, 'pkg/mod');
   info.detailAction();
   assert.deepEqual(clicked, [data]);
+});
+
+test('computeLevelInfo: the title is the own name with the path under it; a file has no contents line', () => {
+  const root = node({ name: '/', violations: 0, compliance: 0, children: [] });
+  const file = node({ name: 'b.js', path: 'src/ui/b.js', isFile: true, violations: 1, compliance: 3, severity: { minor: 1 } }, { parent: root });
+  const opened = [];
+  const info = computeLevelInfo(file, root, (d) => opened.push(d.path));
+  assert.equal(info.title, 'b.js');
+  assert.equal(info.path, 'src/ui/b.js');
+  assert.equal(info.lines.some((l) => l.label === 'Contents'), false);
+  info.detailAction();
+  assert.deepEqual(opened, ['src/ui/b.js']);
 });

@@ -53,19 +53,18 @@ def test_session_id_from_system_and_result():
     assert session_id({"type": "session.created", "thread_id": "th-9"}) == "th-9"
 
 
-def test_tool_use_details_includes_args_summary():
+def test_tool_use_details_carries_id_and_raw_args():
     event = {"type": "assistant", "message": {"content": [
-        {"type": "tool_use", "name": "get_report",
+        {"type": "tool_use", "id": "toolu_1", "name": "get_report",
          "input": {"dimension": "security"}}]}}
     assert _stream.tool_use_details(event) == [
-        {"name": "get_report", "args_summary": '{"dimension": "security"}'}]
+        {"id": "toolu_1", "name": "get_report", "args": {"dimension": "security"}}]
 
 
-def test_tool_use_details_empty_input_gives_empty_summary():
+def test_tool_use_details_without_id_or_input():
     event = {"type": "assistant", "message": {"content": [
         {"type": "tool_use", "name": "get_scores", "input": {}}]}}
-    assert _stream.tool_use_details(event) == [
-        {"name": "get_scores", "args_summary": ""}]
+    assert _stream.tool_use_details(event) == [{"id": None, "name": "get_scores", "args": {}}]
 
 
 def test_codex_mcp_tool_call_surfaces_with_tool_name():
@@ -74,17 +73,16 @@ def test_codex_mcp_tool_call_surfaces_with_tool_name():
         "id": "item_2", "type": "mcp_tool_call", "server": "quodeq-assistant",
         "tool": "get_context", "arguments": {}, "result": None,
         "error": None, "status": "in_progress"}}
-    assert _stream.tool_use_details(event) == [
-        {"name": "get_context", "args_summary": ""}]
+    assert _stream.tool_use_details(event) == [{"id": "item_2", "name": "get_context", "args": {}}]
 
 
-def test_codex_mcp_tool_call_includes_args_summary():
+def test_codex_mcp_tool_call_includes_args():
     event = {"type": "item.started", "item": {
         "type": "mcp_tool_call", "server": "quodeq-assistant",
         "tool": "search_findings", "arguments": {"query": "auth"},
         "status": "in_progress"}}
     assert _stream.tool_use_details(event) == [
-        {"name": "search_findings", "args_summary": '{"query": "auth"}'}]
+        {"id": None, "name": "search_findings", "args": {"query": "auth"}}]
 
 
 def test_codex_command_execution_surfaces_as_shell():
@@ -93,20 +91,30 @@ def test_codex_command_execution_surfaces_as_shell():
         "command": "/bin/zsh -lc 'echo hi'", "aggregated_output": "",
         "exit_code": None, "status": "in_progress"}}
     assert _stream.tool_use_details(event) == [
-        {"name": "shell", "args_summary": "/bin/zsh -lc 'echo hi'"}]
+        {"id": "item_1", "name": "shell", "args": {"command": "/bin/zsh -lc 'echo hi'"}}]
 
 
-def test_codex_tool_item_not_double_counted_on_completed():
-    # We emit the tool_call on item.started; item.completed for the same tool
-    # must NOT produce a second frame.
+def test_codex_tool_item_completed_is_a_result_not_a_second_call():
     completed = {"type": "item.completed", "item": {
-        "type": "command_execution", "command": "/bin/zsh -lc 'echo hi'",
+        "id": "item_1", "type": "command_execution", "command": "/bin/zsh -lc 'echo hi'",
         "aggregated_output": "hi\n", "exit_code": 0, "status": "completed"}}
     assert _stream.tool_use_details(completed) == []
-    mcp_completed = {"type": "item.completed", "item": {
+    assert _stream.tool_result_details(completed) == [{"id": "item_1", "name": "shell", "ok": True}]
+    mcp_failed = {"type": "item.completed", "item": {
         "type": "mcp_tool_call", "tool": "get_context", "arguments": {},
-        "status": "completed"}}
-    assert _stream.tool_use_details(mcp_completed) == []
+        "status": "failed", "error": {"message": "boom"}}}
+    assert _stream.tool_use_details(mcp_failed) == []
+    assert _stream.tool_result_details(mcp_failed) == [{"id": None, "name": "get_context", "ok": False}]
+
+
+def test_claude_tool_result_blocks_close_calls_by_id():
+    event = {"type": "user", "message": {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "toolu_1", "content": "ok"},
+        {"type": "tool_result", "tool_use_id": "toolu_2", "content": "x", "is_error": True},
+        {"type": "text", "text": "ignored"}]}}
+    assert _stream.tool_result_details(event) == [
+        {"id": "toolu_1", "name": None, "ok": True}, {"id": "toolu_2", "name": None, "ok": False}]
+    assert _stream.tool_result_details({"type": "assistant", "message": {"content": []}}) == []
 
 
 def test_partial_text_extracts_text_delta():

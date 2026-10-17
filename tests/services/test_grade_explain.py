@@ -47,8 +47,8 @@ def test_explain_matches_the_grade_table(seeded: Path) -> None:
     assert graded["P1"]["stages"]["final"] == rows["P1"]["score"]
     assert graded["P1"]["stages"]["grade"] == rows["P1"]["grade"]
     assert graded["P1"]["stages"]["violationRules"] == _SCORABLE
-    # 0.08 is the formula-v4 default base_k.
-    assert out["params"]["baseK"] == pytest.approx(0.08)
+    # 0.07 is the formula-v7 default base_k.
+    assert out["params"]["baseK"] == pytest.approx(0.07)
 
 
 def test_thin_principle_is_graded_with_low_confidence(seeded: Path) -> None:

@@ -160,8 +160,6 @@
   white-space: nowrap;
 }
 /* A hint of two lines (RATIO's reading, then the density). */
-.term-stat__hint-line { display: block; }
-.term-stat__hint-line + .term-stat__hint-line { margin-top: 2px; }
 
 .term-stat__hint {
   margin-top: var(--term-space-1);
@@ -231,25 +229,41 @@
 }
 
 /* ------------------------------------------------------------
-   Page top row + toolbar buttons, shared by Compare, Violations, Map
-   and History so every screen header reads the same:
-   TermHeader on the left, controls top-aligned on the right.
+   PageToolbar: the slim row every tool page opens with. Facts on
+   the left in the old sub-line style, controls on the right; the
+   controls wrap below the facts on a narrow screen.
    ------------------------------------------------------------ */
-.term-page-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--term-space-3);
-  margin: 0 0 var(--term-space-3);
-}
-.term-page-top > .term-header { margin: 0; }
-.term-page-top__controls {
+.page-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--term-space-2);
-  flex-shrink: 0;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  /* a button tall, so a page without controls (Violations) reads its facts on the same line as the others */
+  min-height: 28px;
+  margin: var(--page-top-gap) 0 calc(var(--page-head-gap) - var(--page-flow-gap, 0px));
+}
+.page-toolbar__facts {
+  font-family: var(--term-font-mono);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.page-toolbar__subject { color: var(--color-text); }
+.page-toolbar__controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+@media (max-width: 480px) {
+  .page-toolbar__controls { margin-left: 0; }
 }
 
 /* TermButton: outlined, accent on hover, accent fill when it holds the
@@ -329,7 +343,7 @@
   text-transform: uppercase;
   /* A chip is one token: the stat hint allows breaks anywhere, and a narrow
      tile would otherwise stack "7 9 3 m a j" one character per line. The row
-     wraps whole chips instead (see .acc-eval-sev-row). */
+     wraps whole chips instead. */
   white-space: nowrap;
 }
 /* The change since the previous run or period, inside a severity chip: the
@@ -556,73 +570,6 @@ button.term-sev-badge--clickable:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   Overview hero (migrated — replaces .acc-eval-top layout)
-   Scoped under --terminal variant so legacy consumers of
-   .acc-eval-panel remain untouched.
-   ------------------------------------------------------------ */
-.acc-eval-panel--terminal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--term-space-3);
-  margin-bottom: var(--term-space-4);
-}
-.acc-eval-panel--terminal .acc-eval-panel__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--term-space-3);
-}
-.acc-eval-panel--terminal .acc-eval-panel__top .term-header {
-  margin: 0;
-}
-.acc-eval-panel--terminal .acc-eval-panel__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--term-space-2);
-}
-.acc-eval-sev-row {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: var(--term-space-1);
-  align-items: center;
-}
-/* Quiet meta note beside the severity badges: how many re-found findings the
-   project-level dismissed + deleted filters hid from this run view. */
-.term-stat__suppressed-note {
-  /* Own line, not trailing the severity badges: the count runs to four digits
-     on a triaged project, and inline it wrapped between the number and its
-     unit ("1337" / "suppressed"). */
-  display: block;
-  font-family: var(--term-font-mono);
-  font-size: 11px;
-  color: var(--color-text-muted);
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.acc-eval-sev-row + .term-stat__suppressed-note {
-  margin-top: var(--term-space-1);
-}
-
-/* ------------------------------------------------------------
-   Violations (migrated) — terminal-style flag row & sev row
-   ------------------------------------------------------------ */
-.violations-sev-row {
-  display: inline-flex;
-  gap: var(--term-space-1);
-  align-items: center;
-  margin-left: var(--term-space-2);
-}
-
-/* Inline severity badges next to the sub text */
-.violations-sub {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--term-space-2);
-  flex-wrap: wrap;
-}
-
-/* ------------------------------------------------------------
    Map (migrated) — header becomes a stack of TermHeader + controls row
    ------------------------------------------------------------ */
 .map-page--terminal .map-header--terminal {
@@ -631,21 +578,6 @@ button.term-sev-badge--clickable:focus-visible {
   gap: var(--term-space-2);
   align-items: center;
   margin: 0 0 var(--term-space-3);
-}
-
-/* ------------------------------------------------------------
-   Standards (migrated) — terminal header w/ right-aligned actions
-   ------------------------------------------------------------ */
-.standards-page--terminal .standards-page-header--terminal {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--term-space-3);
-  margin: 0 0 var(--term-space-4);
-}
-.standards-page--terminal .standards-page-header--terminal .term-header {
-  margin: 0;
 }
 
 /* ------------------------------------------------------------
@@ -726,29 +658,6 @@ button.term-sev-badge--clickable:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--term-space-2);
-}
-
-/* ------------------------------------------------------------
-   Evaluate screen (migrated — EvaluateScreen)
-   ------------------------------------------------------------ */
-.evaluate-header--terminal {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--term-space-3);
-  margin: 0 0 var(--term-space-4);
-}
-.evaluate-header--terminal .evaluate-header__left {
-  min-width: 0;
-  flex: 1;
-}
-.evaluate-header--terminal .evaluate-header__right {
-  display: flex;
-  align-items: center;
-  gap: var(--term-space-2);
-}
-.evaluate-header--terminal .term-header {
-  margin: 0;
 }
 
 /* ------------------------------------------------------------
@@ -920,22 +829,23 @@ button.term-sev-badge--clickable:focus-visible {
   }
 
   /* TopBar compact layout: back + (centered title) + burger.
-     The title is absolutely centered relative to the topbar so it
-     stays in the optical middle regardless of back-button width.
-     `!important` overrides the default desktop rules later in the file. */
+     The title takes the spacer's place and centres in the room between the
+     back button and the actions, so a long one (a run's date) shortens with an
+     ellipsis instead of sliding under the icons, as an absolutely centred
+     title did. `!important` overrides the default desktop rules later in the file. */
   .topbar { position: relative; }
   .topbar-menu-btn { display: inline-flex !important; }
   .topbar-back-btn { display: inline-flex !important; }
+  .topbar-spacer { display: none; }
   .topbar-mobile-title {
     display: inline-flex !important;
     align-items: center;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    max-width: calc(100% - 160px);
+    justify-content: center;
+    flex: 1 1 0;
     pointer-events: none;
   }
+  /* the page shortens first; the project keeps its name up to a share of the room */
+  .topbar-mobile-title .topbar-mobile-project { flex-shrink: 0; max-width: 45%; }
   .topbar-breadcrumb-slot { display: none !important; }
   .topbar-pill,
   .topbar-btn--evaluate,
@@ -948,11 +858,8 @@ button.term-sev-badge--clickable:focus-visible {
   /* Compact view: hide all side-pane triggers. The pane itself is too
      narrow to be useful below 900px, and without triggers users can't
      open it (it stays at 0 width as long as no window is registered).
-     Affects ConsoleButton (in ScanProgress + ServerStatusPill). The
-     divider inside ServerStatusPill is hidden too so the pill doesn't
-     end with an orphan vertical rule. */
-  .console-button,
-  .server-status-pill__divider { display: none !important; }
+     Affects ConsoleButton (in ScanProgress + ServerStatusRow). */
+  .console-button { display: none !important; }
 
   /* Hide the side-pane itself in compact view. Without this, if a user
      opens Report on desktop, then resizes to mobile, the body grid
@@ -1068,7 +975,8 @@ button.term-sev-badge--clickable:focus-visible {
     gap: var(--term-space-1);
   }
   .dashboard {
-    padding: var(--term-space-3);
+    --dashboard-pad: var(--term-space-3);
+    padding: var(--dashboard-pad);
     overflow-y: visible;
     overflow-x: hidden;
     height: auto;
@@ -1181,219 +1089,6 @@ button.term-sev-badge--clickable:focus-visible {
   text-transform: none;
 }
 
-/* ------------------------------------------------------------
-   History › EVALUATIONS panel
-   ------------------------------------------------------------ */
-.history-evaluations {
-  border: 1px solid var(--color-border);
-  border-radius: var(--term-radius);
-  background: var(--color-surface);
-  padding: 0 !important;
-  overflow: hidden;
-  margin-bottom: var(--term-space-4);
-}
-.history-table {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-family: var(--term-font-mono);
-  font-size: 14px;
-  color: var(--color-text);
-  background: color-mix(in srgb, var(--color-surface-alt) 65%, transparent);
-}
-/* Row layout — explicit column widths per child so the header and every
-   data row align pixel-for-pixel. Gap controls all inter-column spacing;
-   individual columns set their own `text-align`. Rows are deliberately
-   chrome-less (no background) so the panel bg shows through — matches the
-   mockup's flat list look. */
-.history-table .history-row {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 13px 22px;
-  background: var(--color-surface) !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-.history-table .history-row--header {
-  padding: 12px 22px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.history-table .history-row:not(.history-row--header) {
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.history-table .history-row:not(.history-row--header):hover {
-  background: color-mix(in srgb, var(--color-accent) 2%, transparent) !important;
-}
-.history-table .history-row--selected {
-  background: var(--color-surface-alt) !important;
-}
-/* Cancelled-but-partial runs: same row treatment, with a yellow "partial"
-   chip in the grade column so reviewers can tell at a glance the scores
-   come from an incomplete run (not all dims may have run). */
-.history-row__partial-chip {
-  margin-left: 6px;
-  background: transparent;
-  border: 1px solid var(--color-warning);
-  color: var(--color-warning);
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.05em;
-}
-/* A row whose delete request is in flight. */
-.history-table .history-row--deleting {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-.history-table .history-row--partial .history-row__col--score strong,
-.history-table .history-row--partial .history-row__col--delta {
-  opacity: 0.7;
-}
-
-/* In-progress evaluation row: pulsing dot in TIME, "running" chip in GRADE.
-   Lets reviewers tell at a glance which row is a live run vs a finalized one,
-   without showing the (ugly) raw run UUID that we used to fall back to when
-   no dateISO was available yet. */
-.history-table .history-row--in-progress {
-  background: color-mix(in srgb, var(--color-warning) 6%, transparent);
-}
-
-/* Running run with no dimensions scored yet — clicking would land on an
-   empty dashboard, so signal "not ready" visually and intercept the click
-   to show a toast (see HistoryPage.NotReadyToast). */
-.history-table .history-row--not-ready {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-.history-table .history-row--not-ready:hover {
-  /* Don't add the usual hover lift — the row isn't actionable. */
-  background: color-mix(in srgb, var(--color-warning) 6%, transparent);
-}
-.history-row__running {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-warning);
-  text-transform: lowercase;
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-.history-row__running-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--color-warning);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning) 50%, transparent);
-  animation: history-row-running-pulse 1.4s ease-out infinite;
-}
-@keyframes history-row-running-pulse {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning) 55%, transparent); }
-  70%  { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-warning) 0%,  transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning) 0%,  transparent); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .history-row__running-dot { animation: none; }
-}
-
-/* Monospace + theme-correct text colour inside every data row, overriding
-   the inherited Plus Jakarta from `.panel`. */
-.history-row,
-.history-row * {
-  font-family: var(--term-font-mono);
-}
-/* Lazy-render off-screen history rows natively — see the long-form
-   comment on `.vdetail-row` in evaluation.css. */
-.history-row:not(.history-row--header) {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 36px;
-}
-.history-row__col--date { color: var(--color-text); }
-.history-row__col--time { color: var(--color-text-muted); }
-/* DIMENSIONS CHANGED is secondary info — match row font-size for clarity */
-.history-row__col--dims { font-size: 13px; }
-/* The score value is the primary datum in the row — bold it */
-.history-row__col--score strong,
-.history-row__col--score {
-  font-weight: 700;
-}
-
-/* Grade chip — tight, square, 1 px border, uppercase mono. Overrides the
-   legacy `.chip.small` rounding/bg. */
-.history-row .chip.small {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--term-font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 2px;
-  border: 1px solid currentColor;
-  background: color-mix(in srgb, currentColor 10%, transparent);
-  min-width: 22px;
-}
-
-.history-row__col {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-/* Header cells should never clip their own labels */
-.history-row--header .history-row__col { overflow: visible; }
-
-.history-row__col--date   { flex: 0 0 130px; }
-.history-row__col--time   { flex: 0 0 82px;  }
-.history-row__col--grade  { flex: 0 0 44px; text-align: left; }
-.history-row__col--score  { flex: 0 0 52px; text-align: left; font-variant-numeric: tabular-nums; }
-.history-row__col--delta  { flex: 0 0 56px; text-align: left; font-variant-numeric: tabular-nums; }
-.history-row__col--majors, .history-row__col--types { flex: 0 0 44px; text-align: left; font-variant-numeric: tabular-nums; }
-.history-row__col--majors-delta, .history-row__col--types-delta { flex: 0 0 48px; text-align: left; font-variant-numeric: tabular-nums; }
-.history-row__col--dims   { flex: 1 1 auto; min-width: 0; }
-.history-row__col--chevron {
-  flex: 0 0 44px;
-  color: var(--color-text-muted);
-  text-align: right;
-  font-size: 16px;
-  line-height: 1;
-  opacity: 0.5;
-  transition: opacity 0.12s, transform 0.12s;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-}
-.history-row:not(.history-row--header):hover .history-row__col--chevron {
-  opacity: 1;
-  transform: translateX(2px);
-}
-.history-row__delete {
-  background: transparent;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 18px;
-  line-height: 1;
-  padding: 0 4px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.12s, color 0.12s;
-}
-.history-row:not(.history-row--header):hover .history-row__delete {
-  opacity: 0.7;
-}
-.history-row__delete:hover {
-  opacity: 1;
-  color: var(--color-grade-bottom-text, var(--color-accent));
-}
-
 /* Generic confirmation dialog (confirmDialog utility) */
 .qd-confirm-overlay {
   position: fixed;
@@ -1483,22 +1178,6 @@ button.term-sev-badge--clickable:focus-visible {
   border-color: var(--color-danger, #da3633);
   color: #fff;
 }
-
-.history-row__muted { color: var(--color-text-muted); }
-.history-evaluations__header {
-  padding: var(--term-space-2) var(--term-space-3);
-  background: var(--color-surface-alt);
-  border-bottom: 1px solid var(--color-border);
-  font-family: var(--term-font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-/* Delta colours in the Δ column — theme-aware via grade tokens. */
-.history-delta--up   { color: var(--color-success); }
-.history-delta--down { color: var(--color-danger); }
 
 /* Row-end "view" affordance */
 .history-view-btn {
@@ -2591,7 +2270,7 @@ button.term-sev-badge--clickable:focus-visible {
 
 /* Mobile: tighten padding further at very narrow widths. */
 @media (max-width: 480px) {
-  .dashboard { padding: var(--term-space-2); }
+  .dashboard { --dashboard-pad: var(--term-space-2); padding: var(--dashboard-pad); }
   .term-header__name { font-size: 17px; }
   .term-stat__value { --stat-value-max: 22px; }
 }

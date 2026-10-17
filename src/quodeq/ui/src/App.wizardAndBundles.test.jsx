@@ -164,6 +164,16 @@ describe('buildDashboardDataBundle', () => {
     granularity: 'day', onGranularityChange: () => {},
   });
 
+  it('names a remote project by its published name, never its id', () => {
+    const state = { ...stubState(), selectedProject: '648a0719', selectedSource: 'shared', selectedDisplayName: '648a0719', sharedProjectInfo: { name: 'payments-api' } };
+    expect(buildDashboardDataBundle({ state }).selectedDisplayName).toBe('payments-api');
+  });
+
+  it('keeps the local display name for a local project', () => {
+    const state = { ...stubState(), selectedDisplayName: 'My Project', sharedProjectInfo: { name: 'other' } };
+    expect(buildDashboardDataBundle({ state }).selectedDisplayName).toBe('My Project');
+  });
+
   it('forwards scoresPending (the dimension cards look settled while stale without it)', () => {
     const bundle = buildDashboardDataBundle({ state: stubState(), sharedHasContent: false });
     expect(bundle.scoresPending).toBe(true);
@@ -177,6 +187,11 @@ describe('buildDashboardDataBundle', () => {
   it('forwards formulaUpdated (the run hero never says the scores were recomputed without it)', () => {
     const bundle = buildDashboardDataBundle({ state: { ...stubState(), formulaUpdated: true }, sharedHasContent: false });
     expect(bundle.formulaUpdated).toBe(true);
+  });
+
+  it('forwards lastKnown (the Overview skeleton never shows the last known grade without it)', () => {
+    const lastKnown = { grade: 'Good', score: 8.5, files: 12 };
+    expect(buildDashboardDataBundle({ state: { ...stubState(), lastKnown } }).lastKnown).toBe(lastKnown);
   });
 
   it('forwards every key DashboardPage destructures off its data prop', () => {

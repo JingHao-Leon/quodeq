@@ -84,16 +84,32 @@ class _ZipLimits:
         return _ZipLimits(size_limit, uncompressed_limit, compressed_error, uncompressed_error)
 
 
+_DB_FILES = frozenset({"evaluation.db", "evaluation.db-wal", "evaluation.db-shm"})
+
+
+def _is_local_state(relative: Path) -> bool:
+    """True for a file that only means something on the machine that made it."""
+    return (
+        relative.name in _DB_FILES
+        or relative.name.endswith(".tmp")
+        or any(part.startswith(".") for part in relative.parts)
+    )
+
+
 def _iter_export_files(project_path: Path):
     """Yield the regular files under *project_path* that belong in the export.
 
     Symlinks and non-files are skipped, as is any prior manifest so the
-    export-time one is authoritative.
+    export-time one is authoritative. Databases (rebuilt from the event log on
+    the other side), dot-files and dot-folders (markers, locks, restore
+    staging) and ``*.tmp`` leftovers never travel.
     """
     for file_entry in project_path.rglob("*"):
         if file_entry.is_symlink() or not file_entry.is_file():
             continue
         if file_entry == project_path / MANIFEST_FILENAME:
+            continue
+        if _is_local_state(file_entry.relative_to(project_path)):
             continue
         yield file_entry
 

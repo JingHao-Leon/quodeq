@@ -131,6 +131,7 @@ function _buildPrincipleBoard(standings) {
         // Remote rows can't deep-link into local project pages; the click
         // handler falls back to opening the shared project instead.
         remote: s.row.remote ?? false,
+        source: s.row.source,
         principle: p.name,
         runId: s.runId,
         dimName: s.dimName,

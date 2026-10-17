@@ -101,3 +101,30 @@ class TestCancelExternalValidation:
 
         (tmp_path / ".pid").write_text("12345")
         assert JobManager().cancel_job("ext-..", reports_root=tmp_path) is False
+
+
+def test_a_reused_pid_is_not_the_run_and_is_never_cancelled(tmp_path) -> None:
+    """A finished run keeps its .pid; once the OS hands that number to another
+    program, the run must read as gone, or cancelling it signals a stranger."""
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+    import time  # noqa: PLC0415
+
+    import pytest  # noqa: PLC0415
+
+    if sys.platform == "win32":
+        pytest.skip("start time comes from ps; Windows keeps liveness-only")
+
+    run_dir = tmp_path / "run-1"
+    run_dir.mkdir()
+    stranger = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        pid_file = run_dir / ".pid"
+        pid_file.write_text(str(stranger.pid), encoding="utf-8")
+        an_hour_ago = time.time() - 3600
+        os.utime(pid_file, (an_hour_ago, an_hour_ago))  # written by the run, long before
+
+        assert resolve_external_pid(tmp_path, "run-1") is None
+    finally:
+        stranger.kill()
+        stranger.wait(timeout=5)

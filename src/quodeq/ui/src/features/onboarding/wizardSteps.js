@@ -4,7 +4,8 @@
 // standard-and-launch walk that "resume setup" (a registered project with no
 // evaluation yet) still takes, so nextStep/prevStep follow it.
 // SKIPPED_KEY is the localStorage flag set when the user dismisses the
-// welcome step ("skip for now").
+// welcome step ("skip for now"). STEP_REVIEWER is reached only from an add
+// (useWizardState's markAdded), never walked to.
 //
 // Leaf module by design (imports only the import-free storage adapter):
 // routes/navigationBundle.js, useWizardLifecycle.js, EmptyStateWithTour.jsx
@@ -17,6 +18,8 @@ export const STEP_PROVIDER = 'provider';
 export const STEP_STANDARD_LAUNCH = 'standard-launch';
 export const STEP_ANALYZE = 'analyze';
 export const STEP_CONNECT = 'connect';
+// After an add: who reviews the project, and its first evaluation.
+export const STEP_REVIEWER = 'reviewer';
 export const STEP_ORDER = [STEP_WELCOME, STEP_ANALYZE];
 export const SETUP_ORDER = [STEP_PROVIDER, STEP_STANDARD_LAUNCH];
 

@@ -11,17 +11,16 @@ vi.mock('../../api/index.js', () => ({
   getGradeFormula: vi.fn(),
   saveGradeFormula: vi.fn(),
   resetGradeFormula: vi.fn(),
-  previewGradeFormula: vi.fn(),
 }));
 
 vi.mock('../../utils/gradeThresholds.js', () => ({
   defaultGradeThresholdsStore: { set: vi.fn() },
 }));
 
-import { getGradeFormula, saveGradeFormula, previewGradeFormula } from '../../api/index.js';
+import { getGradeFormula, saveGradeFormula } from '../../api/index.js';
 
 const CURRENT = {
-  severityWeight: 1, baseK: 5, liftCompress: 0.5, ceilScale: 1,
+  severityWeight: { critical: 4, major: 2, minor: 0.25 }, baseK: 5, liftCompress: 0.5, ceilScale: 1,
   floorMinor: 8, floorMajor: 5,
   gradeThresholds: [[9, 'Exemplary'], [7, 'Good'], [5, 'Adequate'], [3, 'Poor']],
   dimensionWeightsEnabled: false, dimensionWeights: {},
@@ -40,6 +39,12 @@ const LANDED = rescore({ state: 'idle', appliedGeneration: 1, done: 3 });
 let queryClient;
 let invalidateSpy;
 
+// The calls that drop the score caches; the editor also refreshes its own
+// scoring inputs after a write, which these tests do not count.
+function scoreInvalidations() {
+  return invalidateSpy.mock.calls.filter(([arg]) => arg.queryKey[0] === projectKeys.all()[0]);
+}
+
 // The app shell mounts the rescore tracker once, above every page.
 function wrapper({ children }) {
   return createElement(QueryClientProvider, { client: queryClient },
@@ -51,7 +56,7 @@ function wrapper({ children }) {
 function renderAppWithEditor() {
   const latest = { current: null };
   function Editor() {
-    latest.current = useGradeFormula('proj');
+    latest.current = useGradeFormula();
     return null;
   }
   const shell = (showEditor) => wrapper({ children: showEditor ? createElement(Editor) : null });
@@ -64,7 +69,7 @@ async function tick(times = 1) {
 }
 
 async function mountAndApply() {
-  const hook = renderHook(() => useGradeFormula('proj'), { wrapper });
+  const hook = renderHook(() => useGradeFormula(), { wrapper });
   await act(async () => { await vi.advanceTimersByTimeAsync(0); });
   await act(async () => { await hook.result.current.apply(); });
   return hook;
@@ -81,11 +86,6 @@ beforeEach(() => {
     .mockResolvedValueOnce(payload(CURRENT, IDLE_START))
     .mockResolvedValueOnce(payload(CURRENT, IDLE_START));
   saveGradeFormula.mockResolvedValue(payload(SAVED, rescore()));
-  previewGradeFormula.mockResolvedValue({
-    project: 'proj', runId: 'r1',
-    before: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
-    after: { overall: { score: 7, grade: 'Good' }, dimensions: [] },
-  });
 });
 
 afterEach(() => {
@@ -101,7 +101,7 @@ describe('useGradeFormula background rescore', () => {
     expect(result.current.rescoreProgress).not.toBeNull();
     await tick();
     expect(result.current.rescoreProgress).toEqual({ done: 1, total: 3 });
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(scoreInvalidations()).toHaveLength(0);
   });
 
   it('polls until the pass lands, then invalidates the score queries once and stops', async () => {
@@ -111,7 +111,7 @@ describe('useGradeFormula background rescore', () => {
       .mockResolvedValue(payload(SAVED, LANDED));
     const { result } = await mountAndApply();
     await tick(4);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() });
     expect(result.current.rescoreProgress).toBeNull();
     expect(result.current.partialNotice).toBeNull();
@@ -128,7 +128,7 @@ describe('useGradeFormula background rescore', () => {
     const polls = getGradeFormula.mock.calls.length;
     await tick(5);
     expect(getGradeFormula.mock.calls.length).toBe(polls);
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(scoreInvalidations()).toHaveLength(0);
   });
 
   it('still invalidates the score queries once when the pass lands after leaving the page', async () => {
@@ -139,11 +139,11 @@ describe('useGradeFormula background rescore', () => {
     await tick();
     app.leavePage();
     await tick();
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(scoreInvalidations()).toHaveLength(0);
 
     getGradeFormula.mockResolvedValue(payload(SAVED, LANDED));
     await tick(3);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() });
     const polls = getGradeFormula.mock.calls.length;
     await tick(3);
@@ -158,9 +158,9 @@ describe('useGradeFormula background rescore', () => {
       .mockResolvedValue(payload(SAVED, LANDED));
     const view = render(wrapper({ children: null }));
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(scoreInvalidations()).toHaveLength(0);
     await tick(3);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() });
     view.unmount();
   });
@@ -180,7 +180,7 @@ describe('useGradeFormula background rescore', () => {
   it('shows the rescore failure on mount when the last pass errored', async () => {
     getGradeFormula.mockReset();
     getGradeFormula.mockResolvedValue(payload(SAVED, rescore({ state: 'error' })));
-    const { result } = renderHook(() => useGradeFormula('proj'), { wrapper });
+    const { result } = renderHook(() => useGradeFormula(), { wrapper });
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     expect(result.current.error).toBe('Rescore failed. Some runs may still show the old formula. Try applying again.');
     expect(result.current.rescoreProgress).toBeNull();
@@ -193,7 +193,7 @@ describe('useGradeFormula background rescore', () => {
     expect(result.current.partialNotice).toBe(
       'Applied, but 2 runs could not be rescored and still show the old formula. Try applying again.',
     );
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
   });
 
   it('stops polling and surfaces the failure when the pass errors', async () => {
@@ -224,7 +224,7 @@ describe('useGradeFormula background rescore', () => {
       .mockResolvedValue(payload(SAVED, LANDED));
     await mountAndApply();
     await tick(3);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
     expect(warn).toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -250,12 +250,12 @@ describe('useGradeFormula background rescore', () => {
     await act(async () => { resolveStalePoll(payload(SAVED, rescore({ generation: 1, appliedGeneration: 1, done: 3 }))); });
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
 
-    expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(scoreInvalidations()).toHaveLength(0);
     expect(hook.result.current.rescoreProgress).not.toBeNull();
 
     getGradeFormula.mockResolvedValue(payload(SAVED, rescore({ generation: 2, appliedGeneration: 2, state: 'idle', done: 3 })));
     await tick(2);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: projectKeys.all() });
   });
 
@@ -264,12 +264,12 @@ describe('useGradeFormula background rescore', () => {
     getGradeFormula
       .mockResolvedValueOnce(payload(SAVED, rescore({ done: 1 })))
       .mockResolvedValue(payload(SAVED, LANDED));
-    renderHook(() => useGradeFormula('proj'), { wrapper });
+    renderHook(() => useGradeFormula(), { wrapper });
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
     // Only a tracked pass can settle and invalidate, so this proves the
     // mount GET's running pass was picked up without any apply.
     await tick(2);
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(scoreInvalidations()).toHaveLength(1);
     expect(saveGradeFormula).not.toHaveBeenCalled();
   });
 });

@@ -39,6 +39,7 @@ from quodeq._cli_env import resolve_time_limit
 from quodeq.config.ci_env import current_run_origin
 from quodeq._cli_resolution import ResolvedInputs
 from quodeq.data.fs.project_resolver import ProjectIdentity
+from quodeq.data.fs.standards_prefs import settings_reports_root
 from quodeq.data.git_cli import git_head_sha, git_worktree_dirty
 from quodeq.shared.constants import CC_PHASE_REPORT_PATH
 from quodeq.shared.logging import log_error, log_info
@@ -289,7 +290,11 @@ def run_pipeline_with_cleanup(
         run_id=run_dir.name,
         pid_file=_write_pid_file(run_dir),
     )
-    config = hooks.build_run_config(args, inputs=inputs, evidence_dir=evidence_dir, run_dir=run_dir)
+    # Standards settings resolve under the LOCAL evaluations root, wherever
+    # this run's reports land, so a scoped child finds the owner the API uses.
+    config = hooks.build_run_config(
+        args, inputs=inputs, evidence_dir=evidence_dir, run_dir=run_dir,
+        reports_root=settings_reports_root())
 
     with _run_log_handler(run_dir):
         return _run_lifecycle_body(args, inputs, config, lifecycle_paths, hooks)
