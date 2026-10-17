@@ -41,6 +41,26 @@ def test_dispatch_tool_error_and_bad_args():
     assert reg.dispatch("boom", {"bogus": 1})["ok"] is False  # TypeError contained
 
 
+def test_dispatch_bad_args_message_comes_from_the_schema():
+    """The bad-arguments error names the problem from the tool's schema, not
+    the TypeError text (CodeQL py/stack-trace-exposure, alerts #356/#357)."""
+    def lookup(path):
+        return {"path": path}
+
+    schema = {"type": "object", "properties": {"path": {}}, "required": ["path"]}
+    reg = ToolRegistry()
+    reg.register(ToolSpec("lookup", "reads a path", schema, lookup))
+    assert reg.dispatch("lookup", {"bogus": 1}) == {
+        "ok": False,
+        "error": "invalid arguments for lookup; unknown: bogus; missing: path; accepted: path",
+    }
+
+
+def test_tool_error_public_message_matches_str():
+    exc = ToolError("no run selected")
+    assert exc.public_message == str(exc) == "no run selected"
+
+
 def test_dispatch_contains_a_genuine_handler_crash(caplog):
     """A bug in the handler itself (not ToolError/TypeError) is dispatch's
     run_isolated boundary: it must not kill the turn, must come back as the
