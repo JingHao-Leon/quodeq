@@ -7,13 +7,16 @@ below; None means never archive.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from quodeq.core.observability import NULL_LOG, LogSink
-from quodeq.services.wiring import ensure_dir, read_json_object, replace_json_file
 from quodeq.shared.env_paths import get_quodeq_dir
+from quodeq.services.wiring import ensure_dir, read_json_object, replace_json_file
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 _FILENAME = "storage.json"
 ARCHIVE_AFTER_DEFAULT = 183
