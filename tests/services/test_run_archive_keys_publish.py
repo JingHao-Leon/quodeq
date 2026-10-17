@@ -1,13 +1,12 @@
 """Archive minors: publish refuses an unrestorable run; archived runs keep their finding keys."""
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import pytest
 
-from quodeq.assistant.tools import _read_tools_scope as scope
+from quodeq.assistant.tools import ToolContext, build_registry
 from quodeq.data.fs import run_archive
 from quodeq.data.fs.run_archive import archive_run, is_archived
+from quodeq.data.sqlite.assistant_repository import AssistantRepository
 from quodeq.data.sqlite.findings_queries import read_run_key_sets
 from quodeq.data.sqlite.score_cache_access import persisted_run_key_sets
 from quodeq.services.run_keys import read_run_key_sets as service_keys
@@ -24,16 +23,23 @@ def test_publish_refuses_a_run_whose_archive_cannot_be_restored(tmp_path):
     assert not (tmp_path / "clone" / "run-old" / "status.json").exists()
 
 
-def test_the_assistant_finds_the_keys_of_an_archived_run(tmp_path):
+def test_the_assistant_dismisses_a_finding_of_an_archived_run(tmp_path):
     run = make_run(tmp_path, "run-old")
-    ctx = SimpleNamespace(run_dir=run, findings_repo_factory=None)
-    before: set[tuple] = set()
-    assert scope._sql_finding_keys(ctx, before) and len(before) == 5
+    store = AssistantRepository(tmp_path / "assistant.db")
+    store.create_session(session_id="s1", provider="ollama")
+    ctx = ToolContext(
+        repository=store, session_id="s1", run_dir=run, repo_root=None,
+        evaluators_dir=tmp_path / "e", compiled_dir=tmp_path / "c", dimensions_file=tmp_path / "d.json",
+        project_id=PROJECT, reports_dir=tmp_path,
+    )
     archive_run(run)
 
-    after: set[tuple] = set()
-    assert scope._sql_finding_keys(ctx, after)
-    assert after == before
+    out = build_registry(ctx).dispatch("draft_action", {
+        "action_type": "dismiss_finding",
+        "payload": {"req": "R0", "file": "f0.py", "line": 10, "reason": "fp"},
+    })
+
+    assert out["ok"] is True, out
 
 
 def test_cleanup_keeps_an_archived_run_keys_from_its_database(tmp_path, monkeypatch):

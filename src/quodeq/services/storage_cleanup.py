@@ -154,11 +154,13 @@ def _keep_run_keys(run_dir: Path, log: LogSink) -> None:
         log.debug(f"storage cleanup: could not keep the run keys of {run_dir}: {exc}")
 
 
+def _archive_keeping_keys(run_dir: Path, log: LogSink):
+    _keep_run_keys(run_dir, log)
+    return archive_run(run_dir)
+
+
 def _archive_one(run_dir: Path, log: LogSink):
-    def archive():
-        _keep_run_keys(run_dir, log)
-        return archive_run(run_dir)
-    return run_isolated(archive, label=f"storage cleanup archive {run_dir}", log=log)
+    return run_isolated(lambda: _archive_keeping_keys(run_dir, log), label=f"storage cleanup archive {run_dir}", log=log)
 
 
 def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> CleanupResult | None:

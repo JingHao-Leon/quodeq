@@ -160,8 +160,8 @@ def test_sources_take_each_dimension_from_its_source_run(tmp_path, monkeypatch):
     sources = gfp.project_sources(tmp_path, "proj")
 
     assert sources.dims == (
-        gfp.SourceDimension("security", tmp_path / "proj" / "r_new", None),
-        gfp.SourceDimension("reliability", tmp_path / "proj" / "r_old", None),
+        gfp.SourceDimension("security", tmp_path / "proj" / "r_new", None, stored_score=3.5),
+        gfp.SourceDimension("reliability", tmp_path / "proj" / "r_old", None, stored_score=6.3),
     )
     assert sources.keys is None
 
