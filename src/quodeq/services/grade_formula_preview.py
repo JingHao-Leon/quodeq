@@ -39,7 +39,7 @@ from quodeq.services.rescore import filter_excluded_violations, rescore_dimensio
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.wiring import (
-    compute_run_grades, has_evaluation_db, load_project_standards, load_suppression_rules,
+    compute_run_grades, load_project_standards, load_suppression_rules,
     settings_reports_root,
 )
 from quodeq.shared.fault_isolation import run_isolated
@@ -105,8 +105,8 @@ def project_sources(reports_root: Path, project: str) -> ProjectSources | None:
 
 
 def _rescorable(run_dir: Path) -> bool:
-    """An apply rewrites this run's grades: it has an event log and a grade database."""
-    return has_event_log(run_dir) and has_evaluation_db(run_dir)
+    """An apply rewrites this run's grades: it has an event log, live or archived (``project_run`` builds its database)."""
+    return has_event_log(run_dir)
 
 
 def is_touched(src: SourceDimension, keys: SuppressionKeys | None) -> bool:

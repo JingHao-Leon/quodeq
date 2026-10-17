@@ -33,6 +33,7 @@ from quodeq.services.wiring import (
     replace_json_file,
     run_git,
 )
+from quodeq.services.wiring_sync import restore_or_warn
 from quodeq.shared.constants import EVIDENCE_DIRNAME, MANIFEST_FILENAME
 
 _RUN_FILES = (STATUS_FILENAME, DIMENSIONS_FILENAME, "events.jsonl")
@@ -56,6 +57,7 @@ def list_completed_runs(project_dir: Path) -> list[Path]:
 
 
 def copy_run(run_dir: Path, dest_run_dir: Path) -> None:
+    restore_or_warn(run_dir)  # an archived run publishes its full event log and evidence
     ensure_dir(dest_run_dir)
     for name in _RUN_FILES:
         copy_file_if_exists(run_dir / name, dest_run_dir / name)

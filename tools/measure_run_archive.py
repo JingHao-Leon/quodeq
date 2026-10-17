@@ -6,7 +6,10 @@ Usage: uv run python tools/measure_run_archive.py <copy-of-a-project-dir> [--run
 Make the copy first (``cp -cR`` is an instant APFS clone) and point the
 QUODEQ_* store variables at the scratch folder. The tool refuses any path
 under the real ``~/.quodeq``. It archives the N largest runs, then restores
-each and times the first projection (the database rebuild).
+each (``restore_s``: the restore readers pay, ``evaluation.db`` included).
+``rebuild_s`` then deletes the restored database and times the first
+projection, the rebuild a restore would cost if the database were not kept
+in the archive (the measure behind keeping it there).
 """
 from __future__ import annotations
 
@@ -21,6 +24,7 @@ from quodeq.data.projection.projector import Projector
 _REAL_STORE = Path.home() / ".quodeq"
 _DEFAULT_RUNS = 10
 _MIB = 1024 * 1024
+_DB_FILES = ("evaluation.db", "evaluation.db-wal", "evaluation.db-shm")
 
 
 def _is_under(path: Path, root: Path) -> bool:
@@ -42,10 +46,13 @@ def _measure(run_dir: Path) -> tuple[str, float, float, float, int, int]:
     result = archive_run(run_dir)
     t1 = time.perf_counter()
     ensure_restored(run_dir)
+    restore_s = time.perf_counter() - t1
+    for name in _DB_FILES:  # without this the projection is a no-op on the restored database
+        (run_dir / name).unlink(missing_ok=True)
     t2 = time.perf_counter()
     Projector().ensure_projected(run_dir / "events.jsonl", run_dir, project_dir=run_dir.parent)
-    t3 = time.perf_counter()
-    return run_dir.name[:8], t1 - t0, t2 - t1, t3 - t2, result.bytes_before, result.bytes_after
+    rebuild_s = time.perf_counter() - t2
+    return run_dir.name[:8], t1 - t0, restore_s, rebuild_s, result.bytes_before, result.bytes_after
 
 
 def main(argv: list[str]) -> int:
@@ -68,7 +75,7 @@ def main(argv: list[str]) -> int:
     )
     if rows:
         worst = max(rows, key=lambda r: r[4])
-        print(f"biggest run {worst[0]}: restore + rebuild = {worst[2] + worst[3]:.2f} s")
+        print(f"biggest run {worst[0]}: restore {worst[2]:.2f} s, rebuild without the kept database {worst[3]:.2f} s")
     return 0
 
 
