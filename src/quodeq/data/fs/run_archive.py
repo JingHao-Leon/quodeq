@@ -37,6 +37,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits  # noqa: F401 -- error re-exported
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, needs_db_tidy, vacuum_db
@@ -49,10 +50,6 @@ _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
 _CHUNK = 1 << 20
 _READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
-
-
-class RunArchiveError(ValueError):
-    """The run cannot be archived, or its archive is unsafe or unreadable."""
 
 
 @dataclass(frozen=True)
@@ -169,6 +166,7 @@ def _allowed_name(name: str) -> bool:
 
 def _check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
     """Member names when every member is a safe regular file, else raise ``RunArchiveError``."""
+    check_archive_limits(members)
     root = staging.resolve()
     names: list[str] = []
     for member in members:
