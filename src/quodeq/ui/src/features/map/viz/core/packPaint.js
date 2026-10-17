@@ -1,7 +1,7 @@
 import { badness, nodeWeight } from './mapBadness.js';
 import {
   mixRgb, rgbCss, badnessHue, badnessStrength, folderGlow, fileSeverityColor, fileSeverityHue, activityScale, activityFileStrength,
-  activityFolderStrength, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, ACTIVITY_IDLE_SHARE,
+  activityFolderStrength, activityGlow, GLASS_FOLDER_SCALE, GLASS_PARENT_ALPHA, GLASS_HOLE_SHARE, ACTIVITY_IDLE_SHARE,
   ACTIVITY_PARENT_HEAT_CAP, STROKE_MIX,
 } from './mapPaint.js';
 import { NODE_KIND, PACK_COLOR_MODE } from '../../mapVocab.js';
@@ -10,9 +10,15 @@ import { filePathKey } from '../../model/mapActivity.js';
 import { isPackFolder } from './packNode.js';
 
 const STROKE_ALPHA = 0.22;
-const STROKE_ALPHA_TOP = 0.3;    // light: the first ring of folders reads a little stronger
+/** A wrapper folder's outline (only one sub-folder): almost gone, so a chain does not draw rings. */
+const WRAPPER_STROKE_ALPHA = 0.06;
+// A glowing folder's outline leans to its own hue and fades with the glow, so it stays close to the fill.
+const GLOW_STROKE_MIX = 0.7;
+const GLOW_STROKE_FADE = 0.5;
 
 const isLeaf = (n) => !isPackFolder(n);
+/** A folder whose only content is one sub-folder. */
+const isPassThrough = (n) => n.children?.length === 1 && isPackFolder(n.children[0]);
 
 function kindOf(n) {
   if (isLeaf(n)) return NODE_KIND.FILE;
@@ -58,17 +64,26 @@ function pageBg(palette) {
   return palette.dark ? palette.bg : palette.surfaceAlt;
 }
 
-function strokeFor(n, hue, palette) {
-  if (palette.dark) return { stroke: rgbCss(mixRgb(palette.glassParent, hue, STROKE_MIX)), strokeAlpha: STROKE_ALPHA };
-  return { stroke: rgbCss(palette.text), strokeAlpha: n.depth === 1 ? STROKE_ALPHA_TOP : STROKE_ALPHA };
+/**
+ * A folder's outline, the same rule in both themes on the theme's own base (the glass veil colour in
+ * dark, the text colour in light): mixed with the folder's hue, more when it glows, fading with the glow,
+ * and almost gone on a wrapper folder.
+ */
+function strokeFor(n, hue, palette, glow = 0) {
+  const base = palette.dark ? palette.glassParent : palette.text;
+  const mix = glow > 0 ? GLOW_STROKE_MIX : STROKE_MIX;
+  const alpha = isPassThrough(n) ? WRAPPER_STROKE_ALPHA : STROKE_ALPHA * (1 - GLOW_STROKE_FADE * glow);
+  return { stroke: rgbCss(mixRgb(base, hue, mix)), strokeAlpha: alpha };
 }
 
-/** Folders cut out their sub-folders in both themes, so a translucent dark tint never stacks on its ancestors'. */
-function folderFill({ n, hue, strength, glassStrength, palette }) {
-  if (!palette.dark) return { fill: rgbCss(mixRgb(pageBg(palette), hue, strength)), alpha: 1, cutOut: true };
+/**
+ * Glass in both themes: a folder holding files is its hue at `glassStrength` over the page, one holding
+ * only sub-folders a faint veil; both cut out their sub-folders, which keep GLASS_HOLE_SHARE of the tint.
+ */
+function folderFill({ n, hue, glassStrength, palette }) {
   const holdsFiles = n.children.some(isLeaf);
-  if (!holdsFiles) return { fill: rgbCss(palette.glassParent), alpha: GLASS_PARENT_ALPHA, cutOut: true };
-  return { fill: rgbCss(hue), alpha: glassStrength, cutOut: true };
+  if (!holdsFiles) return { fill: rgbCss(palette.glassParent), alpha: GLASS_PARENT_ALPHA, cutOut: true, holeShare: GLASS_HOLE_SHARE };
+  return { fill: rgbCss(hue), alpha: glassStrength, cutOut: true, holeShare: GLASS_HOLE_SHARE };
 }
 
 function concentrationPaint(n, ctx) {
@@ -81,9 +96,10 @@ function concentrationPaint(n, ctx) {
     const fileHue = fileSeverityHue(worst, b, ctx.palette);
     return { fill: rgbCss(fileSeverityColor(worst, b, ctx.palette)), alpha: 1, cutOut: false, file: true, badness: b, hue: fileHue };
   }
-  const strength = badnessStrength(b, ctx.palette.dark);
-  const fill = folderFill({ n, hue, strength, glassStrength: strength * GLASS_FOLDER_SCALE, palette: ctx.palette });
-  return { ...fill, file: false, badness: b, hue, glow: folderGlow(b, ctx.palette.dark) };
+  const fill = folderFill({ n, hue, glassStrength: badnessStrength(b, ctx.palette.dark) * GLASS_FOLDER_SCALE, palette: ctx.palette });
+  // A folder that only wraps one sub-folder (src/main/java/...) is packaging: no glow, or a chain reads as an onion.
+  const glow = isPassThrough(n) ? 0 : folderGlow(b);
+  return { ...fill, file: false, badness: b, hue, glow };
 }
 
 function activityPaint(n, ctx) {
@@ -94,11 +110,11 @@ function activityPaint(n, ctx) {
     return { fill: rgbCss(mixRgb(palette.surfaceAlt, palette.activity, t)), alpha: 1, cutOut: false, file: true, badness: 0, hue: palette.activity };
   }
   const files = Math.max(1, a.files);
-  const hue = palette.dark && a.touched / files <= ACTIVITY_IDLE_SHARE ? palette.activityIdle : palette.activity;
+  const hue = a.touched / files <= ACTIVITY_IDLE_SHARE ? palette.activityIdle : palette.activity;
   const meanHeat = a.heat / files;
   const heat = kindOf(n) === NODE_KIND.PARENT ? Math.min(meanHeat, ACTIVITY_PARENT_HEAT_CAP) : meanHeat;
-  const fill = folderFill({ n, hue, strength: activityFolderStrength(heat, false), glassStrength: activityFolderStrength(heat, true), palette });
-  return { ...fill, file: false, badness: 0, hue };
+  const fill = folderFill({ n, hue, glassStrength: activityFolderStrength(heat), palette });
+  return { ...fill, file: false, badness: 0, hue, glow: isPassThrough(n) ? 0 : activityGlow(heat) };
 }
 
 function rootPaint(palette) {
@@ -121,6 +137,6 @@ export function buildPackPaint({ root, circles, mode, palette, weights, editsByP
     if (n === root) return rootPaint(palette);
     const p = paintOf(n, ctx);
     const outlineOnly = !isLeaf(n) && n.children.length === 1 && isLeaf(n.children[0]);
-    return { ...p, ...strokeFor(n, p.hue, palette), outlineOnly, edits: agg.get(n).edits };
+    return { ...p, ...strokeFor(n, p.hue, palette, p.glow), outlineOnly, edits: agg.get(n).edits };
   });
 }

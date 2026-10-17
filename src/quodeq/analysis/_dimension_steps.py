@@ -42,6 +42,7 @@ def run_dimension_analysis(
     ac_kwargs: dict[str, Any] = dict(
         ai_cmd=config.ai_cmd,
         ai_cmd_path=config.options.ai_cmd_path,
+        ai_effort=config.options.ai_effort,
         cache_root=config.options.cache_root,
         ai_model=config.options.ai_model,
         jsonl_file=jsonl_file,

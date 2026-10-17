@@ -4,7 +4,7 @@ import { hierarchy } from 'd3-hierarchy';
 import { buildPackPaint } from './packPaint.js';
 import { PACK_COLOR_MODE } from '../../mapVocab.js';
 import { DEFAULT_SEVERITY_WEIGHTS } from './mapBadness.js';
-import { mixRgb, rgbCss, activityFolderStrength, ACTIVITY_PARENT_HEAT_CAP } from './mapPaint.js';
+import { rgbCss, activityFolderStrength, ACTIVITY_PARENT_HEAT_CAP } from './mapPaint.js';
 
 const close = (a, b) => Math.abs(a - b) < 1e-6;
 const C = (r, g, b) => ({ r, g, b });
@@ -48,26 +48,34 @@ test('the bad folder is worse, the good folder better', () => {
   assert.ok(at('src/good').badness < -0.3);
 });
 
-test('dark glass: folders holding files carry the hue, parents a faint veil, cut out under sub-folders so tints never stack', () => {
-  const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, true);
-  assert.equal(at('src/bad').fill, 'rgb(240, 80, 120)');
-  assert.equal(at('src').fill, 'rgb(200, 195, 216)');
-  assert.equal(at('src').cutOut, true);
-  assert.equal(at('src/bad').cutOut, true);
+test('glass in both themes: folders holding files carry the hue, parents a faint veil, cut out with a share under sub-folders', () => {
+  for (const dark of [true, false]) {
+    const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, dark);
+    assert.equal(at('src/bad').fill, 'rgb(240, 80, 120)');
+    assert.ok(at('src/bad').alpha < 1);
+    assert.equal(at('src').fill, 'rgb(200, 195, 216)');
+    assert.ok(at('src').cutOut && at('src').holeShare > 0 && at('src').holeShare < 1);
+  }
 });
 
-test('dark: a worse folder glows, a better one does not; light never glows', () => {
+test('dark: the more a folder glows, the fainter its outline', () => {
   const dark = paint(PACK_COLOR_MODE.CONCENTRATION, true).at;
-  assert.ok(dark('src/bad').glow > 0);
-  assert.equal(dark('src/good').glow, 0);
-  assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, false).at('src/bad').glow, 0);
+  assert.ok(dark('src/bad').glow > dark('src/good').glow);
+  assert.ok(dark('src/bad').strokeAlpha < dark('src/good').strokeAlpha);
 });
 
-test('light: solid colours precomputed against the page, cut out under sub-folders', () => {
-  const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, false);
-  assert.equal(at('src/bad').alpha, 1);
-  assert.equal(at('src/bad').cutOut, true);
-  assert.notEqual(at('src/bad').fill, 'rgb(240, 80, 120)');
+test('a worse folder glows, a better one less, the same in both themes', () => {
+  for (const dark of [true, false]) {
+    const { at } = paint(PACK_COLOR_MODE.CONCENTRATION, dark);
+    assert.ok(at('src/good').glow > 0 && at('src/good').glow < at('src/bad').glow);
+  }
+});
+
+test('outlines follow one rule on each theme\'s base: the text colour in light, the veil colour in dark', () => {
+  const light = paint(PACK_COLOR_MODE.CONCENTRATION, false).at('src/bad');
+  const dark = paint(PACK_COLOR_MODE.CONCENTRATION, true).at('src/bad');
+  assert.equal(light.strokeAlpha, dark.strokeAlpha);
+  assert.notEqual(light.stroke, dark.stroke);
 });
 
 test('activity: changed files carry the activity hue, unchanged ones stay plain', () => {
@@ -108,8 +116,8 @@ test('activity: a folder of files edited once is weaker than one whose files hit
 
 test('activity: a folder with sub-folders never passes the parent heat cap', () => {
   const { at } = paint(PACK_COLOR_MODE.ACTIVITY, false, new Map(EVERY_FILE.map((p) => [p, OFTEN])));
-  const capped = mixRgb(PALETTE.surfaceAlt, PALETTE.activity, activityFolderStrength(ACTIVITY_PARENT_HEAT_CAP, false));
-  assert.equal(at('src').fill, rgbCss(capped));
+  assert.ok(at('src').alpha <= activityFolderStrength(ACTIVITY_PARENT_HEAT_CAP));
+  assert.ok(at('src/bad').alpha > at('src').alpha);
 });
 
 test('a folder holding one file is drawn as an outline only', () => {
@@ -153,4 +161,18 @@ test('files: better than average take the better hue (clean ones at full strengt
     assert.notEqual(at('src/good/d.py').fill, at('src/good/c.py').fill);
   }
   assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, true).at('src/good/c.py').fill, 'rgb(0, 212, 255)');
+});
+
+test('dark: a folder that only wraps one sub-folder does not glow; the folder holding the files does', () => {
+  const bad = (p) => file(p, 10, 0, 3);
+  const top = folder('', [
+    folder('wrap', [folder('wrap/main', [bad('wrap/main/a.py'), bad('wrap/main/b.py')])]),
+    folder('ok', [file('ok/c.py', 0, 5), file('ok/d.py', 0, 5)]),
+  ]);
+  const root = hierarchy(top, (d) => d.children).sum((d) => (d.children ? 0 : 1));
+  const circles = root.descendants();
+  const out = buildPackPaint({ root, circles, mode: PACK_COLOR_MODE.CONCENTRATION, palette: { ...PALETTE, dark: true }, weights: DEFAULT_SEVERITY_WEIGHTS, editsByPath: new Map() });
+  const at = (path) => out[circles.findIndex((c) => c.data.path === path)];
+  assert.equal(at('wrap').glow, 0);
+  assert.ok(at('wrap/main').glow > 0);
 });

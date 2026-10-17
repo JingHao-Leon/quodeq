@@ -4,10 +4,10 @@ import assert from 'node:assert/strict';
 import { chooseLabelled, mustLabelled, placeSkyLabels, LABEL_LINE_PX, LABEL_BLOCK_PX } from './skyLabels.js';
 import { AREA_KIND } from '../../mapVocab.js';
 
-const TOP = 10;
-const areaOf = (kind, weight) => ({ kind, stats: { weight } });
+const TOP = 6;
+const areaOf = (kind, weight, density = 0) => ({ kind, density, stats: { weight } });
 
-test('ring kinds always, then the ten heaviest, plus hover and selection', () => {
+test('ring kinds always, then the six heaviest, plus hover and selection', () => {
   const areas = Array.from({ length: 14 }, (_, i) => areaOf(AREA_KIND.WATCH, i));
   areas[0] = areaOf(AREA_KIND.DORMANT, 0);
   const chosen = chooseLabelled({ areas, hovered: 1, selected: null });
@@ -16,11 +16,38 @@ test('ring kinds always, then the ten heaviest, plus hover and selection', () =>
   assert.equal(chosen.size, TOP + 2);
 });
 
+test('a label takes the right of its bubble first', () => {
+  const placed = placeSkyLabels({ bubbles: [{ px: 100, py: 100, R: 30 }], wanted: new Set([0]), must: new Set(), measure: () => 60 });
+  assert.ok(placed[0].x > 130);
+  assert.equal(placed[0].y, 100);
+});
+
 test('a label never sits on another bubble or label', () => {
-  const bubbles = [{ px: 100, py: 100, R: 30 }, { px: 100, py: 160, R: 20 }];
+  const bubbles = [{ px: 100, py: 100, R: 30 }, { px: 170, py: 100, R: 20 }];
   const placed = placeSkyLabels({ bubbles, wanted: new Set([0, 1]), must: new Set(), measure: () => 60 });
   const first = placed.find((p) => p.index === 0);
-  assert.ok(first.y < 100);   // below would hit bubble 1, so it goes above
+  assert.ok(first.x < 100);   // the right would hit bubble 1, so it goes left
+});
+
+test('the densest fix-first and watch areas are named before the heaviest', () => {
+  const areas = Array.from({ length: 20 }, (_, i) => areaOf(AREA_KIND.WATCH, 100 + i, 0.1));
+  areas[0] = areaOf(AREA_KIND.WATCH, 0, 2.4);   // light but dense: fix first
+  areas[1] = areaOf(AREA_KIND.WATCH, 0, 0.6);   // light, in watch
+  const chosen = chooseLabelled({ areas, hovered: null, selected: null });
+  const must = mustLabelled({ areas, hovered: null, selected: null, showLabels: true });
+  assert.ok(chosen.has(0) && chosen.has(1) && must.has(0) && must.has(1));
+  assert.equal(chosen.size, TOP + 2);
+});
+
+// Two bubbles one above the other: both labels want the right side, and only one fits there.
+const STACKED_PAIR = [{ px: 100, py: 100, R: 12 }, { px: 100, py: 114, R: 8 }];
+
+test('a priority orders the labels: the denser area takes the contested spot', () => {
+  const args = { bubbles: STACKED_PAIR, wanted: new Set([0, 1]), must: new Set(), measure: () => 80 };
+  const right = (placed, i) => placed.find((p) => p.index === i).x > 100;
+  assert.ok(right(placeSkyLabels(args), 0) && !right(placeSkyLabels(args), 1));
+  const dense = placeSkyLabels({ ...args, priority: (i) => (i === 1 ? 2 : 1) });
+  assert.ok(right(dense, 1) && !right(dense, 0));
 });
 
 test('a wanted label (outside the ten heaviest) with no bubble-free spot is dropped, a must label wins over bubbles', () => {
@@ -77,9 +104,8 @@ test('must labels whose near spots hold other labels move further out', () => {
 });
 
 test('the selected area (first) is placed before every other label, so it wins a conflict', () => {
-  // Two bubbles side by side, both must show: the larger one's label would take the shared spot below first.
-  const bubbles = [{ px: 100, py: 100, R: 30 }, { px: 110, py: 100, R: 10 }];
-  const args = { bubbles, wanted: new Set(), must: new Set([0, 1]), measure: () => 80 };
+  // Both must show: the larger one's label would take the shared spot on the right first.
+  const args = { bubbles: STACKED_PAIR, wanted: new Set(), must: new Set([0, 1]), measure: () => 80 };
   const alone = placeSkyLabels({ ...args, must: new Set([1]) })[0];
   const plain = placeSkyLabels(args);
   const selected = placeSkyLabels({ ...args, first: 1 });

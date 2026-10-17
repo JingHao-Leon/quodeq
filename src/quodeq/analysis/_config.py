@@ -32,6 +32,8 @@ class AnalysisConfig:
     ai_model: str | None = None
     # Binary override for the CLI spawn (AI_CMD_PATH); None spawns ``ai_cmd``.
     ai_cmd_path: str | None = None
+    # Reasoning effort (AI_EFFORT); None leaves the CLI on its own default.
+    ai_effort: str | None = None
     # Result-cache root the findings server writes under (``--cache-root``).
     # ``run_analysis`` fills it from the environment when the caller left it unset.
     cache_root: Path | None = None

@@ -76,6 +76,7 @@ class AnalysisOptions:
     # copied onto every AnalysisConfig; None leaves ``run_analysis`` to fill
     # them from its own environment.
     ai_cmd_path: str | None = None
+    ai_effort: str | None = None
     cache_root: Path | None = None
     # Consecutive `file_done: error` markers that trip the dim-runner's
     # circuit breaker. 0 disables. The CLI resolves the QUODEQ_FAILURE_STREAK

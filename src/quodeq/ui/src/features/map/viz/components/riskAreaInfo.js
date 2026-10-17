@@ -67,3 +67,14 @@ export function riskAreaInfo(area) {
     ],
   };
 }
+
+/**
+ * The hover card's lines above its severity rows: the area's weighted issues per file first,
+ * Hotspot or Dormant debt when the area is one, then its issue count. No zone: the rings and the legend give it.
+ */
+export function riskTooltipLines(area) {
+  const lines = [...densityLines(area)];
+  if (RING_KINDS.includes(area.kind)) lines.push({ label: t('map.riskKind'), value: kindLabel(area.kind) });
+  lines.push({ label: t('map.riskIssues'), value: area.stats.violations });
+  return lines;
+}

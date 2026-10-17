@@ -89,10 +89,8 @@ describe('RiskTimelapseView: each run as it was', () => {
     expect(screen.getByText(t('map.riskLegendHotspot'))).toBeInTheDocument();
   });
 
-  it('labels on: the zone labels and area names are drawn; labels off: no label at all, not even the selected area\'s', async () => {
-    const zoneLabel = t('map.riskZoneFixFirst', { count: 0 });
+  it('labels on: the area names are drawn; labels off: no label at all, not even the selected area\'s', async () => {
     const { unmount } = await drawn(timelapse());
-    expect(ctx.fillText).toHaveBeenCalledWith(zoneLabel, expect.any(Number), expect.any(Number));
     expect(ctx.fillText).toHaveBeenCalledWith('app', expect.any(Number), expect.any(Number));
     unmount();
     ctx.fillText.mockClear();

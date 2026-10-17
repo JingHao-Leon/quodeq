@@ -12,23 +12,26 @@ const FILE_BAND = {
 };
 const ACTIVITY_SCALE_MIN = 2;
 const ACTIVITY_QUANTILE = 0.9;
-const ACT_FILE_BASE = 0.45;
-const ACT_FILE_SPAN = 0.55;
-const ACT_FILE_BOOST = 1.4;
-const ACT_FOLDER = {
-  dark: { base: 0.04, span: 0.24, exp: 0.8 },
-  light: { base: 0.05, span: 0.55, exp: 1.1 },
-};
+// A changed file starts faint and reaches full colour only at "changed often" (the scale), linearly,
+// so on a project where most files were touched at some point only the busy ones stand out.
+const ACT_FILE_BASE = 0.15;
+const ACT_FILE_SPAN = 0.85;
+const ACT_FOLDER = { base: 0.04, span: 0.24, exp: 0.8 };
 
-/** Dark glass: a folder holding files shows its colour at 85 % of the solid strength. */
+/** Glass: a folder holding files shows its colour at 85 % of the solid strength. */
 export const GLASS_FOLDER_SCALE = 0.85;
-/** Dark glass: a folder holding only sub-folders gets this faint neutral veil. */
+/** Glass: a folder holding only sub-folders gets this faint neutral veil. */
 export const GLASS_PARENT_ALPHA = 0.05;
+/**
+ * Glass: the share of a folder's tint that still shows under its sub-folders. Full (1) let tints
+ * stack with depth; none (0) left bad parents' sub-folders looking hollow. A little keeps them inside.
+ */
+export const GLASS_HOLE_SHARE = 0.35;
 /** A folder whose share of changed files is below this reads as idle in Activity. */
 export const ACTIVITY_IDLE_SHARE = 0.02;
 /** Activity: a folder with sub-folders shows at most this heat, a tint and never a flood. */
 export const ACTIVITY_PARENT_HEAT_CAP = 0.25;
-/** Dark glass outlines mix the glass base with the node hue at this share. */
+/** Glass outlines mix the theme base with the node hue at this share. */
 export const STROKE_MIX = 0.35;
 
 const side = (dark) => (dark ? 'dark' : 'light');
@@ -62,13 +65,18 @@ export function badnessStrength(b, dark) {
   return BETTER_BASE[s] + BETTER_SPAN[s] * t ** BETTER_EXP[s];
 }
 
+/** A better-than-average folder glows at this share of a worse one with the same distance from average. */
+const BETTER_GLOW_SHARE = 0.8;
+
 /**
- * Dark glass: how strongly a worse-than-average folder glows, 0 to 1. It follows
- * the folder's own score, so depth never adds glow (the fills are cut out).
+ * How strongly a folder glows in its own hue, 0 to 1 (both themes): worse than average
+ * up to 1, better than average up to BETTER_GLOW_SHARE, about average not at all. It
+ * follows the folder's own score, so depth never adds glow (the fills are cut out).
  */
-export function folderGlow(b, dark) {
-  if (!dark || b <= AVERAGE_BAND) return 0;
-  return clamp(badnessStrength(b, true) / (WORSE_BASE.dark + WORSE_SPAN.dark), 0, 1);
+export function folderGlow(b) {
+  if (Math.abs(b) <= AVERAGE_BAND) return 0;
+  if (b > 0) return clamp(badnessStrength(b, true) / (WORSE_BASE.dark + WORSE_SPAN.dark), 0, 1);
+  return BETTER_GLOW_SHARE * clamp(badnessStrength(b, true) / (BETTER_BASE.dark + BETTER_SPAN.dark), 0, 1);
 }
 
 /** How far a file's colour moves from the background toward its hue. */
@@ -111,16 +119,28 @@ export function activityScale(editCounts) {
   return Math.max(ACTIVITY_SCALE_MIN, p90);
 }
 
-/** Activity colour strength of a file: 0 when unchanged, then a ramp up to 1. */
+/** Activity colour strength of a file: 0 when unchanged, then a linear ramp up to 1 at the scale. */
 export function activityFileStrength(edits, scale) {
   if (!edits) return 0;
-  return ACT_FILE_BASE + ACT_FILE_SPAN * Math.min(1, (edits / scale) * ACT_FILE_BOOST);
+  return ACT_FILE_BASE + ACT_FILE_SPAN * Math.min(1, edits / scale);
 }
 
-/** Activity fill strength of a folder from its heat (mean per-file edits against the scale, 0..1). */
-export function activityFolderStrength(heat, dark) {
-  const f = ACT_FOLDER[side(dark)];
-  return f.base + f.span * clamp(heat, 0, 1) ** f.exp;
+/** Activity: a folder glows once its heat passes this, so only the busy ones do. */
+const ACTIVITY_GLOW_FROM = 0.15;
+
+/**
+ * Activity: how strongly a folder glows in the activity colour, 0 to 1, from its heat (mean
+ * per-file edits against the scale), as Concentration's from its score. Both themes: in light the
+ * glow is what lifts a busy folder off the neutral quiet ones.
+ */
+export function activityGlow(heat) {
+  if (heat <= ACTIVITY_GLOW_FROM) return 0;
+  return clamp((heat - ACTIVITY_GLOW_FROM) / (1 - ACTIVITY_GLOW_FROM), 0, 1);
+}
+
+/** Activity glass strength of a folder from its heat (mean per-file edits against the scale, 0..1), both themes. */
+export function activityFolderStrength(heat) {
+  return ACT_FOLDER.base + ACT_FOLDER.span * clamp(heat, 0, 1) ** ACT_FOLDER.exp;
 }
 
 const WHITE = Object.freeze({ r: 255, g: 255, b: 255 });

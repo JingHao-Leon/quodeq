@@ -1,16 +1,23 @@
 import { badness } from './mapBadness.js';
-import { mixRgb, rgbCss, badnessHue, badnessStrength, fileSeverityColor, GLASS_FOLDER_SCALE } from './mapPaint.js';
+import { mixRgb, rgbCss, badnessHue, badnessStrength, fileSeverityColor } from './mapPaint.js';
+import { clamp } from './mapBadness.js';
 import { AREA_KIND, NODE_KIND } from '../../mapVocab.js';
 
 /** How an area's kind ring is drawn. */
 export const RING_STYLE = Object.freeze({ SOLID: 'solid', DASHED: 'dashed' });
 const STROKE_ALPHA = 0.3;
+/**
+ * A bubble is one solid colour (its file dots show on hover), so it needs more of its hue
+ * than a translucent pack folder: this share plus SOLID_GAIN times the folder strength.
+ */
+const SOLID_BASE = 0.2;
+const SOLID_GAIN = 1.2;
 
 const RING_OF = new Map([[AREA_KIND.HOTSPOT, RING_STYLE.SOLID], [AREA_KIND.DORMANT, RING_STYLE.DASHED]]);
 
 /**
  * An area bubble's colours: its Concentration colour against the run's
- * average (light solid over the page, dark glass), and its kind ring.
+ * average, one solid colour over the page (dark) or the panel (light), and its kind ring.
  * @param {{kind:string, stats:object}} area
  * @param {number} average project severity weight per file
  * @param {object} palette readMapPalette output (with `dark`)
@@ -19,12 +26,10 @@ const RING_OF = new Map([[AREA_KIND.HOTSPOT, RING_STYLE.SOLID], [AREA_KIND.DORMA
 export function skyAreaPaint(area, average, palette) {
   const b = badness(area.stats, average, NODE_KIND.FOLDER);
   const hue = badnessHue(b, palette);
-  const strength = badnessStrength(b, palette.dark);
-  const fill = palette.dark
-    ? { fill: rgbCss(hue), alpha: strength * GLASS_FOLDER_SCALE }
-    : { fill: rgbCss(mixRgb(palette.surfaceAlt, hue, strength)), alpha: 1 };
+  const share = clamp(SOLID_BASE + SOLID_GAIN * badnessStrength(b, palette.dark), 0, 1);
   return {
-    ...fill,
+    fill: rgbCss(mixRgb(palette.dark ? palette.bg : palette.surfaceAlt, hue, share)),
+    alpha: 1,
     stroke: rgbCss(palette.text),
     strokeAlpha: STROKE_ALPHA,
     ring: RING_OF.get(area.kind) || null,

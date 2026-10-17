@@ -98,7 +98,7 @@ class TestBuildMcpServerArgs:
         # Synthesise a minimal RunConfig-shaped carrier the helper can read.
         run_config = SimpleNamespace(
             language="kotlin",
-            options=SimpleNamespace(subagent_model="sonnet", ai_model="opus"),
+            options=SimpleNamespace(subagent_model="sonnet", ai_model="opus", ai_effort=None),
         )
         config = AnalysisConfig(
             jsonl_file=jsonl, run_config=run_config, cache_root=tmp_path / "cache" / "results",
@@ -159,7 +159,7 @@ class TestBuildMcpServerArgs:
         run_config = SimpleNamespace(
             language="kotlin",
             standards_dir=standards_dir,
-            options=SimpleNamespace(subagent_model="sonnet", ai_model="opus"),
+            options=SimpleNamespace(subagent_model="sonnet", ai_model="opus", ai_effort=None),
         )
         compiled = standards_dir / "compiled"
         config = AnalysisConfig(

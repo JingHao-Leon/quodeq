@@ -7,6 +7,7 @@ import { readActiveProviderModel } from './providerLabel.js';
 import { UrlRestoreSection, DetectedLine, BudgetChips, RunBar, IdentityHeader, ScopeBrowserOverlay } from './ReEvaluateCardParts.jsx';
 import { TermHeader } from '../../../components/terminal/index.js';
 import HelpHint from '../../../components/HelpHint.jsx';
+import PageToolbar from '../../../components/PageToolbar.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import { t } from '../../../strings/index.js';
 import { buildDimMetas, buildUpToDateIds } from '../dimMetas.js';
@@ -26,12 +27,9 @@ function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScope
   const { urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = urlActions;
   return (
     <>
-      <div className="evaluate-panel__top evaluate-panel__top--row">
-        <TermHeader name={t('evaluate.termNewEvaluation')} />
-        <div className="re-eval-toggle-row">
-          <HelpHint label={t('evaluate.optionsHelpAria')}>{EVAL_OPTIONS_HINT}</HelpHint>
-        </div>
-      </div>
+      <PageToolbar title={t('evaluate.pageTitle')} facts={t('evaluate.toolbarFacts', { project: info.name || project })}>
+        <HelpHint label={t('evaluate.optionsHelpAria')}>{EVAL_OPTIONS_HINT}</HelpHint>
+      </PageToolbar>
 
       <IdentityHeader
         info={info}
@@ -122,7 +120,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
     computeReEvalViewState({ info, scope, disabled, cleanScan, estimates });
 
   return (
-    <div className="panel evaluate-panel evaluate-panel--terminal">
+    <div className="evaluate-form">
       <ReEvaluateCardTop
         info={info}
         project={project}
