@@ -64,10 +64,13 @@ test('label ink: the theme text pushed toward white on dark, toward black on lig
   assert.deepEqual(labelInk({ dark: true, text: WHITE }), WHITE);
 });
 
-test('folderGlow: only worse-than-average folders glow, in dark only, growing with the score up to 1', () => {
+test('folderGlow: in dark only, worse folders up to 1, better ones less, about average none', () => {
   assert.equal(folderGlow(0.8, false), 0);
   assert.equal(folderGlow(0, true), 0);
-  assert.equal(folderGlow(-0.6, true), 0);
+  assert.ok(folderGlow(-0.6, true) > 0);
+  assert.ok(folderGlow(-0.6, true) < folderGlow(0.6, true));
+  assert.ok(folderGlow(-0.3, true) < folderGlow(-0.9, true));
+  assert.equal(folderGlow(-1, true), 0.8);
   assert.ok(folderGlow(0.3, true) > 0);
   assert.ok(folderGlow(0.3, true) < folderGlow(0.9, true));
   assert.equal(folderGlow(1, true), 1);

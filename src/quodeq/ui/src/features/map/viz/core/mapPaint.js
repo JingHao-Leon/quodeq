@@ -67,13 +67,18 @@ export function badnessStrength(b, dark) {
   return BETTER_BASE[s] + BETTER_SPAN[s] * t ** BETTER_EXP[s];
 }
 
+/** A better-than-average folder glows at this share of a worse one with the same distance from average. */
+const BETTER_GLOW_SHARE = 0.8;
+
 /**
- * Dark glass: how strongly a worse-than-average folder glows, 0 to 1. It follows
- * the folder's own score, so depth never adds glow (the fills are cut out).
+ * Dark glass: how strongly a folder glows in its own hue, 0 to 1: worse than average
+ * up to 1, better than average up to BETTER_GLOW_SHARE, about average not at all. It
+ * follows the folder's own score, so depth never adds glow (the fills are cut out).
  */
 export function folderGlow(b, dark) {
-  if (!dark || b <= AVERAGE_BAND) return 0;
-  return clamp(badnessStrength(b, true) / (WORSE_BASE.dark + WORSE_SPAN.dark), 0, 1);
+  if (!dark || Math.abs(b) <= AVERAGE_BAND) return 0;
+  if (b > 0) return clamp(badnessStrength(b, true) / (WORSE_BASE.dark + WORSE_SPAN.dark), 0, 1);
+  return BETTER_GLOW_SHARE * clamp(badnessStrength(b, true) / (BETTER_BASE.dark + BETTER_SPAN.dark), 0, 1);
 }
 
 /** How far a file's colour moves from the background toward its hue. */
