@@ -5,7 +5,7 @@ PUT    /api/storage/settings    -- {archiveAfterDays: 91|183|365|null}
 GET    /api/storage/preview     -- what a clean would archive now, and about how much it frees
 GET    /api/storage/clean       -- clean progress only, no disk walk (cheap to poll)
 POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean (STORAGE_BUSY) or the score warm-up (STORAGE_WARMUP) runs
-DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while anything runs
+DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while a run, a clean, the warm-up or a rescore runs
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ from quodeq.api._constants import CODE_INTERNAL_ERROR, QUERY_FLAG_TRUE
 from quodeq.api.helpers import json_error, optional_json_object_or_error
 from quodeq.api.routes_common import reports_dir
 from quodeq.services.base import ActionProvider
+from quodeq.services.grade_formula_job import RescoreState
 from quodeq.services.storage_job import CleanJob
 from quodeq.services.storage_report import StorageBusyError, clean_preview, delete_all_evaluations, storage_summary
 from quodeq.services.storage_settings import StorageSettings, read_storage_settings, write_storage_settings
@@ -71,7 +72,12 @@ def _put_settings(env: Mapping[str, str] | None) -> Response | tuple[Response, i
     return jsonify({_SETTING_KEY: body[_SETTING_KEY]})
 
 
-def _delete_all(provider: ActionProvider) -> Response | tuple[Response, int]:
+def _rescore_running(app: Flask) -> bool:
+    rescorer = app.extensions.get("grade_formula_rescore")
+    return rescorer is not None and rescorer.snapshot().state is RescoreState.RUNNING
+
+
+def _delete_all(app: Flask, provider: ActionProvider) -> Response | tuple[Response, int]:
     if request.args.get("confirm") != QUERY_FLAG_TRUE:
         return json_error(
             "Use ?confirm=true to confirm deleting all evaluation data",
@@ -79,6 +85,8 @@ def _delete_all(provider: ActionProvider) -> Response | tuple[Response, int]:
         )
     if _warmup_active():
         return _busy(_WARMUP_BUSY, code=CODE_STORAGE_WARMUP)
+    if _rescore_running(app):
+        return _busy("Runs are being rescored with the grade formula; try again when it ends")
     try:
         deleted = delete_all_evaluations(provider, Path(reports_dir()))
     except StorageBusyError as exc:
@@ -119,4 +127,4 @@ def register_storage_routes(app: Flask, provider: ActionProvider, env: Mapping[s
 
     @app.delete("/api/storage")
     def delete_storage() -> Response | tuple[Response, int]:
-        return _delete_all(provider)
+        return _delete_all(app, provider)

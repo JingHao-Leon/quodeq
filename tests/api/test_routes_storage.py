@@ -174,3 +174,22 @@ def test_the_app_registers_the_storage_routes(root):
     assert isinstance(app.extensions["storage_clean"], CleanJob)
     assert app.test_client().get("/api/storage").status_code == 200
     app.extensions["grade_formula_rescore"].stop()
+
+
+class _RunningRescore:
+    def snapshot(self):
+        from quodeq.services.grade_formula_job import RescoreState  # noqa: PLC0415
+
+        class _Snap:
+            state = RescoreState.RUNNING
+        return _Snap()
+
+
+def test_delete_all_is_409_while_the_grade_formula_rescore_runs(root, provider):
+    app = Flask(__name__)
+    app.extensions["grade_formula_rescore"] = _RunningRescore()
+    register_storage_routes(app, provider)
+    _run(root, "p", "r", 10)
+    resp = app.test_client().delete("/api/storage?confirm=true")
+    assert resp.status_code == 409 and resp.get_json()["code"] == "STORAGE_BUSY"
+    assert provider.deleted == []

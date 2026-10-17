@@ -121,3 +121,18 @@ def test_delete_all_removes_every_project_once_and_skips_cascaded_children(tmp_p
 
 def test_delete_all_on_a_missing_root_deletes_nothing(tmp_path):
     assert delete_all_evaluations(_Provider(), tmp_path / "missing") == 0
+
+
+def test_a_run_started_during_delete_all_keeps_its_project(tmp_path):
+    _run(tmp_path, "a", "r", 300)
+    _run(tmp_path, "b", "r", 300)
+
+    class _StartsARun(_Provider):
+        def delete_project(self, reports_dir, project):
+            if project == "a":
+                _run(tmp_path, "b", "live", 0, state="running", pid=os.getpid())
+            return super().delete_project(reports_dir, project)
+
+    provider = _StartsARun()
+    assert delete_all_evaluations(provider, tmp_path) == 1
+    assert provider.deleted == ["a"] and (tmp_path / "b" / "live").is_dir()
