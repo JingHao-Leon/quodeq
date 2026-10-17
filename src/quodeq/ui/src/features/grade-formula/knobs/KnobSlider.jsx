@@ -1,7 +1,6 @@
 import { useId } from 'react';
 import { t } from '../../../strings/index.js';
-
-const PERCENT = 100;
+import { inputRange, toPosition, fromPosition, trackPercent } from './knobScale.js';
 
 // Two decimals at most, no trailing zeros: 0.25, 2, 0.08.
 const show = (v) => String(Number(v.toFixed(2)));
@@ -13,9 +12,8 @@ const show = (v) => String(Number(v.toFixed(2)));
  */
 export default function KnobSlider({ knob, value, savedValue, defaultValue, onChange, onHint }) {
   const id = useId();
-  const span = knob.max - knob.min;
-  const tickPct = ((defaultValue - knob.min) / span) * PERCENT;
-  const fillPct = ((value - knob.min) / span) * PERCENT;
+  const tickPct = trackPercent(knob, defaultValue);
+  const fillPct = trackPercent(knob, value);
   const changed = value !== savedValue;
   return (
     <div className="gf-knob" onMouseEnter={() => onHint?.(knob.hintKey)} onFocus={() => onHint?.(knob.hintKey)}>
@@ -25,8 +23,8 @@ export default function KnobSlider({ knob, value, savedValue, defaultValue, onCh
       </label>
       <div className="gf-knob__track" style={{ '--fill': `${fillPct}%` }}>
         <span className="gf-knob__tick" style={{ left: `${tickPct}%` }} title={t('gradeFormula.defaultTick', { value: show(defaultValue) })} />
-        <input id={id} type="range" min={knob.min} max={knob.max} step={knob.step} value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value))} />
+        <input id={id} type="range" {...inputRange(knob)} value={toPosition(knob, value)} aria-valuetext={show(value)}
+          onChange={(e) => onChange(fromPosition(knob, parseFloat(e.target.value)))} />
       </div>
       <span className={`gf-knob__value${changed ? ' gf-knob__value--changed' : ''}`}>
         {changed && <s>{show(savedValue)}</s>}

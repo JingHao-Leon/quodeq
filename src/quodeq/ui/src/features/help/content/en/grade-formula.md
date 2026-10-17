@@ -71,7 +71,7 @@ A quodeq update can change the grade algorithm itself. A custom formula you save
 
 | Key | Value |
 | --- | --- |
-| Severity weights | How much a rule of each severity weighs per unit of file spread; range 0.05 to 10, and minor stays below major, major below critical. The major weight moves grades most; the minor weight decides who reaches Exemplary; the critical weight moves little because criticals are rare. |
+| Severity weights | How much a rule of each severity weighs per unit of file spread; range 0.05 to 25 on a log-scaled slider, and minor stays below major, major below critical. The major weight moves grades most; the minor weight decides who reaches Exemplary; the critical weight moves little because criticals are rare. |
 | Strictness K | How fast the base score falls as rule mass grows; range 0.01 to 1. Higher is harsher. |
 | Lift compress | How much compliance evidence can lift the base; range 1 to 4. Higher means compliance lifts less. |
 | Ceiling scale | How fast the maximum score falls with the log of the rule mass; range 0 to 2. Zero removes the ceiling. It is the main knob for the Exemplary share. |
