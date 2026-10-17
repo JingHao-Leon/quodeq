@@ -17,7 +17,8 @@ from quodeq.data.fs.run_archive import (  # noqa: F401
 )
 from quodeq.data.fs.report_parser.runs import read_archived_run_data  # noqa: F401
 from quodeq.data.fs.run_archive_export import extract_members_to, pack_run_logs, repack_without_db  # noqa: F401
-from quodeq.data.fs.run_archive_files import ARCHIVE_FILENAME, packable_bytes  # noqa: F401
+from quodeq.data.fs.run_archive_files import ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, packable_bytes  # noqa: F401
+from quodeq.data.fs.run_archive_wal import DB_NAME  # noqa: F401
 from quodeq.data.fs.run_archive_guard import restored_at  # noqa: F401
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME  # noqa: F401
 from quodeq.data.fs.run_scalars import SCALARS_NAME  # noqa: F401

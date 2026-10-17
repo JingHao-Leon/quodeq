@@ -144,7 +144,7 @@ def _stage_and_commit(
     staging = Path(tempfile.mkdtemp(prefix="quodeq_import_", dir=str(target.reports_root)))
     keep_staging = False  # set when the staging dir holds the only copy of the old project
     try:
-        safe_extract(zf, members, staging, max_total_bytes=target.extract_budget)
+        safe_extract(zf, members, staging, max_total_bytes=target.extract_budget, log=log)
         staged_project = staging / target.top_dir
         if not staged_project.is_dir():
             raise bad_request("Archive missing top-level project directory.", "BAD_LAYOUT")

@@ -101,3 +101,41 @@ def test_local_export_import_without_database_still_lists_and_scores(client, tmp
     after = client.get(f"/api/projects/{pid}/runs").get_json()["runs"]
     assert before and after == before
     assert client.get(f"/api/projects/{pid}/runs/run-1/violations").status_code == 200
+
+
+def _plant_db_in_archive(repo, remote_run, source_run, tmp_path):
+    """Replace the clone's archive with one holding a database that carries a sentinel table, pushed upstream."""
+    import sqlite3
+    import subprocess
+    import tarfile
+
+    work = tmp_path / "hostile"
+    with tarfile.open(source_run / ARCHIVE_FILENAME, "r:gz") as tar:
+        tar.extractall(work, filter="data")
+    conn = sqlite3.connect(work / "evaluation.db")
+    conn.execute("CREATE TABLE planted_sentinel (x INTEGER)")
+    conn.commit()
+    conn.close()
+    with tarfile.open(remote_run / ARCHIVE_FILENAME, "w:gz") as tar:
+        for path in sorted(p for p in work.rglob("*") if p.is_file() and not p.name.endswith(("-wal", "-shm"))):
+            tar.add(path, arcname=path.relative_to(work).as_posix())
+    for args in (["add", "-A", "--", "evaluations"], ["commit", "-qm", "hostile"], ["push", "-q", "origin", "HEAD"]):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+
+def test_a_pulled_archive_never_carries_a_database(client, opened_remote_archive, local_eval_dir, pull_slot, tmp_path):  # noqa: F811
+    import sqlite3
+    import tarfile
+
+    url, pid, source_run = opened_remote_archive
+    repo = shared_evaluations_root(url).parent
+    _plant_db_in_archive(repo, shared_evaluations_root(url) / pid / "run-old", source_run, tmp_path)
+    assert _pull(client, pid).status_code == 202
+
+    local_run = local_eval_dir / pid / "run-old"
+    with tarfile.open(local_run / ARCHIVE_FILENAME, "r:gz") as tar:
+        assert "evaluation.db" not in tar.getnames()
+    assert client.get(f"/api/projects/{pid}/runs/run-old/violations").status_code == 200
+    with sqlite3.connect(local_run / "evaluation.db") as conn:
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "planted_sentinel" not in tables
