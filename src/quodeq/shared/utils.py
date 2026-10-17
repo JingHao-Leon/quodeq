@@ -70,7 +70,7 @@ from quodeq.shared.env import (
 
 
 def __getattr__(name: str) -> str:
-    """Lazy accessor for config-derived constants (ANTHROPIC_API_URL, etc.)."""
+    """Lazy accessor for config-derived constants (DEFAULT_HOST, etc.)."""
     from quodeq.shared.config_loader import __getattr__ as _cl_getattr
     return _cl_getattr(name)
 

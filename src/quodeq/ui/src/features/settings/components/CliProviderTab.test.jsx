@@ -48,7 +48,7 @@ describe('CliProviderTab', () => {
     expect(update).toHaveBeenCalledWith('model', 'claude-test');
   });
 
-  it('offers the provider effort levels and stores the one picked', () => {
+  it('offers the provider effort levels when the CLI lists no models, and stores the one picked', () => {
     const Wrapper = makeWrapper();
     const update = vi.fn();
     render(
@@ -71,17 +71,17 @@ describe('CliProviderTab', () => {
     expect(screen.queryByRole('group', { name: 'Effort' })).toBeNull();
   });
 
-  it('renders a free-text model input pre-populated from state', () => {
+  it('renders a free-text model input for a CLI without a model catalog', () => {
     const Wrapper = makeWrapper();
-    const state = { model: 'sonnet', subagents: '4', 'time-limit-min': '60' };
+    const state = { model: 'gemini-2.5-pro', subagents: '4', 'time-limit-min': '60' };
     const { container } = render(
       <Wrapper>
-        <CliProviderTab providerId="claude" state={state} update={() => {}} />
+        <CliProviderTab providerId="gemini" state={state} update={() => {}} />
       </Wrapper>,
     );
     const input = container.querySelector('input.settings-model-input[type="text"]');
     expect(input).toBeTruthy();
-    expect(input.value).toBe('sonnet');
+    expect(input.value).toBe('gemini-2.5-pro');
   });
 
   it('flags an invalid command override on blur with the server reason', async () => {

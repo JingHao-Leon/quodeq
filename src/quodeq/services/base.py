@@ -235,8 +235,8 @@ class ToolingActions(Protocol):
         """Return available AI CLI clients."""
         ...
 
-    def get_client_models(self, client_id: str) -> dict:
-        """Return available models for an AI client."""
+    def get_client_models(self, client_id: str, *, refresh: bool = False) -> dict:
+        """Return available models for an AI client; *refresh* skips any cached list."""
         ...
 
 
