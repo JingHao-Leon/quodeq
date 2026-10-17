@@ -975,7 +975,8 @@ button.term-sev-badge--clickable:focus-visible {
     gap: var(--term-space-1);
   }
   .dashboard {
-    padding: var(--term-space-3);
+    --dashboard-pad: var(--term-space-3);
+    padding: var(--dashboard-pad);
     overflow-y: visible;
     overflow-x: hidden;
     height: auto;
@@ -2269,7 +2270,7 @@ button.term-sev-badge--clickable:focus-visible {
 
 /* Mobile: tighten padding further at very narrow widths. */
 @media (max-width: 480px) {
-  .dashboard { padding: var(--term-space-2); }
+  .dashboard { --dashboard-pad: var(--term-space-2); padding: var(--dashboard-pad); }
   .term-header__name { font-size: 17px; }
   .term-stat__value { --stat-value-max: 22px; }
 }

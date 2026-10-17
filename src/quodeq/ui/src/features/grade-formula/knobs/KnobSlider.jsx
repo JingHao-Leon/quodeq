@@ -11,17 +11,19 @@ const show = (v) => String(Number(v.toFixed(2)));
  * tick where the Q² default sits, and the value, the saved one struck
  * through beside it while the draft differs.
  */
-export default function KnobSlider({ knob, value, savedValue, defaultValue, onChange }) {
+export default function KnobSlider({ knob, value, savedValue, defaultValue, onChange, onHint }) {
   const id = useId();
-  const tickPct = ((defaultValue - knob.min) / (knob.max - knob.min)) * PERCENT;
+  const span = knob.max - knob.min;
+  const tickPct = ((defaultValue - knob.min) / span) * PERCENT;
+  const fillPct = ((value - knob.min) / span) * PERCENT;
   const changed = value !== savedValue;
   return (
-    <div className="gf-knob">
+    <div className="gf-knob" onMouseEnter={() => onHint?.(knob.hintKey)} onFocus={() => onHint?.(knob.hintKey)}>
       <label className="gf-knob__label" htmlFor={id}>
         {t(knob.labelKey)}
         {knob.techKey && <span className="gf-knob__tech">{t(knob.techKey)}</span>}
       </label>
-      <div className="gf-knob__track">
+      <div className="gf-knob__track" style={{ '--fill': `${fillPct}%` }}>
         <span className="gf-knob__tick" style={{ left: `${tickPct}%` }} title={t('gradeFormula.defaultTick', { value: show(defaultValue) })} />
         <input id={id} type="range" min={knob.min} max={knob.max} step={knob.step} value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))} />
@@ -30,7 +32,6 @@ export default function KnobSlider({ knob, value, savedValue, defaultValue, onCh
         {changed && <s>{show(savedValue)}</s>}
         {show(value)}
       </span>
-      {knob.hintKey && <span className="gf-knob__hint">{t(knob.hintKey)}</span>}
     </div>
   );
 }
