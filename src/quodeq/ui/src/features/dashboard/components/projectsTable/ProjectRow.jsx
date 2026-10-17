@@ -5,7 +5,7 @@ import { PUBLISH_STATE } from '../../dashboardVocab.js';
 import { projectIdOrSelf } from '../../../../utils/projectIdentity.js';
 import { useProjectRefresh } from '../../hooks/useProjectRefresh.js';
 import { GradeChip } from '../projectCards/ProjectCardParts.jsx';
-import { NameCell, FilesCell, LastRunCell, LocationCell, SyncCell, MetaLine } from './RowCells.jsx';
+import { NameCell, FilesCell, LastRunCell, SizeCell, LocationCell, SyncCell, MetaLine } from './RowCells.jsx';
 import { RowAction, RowMenu } from './RowActions.jsx';
 import { SyncBar } from '../SyncBar.jsx';
 import { childEntry, rowAction, rowSource } from './projectRowModel.js';
@@ -30,7 +30,7 @@ function RelocateEditor({ id, relocateActions }) {
 function DeleteConfirm({ id, onDelete, setConfirming }) {
   return (
     <div className="projects-row__detail" onClick={(e) => e.stopPropagation()}>
-      <span>{t('projects.deleteConfirm')}</span>
+      <span>{t('projects.deleteConfirmSized', { runs: 23, size: '62 MB' })}</span>
       <button type="button" className="projects-row__btn projects-row__btn--danger" onClick={() => { onDelete?.(id); setConfirming(null); }}>{t('projects.yes')}</button>
       <button type="button" className="projects-row__btn" onClick={() => setConfirming(null)}>{t('projects.no')}</button>
     </div>
@@ -119,6 +119,7 @@ function Row({ entry, project, isChild, ctx, refresh, pull }) {
         <div className="projects-row__grade" role="cell"><GradeChip grade={grade} score={score} pending={project.summaryPending} /></div>
         <FilesCell project={project} />
         <LastRunCell project={project} />
+        <SizeCell project={project} />
         {configured && <LocationCell entry={entry} />}
         {configured && <SyncCell entry={entry} />}
         <MetaLine entry={entry} project={project} configured={configured} />

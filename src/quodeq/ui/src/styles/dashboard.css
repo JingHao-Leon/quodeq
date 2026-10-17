@@ -2532,13 +2532,13 @@
 
 .projects-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 72px 72px 80px 88px 28px;
+  grid-template-columns: minmax(200px, 1fr) 72px 72px 80px 72px 88px 28px;
   align-items: center;
   column-gap: var(--space-6);
   padding: 0 var(--space-5);
 }
 .projects-table--server .projects-row {
-  grid-template-columns: minmax(200px, 1.5fr) 72px 72px 80px 104px minmax(150px, 1fr) 88px 28px;
+  grid-template-columns: minmax(200px, 1.5fr) 72px 72px 80px 72px 104px minmax(150px, 1fr) 88px 28px;
 }
 
 .projects-row--head {

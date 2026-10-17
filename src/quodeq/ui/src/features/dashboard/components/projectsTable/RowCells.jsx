@@ -58,6 +58,13 @@ export function FilesCell({ project }) {
   return <div className="projects-row__num projects-row__files" role="cell">{files != null ? files.toLocaleString(LOCALE) : EMPTY_CELL}</div>;
 }
 
+// PROTOTYPE: sample sizes until the storage endpoint reports them.
+const SAMPLE_SIZE = { quodeq: '6.5 GB', growstuff: '62 MB', BenchmarkPython: '41 MB', 'quodeq-web': '9 MB' };
+
+export function SizeCell({ project }) {
+  return <div className="projects-row__num projects-row__size" role="cell">{SAMPLE_SIZE[project.name] ?? EMPTY_CELL}</div>;
+}
+
 export function LastRunCell({ project }) {
   return <div className="projects-row__num projects-row__last" role="cell">{formatDate(project.latestDate) ?? EMPTY_CELL}</div>;
 }

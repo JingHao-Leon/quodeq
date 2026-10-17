@@ -2,10 +2,12 @@ import useLiveFeedSettings from '../hooks/useLiveFeedSettings.js';
 import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { t } from '../../../strings/index.js';
 import { SettingsPillTabs, SettingsRowLabel } from './settingsRowParts.jsx';
+import StorageSection from './StorageSection.jsx';
 
 export default function EvaluationSection({ onOpenGradeFormula }) {
   const { newOnly, setNewOnly } = useLiveFeedSettings();
   return (
+    <>
     <section className="panel settings-section">
       <div className="panel-header"><SectionLabel marker="▶">{t('settings.resultsLabel')}</SectionLabel></div>
       <div className="settings-row">
@@ -24,5 +26,7 @@ export default function EvaluationSection({ onOpenGradeFormula }) {
         <span className="settings-link-row__go">{t('settings.openEditorLink')}</span>
       </button>
     </section>
+    <StorageSection />
+    </>
   );
 }

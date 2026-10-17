@@ -1,0 +1,24 @@
+/* Settings › Storage: the page's ⋯ menus. */
+.storage-page { display: grid; gap: var(--space-3, 12px); }
+.storage-page > .page-toolbar { margin-bottom: 0; }
+.storage-menu { position: relative; display: inline-flex; }
+.storage-menu__btn { min-width: 28px; padding: 0 6px; }
+.storage-menu__pop {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20;
+  display: flex; flex-direction: column; min-width: 220px; padding: 4px;
+  background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--term-radius);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-bg) 60%, transparent);
+}
+.storage-menu__item { text-align: left; padding: 6px 10px; font: inherit; font-size: 12px; background: none; border: 0; color: var(--color-text); cursor: pointer; border-radius: var(--term-radius); }
+.storage-menu__item:hover, .storage-menu__item:focus-visible { background: var(--color-surface-alt); }
+.storage-menu__item--danger { color: var(--color-sev-critical-text); }
+/* The open menu sits above the table: its cell and row lift, and the panel lets it spill out. */
+.storage-projects { overflow: visible !important; }
+.storage-projects .term-grid__row:has(.storage-menu__pop),
+.storage-projects .term-grid__cell:has(.storage-menu__pop) { position: relative; z-index: 10; overflow: visible; }
+
+/* The Storage row: label and facts on the left, the archive choice and actions on the right. */
+.storage-row { flex-wrap: wrap; }
+.storage-row__controls { display: flex; align-items: center; gap: var(--space-2, 8px); flex-wrap: wrap; }
+.storage-row__caption { font-size: 12px; color: var(--color-text-muted); }
+.storage-section:has(.storage-menu__pop) { overflow: visible; }
