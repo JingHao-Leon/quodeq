@@ -34,8 +34,6 @@ const BAND_WIDTH_RIM = 1;
 const BAND_WIDTH_WATCH = 1.1;
 const BAND_WIDTH_FIX = 1.3;
 const BUBBLE_STROKE_WIDTH = 1;
-/** Between a label's title and its figure. */
-const FIGURE_SPACE = ' ';
 const CENTRE_RING_PX = 7;
 const CENTRE_DOT_PX = 2.5;
 const CENTRE_RING_ALPHA = 0.55;
@@ -249,27 +247,14 @@ export function skyTitleFont(font, fontScale) {
   return `${TITLE_WEIGHT} ${TITLE_PX * fontScale}px ${font}`;
 }
 
-/** A label's text runs: its title, then (when it has one) its figure in the figure's colour. */
-function labelRuns(label, palette) {
-  const ink = rgbCss(labelInk(palette));
-  const runs = [{ text: label.title, color: ink }];
-  if (label.figure) runs.push({ text: `${FIGURE_SPACE}${label.figure}`, color: label.figureHot ? rgbCss(palette.worse) : ink });
-  return runs;
-}
-
 function drawLabel(ctx, label, { palette, font, fontScale }) {
+  const halo = rgbCss(palette.bg);
   ctx.lineWidth = HALO_WIDTH;
-  ctx.strokeStyle = rgbCss(palette.bg);
+  ctx.strokeStyle = halo;
   ctx.font = skyTitleFont(font, fontScale);
-  const runs = labelRuns(label, palette);
-  const widths = runs.map((r) => ctx.measureText(r.text).width);
-  let x = label.x - widths.reduce((a, w) => a + w, 0) / 2;
-  runs.forEach((r, i) => {
-    ctx.strokeText(r.text, x, label.y);
-    ctx.fillStyle = r.color;
-    ctx.fillText(r.text, x, label.y);
-    x += widths[i];
-  });
+  ctx.strokeText(label.title, label.x, label.y);
+  ctx.fillStyle = rgbCss(labelInk(palette));
+  ctx.fillText(label.title, label.x, label.y);
 }
 
 /**
@@ -281,6 +266,6 @@ export function drawSkyOverlay(ctx, { bubbles, files = null, keepIndex, hoverInd
   if (keepIndex !== null && bubbles[keepIndex]) drawVeil(ctx, bubbles[keepIndex], palette, { width, height });
   if (hoverIndex !== null && bubbles[hoverIndex]) drawHover(ctx, bubbles[hoverIndex], palette);
   for (const i of new Set([keepIndex, hoverIndex])) if (i !== null && bubbles[i] && files?.[i]) drawFiles(ctx, bubbles[i], files[i]);
-  ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
   for (const label of labels) drawLabel(ctx, label, { palette, font, fontScale });
 }

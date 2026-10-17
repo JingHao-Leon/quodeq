@@ -17,17 +17,9 @@ export function kindLabel(kind) {
   return t(KIND_KEY.get(kind) || 'map.riskKindSmall');
 }
 
-/** Decimals of the density figure beside a label. */
-const LABEL_DENSITY_DECIMALS = 1;
-
-/**
- * The canvas label of an area: its name and, past the watch line, its density
- * (red in fix first), so the worst areas read their number at a glance (the rest are in the hover card and the panel).
- */
+/** The canvas label of an area: its name (its numbers are in the hover card and the panel). */
 export function riskLabelText(area) {
-  const zone = zoneOf(area.density || 0);
-  if (zone === SKY_ZONE.HEALTHY || area.kind === AREA_KIND.SMALL) return { title: area.name };
-  return { title: area.name, figure: (area.density || 0).toFixed(LABEL_DENSITY_DECIMALS), figureHot: zone === SKY_ZONE.FIX_FIRST };
+  return { title: area.name };
 }
 
 /** An area's keyboard-list text: its name and its issue count. */
@@ -74,4 +66,15 @@ export function riskAreaInfo(area) {
       { label: t('map.riskChanged'), value: t('map.riskChangedValue', { pct: Math.round(area.touchedShare * PERCENT) }) },
     ],
   };
+}
+
+/**
+ * The hover card's lines above its severity rows: the area's weighted issues per file first,
+ * Hotspot or Dormant debt when the area is one, then its issue count. No zone: the rings and the legend give it.
+ */
+export function riskTooltipLines(area) {
+  const lines = [...densityLines(area)];
+  if (RING_KINDS.includes(area.kind)) lines.push({ label: t('map.riskKind'), value: kindLabel(area.kind) });
+  lines.push({ label: t('map.riskIssues'), value: area.stats.violations });
+  return lines;
 }

@@ -19,10 +19,7 @@ function useMeasure(overlayRef, theme, { areas, labelText }) {
       ctx.font = fontOf(theme.font, theme.fontScale);
       return ctx.measureText(text).width;
     };
-    const area = (i) => {
-      const { title, figure } = labelText(areas[i]);
-      return width(figure ? `${title} ${figure}` : title, skyTitleFont);
-    };
+    const area = (i) => width(labelText(areas[i]).title, skyTitleFont);
     return { area, zone: (text) => width(text, skyZoneFont), fontScale: theme.fontScale || 1 };
   }, [overlayRef, theme, areas, labelText]);
 }

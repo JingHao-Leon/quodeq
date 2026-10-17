@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { riskAreaInfo, riskLabelText } from './riskAreaInfo.js';
+import { riskAreaInfo, riskLabelText, riskTooltipLines } from './riskAreaInfo.js';
 import { t } from '../../../../strings/index.js';
 import { AREA_KIND } from '../../mapVocab.js';
 
@@ -40,9 +40,13 @@ test('the kind shows only for a hotspot or dormant debt, the kinds the sky rings
   assert.equal(lineOf(riskAreaInfo(area(AREA_KIND.HEALTHY, 0.1)), 'map.riskKind'), undefined);
 });
 
-test('a label carries the density past the watch line, red in fix first, none when healthy or too small', () => {
-  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.HOTSPOT, 2.37), name: 'Article' }), { title: 'Article', figure: '2.4', figureHot: true });
-  assert.equal(riskLabelText({ ...area(AREA_KIND.WATCH, 0.6), name: 'API' }).figureHot, false);
-  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.HEALTHY, 0.1), name: 'Tests' }), { title: 'Tests' });
-  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.SMALL, 3), name: 'Tiny' }), { title: 'Tiny' });
+test('a label is the area name only', () => {
+  assert.deepEqual(riskLabelText({ ...area(AREA_KIND.HOTSPOT, 2.37), name: 'Article' }), { title: 'Article' });
+});
+
+test('the hover card leads with weighted issues per file, then the kind and the issues, without the zone', () => {
+  const lines = riskTooltipLines(area(AREA_KIND.HOTSPOT, 2.37));
+  assert.deepEqual(lines.map((l) => l.label), [t('map.riskDensity'), t('map.riskKind'), t('map.riskIssues')]);
+  assert.equal(lines[0].value, '2.37');
+  assert.deepEqual(riskTooltipLines(area(AREA_KIND.WATCH, 0.6)).map((l) => l.label), [t('map.riskDensity'), t('map.riskIssues')]);
 });
