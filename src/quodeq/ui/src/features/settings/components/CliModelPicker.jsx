@@ -5,6 +5,10 @@ import { t } from '../../../strings/index.js';
 // The select value that switches the field to a typed model id.
 const OTHER_VALUE = '__other__';
 
+function modelInputClass(required, value) {
+  return `settings-model-input${required && !value ? ' settings-model-input--required' : ''}`;
+}
+
 function optionLabel(entry) {
   return entry.isDefault ? t('settings.modelRecommended', { label: entry.label }) : entry.label;
 }
@@ -37,7 +41,7 @@ function TypedModelInput({ inputId, value, onChange, required, ariaLabel }) {
   return (
     <input
       type="text" id={inputId}
-      className={`settings-model-input${required && !value ? ' settings-model-input--required' : ''}`}
+      className={modelInputClass(required, value)}
       value={value || ''} placeholder={t('settings.typeModelId')} onChange={(e) => onChange(e.target.value)}
       aria-label={ariaLabel || t('settings.modelAria')}
       autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false}
@@ -82,7 +86,7 @@ export default function CliModelPicker({ providerId, value, onChange, required, 
       <div className="settings-model-select-row">
         <select
           id={inputId}
-          className={`settings-model-input${required && !value ? ' settings-model-input--required' : ''}`}
+          className={modelInputClass(required, value)}
           value={typed ? OTHER_VALUE : (value || '')}
           onChange={(e) => choose(e.target.value)}
           aria-label={ariaLabel || t('settings.modelAria')}

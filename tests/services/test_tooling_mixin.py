@@ -200,11 +200,20 @@ class TestCatalogModels:
         assert mock_fetch.call_count == 1
 
     @patch(_FETCH, return_value=_CATALOG)
-    def test_refresh_asks_the_cli_again(self, mock_fetch):
+    def test_refresh_asks_the_cli_again_once_the_list_is_not_brand_new(self, mock_fetch):
+        mixin = _catalog_mixin()
+        with patch("quodeq.services.tooling_mixin.time.monotonic", return_value=100.0):
+            mixin.get_client_models("claude")
+        with patch("quodeq.services.tooling_mixin.time.monotonic", return_value=130.0):
+            mixin.get_client_models("claude", refresh=True)
+        assert mock_fetch.call_count == 2
+
+    @patch(_FETCH, return_value=_CATALOG)
+    def test_refresh_right_after_a_lookup_is_served_from_cache(self, mock_fetch):
         mixin = _catalog_mixin()
         mixin.get_client_models("claude")
         mixin.get_client_models("claude", refresh=True)
-        assert mock_fetch.call_count == 2
+        assert mock_fetch.call_count == 1
 
     @patch(_FETCH, side_effect=CatalogUnavailable("timed out"))
     def test_failure_reports_an_error_and_is_not_cached(self, mock_fetch):

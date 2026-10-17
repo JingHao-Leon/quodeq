@@ -76,10 +76,16 @@ class TestClaudeCatalog:
         assert [m["request"]["subtype"] for m in session.sent] == ["initialize"]
         assert session.closed
 
-    def test_reply_without_models_is_unavailable(self) -> None:
-        reply = {"type": "control_response", "response": {"response": {}}}
+    @pytest.mark.parametrize("body", [{"response": {}}, {"response": "oops"}, "oops", None])
+    def test_reply_without_a_model_list_is_unavailable(self, body) -> None:
+        reply = {"type": "control_response", "response": body}
         with pytest.raises(CatalogUnavailable):
             _fetch("claude", _ScriptedSession([reply]))
+
+    def test_no_alias_is_recommended_without_a_default_entry(self) -> None:
+        models = [_claude_model("opus", None, ["low"]), _claude_model("sonnet", None, ["low"])]
+        reply = {"type": "control_response", "response": {"response": {"models": models}}}
+        assert not any(e["isDefault"] for e in _fetch("claude", _ScriptedSession([reply])))
 
 
 def _codex_model(model_id: str, *, hidden: bool = False, default: bool = False) -> dict:
@@ -108,6 +114,10 @@ class TestCodexCatalog:
         ]
         assert [m.get("method") for m in session.sent] == ["initialize", "initialized", "model/list", "model/list"]
         assert session.sent[-1]["params"] == {"cursor": "p2"}
+
+    def test_non_dict_result_is_unavailable(self) -> None:
+        with pytest.raises(CatalogUnavailable):
+            _fetch("codex", _ScriptedSession([_CODEX_INIT_REPLY, {"id": 2, "result": ["oops"]}]))
 
     def test_rejected_list_is_unavailable(self) -> None:
         session = _ScriptedSession([_CODEX_INIT_REPLY, {"id": 2, "error": {"message": "auth"}}])

@@ -33,6 +33,9 @@ _CATALOG_TIMEOUT_S = 15
 # Settings asks for a refresh explicitly when the user wants one.
 _CATALOG_TTL_S = 600
 _CATALOG_ERROR_CODE = "CLIENT_MODELS_UNAVAILABLE"
+# A refresh this soon after the last lookup is served from the cache, so a
+# repeated click (or a scripted loop) cannot spawn a CLI per request.
+_CATALOG_REFRESH_MIN_AGE_S = 10
 _DEFAULT_CLIENT_SORT_ORDER = 50  # ai_providers.json's "order" default when unset
 _REQUIRES_PLATFORM_DARWIN_ARM64 = "darwin-arm64"  # ai_providers.json's "requires_platform" value
 
@@ -86,6 +89,9 @@ class FsToolingMixin(FsBrowseMixin):
         # client id -> (monotonic time stored, payload); successes only.
         self._catalog_cache: dict[str, tuple[float, dict[str, Any]]] = {}
         self._catalog_lock = threading.Lock()
+        # One lookup per client at a time: concurrent requests wait and then
+        # read what the first one cached.
+        self._catalog_fetch_locks: dict[str, threading.Lock] = {}
         # Bind the inherited browse half's sink: FsBrowseMixin cannot import a
         # logger of its own (SEP-06), and a silent mkdir failure is unhelpful.
         self._browse_log = SHARED_LOG
@@ -166,7 +172,9 @@ class FsToolingMixin(FsBrowseMixin):
         """
         if refresh:
             with self._catalog_lock:
-                self._catalog_cache.pop(client_id, None)
+                cached = self._catalog_cache.get(client_id)
+                if cached and time.monotonic() - cached[0] >= _CATALOG_REFRESH_MIN_AGE_S:
+                    del self._catalog_cache[client_id]
         fetcher = self._model_fetchers.get(client_id, self._get_cli_models)
         return fetcher(client_id)
 
@@ -176,6 +184,12 @@ class FsToolingMixin(FsBrowseMixin):
         ``models`` keeps the plain id list older callers read; ``catalog``
         carries labels, descriptions and the efforts each model supports.
         """
+        with self._catalog_lock:
+            fetch_lock = self._catalog_fetch_locks.setdefault(client_id, threading.Lock())
+        with fetch_lock:
+            return self._cached_or_fetched_catalog(client_id, env)
+
+    def _cached_or_fetched_catalog(self, client_id: str, env: dict[str, str] | None) -> dict[str, Any]:
         with self._catalog_lock:
             cached = self._catalog_cache.get(client_id)
         if cached and time.monotonic() - cached[0] < _CATALOG_TTL_S:

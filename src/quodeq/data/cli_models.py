@@ -65,6 +65,7 @@ _CODEX_INIT = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
                "params": {"clientInfo": {"name": "quodeq", "version": "1"}}}
 _CODEX_INITIALIZED = {"jsonrpc": "2.0", "method": "initialized"}
 _CODEX_MAX_PAGES = 5
+_CODEX_FIRST_LIST_ID = _CODEX_INIT["id"] + 1  # model/list pages count up from here
 
 _OS_NAME_NT = "nt"
 _STOP_TIMEOUT_S = 2
@@ -97,8 +98,11 @@ class _JsonLinesSession:
         self._lines.put(None)
 
     def send(self, message: dict) -> None:
-        self._process.stdin.write(json.dumps(message) + "\n")
-        self._process.stdin.flush()
+        try:
+            self._process.stdin.write(json.dumps(message) + "\n")
+            self._process.stdin.flush()
+        except OSError as exc:  # BrokenPipeError: the CLI exited early
+            raise CatalogUnavailable("the CLI closed its input") from exc
 
     def wait_for(self, matches) -> dict:
         """The first message *matches* accepts; lines that are not JSON are skipped."""
@@ -122,6 +126,11 @@ class _JsonLinesSession:
     def close(self) -> None:
         if self._process.poll() is None:
             self._process.kill()
+        for pipe in (self._process.stdin, self._process.stdout):
+            try:
+                pipe.close()
+            except OSError:
+                _log.debug("Model-list CLI pipe already closed")
         try:
             self._process.wait(timeout=_STOP_TIMEOUT_S)
         except subprocess.TimeoutExpired:
@@ -129,11 +138,15 @@ class _JsonLinesSession:
             _log.debug("Model-list CLI did not exit within %ss", _STOP_TIMEOUT_S)
 
 
+def _as_dict(value: object) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
 def _claude_catalog(session: _JsonLinesSession) -> list[dict]:
     session.send(_CLAUDE_INIT)
     reply = session.wait_for(lambda m: m.get("type") == _CLAUDE_REPLY_TYPE)
-    body = reply.get("response", {})
-    models = body.get("response", body).get("models")
+    body = _as_dict(reply.get("response"))
+    models = _as_dict(body.get("response", body)).get("models")
     if not isinstance(models, list):
         raise CatalogUnavailable("no model list in the initialize reply")
     entries = [m for m in models if isinstance(m, dict) and isinstance(m.get("value"), str)]
@@ -147,7 +160,8 @@ def _claude_catalog(session: _JsonLinesSession) -> list[dict]:
             "description": str(m.get("description") or ""),
             "efforts": [e for e in m.get("supportedEffortLevels") or [] if isinstance(e, str)],
             "defaultEffort": None,
-            "isDefault": m.get("resolvedModel") == recommended and not m["value"].startswith(_CLAUDE_PINNED_PREFIX),
+            "isDefault": recommended is not None and m.get("resolvedModel") == recommended
+            and not m["value"].startswith(_CLAUDE_PINNED_PREFIX),
             "pinned": m["value"].startswith(_CLAUDE_PINNED_PREFIX),
         }
         for m in entries if m["value"] != _CLAUDE_DEFAULT_ALIAS
@@ -174,13 +188,13 @@ def _codex_catalog(session: _JsonLinesSession) -> list[dict]:
     entries: list[dict] = []
     cursor = None
     for page in range(_CODEX_MAX_PAGES):
-        request_id = 2 + page
+        request_id = _CODEX_FIRST_LIST_ID + page
         params = {"cursor": cursor} if cursor else {}
         session.send({"jsonrpc": "2.0", "id": request_id, "method": "model/list", "params": params})
         reply = session.wait_for(lambda m, rid=request_id: m.get("id") == rid)
         if "error" in reply:
             raise CatalogUnavailable("model/list was rejected")
-        result = reply.get("result") or {}
+        result = _as_dict(reply.get("result"))
         data = result.get("data")
         if not isinstance(data, list):
             raise CatalogUnavailable("no model list in the model/list reply")

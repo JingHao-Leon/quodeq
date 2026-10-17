@@ -87,7 +87,7 @@ def register_discovery_routes(app: Flask, provider: ActionProvider) -> None:
     def client_models(client_id: str) -> Response | tuple[Response, int]:
         # ?refresh=1 skips the server's cached model list.
         refresh = request.args.get("refresh", "").lower() in QUERY_FLAG_TRUTHY
-        payload = provider.get_client_models(client_id, refresh=True) if refresh else provider.get_client_models(client_id)
+        payload = provider.get_client_models(client_id, refresh=refresh)
         if "error" in payload:
             return json_error(payload["error"], HTTPStatus.SERVICE_UNAVAILABLE, payload["error_code"])
         return jsonify(payload)

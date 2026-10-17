@@ -133,4 +133,4 @@ def test_client_models_refresh_flag_reaches_the_provider(query, refresh):
     with patch.object(provider, "get_client_models", return_value={"models": ["opus"]}) as get_models:
         response = app.test_client().get(f"/api/ai-clients/claude/models{query}")
     assert response.status_code == 200
-    assert get_models.call_args == ((("claude",), {"refresh": True}) if refresh else (("claude",), {}))
+    get_models.assert_called_once_with("claude", refresh=refresh)
