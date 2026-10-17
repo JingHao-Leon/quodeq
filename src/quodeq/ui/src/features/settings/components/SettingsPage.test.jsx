@@ -49,6 +49,13 @@ describe('SettingsPage', () => {
     expect(screen.queryByText(/test access/i)).not.toBeInTheDocument();
   });
 
+  it('keeps the AI provider and the grade formula together under Evaluation', async () => {
+    renderPage();
+    const evaluation = (await screen.findByRole('heading', { level: 2, name: 'Evaluation' })).closest('section');
+    expect(await within(evaluation).findByText('AI Provider')).toBeInTheDocument();
+    expect(within(evaluation).getByText('Grade formula')).toBeInTheDocument();
+  });
+
   it('puts the local server under Connections, shown open, and the welcome under About', async () => {
     renderPage();
     const connections = (await screen.findByRole('heading', { level: 2, name: 'Connections' })).closest('section');

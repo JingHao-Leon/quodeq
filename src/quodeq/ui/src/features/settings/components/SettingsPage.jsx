@@ -32,9 +32,8 @@ function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSha
   return {
     [SETTINGS_GROUP.EVALUATION]: (<>
       <ProviderTabs providerConfigs={providerConfigs} />
-      <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} />
+      <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} onEvaluationsDeleted={onEvaluationsDeleted} />
     </>),
-    [SETTINGS_GROUP.EVALUATION]: <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} onEvaluationsDeleted={onEvaluationsDeleted} />,
     [SETTINGS_GROUP.ASSISTANT]: <AssistantProviderTabs providerConfigs={providerConfigs} />,
     // Two explicit lines: GitHub and the shared repository side by side, the
     // local server under them.
