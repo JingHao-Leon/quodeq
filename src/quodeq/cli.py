@@ -67,7 +67,14 @@ _COMMAND_HANDLERS: dict[str, Callable] = {
     "dashboard": lambda argv: dashboard_main(argv[1:] if argv is not None else sys.argv[2:]),
     "stop": lambda _argv: stop_dashboard(),
     "status": lambda _argv: dashboard_status(),
+    "restart": lambda _argv: _restart(),
 }
+
+
+def _restart() -> int:
+    """Stop the window and its API, then open Quodeq again (it loads the code installed now)."""
+    stop_dashboard()
+    return dashboard_main([])
 
 
 def maybe_emit_cli_notice(stream=None, env: dict[str, str] | None = None) -> None:

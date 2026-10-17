@@ -1,14 +1,20 @@
-"""/api/update/* routes — notify-only update status, manual check, dismiss, settings."""
+"""/api/update/* routes: update status, manual check, dismiss, settings, self-update and in-place upgrade."""
 
 from __future__ import annotations
 
 from http import HTTPStatus
+from pathlib import Path
 
 from flask import Flask, Response, jsonify
 
-from quodeq.api._constants import CODE_MISSING_PARAM
+from quodeq.api._constants import CODE_FORBIDDEN, CODE_MISSING_PARAM
 from quodeq.api.helpers import json_error, optional_json_object_or_response
+from quodeq.api.routes_common import is_local_request
+from quodeq.services.running_evaluations import running_evaluations
+from quodeq.shared.env import get_evaluations_dir
+from quodeq.update import inplace
 from quodeq.update.checker import (
+    begin_in_place_upgrade,
     begin_self_update,
     check_async,
     dismiss,
@@ -18,10 +24,59 @@ from quodeq.update.checker import (
 )
 
 
+_REASON_REMOTE = "remote"  # only the machine running quodeq may upgrade it
+_CODE_EVALUATIONS_RUNNING = "EVALUATIONS_RUNNING"
+_CODE_NOT_UPGRADED = "NOT_UPGRADED"
+
+
+def _evaluations_running() -> int:
+    return len(running_evaluations(Path(get_evaluations_dir())))
+
+
+def _status() -> dict:
+    """``get_status`` plus the facts only the API knows: who asks, and what is running.
+
+    An upgrade replaces the code running evaluations still load, so the UI
+    holds the Install button while any run.
+    """
+    status = dict(get_status())
+    in_place = dict(status.get("in_place_upgrade") or {})
+    if in_place.get("supported") and not is_local_request():
+        in_place.update(supported=False, reason=_REASON_REMOTE)
+    in_place["evaluations_running"] = _evaluations_running() if in_place.get("supported") else 0
+    status["in_place_upgrade"] = in_place
+    return status
+
+
+def _upgrade_start_response() -> Response | tuple[Response, int]:
+    if not is_local_request():
+        return json_error("only this machine can upgrade quodeq", HTTPStatus.FORBIDDEN, CODE_FORBIDDEN)
+    if _evaluations_running():
+        return json_error(
+            "finish or cancel the running evaluations first",
+            HTTPStatus.CONFLICT, _CODE_EVALUATIONS_RUNNING,
+        )
+    result = begin_in_place_upgrade()
+    if result["ok"]:
+        return jsonify({"ok": True, "status": _status()})
+    body = {"error": result["error"], "code": result["code"]}
+    if "reason" in result:
+        body["reason"] = result["reason"]
+    return jsonify(body), HTTPStatus.CONFLICT
+
+
+def _restart_response() -> Response | tuple[Response, int]:
+    if not is_local_request():
+        return json_error("only this machine can restart quodeq", HTTPStatus.FORBIDDEN, CODE_FORBIDDEN)
+    if not inplace.restart():
+        return json_error("nothing was upgraded", HTTPStatus.CONFLICT, _CODE_NOT_UPGRADED)
+    return jsonify({"ok": True})
+
+
 def _selfupdate_start_response() -> Response | tuple[Response, int]:
     result = begin_self_update()
     if result["ok"]:
-        return jsonify({"ok": True, "status": result["status"]})
+        return jsonify({"ok": True, "status": _status()})
     body = {"error": result["error"], "code": result["code"]}
     if "reason" in result:
         body["reason"] = result["reason"]
@@ -34,12 +89,12 @@ def register_update_routes(app: Flask) -> None:
     @app.get("/api/update/status")
     def update_status() -> Response:
         check_async()  # throttled + non-blocking; refreshes state for next time
-        return jsonify(get_status())
+        return jsonify(_status())
 
     @app.post("/api/update/check")
     def update_check() -> Response:
         run_check(force=True)
-        return jsonify(get_status())
+        return jsonify(_status())
 
     @app.post("/api/update/dismiss")
     def update_dismiss() -> Response | tuple[Response, int]:
@@ -50,11 +105,19 @@ def register_update_routes(app: Flask) -> None:
         if not version:
             return json_error("version is required", HTTPStatus.BAD_REQUEST, CODE_MISSING_PARAM)
         dismiss(version)
-        return jsonify({"ok": True, "status": get_status()})
+        return jsonify({"ok": True, "status": _status()})
 
     @app.post("/api/update/selfupdate")
     def update_selfupdate() -> Response | tuple[Response, int]:
         return _selfupdate_start_response()
+
+    @app.post("/api/update/upgrade")
+    def update_upgrade() -> Response | tuple[Response, int]:
+        return _upgrade_start_response()
+
+    @app.post("/api/update/restart")
+    def update_restart() -> Response | tuple[Response, int]:
+        return _restart_response()
 
     @app.post("/api/update/settings")
     def update_settings() -> Response | tuple[Response, int]:
@@ -65,4 +128,4 @@ def register_update_routes(app: Flask) -> None:
             auto_check_enabled=body.get("auto_check_enabled"),
             disclosed=body.get("disclosed"),
         )
-        return jsonify({"ok": True, "status": get_status()})
+        return jsonify({"ok": True, "status": _status()})
