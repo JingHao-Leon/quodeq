@@ -113,6 +113,17 @@ function storedFor(entry, storage, id) {
   return storage[id] ?? null;
 }
 
+// What deleting the project takes: its own entry plus its subprojects', since
+// the delete cascades to them. Null while any part is unknown (the plain question).
+function deletedTotals(stored, ctx, id) {
+  const kids = ctx.children?.[id] ?? [];
+  const storage = ctx.storage;
+  if (!stored || !kids.length) return stored;
+  const parts = [stored, ...kids.map((kid) => storage[projectIdOrSelf(kid)])];
+  if (parts.some((part) => part?.bytes == null)) return null;
+  return { bytes: parts.reduce((sum, part) => sum + part.bytes, 0), runs: parts.reduce((sum, part) => sum + (part.runs ?? 0), 0) };
+}
+
 /**
  * One project row. The row and its name button both open the project (the
  * name is the keyboard handle). `configured` shows the location and sync
@@ -127,6 +138,7 @@ function Row({ entry, project, isChild, ctx, refresh, pull }) {
   const score = project.latestScore != null ? parseFloat(project.latestScore).toFixed(1) : null;
   const action = rowAction(entry);
   const stored = storedFor(entry, ctx.storage, id);
+  const deleted = deletedTotals(stored, ctx, id);
   const cls = ['projects-row', isChild && 'projects-row--child', selected && 'projects-row--selected', !selected && childSelectedIds?.has(id) && 'projects-row--parent-of-selected'].filter(Boolean).join(' ');
   return (
     <div className="projects-row-group">
@@ -150,7 +162,7 @@ function Row({ entry, project, isChild, ctx, refresh, pull }) {
           ? <RowMenu name={id} refresh={isRefreshable(project) && !isChild ? refresh : null} onExport={onExport} onDelete={() => setConfirming(id)} />
           : <div className="projects-row__more" role="cell" />}
       </div>
-      <RowDetails id={id} local={!!entry.local} ctx={ctx} refresh={refresh} pull={pull} stored={stored} runsCount={project.runsCount} />
+      <RowDetails id={id} local={!!entry.local} ctx={ctx} refresh={refresh} pull={pull} stored={deleted} runsCount={project.runsCount} />
     </div>
   );
 }
