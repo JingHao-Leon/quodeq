@@ -48,7 +48,8 @@ _RANGES: dict[str, tuple[float, float]] = {
     "floor_minor": (0.0, 10.0),
     "floor_major": (0.0, 10.0),
 }
-_SEVERITY_WEIGHT_RANGE = (0.05, 10.0)
+# Critical needs headroom past its 7.5 default; the UI slider is log-scaled over the same range.
+_SEVERITY_WEIGHT_RANGE = (0.05, 25.0)
 _DIMENSION_WEIGHT_RANGE = (0.1, 3.0)
 
 

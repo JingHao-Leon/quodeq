@@ -26,3 +26,14 @@ def test_a_none_weight_is_an_error_not_a_crash():
     params = dataclasses.replace(DEFAULT_PARAMS, severity_weight={"critical": 4.0, "major": None, "minor": 0.25})
     errors = validate_params(params)
     assert any("strictly increasing" in e for e in errors)
+
+
+def test_a_critical_weight_up_to_25_is_accepted():
+    params = dataclasses.replace(DEFAULT_PARAMS, severity_weight={"critical": 25.0, "major": 2.0, "minor": 0.15})
+    assert validate_params(params) == []
+
+
+def test_a_critical_weight_past_25_is_rejected():
+    params = dataclasses.replace(DEFAULT_PARAMS, severity_weight={"critical": 25.05, "major": 2.0, "minor": 0.15})
+    errors = validate_params(params)
+    assert any("severity_weight[critical] must be between 0.05 and 25.0" in e for e in errors)

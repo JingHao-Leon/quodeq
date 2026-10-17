@@ -2,6 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import KnobGroups from './KnobGroups.jsx';
+import { toPosition } from './knobScale.js';
+import { GROUPS } from './knobGroups.js';
+
+// The severity sliders are log-scaled: an input event carries a position, not a weight.
+const majorAt = (weight) => String(toPosition(GROUPS[0].knobs.find((k) => k.id === 'major'), weight));
 
 const SAVED = {
   severityWeight: { critical: 4, major: 2, minor: 0.25 }, baseK: 0.08, liftCompress: 2.2, ceilScale: 0.5,
@@ -33,7 +38,7 @@ describe('KnobGroups', () => {
 
   it('sends a knob move as a draft patch', () => {
     const props = mount();
-    fireEvent.change(screen.getByLabelText('major'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('major'), { target: { value: majorAt(3) } });
     expect(props.update).toHaveBeenCalledWith({ severityWeight: { critical: 4, major: 3, minor: 0.25 } });
   });
 
@@ -78,5 +83,20 @@ describe('KnobGroups hint line', () => {
     mount();
     fireEvent.focus(screen.getByLabelText('major'));
     expect(screen.getByText(MAJOR_HINT)).toBeInTheDocument();
+  });
+});
+
+describe('KnobGroups severity sliders', () => {
+  it('announce the weight, not the log position', () => {
+    mount();
+    expect(screen.getByLabelText('critical')).toHaveAttribute('aria-valuetext', '4');
+    expect(screen.getByLabelText('minor')).toHaveAttribute('aria-valuetext', '0.25');
+  });
+});
+
+describe('KnobGroups default tick', () => {
+  it('describes each slider with its Q² default', () => {
+    mount();
+    expect(screen.getByLabelText('major')).toHaveAccessibleDescription('Q² default 2');
   });
 });

@@ -12,6 +12,11 @@ import { ApiProvider } from '../../api/ApiContext.jsx';
 import useGradeFormula from './useGradeFormula.js';
 import { useFormulaInputs } from './hooks/useFormulaInputs.js';
 import GradeFormulaPage from './GradeFormulaPage.jsx';
+import { toPosition } from './knobs/knobScale.js';
+import { GROUPS } from './knobs/knobGroups.js';
+
+// The severity sliders are log-scaled: an input event carries a position, not a weight.
+const majorAt = (weight) => String(toPosition(GROUPS[0].knobs.find((k) => k.id === 'major'), weight));
 
 vi.mock('./useGradeFormula.js', () => ({ default: vi.fn() }));
 vi.mock('./hooks/useFormulaInputs.js', () => ({ useFormulaInputs: vi.fn() }));
@@ -89,7 +94,7 @@ describe('GradeFormulaPage', () => {
   it('moving the major slider sends the severity patch', () => {
     const state = mockHook();
     mount(<GradeFormulaPage navigation={NAVIGATION} />);
-    fireEvent.change(screen.getByLabelText('major'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('major'), { target: { value: majorAt(3) } });
     expect(state.update).toHaveBeenCalledWith({ severityWeight: { critical: 4, major: 3, minor: 0.25 } });
   });
 
