@@ -7,6 +7,10 @@ import { SidePaneProvider } from '../../side-pane/index.js';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
 
+// The header's tiles. Queries stay inside them: the since row may show a random loading tip, and a tip
+// can bold the same word as a tile ("On the Map's **Risk** tab"), so a page-wide query would flake.
+const headTiles = () => within(document.querySelector('section.findings-head .findings-head__stats'));
+
 const deltas = vi.hoisted(() => ({ map: new Map(), args: null, previous: null, diffs: [], areas: [], riskArgs: null, seriesRows: [] }));
 
 vi.mock('../../../utils/pretext.js', async (importOriginal) => ({
@@ -133,7 +137,7 @@ describe('ScopedFindings, a principle', () => {
     const onOpenMap = vi.fn();
     renderPrinciple(HISTORY, onOpenMap);
     expect(deltas.riskArgs).toMatchObject({ project: 'p1', dimensions: ['security'], principle: 'Input' });
-    const tile = screen.getByText(t('violations.scopeStatRisk')).closest('.findings-head__stat');
+    const tile = headTiles().getByText(t('violations.scopeStatRisk')).closest('.findings-head__stat');
     expect(tile).toHaveTextContent('2 fix first · 1 watch');
     fireEvent.click(within(tile).getByRole('button'));
     expect(onOpenMap).toHaveBeenCalledWith({ vizStyle: 'risk', dimensions: ['security'], principle: 'Input' });
@@ -142,6 +146,6 @@ describe('ScopedFindings, a principle', () => {
   it('reads "none" when no area of its findings needs rework', () => {
     deltas.areas = [{ name: 'docs', zone: 'healthy' }];
     renderPrinciple();
-    expect(screen.getByText(t('violations.scopeStatRisk')).closest('.findings-head__stat')).toHaveTextContent('none');
+    expect(headTiles().getByText(t('violations.scopeStatRisk')).closest('.findings-head__stat')).toHaveTextContent('none');
   });
 });
