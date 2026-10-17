@@ -181,3 +181,28 @@ def test_a_legit_reopen_keeps_the_database(repo, monkeypatch):
         with open_evaluation_db(run) as conn:
             assert conn.execute("SELECT v FROM kept").fetchone() == ("x",)
     assert forgets == []
+
+
+def _bomb_run(root: Path) -> Path:
+    """An archived run whose event log is 4 MB of one repeated line: gzip packs it ~1000:1."""
+    run = root / "evaluations" / "proj" / "run-1"
+    run.mkdir(parents=True)
+    (run / "events.jsonl").write_text('{"type": "finding"}\n' * (4 * 1024 * 1024 // 20))
+    archive_run(run)
+    (run / ".archive.lock").unlink(missing_ok=True)
+    return run
+
+
+def test_a_highly_compressible_clone_archive_is_refused(repo):
+    run = _bomb_run(repo)
+    _commit_all(repo)
+    assert (run / ARCHIVE_FILENAME).stat().st_size * 100 < 4 * 1024 * 1024
+    with pytest.raises(RunArchiveError, match="when unpacked"):
+        ensure_restored(run)
+    assert not (run / "events.jsonl").exists() and not unpacked_marker(run).exists()
+
+
+def test_the_ratio_cap_leaves_this_machines_own_archives_alone(tmp_path):
+    run = _bomb_run(tmp_path / "local")
+    assert ensure_restored(run) is True
+    assert (run / "events.jsonl").stat().st_size > 1024 * 1024

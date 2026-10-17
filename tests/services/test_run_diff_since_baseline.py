@@ -13,6 +13,7 @@ _PROJECT = "p"
 _PREV, _CURR = "r-prev", "r-curr"
 _DIM = "maintainability"
 _SHA_A, _SHA_B = "a" * 40, "b" * 40
+_REPO = Path("/repo")  # the caller-chosen working copy
 
 
 def _run(root: Path, run_id: str, started_at: str, sha: str | None, violations: list[dict],
@@ -37,7 +38,6 @@ def _v(req: str, file: str, severity: str = "minor") -> dict:
 @pytest.fixture
 def scoped(monkeypatch):
     """Pretend the project is a local checkout where only a.py changed."""
-    monkeypatch.setattr(run_diff_module, "local_repo_root", lambda reports_root, project: Path("/repo"))
     monkeypatch.setattr(
         run_diff_module, "changed_files",
         lambda root, a, b: None if not (a and b) else (set() if a == b else {"a.py"}),
@@ -50,7 +50,7 @@ def test_since_baseline_counts_only_findings_in_changed_files(tmp_path: Path, sc
     _run(tmp_path, _CURR, "2026-09-26T00:00:00Z", _SHA_B,
          [_v("M-MDF-1", "a.py", "major"), _v("M-TST-5", "c.py")])
 
-    since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]["sinceBaseline"]
+    since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO)["dimensions"][_DIM]["sinceBaseline"]
 
     assert since["scope"] == "changed-files" and since["changedFiles"] == 1
     assert since["counts"] == {"new": 1, "resolved": 1}
@@ -68,7 +68,7 @@ def test_a_dirty_tree_on_either_side_falls_back_to_all_files(tmp_path: Path, sco
     _run(tmp_path, _PREV, "2026-09-20T00:00:00Z", _SHA_A, [_v("M-REU-1", "b.py")])
     _run(tmp_path, _CURR, "2026-09-26T00:00:00Z", _SHA_A, [_v("M-ANA-9", "a.py")], dirty=True)
 
-    out = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)
+    out = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO)
 
     assert out["commitDirty"] is True
     assert out["dimensions"][_DIM]["sinceBaseline"]["scope"] == "all"
@@ -78,7 +78,7 @@ def test_since_baseline_same_sha_is_empty(tmp_path: Path, scoped) -> None:
     _run(tmp_path, _PREV, "2026-09-20T00:00:00Z", _SHA_A, [_v("M-REU-1", "b.py")])
     _run(tmp_path, _CURR, "2026-09-26T00:00:00Z", _SHA_A, [_v("M-ANA-9", "a.py")])
 
-    since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]["sinceBaseline"]
+    since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO)["dimensions"][_DIM]["sinceBaseline"]
 
     assert (since["scope"], since["changedFiles"], since["counts"]) == (
         "changed-files", 0, {"new": 0, "resolved": 0})
@@ -89,7 +89,7 @@ def test_since_baseline_without_sha_uses_all_files(tmp_path: Path, scoped) -> No
     # b.py is read again (it holds a finding), so the old finding there counts as resolved.
     _run(tmp_path, _CURR, "2026-09-26T00:00:00Z", _SHA_B, [_v("M-ANA-9", "a.py"), _v("M-TST-5", "b.py")])
 
-    since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]["sinceBaseline"]
+    since = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO)["dimensions"][_DIM]["sinceBaseline"]
 
     assert since["scope"] == "all" and since["changedFiles"] is None
     assert since["counts"] == {"new": 2, "resolved": 1}
@@ -104,7 +104,6 @@ def test_against_run_resolves_scope_once_for_all_dimensions(tmp_path: Path, monk
         calls.append((a, b))
         return {"a.py"}
 
-    monkeypatch.setattr(run_diff_module, "local_repo_root", lambda reports_root, project: Path("/repo"))
     monkeypatch.setattr(run_diff_module, "changed_files", _changed)
     for dim in (_DIM, "security"):
         for run_id, started, sha in ((_PREV, "2026-09-20T00:00:00Z", _SHA_A), (_CURR, "2026-09-26T00:00:00Z", _SHA_B)):
@@ -116,7 +115,7 @@ def test_against_run_resolves_scope_once_for_all_dimensions(tmp_path: Path, monk
             (run_dir / "status.json").write_text(json.dumps(
                 {"state": "done", "started_at": started, "commit_sha": sha}), encoding="utf-8")
 
-    out = diff_runs(tmp_path, _PROJECT, _CURR, _PREV)
+    out = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO)
 
     assert set(out["dimensions"]) == {_DIM, "security"}
     assert all(d["sinceBaseline"]["changedFiles"] == 1 for d in out["dimensions"].values())
@@ -128,15 +127,14 @@ def test_the_run_log_change_path_never_asks_git_for_changed_files(tmp_path: Path
     from quodeq.services.run_log import ChangeJob, compute_run_change
 
     calls: list[tuple] = []
-    monkeypatch.setattr(run_diff_module, "local_repo_root", lambda reports_root, project: Path("/repo"))
     monkeypatch.setattr(run_diff_module, "changed_files", lambda *a: calls.append(a) or {"a.py"})
     _run(tmp_path, _PREV, "2026-09-20T00:00:00Z", _SHA_A, [_v("M-REU-1", "a.py")])
     _run(tmp_path, _CURR, "2026-09-26T00:00:00Z", _SHA_B, [_v("M-ANA-9", "a.py")])
 
-    assert "sinceBaseline" in diff_runs(tmp_path, _PROJECT, _CURR, _PREV)["dimensions"][_DIM]
+    assert "sinceBaseline" in diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO)["dimensions"][_DIM]
     calls.clear()
     out = compute_run_change(ChangeJob(tmp_path, _PROJECT, _CURR, _PREV, "k"))
 
     assert calls == [] and out["counts"]["new"] == 1
-    lean = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, since_baseline=False)["dimensions"][_DIM]
+    lean = diff_runs(tmp_path, _PROJECT, _CURR, _PREV, repo_root=_REPO, since_baseline=False)["dimensions"][_DIM]
     assert "sinceBaseline" not in lean and calls == []

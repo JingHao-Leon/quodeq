@@ -28,6 +28,7 @@ import sqlite3
 import tarfile
 import zlib
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from quodeq.data.fs.run_archive_guard import (  # noqa: F401 -- run_lock re-exported
@@ -184,11 +185,12 @@ def check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
     return names
 
 
-def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = ()) -> list[str]:
-    """Validate *archive* and extract it into *staging*, leaving out the members named in *skip*; their names."""
+def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = (), *, ratio_capped: bool = False) -> list[str]:
+    """Validate *archive* and extract it into *staging*, leaving out the members named in *skip*; their names.
+    *ratio_capped* (an archive someone else wrote) also caps unpacked size at a multiple of packed size."""
     try:
         with tarfile.open(archive, "r:gz") as tar:
-            members = read_members(tar)
+            members = read_members(tar, archive.stat().st_size if ratio_capped else None)
             names = [name for name in check_members(members, staging) if name not in skip]
             staging.mkdir()
             tar.extractall(staging, members=[m for m in members if m.name in names], filter="data")
@@ -221,7 +223,7 @@ def restore_locked(run_dir: Path) -> bool:
     _clean_leftovers(run_dir)
     archive, staging = run_dir / ARCHIVE_FILENAME, run_dir / _RESTORE_DIR
     if is_shared_clone_run(run_dir):  # the archive is tracked there: unpack beside it, never its database
-        return restore_clone_locked(run_dir, staging, _extract)
+        return restore_clone_locked(run_dir, staging, partial(_extract, ratio_capped=True))
     try:
         check_restore_dirs(run_dir)
         names = _extract(archive, staging)

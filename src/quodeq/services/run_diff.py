@@ -9,7 +9,6 @@ from quodeq.core.run.run_log import NEW_SEV, RESOLVED_SEV, severity_tally
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.core.run_diff import RunDiff, diff_findings
 from quodeq.core.utils.io import resolve_child_dir
-from quodeq.services._fs_project_primitives import local_repo_root
 from quodeq.services._violation_filters import unsuppressed
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
@@ -189,7 +188,8 @@ def _locate_runs(
 
 
 def _diff_context(
-    reports_root: Path, project: str, run_id: str, against: str | None, since_baseline: bool,
+    reports_root: Path, project: str, run_id: str, against: str | None,
+    repo_root: Path | None, since_baseline: bool,
 ) -> _DiffContext:
     project_dir, current_dir, older = _locate_runs(reports_root, project, run_id, against)
     # Dismissals and deletions are project-wide; a dismissed finding is neither
@@ -197,7 +197,7 @@ def _diff_context(
     suppressed = (dismissed_keys(project_dir), deleted_keys(project_dir))
     return _DiffContext(
         project_dir, current_dir, older, suppressed,
-        local_repo_root(reports_root, project) if since_baseline else None, _commit_state(current_dir),
+        repo_root if since_baseline else None, _commit_state(current_dir),
         since_baseline,
     )
 
@@ -227,14 +227,20 @@ def _dimension_entry(
 
 
 def diff_runs(
-    reports_root: Path, project: str, run_id: str, against: str | None, *, since_baseline: bool = True,
+    reports_root: Path, project: str, run_id: str, against: str | None, *,
+    repo_root: Path | None = None, since_baseline: bool = True,
 ) -> dict[str, Any]:
     """Per-dimension diff of *run_id*. With *against* every dimension uses that
     run; without it each dimension picks its own baseline (see ``_baseline_for``)
     and reports it as ``againstRunId``. ``since_baseline=False`` leaves out the
     changed-files view and the git diff it needs, for callers that read only
-    the counts."""
-    ctx = _diff_context(reports_root, project, run_id, against, since_baseline)
+    the counts.
+
+    *repo_root* is the working copy git diffs the two commits in, chosen by
+    the caller (``trusted_repo_root``), never read from *reports_root* here:
+    a shared clone's recorded path was written by someone else. Without it
+    the changed-files view covers every file."""
+    ctx = _diff_context(reports_root, project, run_id, against, repo_root, since_baseline)
     # Several dimensions share one baseline run (always, with *against*);
     # its commit state and the git diff against head are resolved once.
     scopes: dict[str | None, _Scope] = {}

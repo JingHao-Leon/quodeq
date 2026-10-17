@@ -8,6 +8,7 @@ from flask import Flask, Response, request
 from quodeq.api._report_payload import PayloadFailure, serve_report_payload
 from quodeq.api.helpers import validate_segment
 from quodeq.services.run_diff import diff_runs
+from quodeq.services.fs_projects import trusted_repo_root
 
 _logger = logging.getLogger(__name__)
 _QUERY_AGAINST = "against"
@@ -25,7 +26,8 @@ def run_diff(project: str, run_id: str) -> Response | tuple[Response, int]:
     failure = PayloadFailure(
         errors=(OSError, ValueError), message="Failed to diff runs", not_found="Run not found",
         log=lambda: _logger.exception("Failed to diff run %s for %s", run_id, project))
-    return serve_report_payload(lambda root: diff_runs(root, project, run_id, against), failure)
+    return serve_report_payload(
+        lambda root: diff_runs(root, project, run_id, against, repo_root=trusted_repo_root(root, project)), failure)
 
 
 def register_run_diff_routes(app: Flask) -> None:

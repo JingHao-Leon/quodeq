@@ -60,11 +60,16 @@ def _clone_root(run_dir: Path) -> Path:
     return run_dir.parent.parent.parent
 
 
+def is_shared_clone_root(eval_root: Path) -> bool:
+    """True when *eval_root* is ``<clone>/evaluations`` in a git clone holding ``quodeq.json``."""
+    repo = eval_root.parent
+    return (eval_root.name == EVALUATIONS_DIRNAME and (repo / MARKER_FILENAME).is_file()
+            and (repo / GIT_DIR_NAME).is_dir())
+
+
 def is_shared_clone_run(run_dir: Path) -> bool:
     """True when *run_dir* is ``<clone>/evaluations/<project>/<run>`` in a git clone holding ``quodeq.json``."""
-    repo = _clone_root(run_dir)
-    return (run_dir.parent.parent.name == EVALUATIONS_DIRNAME and (repo / MARKER_FILENAME).is_file()
-            and (repo / GIT_DIR_NAME).is_dir())
+    return is_shared_clone_root(run_dir.parent.parent)
 
 
 def _marker(run_dir: Path, name: str) -> Path:

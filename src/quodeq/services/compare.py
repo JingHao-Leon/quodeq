@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from quodeq.core.observability import NULL_LOG, LogSink
-from quodeq.services._fs_metadata import local_repo_root
+from quodeq.services._fs_project_primitives import trusted_repo_root
 from quodeq.services.grade_formula import is_custom
 from quodeq.services.wiring import count_commits_since, find_children, score_cache_session
 from quodeq.services.scoring import ProjectRows, get_project_scores
@@ -86,7 +86,7 @@ def _summary(
         "trend": slim_trend,
         "runsCount": len(runs),
         "lastRun": runs[0] if runs else None,
-        "commitsSinceLastRun": _commits_since(local_repo_root(reports_root, project), since_iso),
+        "commitsSinceLastRun": _commits_since(trusted_repo_root(reports_root, project), since_iso),
         "scoring": {"customFormula": is_custom()},
     }
 

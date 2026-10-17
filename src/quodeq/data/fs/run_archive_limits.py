@@ -11,6 +11,14 @@ EVIDENCE_DIR = "evidence"
 MAX_MEMBERS = 10000
 _DEFAULT_MAX_MB = 2048
 _MB = 1024 * 1024
+# An archive someone else wrote (a shared clone's) may unpack to at most this
+# many times its packed size: gzip turns repeated bytes into ~1000:1, so the
+# absolute cap alone lets a few MB in a shared repo fill gigabytes here.
+# Real run logs pack well under it.
+_DEFAULT_MAX_RATIO = 100
+# Below this unpacked total the ratio is not checked: tiny archives carry
+# fixed header overhead and can never fill a disk.
+_RATIO_FLOOR_BYTES = _MB
 
 
 class RunArchiveError(ValueError):
@@ -22,14 +30,29 @@ def max_archive_bytes() -> int:
     return env_int("QUODEQ_ARCHIVE_MAX_MB", _DEFAULT_MAX_MB, minimum=1) * _MB
 
 
-def read_members(tar: tarfile.TarFile) -> list[tarfile.TarInfo]:
+def max_archive_ratio() -> int:
+    """Cap on unpacked size over packed size for untrusted archives; ``QUODEQ_ARCHIVE_MAX_RATIO``."""
+    return env_int("QUODEQ_ARCHIVE_MAX_RATIO", _DEFAULT_MAX_RATIO, minimum=1)
+
+
+def unpacked_cap(packed_bytes: int | None = None) -> int:
+    """The members' allowed total: the absolute cap, and with *packed_bytes* (an
+    archive someone else wrote) also at most ``max_archive_ratio()`` times that."""
+    cap = max_archive_bytes()
+    if packed_bytes is None:
+        return cap
+    return min(cap, max(packed_bytes * max_archive_ratio(), _RATIO_FLOOR_BYTES))
+
+
+def read_members(tar: tarfile.TarFile, packed_bytes: int | None = None) -> list[tarfile.TarInfo]:
     """The archive's members, read header by header; stops at the first one past the count or size cap.
 
     ``getmembers()`` would read every header first: a stream of tiny headers
-    would fill memory before any limit is checked.
+    would fill memory before any limit is checked. *packed_bytes* (the
+    archive's size on disk) adds the compression-ratio cap (``unpacked_cap``).
     """
     members: list[tarfile.TarInfo] = []
-    total, cap = 0, max_archive_bytes()
+    total, cap = 0, unpacked_cap(packed_bytes)
     for index, member in enumerate(tar):
         if index >= MAX_MEMBERS:
             raise RunArchiveError(f"archive has more than the {MAX_MEMBERS} members allowed")

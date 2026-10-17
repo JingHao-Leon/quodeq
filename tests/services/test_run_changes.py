@@ -87,3 +87,30 @@ def test_changed_files_is_memoized_per_commit_pair(tmp_path: Path) -> None:
     changed_files(tmp_path, first, second)
     changed_files(tmp_path, first, second)
     assert changed_files.cache_info().hits == 1
+
+
+def test_a_non_hex_sha_returns_none_without_running_git(tmp_path: Path, monkeypatch) -> None:
+    import quodeq.services.run_changes as module
+
+    calls: list[list[str]] = []
+    monkeypatch.setattr(module, "git_stdout", lambda argv, **_: calls.append(argv) or "")
+    for base, head in (("HEAD", "a" * 40), ("a" * 40, "main"), ("ABCDEF1", "a" * 40), ("abc", "a" * 40)):
+        assert changed_files(tmp_path, base, head) is None
+    assert calls == []
+
+
+def test_an_option_shaped_sha_writes_no_file(tmp_path: Path) -> None:
+    """A status.json SHA such as ``--output=<file>`` must never reach git as an option."""
+    first, _ = _repo_with_two_commits(tmp_path)
+    target = tmp_path.parent / f"{tmp_path.name}-pwned"
+    assert changed_files(tmp_path, f"--output={target}", first) is None
+    assert not target.exists()
+
+
+def test_the_revisions_follow_end_of_options(tmp_path: Path, monkeypatch) -> None:
+    import quodeq.services.run_changes as module
+
+    calls: list[list[str]] = []
+    monkeypatch.setattr(module, "git_stdout", lambda argv, **_: calls.append(argv) or "a.py\n")
+    assert changed_files(tmp_path, "1" * 40, "2" * 40) == {"a.py"}
+    assert calls[0][-3:] == ["--end-of-options", "1" * 40, "2" * 40]
