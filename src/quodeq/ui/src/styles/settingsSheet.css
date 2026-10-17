@@ -125,9 +125,10 @@
   border-left: 1px solid var(--color-border);
 }
 
-/* About shares its line with Updates and Getting started: a long link wraps
-   instead of running past the card. */
-.settings-sheet .settings-about-link { min-width: 0; overflow-wrap: anywhere; }
+/* About shares its line with Updates and Getting started: its links stay on
+   one line, so its column takes their width and the other two share the rest. */
+.settings-group--about .settings-group__body { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+.settings-sheet .settings-about-link { white-space: nowrap; }
 
 /* A line of peer sections inside a group (Connections uses two). */
 .settings-group__line {
