@@ -17,7 +17,7 @@ from pathlib import Path
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
-from quodeq.services.wiring_sync import has_retired_formula  # noqa: F401 -- re-exported API
+from quodeq.services.wiring_sync import has_event_log, has_retired_formula  # noqa: F401 -- re-exported API
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
     SQLiteStateStore,
     UnsupportedSchemaError,
@@ -53,11 +53,6 @@ def _run_recency_key(run_dir: Path) -> tuple[int, str | float]:
     if started_at:
         return (1, started_at)
     return (0, run_dir.stat().st_mtime)
-
-
-def has_event_log(run_dir: Path) -> bool:
-    """True when *run_dir* has the events.jsonl an apply rescores from."""
-    return (run_dir / "events.jsonl").is_file()
 
 
 def _event_log_runs(project_dir: Path) -> list[Path]:

@@ -94,6 +94,7 @@ def _terminal_run_scalars(reports_root: Path, project: str, run_id: str) -> list
     stamp = (
         evaluation_db_stamp(run_dir),
         file_stamp(run_dir / "events.jsonl"),
+        file_stamp(run_dir / "archive.tar.gz"),
         file_stamp(run_dir / "evaluation"),
     )
     if all(part is None for part in stamp):

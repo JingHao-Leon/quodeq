@@ -26,6 +26,7 @@ from quodeq.services.scoring._response_builders import (
 )
 from quodeq.shared.stamp_memo import StampCache, file_stamp, memoized_by_stamp
 from quodeq.shared.validation import validate_path_segment
+from quodeq.services.wiring_sync import has_event_log
 from quodeq.services.scoring.compliance_detail import defer_dimension_detail
 
 _logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ def _scores_from_sql_grade_tables(
     db_stamp = evaluation_db_stamp(run_dir)
     if db_stamp is None:
         return _read_sql_grade_tables(run_dir, project, run_id, params, deps)
-    stamp = (db_stamp, file_stamp(run_dir / "events.jsonl"))
+    stamp = (db_stamp, file_stamp(run_dir / "events.jsonl"), file_stamp(run_dir / "archive.tar.gz"))
     hit = memoized_by_stamp(
         f"{run_dir}|{params_fingerprint(params)}", stamp,
         lambda: _read_sql_grade_tables(run_dir, project, run_id, params, deps),
@@ -144,7 +145,7 @@ def get_scores_raw(
     # SQL path is meaningful only when events.jsonl exists. For older runs
     # without one, skip straight to the JSON-file fallback so we don't have
     # to wait on a no-op projection that will leave the grade tables empty.
-    if not _prefer_eval_rescore(d, project_dir, run_dir) and (run_dir / "events.jsonl").is_file():
+    if not _prefer_eval_rescore(d, project_dir, run_dir) and has_event_log(run_dir):
         sql_response = _scores_from_sql_grade_tables(run_dir, project, run_id, params, d)
         if sql_response is not None:
             return sql_response

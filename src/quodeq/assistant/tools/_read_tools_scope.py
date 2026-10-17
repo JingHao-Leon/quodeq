@@ -175,7 +175,7 @@ _RUN_KEYS_MEMO_SIZE = 64
 # mtime granularity (coarse on Linux) with the same size, so a stamp taken
 # over it cannot prove freshness: such reads are served but not memoized.
 _SETTLE_NS = 3_000_000_000
-_RUN_KEY_SOURCES = ("evaluation.db", "evaluation.db-wal", "events.jsonl")
+_RUN_KEY_SOURCES = ("evaluation.db", "evaluation.db-wal", "events.jsonl", "archive.tar.gz")
 _run_keys_memo: LRUDict[tuple, tuple[tuple, frozenset[tuple]]] = LRUDict(_RUN_KEYS_MEMO_SIZE)
 _run_keys_lock = threading.Lock()
 

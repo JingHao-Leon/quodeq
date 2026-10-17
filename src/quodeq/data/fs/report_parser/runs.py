@@ -101,12 +101,13 @@ def _read_run_scalars_from_sql(run_dir: Path) -> "tuple[list[dict], list[dict]] 
     projection). None signals the caller to use its fallback reader.
     """
     from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db  # noqa: PLC0415
+    from quodeq.data.fs.run_archive import has_event_log, is_archived  # noqa: PLC0415
     from quodeq.shared.env import sqlite_disabled  # noqa: PLC0415
 
     if (
         sqlite_disabled()
-        or not has_evaluation_db(run_dir)
-        or not (run_dir / "events.jsonl").is_file()
+        or not has_event_log(run_dir)
+        or not (has_evaluation_db(run_dir) or is_archived(run_dir))
     ):
         return None
 
