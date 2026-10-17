@@ -96,12 +96,16 @@ def test_round_trip_restores_identical_bytes(tmp_path):
 
 
 def test_rows_only_in_the_wal_survive_archive_and_restore(tmp_path):
-    run, conn = _wal_run(tmp_path)
-    conn.close()  # a reader that quit; the WAL may or may not be folded by the close
-    expected = _rows(run)
-    assert len(expected) == 500
-    archive_run(run)
-    assert not (run / "evaluation.db").exists() and not (run / "evaluation.db-wal").exists()
+    run, conn = _wal_run(tmp_path)  # the idle writer keeps the WAL alive during the archive
+    try:
+        wal = run / "evaluation.db-wal"
+        assert wal.is_file() and wal.stat().st_size > 0
+        expected = conn.execute("SELECT id, file FROM findings ORDER BY id").fetchall()
+        assert len(expected) == 500
+        archive_run(run)
+    finally:
+        conn.close()
+    assert not (run / "evaluation.db").exists()
     assert ensure_restored(run) is True
     assert _rows(run) == expected
 
