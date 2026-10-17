@@ -77,7 +77,7 @@ function makeEvalDismissHandler({ job, startedProject, selectedProject, selectPr
  */
 export function useEvaluationLifecycle({ navigation, projects, selectedProject = null, storage: _storage }) {
   const storage = _storage || localStorage;
-  const { navTab, navReset } = navigation;
+  const { navTab, navReset, activeTab } = navigation;
   const { selectProjectAndRun } = projects;
   const { job, jobError, liveViolations, startEvaluation, clearJob, cancelEvaluation, startedProject } = useEvaluation();
   const queryClient = useQueryClient();
@@ -87,7 +87,7 @@ export function useEvaluationLifecycle({ navigation, projects, selectedProject =
   // (older) evaluation was the one they just launched.
   const [blockedStartError, setBlockedStartError] = useState(null);
 
-  useJobCompletionEffect({ job, navTab, queryClient, selectedProject, selectProjectAndRun });
+  useJobCompletionEffect({ job, navTab, activeTab, queryClient, selectedProject, selectProjectAndRun });
 
   const handleStartEvaluation = makeStartEvaluationHandler({ job, setBlockedStartError, storage, startEvaluation });
   const handleEvalDismiss = makeEvalDismissHandler({ job, startedProject, selectedProject, selectProjectAndRun, navReset, setBlockedStartError, clearJob });

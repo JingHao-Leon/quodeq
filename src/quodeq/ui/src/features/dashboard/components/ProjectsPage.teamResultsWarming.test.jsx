@@ -33,7 +33,7 @@ describe('ProjectsPage — shared cards still being warmed', () => {
     renderPage(api, <ProjectsPage projects={[]} actions={pageActions} />);
     await waitFor(() => expect(placeholders()).toHaveLength(2));
     expect(screen.getByText('Published evaluations will appear here when reading finishes.')).toBeInTheDocument();
-    expect(screen.queryByText(/No repositories yet\./)).not.toBeInTheDocument();
+    expect(screen.queryByText('A repository')).not.toBeInTheDocument();
   });
 
   it('shows no placeholder once the warm-up is done', async () => {

@@ -76,3 +76,13 @@ export function createProject(raw) {
   if (!raw || typeof raw !== 'object') return raw;
   return fromFieldSpec(raw, PROJECT_FIELDS);
 }
+
+/**
+ * True when the project was never evaluated. Reads a projects-list entry
+ * (`runsCount`, `latestRunId`): the /info payload carries no run data. An
+ * entry missing or without a numeric count is not a first run, so nothing
+ * flips on a guess.
+ */
+export function isFirstRunProject(listEntry) {
+  return typeof listEntry?.runsCount === 'number' && listEntry.runsCount === 0 && !listEntry.latestRunId;
+}

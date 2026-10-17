@@ -82,14 +82,13 @@ describe('ProjectsPage — header actions', () => {
 });
 
 describe('ProjectsPage — the empty page', () => {
-  it('keeps the header actions and says there is nothing yet; no cards, no inline connect form', async () => {
+  it('keeps the header actions and shows the ways in; no inline connect form', async () => {
     const { api } = makeApi();
     renderPage(api, <ProjectsPage projects={[]} actions={pageActions} />);
-    await waitFor(() => expect(screen.getByText(/No repositories yet\./)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('A repository')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: 'Add project' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'more ways to add' })).toBeInTheDocument();
-    expect(screen.queryByText('A repository')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'start' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'start' })).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /evaluations repository url/i })).not.toBeInTheDocument();
   });
 

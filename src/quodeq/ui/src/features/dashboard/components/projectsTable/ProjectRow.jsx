@@ -5,8 +5,9 @@ import { PUBLISH_STATE } from '../../dashboardVocab.js';
 import { projectIdOrSelf } from '../../../../utils/projectIdentity.js';
 import { useProjectRefresh } from '../../hooks/useProjectRefresh.js';
 import { GradeChip } from '../projectCards/ProjectCardParts.jsx';
-import { NameCell, FilesCell, LastRunCell, LocationCell, SyncCell, MetaLine } from './RowCells.jsx';
-import { RowAction, RowMenu } from './RowActions.jsx';
+import { NameCell, RunCells, LocationCell, SyncCell, MetaLine } from './RowCells.jsx';
+import { RowAction, RowMenu, EvaluateAction } from './RowActions.jsx';
+import { isFirstRunProject } from '../../../../models/project.js';
 import { SyncBar } from '../SyncBar.jsx';
 import { childEntry, rowAction, rowSource } from './projectRowModel.js';
 
@@ -98,36 +99,56 @@ function RowDetails({ id, local, ctx, refresh, pull }) {
   return <div className="projects-row__detail projects-row__detail--lines">{lines}</div>;
 }
 
+// The row's one visible action: `evaluate` for a never-evaluated project
+// with nothing more pressing, else the action its state calls for.
+function ActionCell({ action, id, project, notEvaluated, ctx, pull }) {
+  const { onEvaluate, publishActions, relocateActions } = ctx;
+  if (notEvaluated && !action) {
+    return <EvaluateAction name={id} label={project.displayName || project.name} onEvaluate={onEvaluate} />;
+  }
+  return (
+    <RowAction
+      action={action}
+      name={id}
+      publishActions={publishActions}
+      pull={pull}
+      onRelocate={() => relocateActions.startRelocate(id, project.path)}
+    />
+  );
+}
+
 /**
  * One project row. The row and its name button both open the project (the
  * name is the keyboard handle). `configured` shows the location and sync
  * cells: without a server every project is local and they say nothing.
  */
 function Row({ entry, project, isChild, ctx, refresh, pull }) {
-  const { selectedProject, onSelect, onResumeSetup, onExport, setConfirming, relocateActions, publishActions, configured, childSelectedIds } = ctx;
+  const { selectedProject, onSelect, onEvaluate, onResumeSetup, onExport, setConfirming, relocateActions, publishActions, configured, childSelectedIds } = ctx;
   const id = projectIdOrSelf(project);
   const selected = id === selectedProject;
   const open = () => onSelect?.(id, rowSource(entry));
   const grade = gradeLabel(project.overallGrade ?? project.latestGrade);
   const score = project.latestScore != null ? parseFloat(project.latestScore).toFixed(1) : null;
   const action = rowAction(entry);
+  // Only a local project can be evaluated from here; a row with its own
+  // action (relocate a missing folder) keeps it.
+  const notEvaluated = !!entry.local && isFirstRunProject(project);
   const cls = ['projects-row', isChild && 'projects-row--child', selected && 'projects-row--selected', !selected && childSelectedIds?.has(id) && 'projects-row--parent-of-selected'].filter(Boolean).join(' ');
   return (
     <div className="projects-row-group">
       <div className={cls} role="row" onClick={open} aria-current={selected || undefined}>
         <NameCell entry={entry} project={project} onOpen={open} onResumeSetup={onResumeSetup} />
-        <div className="projects-row__grade" role="cell"><GradeChip grade={grade} score={score} pending={project.summaryPending} /></div>
-        <FilesCell project={project} />
-        <LastRunCell project={project} />
+        <RunCells project={project} notEvaluated={notEvaluated} grade={<GradeChip grade={grade} score={score} pending={project.summaryPending} />} />
         {configured && <LocationCell entry={entry} />}
         {configured && <SyncCell entry={entry} />}
         <MetaLine entry={entry} project={project} configured={configured} />
-        <RowAction
+        <ActionCell
           action={action}
-          name={id}
-          publishActions={publishActions}
+          id={id}
+          project={project}
+          notEvaluated={notEvaluated}
+          ctx={{ onEvaluate, publishActions, relocateActions }}
           pull={pull}
-          onRelocate={() => relocateActions.startRelocate(id, project.path)}
         />
         {entry.local
           ? <RowMenu name={id} refresh={isRefreshable(project) && !isChild ? refresh : null} onExport={onExport} onDelete={() => setConfirming(id)} />

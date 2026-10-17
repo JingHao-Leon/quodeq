@@ -4,6 +4,9 @@ import DashboardPage from './DashboardPage.jsx';
 import { SidePaneProvider } from '../../side-pane/index.js';
 import { withStableQueryApi } from '../../../test-utils/withQueryClient.jsx';
 
+// A never-evaluated local project's Overview heading (NeverEvaluatedPanel).
+const NEVER_EVALUATED = /has not been evaluated yet/;
+
 // The run panel reads the run's findings through the query client; the
 // page tests only care about the loader and fade gates, so the findings
 // never resolve here.
@@ -80,7 +83,7 @@ describe('DashboardPage frame stability and fade-once across branch transitions 
           <DashboardPage data={baseNoRuns} callbacks={{}} runMode={false} />
         </SidePaneProvider>,
       );
-      expect(getByText('No evaluations yet')).toBeTruthy();
+      expect(getByText(NEVER_EVALUATED)).toBeTruthy();
       let page = container.querySelector('.dashboard-page');
       expect(page.className).toContain('dashboard-appear');
       act(() => { vi.advanceTimersByTime(450); });
@@ -90,7 +93,7 @@ describe('DashboardPage frame stability and fade-once across branch transitions 
           <DashboardPage data={{ ...readyOverview, selectedProject: 'p1', selectedSource: 'local' }} callbacks={{}} runMode={false} />
         </SidePaneProvider>,
       );
-      expect(queryByText('No evaluations yet')).toBeNull();
+      expect(queryByText(NEVER_EVALUATED)).toBeNull();
       page = container.querySelector('.dashboard-page');
       expect(page.className).toContain('dashboard-ready');
       expect(page.className).not.toContain('dashboard-appear');

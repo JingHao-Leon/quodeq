@@ -14,7 +14,7 @@ import { ACTIVE_PROVIDER_KEY } from '../../../constants.js';
 import { resolveProviderSettings } from '../../../utils/effectiveProviderSettings.js';
 import { useReEvalInfo } from './useReEvalInfo.js';
 import { useDimensionSelection } from './useDimensionSelection.js';
-import { PROJECT_LOCATION } from '../../../models/project.js';
+import { PROJECT_LOCATION, isFirstRunProject } from '../../../models/project.js';
 
 // The chips pre-select from the same resolution the start payload and the
 // Settings screen use, so the form can never claim a budget the run
@@ -23,16 +23,6 @@ function initialBudgetSeconds(storage = localStorage) {
   const provider = storage.getItem(ACTIVE_PROVIDER_KEY) || '';
   if (!provider) return 0;
   return resolveProviderSettings(provider, storage).timeLimitS;
-}
-
-/**
- * True when the project was never evaluated. Reads the projects-list entry
- * the card is handed (`runsCount`, `latestRunId`): the /info payload the
- * card fetches carries no run data. An entry missing or without a numeric
- * count is not a first run, so the defaults never flip on a guess.
- */
-export function isFirstRunProject(listEntry) {
-  return typeof listEntry?.runsCount === 'number' && listEntry.runsCount === 0 && !listEntry.latestRunId;
 }
 
 // Scan scope the user picks on the card (branch, sub-path, time budget);
