@@ -35,7 +35,7 @@ export function compareRoute(params, props) {
       // Findings views read the selected project; pushed, so back pops to
       // Compare. The cell's run is the dimension's latest, so it opens today.
       onOpenProjectPrinciple={(target) => {
-        props.navigation.handleProjectChange(target.id, PROJECT_SOURCE.LOCAL);
+        props.navigation.handleProjectChange(target.id, target.source || PROJECT_SOURCE.LOCAL);
         openScope(props.navigation.handleNavigate, { kind: SCOPE_KIND.PRINCIPLE, dimension: target.dimName, principle: target.principle });
       }}
       // Standings row -> that project's own screen of the SAME dimension,

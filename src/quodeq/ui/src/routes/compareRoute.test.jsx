@@ -41,4 +41,10 @@ describe('compareRoute', () => {
       scope: { kind: 'principle', dimension: 'Security', principle: 'Integrity' }, asOf: null,
     });
   });
+
+  it('selects a shared project\'s principle with the shared source', () => {
+    const props = routeProps();
+    compareRoute({}, props).props.onOpenProjectPrinciple({ id: 'proj2', source: 'shared', dimName: 'Security', principle: 'Integrity' });
+    expect(props.navigation.handleProjectChange).toHaveBeenCalledWith('proj2', 'shared');
+  });
 });

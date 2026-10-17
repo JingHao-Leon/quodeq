@@ -13,6 +13,6 @@ export function useOpenPrinciple({ onOpenProjectPrinciple, openProject }) {
     // standings rows use).
     if (target?.remote) { openProject(target.id); return; }
     if (!onOpenProjectPrinciple || !target?.dimName || !target?.principle) return;
-    onOpenProjectPrinciple({ id: target.id, dimName: target.dimName, principle: target.principle });
+    onOpenProjectPrinciple({ id: target.id, source: target.source, dimName: target.dimName, principle: target.principle });
   }, [onOpenProjectPrinciple, openProject]);
 }
