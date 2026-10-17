@@ -13,7 +13,7 @@ from quodeq.data.fs.map_activity_file import read_published_activity, write_publ
 from quodeq.data.fs.git_stream import FAILED_TO_RUN, GIT_MISSING, TIMED_OUT  # noqa: F401
 from quodeq.data.fs.repo_clone import GitCloneClient  # noqa: F401
 from quodeq.data.fs.run_archive import (  # noqa: F401
-    archive_run, ensure_restored, has_event_log, is_archived, restore_or_warn, tidy_run,
+    RunArchiveError, archive_run, ensure_restored, has_event_log, is_archived, restore_or_warn, tidy_run,
 )
 from quodeq.data.fs.run_archive_files import packable_bytes  # noqa: F401
 from quodeq.data.fs.run_archive_guard import restored_at  # noqa: F401

@@ -17,7 +17,8 @@ from pathlib import Path
 
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
-from quodeq.services.wiring import UnsupportedSchemaError, read_status
+from quodeq.services.run_keys import read_run_key_sets
+from quodeq.services.wiring import ScoreCacheError, UnsupportedSchemaError, has_evaluation_db, read_status, save_run_keys
 from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring_sync import archive_run, has_event_log, is_archived, restored_at, tidy_run
 from quodeq.shared.env_resolve import resolve_env
@@ -138,8 +139,26 @@ def plan_cleanup(evaluations_root: Path | str, now: datetime, warm_days: int | N
     return CleanupPlan(tuple(tidy), tuple(archive))
 
 
+def _keep_run_keys(run_dir: Path, log: LogSink) -> None:
+    """Persist a finished run's finding keys from its database before it moves into the archive.
+
+    An archived run's keys are then read from its reports (reading its
+    database would restore the run on every cache miss); keeping the
+    database's keys spares its cache version a shift from any drift.
+    """
+    if _read_run(run_dir)[0] != RunState.DONE or not has_evaluation_db(run_dir):
+        return
+    try:
+        save_run_keys(run_dir.parent.name, run_dir.name, *read_run_key_sets(run_dir))
+    except ScoreCacheError as exc:
+        log.debug(f"storage cleanup: could not keep the run keys of {run_dir}: {exc}")
+
+
 def _archive_one(run_dir: Path, log: LogSink):
-    return run_isolated(lambda: archive_run(run_dir), label=f"storage cleanup archive {run_dir}", log=log)
+    def archive():
+        _keep_run_keys(run_dir, log)
+        return archive_run(run_dir)
+    return run_isolated(archive, label=f"storage cleanup archive {run_dir}", log=log)
 
 
 def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink) -> CleanupResult | None:
