@@ -57,7 +57,7 @@ describe('GradeBoundaryBar', () => {
 
   it('renders five segments', () => {
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
-    ['CRITICAL', 'POOR', 'ADEQUATE', 'GOOD', 'EXEMPLARY'].forEach((label) => {
+    ['Critical', 'Poor', 'Adequate', 'Good', 'Exemplary'].forEach((label) => {
       expect(screen.getByText(label)).toBeInTheDocument();
     });
   });
@@ -65,9 +65,9 @@ describe('GradeBoundaryBar', () => {
   it('emits a descending thresholds array on a simulated drag', () => {
     const onChange = vi.fn();
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={onChange} />);
-    // Boundary 4 is the topmost ascending divider (asc index 3, value 9).
+    // Where Exemplary starts is the topmost ascending divider (asc index 3, value 9).
     // Drag it to clientX 80 -> 8.0 on the 0..10 scale (width 100).
-    const divider = screen.getByLabelText('Boundary 4');
+    const divider = screen.getByLabelText('Where Exemplary starts');
     fireEvent.pointerDown(divider, { clientX: 90 });
     fireEvent.pointerMove(window, { clientX: 80 });
     fireEvent.pointerUp(window);
@@ -87,9 +87,9 @@ describe('GradeBoundaryBar', () => {
   it('clamps a divider against its neighbour with the minimum gap', () => {
     const onChange = vi.fn();
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={onChange} />);
-    // Boundary 1 is asc index 0 (value 3); its upper neighbour is 5.
+    // Where Poor starts is asc index 0 (value 3); its upper neighbour is 5.
     // Try to drag it to 9.0 -> must clamp to 5 - 0.5 = 4.5.
-    const divider = screen.getByLabelText('Boundary 1');
+    const divider = screen.getByLabelText('Where Poor starts');
     fireEvent.pointerDown(divider, { clientX: 30 });
     fireEvent.pointerMove(window, { clientX: 90 });
     fireEvent.pointerUp(window);
@@ -102,7 +102,7 @@ describe('GradeBoundaryBar', () => {
   it('removes all window listeners after pointercancel so subsequent moves are silent', () => {
     const onChange = vi.fn();
     render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={onChange} />);
-    const divider = screen.getByLabelText('Boundary 2');
+    const divider = screen.getByLabelText('Where Adequate starts');
     fireEvent.pointerDown(divider, { clientX: 50 });
     // One move during the drag — onChange fires.
     fireEvent.pointerMove(window, { clientX: 55 });
