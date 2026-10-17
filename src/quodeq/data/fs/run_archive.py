@@ -37,8 +37,10 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits, check_restore_dirs, read_members  # noqa: F401
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
+from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
 from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, needs_db_tidy, vacuum_db
 
 _logger = logging.getLogger(__name__)
@@ -48,11 +50,7 @@ TIDY_PATTERNS = ("*_queue.json", "*_dispatch_keys.json", "*_replayed_unconsolida
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
 _CHUNK = 1 << 20
-_READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
-
-
-class RunArchiveError(ValueError):
-    """The run cannot be archived, or its archive is unsafe or unreadable."""
+READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
 
 
 @dataclass(frozen=True)
@@ -167,8 +165,9 @@ def _allowed_name(name: str) -> bool:
     return folder == EVIDENCE_DIR and "/" not in base and fnmatch.fnmatchcase(base, EVIDENCE_PATTERN)
 
 
-def _check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
+def check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
     """Member names when every member is a safe regular file, else raise ``RunArchiveError``."""
+    check_archive_limits(members)
     root = staging.resolve()
     names: list[str] = []
     for member in members:
@@ -185,18 +184,18 @@ def _check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
     return names
 
 
-def _extract(archive: Path, staging: Path) -> list[str]:
-    """Validate and extract *archive* into *staging*; the member names on success."""
+def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = ()) -> list[str]:
+    """Validate *archive* and extract it into *staging*, leaving out the members named in *skip*; their names."""
     try:
         with tarfile.open(archive, "r:gz") as tar:
-            members = tar.getmembers()
-            names = _check_members(members, staging)
+            members = read_members(tar)
+            names = [name for name in check_members(members, staging) if name not in skip]
             staging.mkdir()
-            tar.extractall(staging, members=members, filter="data")
+            tar.extractall(staging, members=[m for m in members if m.name in names], filter="data")
     except RunArchiveError:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    except _READ_ERRORS as exc:
+    except READ_ERRORS as exc:
         shutil.rmtree(staging, ignore_errors=True)
         raise RunArchiveError(f"cannot read run archive {archive}: {exc}") from exc
     return names
@@ -221,7 +220,10 @@ def restore_locked(run_dir: Path) -> bool:
         return False
     _clean_leftovers(run_dir)
     archive, staging = run_dir / ARCHIVE_FILENAME, run_dir / _RESTORE_DIR
+    if is_shared_clone_run(run_dir):  # the archive is tracked there: unpack beside it, never its database
+        return restore_clone_locked(run_dir, staging, _extract)
     try:
+        check_restore_dirs(run_dir)
         names = _extract(archive, staging)
     except RunArchiveError as exc:
         warn_once(run_dir, "Refusing to restore run archive: %s", exc)

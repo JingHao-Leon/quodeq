@@ -191,3 +191,17 @@ def test_read_action_events_skips_non_object_lines(tmp_path: Path) -> None:
 
     assert len(events) == 1
     assert events[0].payload.req == "R1"
+
+
+def test_merge_action_log_files_replaces_a_linked_destination_and_skips_a_linked_source(tmp_path: Path) -> None:
+    outside = tmp_path / "outside.txt"
+    outside.write_text("secret\n")
+    ours, theirs, dest = tmp_path / "ours.jsonl", tmp_path / "theirs.jsonl", tmp_path / "dest.jsonl"
+    ours.write_text('{"event_id":"1","timestamp":"1"}\n')
+    theirs.symlink_to(outside)
+    dest.symlink_to(outside)
+
+    merge_action_log_files(dest, (ours, theirs))
+
+    assert outside.read_text() == "secret\n"
+    assert not dest.is_symlink() and dest.read_text() == '{"event_id":"1","timestamp":"1"}\n'

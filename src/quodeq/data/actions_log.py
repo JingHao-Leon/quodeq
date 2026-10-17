@@ -13,6 +13,7 @@ from typing import Iterable, Iterator
 
 from quodeq.core.events.models import EVENT_MODEL_MAP, BaseEvent, EventType
 from quodeq.data.events.codec import event_from_dict
+from quodeq.data.fs.run_artifacts import write_replacing
 from quodeq.data.jsonl_append import JsonlAppendMixin
 from quodeq.data.locking import get_file_lock
 
@@ -52,7 +53,8 @@ def _timestamp_key(line: str) -> tuple[int, str]:
 def merge_action_log_files(dst: Path, srcs: Iterable[Path]) -> None:
     """Union-merge *srcs* actions.jsonl files into *dst*, deduped and sorted.
 
-    Missing sources are skipped. Nothing is written when the union is empty
+    Missing and linked sources are skipped (a link in a shared clone is no
+    log of ours), and *dst* is replaced, never written through. Nothing is written when the union is empty
     (a caller staging a project with no actions log at all must not create
     one). Raises ``ValueError`` (a plain ``UnicodeDecodeError``) if any
     source is not valid UTF-8 -- callers that need a user-facing error
@@ -61,6 +63,9 @@ def merge_action_log_files(dst: Path, srcs: Iterable[Path]) -> None:
     seen: set[str] = set()
     lines: list[str] = []
     for source in srcs:
+        if source.is_symlink():
+            _logger.warning("Skipping linked actions log %s", source)
+            continue
         if not source.exists():
             continue
         for raw in source.read_text(encoding="utf-8").splitlines():
@@ -72,7 +77,8 @@ def merge_action_log_files(dst: Path, srcs: Iterable[Path]) -> None:
         return
     lines.sort(key=_timestamp_key)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    text = "\n".join(lines) + "\n"
+    write_replacing(dst, lambda tmp: tmp.write_text(text, encoding="utf-8"))
 
 
 def read_action_events(project_dir: Path, *, from_offset: int = 0) -> Iterator[BaseEvent]:

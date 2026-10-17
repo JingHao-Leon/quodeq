@@ -11,6 +11,7 @@ import pytest
 import quodeq.services.shared_publish as shared_publish
 from quodeq.services.shared_publish import (
     PublishError,
+    StagedProject,
     _commit_and_push,
     _prepare_workspace,
     clone_lock,
@@ -67,8 +68,8 @@ class TestCommitAndPush:
         root = _local_project(tmp_path)
 
         with _prepare_workspace("proj-uuid-1", url, root, None) as (project_dir, repo):
-            count = stage_project(project_dir, repo / "evaluations" / "proj-uuid-1")
-            _commit_and_push(repo, "proj-uuid-1", count)
+            staged = stage_project(project_dir, repo / "evaluations" / "proj-uuid-1")
+            _commit_and_push(repo, "proj-uuid-1", staged)
 
         listing = subprocess.run(
             ["git", "ls-tree", "-r", "--name-only", "HEAD"],
@@ -82,7 +83,7 @@ class TestCommitAndPush:
 
         with _prepare_workspace("proj-uuid-1", url, root, None) as (_project_dir, repo):
             monkeypatch.setattr(
-                shared_publish, "stage_publish_paths", lambda repo, pid: (False, "fatal: pathspec"),
+                shared_publish, "stage_publish_paths", lambda repo, paths: (False, "fatal: pathspec"),
             )
             with pytest.raises(PublishError, match="git add failed"):
-                _commit_and_push(repo, "proj-uuid-1", 0)
+                _commit_and_push(repo, "proj-uuid-1", StagedProject(0))

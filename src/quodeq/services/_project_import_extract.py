@@ -15,6 +15,7 @@ from pathlib import Path
 
 from quodeq.core.observability import NULL_LOG, LogSink
 
+from ._project_import_archived import normalize_archived_runs
 from ._project_import_validation import bad_request
 
 
@@ -23,7 +24,7 @@ _COPY_CHUNK = 64 * 1024
 
 def safe_extract(
     zf: zipfile.ZipFile, members: dict[str, zipfile.ZipInfo], dest: Path,
-    *, max_total_bytes: int | None = None,
+    *, max_total_bytes: int | None = None, log: LogSink = NULL_LOG,
 ) -> None:
     """Extract validated members into *dest*, double-checking each target path.
 
@@ -44,6 +45,9 @@ def safe_extract(
             written = _copy_bounded(src, dst, limit, arcname)
         if remaining is not None:
             remaining -= written
+    for top in dest.iterdir():
+        if top.is_dir() and not top.is_symlink():
+            normalize_archived_runs(top, log=log)
 
 
 def _copy_bounded(src, dst, limit: int, arcname: str) -> int:

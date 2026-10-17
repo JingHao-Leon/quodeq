@@ -26,6 +26,7 @@ _logger = logging.getLogger(__name__)
 
 RESTORED_STAMP = ".restored_at"
 LOCK_NAME = ".archive.lock"
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)  # a lock file planted as a link never creates its target
 
 _StatKey = tuple[int, int, int] | None
 
@@ -93,7 +94,7 @@ def run_lock(run_dir: Path) -> Iterator[None]:
     The lock file is never deleted: removing it would let a waiter lock an
     unlinked file while a newcomer locks a fresh one.
     """
-    with _locked(os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o644)):
+    with _locked(os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT | _NOFOLLOW, 0o644)):
         yield
 
 
@@ -105,7 +106,7 @@ def run_lock_if_writable(run_dir: Path) -> Iterator[bool]:
     can neither create the lock file nor archive or restore the run.
     """
     try:
-        fd = os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o644)
+        fd = os.open(run_dir / LOCK_NAME, os.O_RDWR | os.O_CREAT | _NOFOLLOW, 0o644)
     except OSError as exc:
         if exc.errno not in (errno.EACCES, errno.EPERM, errno.EROFS):
             raise

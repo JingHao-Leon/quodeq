@@ -39,15 +39,17 @@ def test_list_completed_runs_filters_terminal_done_only(tmp_path):
 
 def test_copy_run_applies_allowlist(tmp_path):
     src = _make_run(tmp_path / "src", "r1", "done")
+    (src / ".restored_at").write_text("2026-10-17")  # dot-files must NOT be copied
+    (src / "evaluation.db-wal").write_text("derived")  # must NOT be copied
     dest = tmp_path / "dest" / "r1"
-    copy_run(src, dest)
-    assert (dest / "status.json").exists()
-    assert (dest / "dimensions.json").exists()
-    assert (dest / "events.jsonl").exists()
-    assert (dest / "evidence" / "manifest.json").exists()
-    assert (dest / "evidence" / "security_evidence.jsonl").exists()
-    assert not (dest / "run.log").exists()
-    assert not (dest / "evaluation.db").exists()
+    written = copy_run(src, dest)
+    published = {
+        "status.json", "dimensions.json", "events.jsonl", "evidence/manifest.json",
+        "evidence/security_evidence.jsonl", "evaluation/security.json",
+    }
+    assert {p.relative_to(dest).as_posix() for p in written} == published
+    on_disk = {p.relative_to(dest).as_posix() for p in dest.rglob("*") if p.is_file()}
+    assert on_disk == published
 
 
 def test_copy_run_copies_evaluation_json_only(tmp_path):
@@ -91,8 +93,11 @@ def test_stage_project_copies_info_actions_and_done_runs(tmp_path):
     _make_run(project, "r-done", "done")
     _make_run(project, "r-live", "running")
     dest = tmp_path / "clone" / "evaluations" / "proj-uuid"
-    count = stage_project(project, dest)
-    assert count == 1
+    staged = stage_project(project, dest)
+    assert staged.runs == 1
+    assert {p.relative_to(dest).as_posix() for p in staged.paths} >= {
+        "repository_info.json", "actions.jsonl", "published.json", "r-done/status.json", "r-done/events.jsonl",
+    }
     assert (dest / "repository_info.json").exists()
     assert (dest / "actions.jsonl").exists()
     assert (dest / "r-done" / "status.json").exists()

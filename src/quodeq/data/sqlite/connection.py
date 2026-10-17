@@ -17,6 +17,9 @@ from typing import Iterator
 
 from quodeq.data.fs.run_archive import RunArchiveError, is_archived, restore_locked
 from quodeq.data.fs.run_archive_guard import LOCK_NAME, drop_stray_db_locked, run_lock_if_writable, warn_once
+from quodeq.data.fs.shared_clone_runs import (
+    is_shared_clone_run, mark_local_db, trust_local_db_locked, unpacked_current,
+)
 from quodeq.data.sqlite._db_stamp_memo import db_stamp
 from quodeq.data.sqlite._migrations import SchemaVersionError, apply_evaluation_schema
 from quodeq.data.sqlite._schema import SCHEMA_VERSION
@@ -113,13 +116,14 @@ def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
     """Connect to the run's real database, never to one beside an archive.
 
     A run that was never archived or restored has no lock file: it connects
-    unlocked, so reads leave no file behind (a shared clone stays clean). An
-    archive or restore creates the lock file before it touches anything, so
-    one found afterwards means it may have raced the connect: that
-    connection is dropped and the run opened again under the lock.
+    unlocked, so reads leave no file behind. An archive or restore creates
+    the lock file before it touches anything, so one found afterwards means
+    it may have raced the connect: that connection is dropped and the run
+    opened again under the lock. A shared clone's run always opens under the
+    lock, which checks its database is one quodeq created there.
     """
     lock = run_dir / LOCK_NAME
-    if not lock.exists() and not is_archived(run_dir):
+    if not lock.exists() and not is_archived(run_dir) and not is_shared_clone_run(run_dir):
         conn = _open_mapped(path)
         if not lock.exists():
             return conn
@@ -144,15 +148,26 @@ def _open_locked(run_dir: Path, path: Path) -> sqlite3.Connection:
     """
     try:
         with run_lock_if_writable(run_dir) as locked:
-            if is_archived(run_dir):
+            clone = is_shared_clone_run(run_dir)
+            if is_archived(run_dir) and not (clone and unpacked_current(run_dir)):
                 if not locked:
                     raise SqliteStoreUnreadableError(f"run archive in {run_dir} cannot be restored here")
-                drop_stray_db_locked(run_dir)
+                if not clone:  # a clone's unpack keeps the archive and drops the old database itself
+                    drop_stray_db_locked(run_dir)
                 if not _restored(run_dir):
                     raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
-            return _open_mapped(path)
+            return _open_clone_db(run_dir, path, locked) if clone else _open_mapped(path)
     except OSError as exc:  # a lock wait that timed out included
         raise SqliteStoreUnreadableError(f"run in {run_dir} could not be locked: {exc}") from exc
+
+
+def _open_clone_db(run_dir: Path, path: Path, locked: bool) -> sqlite3.Connection:
+    """Connect to a shared clone run's database only when quodeq created it there, else rebuild it."""
+    if not trust_local_db_locked(run_dir, locked):
+        raise SqliteStoreUnreadableError(f"the database in {run_dir} was not created here and cannot be rebuilt")
+    conn = _open_mapped(path)
+    mark_local_db(run_dir, conn)
+    return conn
 
 
 def _restored(run_dir: Path) -> bool:
