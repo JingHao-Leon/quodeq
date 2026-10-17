@@ -56,4 +56,14 @@ describe('useInPlaceUpgrade', () => {
     expect(result.current.restarting).toBe(true);
     expect(result.current.failed).toBe(false);
   });
+
+  it('a failed refresh after a successful start is not a failed upgrade', async () => {
+    startUpgrade.mockResolvedValue({ ok: true });
+    getUpdateStatus.mockRejectedValue(new Error('offline'));
+    const { result } = renderHook(() => useInPlaceUpgrade(BASE, vi.fn()));
+    act(() => { result.current.begin(); });
+    await waitFor(() => expect(getUpdateStatus).toHaveBeenCalled());
+    await waitFor(() => expect(result.current.upgrading).toBe(false));
+    expect(result.current.failed).toBe(false);
+  });
 });

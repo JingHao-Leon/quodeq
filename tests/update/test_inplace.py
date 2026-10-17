@@ -77,12 +77,14 @@ def test_failed_upgrade_keeps_the_output() -> None:
     assert "No space left" in state["output"]
 
 
-def test_timeout_is_an_error() -> None:
+def test_timeout_is_an_error_and_keeps_the_output() -> None:
     def run(argv, **_kwargs):
-        raise subprocess.TimeoutExpired(argv, 1)
+        raise subprocess.TimeoutExpired(argv, 1, output=b"Building wheel")
     inplace.start("9.9.9", env={}, run=run)
     inplace._join_for_tests()
-    assert inplace.describe(env={})["phase"] == inplace.PHASE_ERROR
+    state = inplace.describe(env={})
+    assert state["phase"] == inplace.PHASE_ERROR
+    assert "Building wheel" in state["output"]
 
 
 def test_no_second_start_after_success() -> None:

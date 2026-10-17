@@ -31,7 +31,7 @@ export function useSelfUpdate(status, adoptStatus) {
   const phase = selfUpdate?.phase || SELF_UPDATE_PHASE.IDLE;
   const active = ACTIVE_PHASES.has(phase);
 
-  const adopt = useAdoptClearingFailure('self_update', adoptStatus, setStartFailed);
+  const adopt = useAdoptClearingFailure({ field: 'self_update', errorPhase: SELF_UPDATE_PHASE.ERROR, adoptStatus, setStartFailed });
 
   useVisibleInterval(() => {
     getUpdateStatus().then(adopt).catch((e) => console.warn('self-update status poll failed:', e));

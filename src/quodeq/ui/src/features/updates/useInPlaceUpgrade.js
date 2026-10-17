@@ -40,7 +40,7 @@ export function useInPlaceUpgrade(status, adoptStatus) {
   const phase = status?.in_place_upgrade?.phase || UPGRADE_PHASE.IDLE;
   const upgrading = phase === UPGRADE_PHASE.UPGRADING;
 
-  const adopt = useAdoptClearingFailure('in_place_upgrade', adoptStatus, setStartFailed);
+  const adopt = useAdoptClearingFailure({ field: 'in_place_upgrade', errorPhase: UPGRADE_PHASE.ERROR, adoptStatus, setStartFailed });
 
   useVisibleInterval(() => {
     getUpdateStatus().then(adopt).catch((e) => console.warn('upgrade status poll failed:', e));
@@ -50,7 +50,8 @@ export function useInPlaceUpgrade(status, adoptStatus) {
     setStarting(true);
     setStartFailed(false);
     startUpgrade()
-      .then(() => getUpdateStatus().then(adopt))
+      // The upgrade runs even if this refresh fails; the poll catches up.
+      .then(() => getUpdateStatus().then(adopt).catch((e) => console.warn('upgrade status refresh failed:', e)))
       .catch((e) => {
         // An evaluation started since the status was read: re-read it so the
         // button shows why it waits, instead of reporting a failure.

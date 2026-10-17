@@ -127,20 +127,31 @@ def start(
     return True
 
 
+def _tail(stdout: str | bytes | None, stderr: str | bytes | None) -> str:
+    """The last part of the tool's output; a timeout hands back bytes."""
+    text = "".join(
+        part.decode("utf-8", "replace") if isinstance(part, bytes) else part
+        for part in (stdout, stderr) if part
+    )
+    return text[-_OUTPUT_TAIL_CHARS:]
+
+
 def _run_upgrade(argv: list[str], run: Callable[..., subprocess.CompletedProcess]) -> None:
     try:
         result = run(
             argv, capture_output=True, text=True, encoding="utf-8", errors="replace",
             stdin=subprocess.DEVNULL, timeout=_UPGRADE_TIMEOUT_S, check=False,
         )
-    except subprocess.TimeoutExpired:
-        _set(phase=PHASE_ERROR, error="The upgrade took too long and was stopped.")
+    except subprocess.TimeoutExpired as exc:
+        output = _tail(exc.stdout, exc.stderr)
+        _logger.warning("in-place upgrade timed out after %ss: %s", _UPGRADE_TIMEOUT_S, output)
+        _set(phase=PHASE_ERROR, error="The upgrade took too long and was stopped.", output=output)
         return
     except OSError as exc:  # the tool vanished between the check and the run
         _logger.warning("in-place upgrade could not start: %s", exc)
         _set(phase=PHASE_ERROR, error=f"Could not start {argv[0]}.")
         return
-    output = ((result.stdout or "") + (result.stderr or ""))[-_OUTPUT_TAIL_CHARS:]
+    output = _tail(result.stdout, result.stderr)
     if result.returncode != 0:
         _logger.warning("in-place upgrade exited %s: %s", result.returncode, output)
         _set(phase=PHASE_ERROR, error=f"{argv[0]} exited with code {result.returncode}.", output=output)

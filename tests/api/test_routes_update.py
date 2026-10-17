@@ -159,3 +159,10 @@ def test_restart_spawns(client) -> None:
     with patch("quodeq.api.routes_update.inplace.restart", return_value=True):
         resp = client.post("/api/update/restart", environ_base=_LOCAL)
     assert resp.status_code == 200
+
+
+def test_selfupdate_refused_for_remote_callers(client) -> None:
+    with patch("quodeq.api.routes_update.begin_self_update") as begin:
+        resp = client.post("/api/update/selfupdate", environ_base=_REMOTE)
+    assert resp.status_code == 403
+    begin.assert_not_called()

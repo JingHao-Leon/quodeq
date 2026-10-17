@@ -78,6 +78,8 @@ def _restart_response() -> Response | tuple[Response, int]:
 
 
 def _selfupdate_start_response() -> Response | tuple[Response, int]:
+    if not is_local_request():
+        return json_error("only this machine can update quodeq", HTTPStatus.FORBIDDEN, CODE_FORBIDDEN)
     return _begin_response(begin_self_update())
 
 
