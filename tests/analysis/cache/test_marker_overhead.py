@@ -14,6 +14,7 @@ from quodeq.analysis.cache.dimension_helpers import group_findings_by_file
 _TOTAL_FINDINGS = 10_000
 _UNIQUE_FILES = 1_000  # both the file-name modulus and the file_done marker count
 _BUDGET_S = 0.5
+_RUNS = 3
 
 
 def test_grouping_overhead_under_budget(tmp_path: Path):
@@ -28,9 +29,13 @@ def test_grouping_overhead_under_budget(tmp_path: Path):
     jsonl = tmp_path / "evidence.jsonl"
     jsonl.write_text("".join(json.dumps(line) + "\n" for line in lines))
 
-    t0 = time.perf_counter()
-    grouped, ok_files = group_findings_by_file(jsonl)
-    elapsed = time.perf_counter() - t0
+    # Best of a few runs: a busy CI runner can stall one run past the budget
+    # (505 ms and 589 ms seen on macOS), never all of them. The budget stays.
+    elapsed = float("inf")
+    for _ in range(_RUNS):
+        t0 = time.perf_counter()
+        grouped, ok_files = group_findings_by_file(jsonl)
+        elapsed = min(elapsed, time.perf_counter() - t0)
     assert len(ok_files) == _UNIQUE_FILES
     assert sum(len(v) for v in grouped.values()) == _TOTAL_FINDINGS
     assert elapsed < _BUDGET_S, f"grouping took {elapsed*1000:.0f}ms (budget {_BUDGET_S*1000:.0f}ms)"
