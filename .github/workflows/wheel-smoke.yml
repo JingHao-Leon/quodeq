@@ -130,6 +130,21 @@ jobs:
           python3 -m venv /tmp/smoke
           /tmp/smoke/bin/pip install --quiet dist/quodeq-*.whl
 
+      # The entry point itself, from the clean venv: an import or packaging
+      # slip that only bites `quodeq` on the command line fails here.
+      - name: The quodeq command runs from the wheel
+        run: |
+          HOME="$(mktemp -d)"
+          export HOME
+          /tmp/smoke/bin/quodeq --help >/dev/null
+          /tmp/smoke/bin/quodeq evaluate --help >/dev/null
+          set +e
+          /tmp/smoke/bin/quodeq status
+          code=$?
+          set -e
+          echo "quodeq status exited $code"
+          test "$code" -eq 3  # nothing running: LSB "not running"
+
       # The real regression test: in a PATH that does NOT contain npm,
       # call maybe_build_ui in production mode and verify it returns the
       # bundled static dir. run_npm_build is replaced with a trap that
