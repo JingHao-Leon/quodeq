@@ -48,6 +48,16 @@ def _status() -> dict:
     return status
 
 
+def _begin_response(result: dict) -> Response | tuple[Response, int]:
+    """The wire form of a ``begin_*`` result: the fresh status, or 409 with its code."""
+    if result["ok"]:
+        return jsonify({"ok": True, "status": _status()})
+    body = {"error": result["error"], "code": result["code"]}
+    if "reason" in result:
+        body["reason"] = result["reason"]
+    return jsonify(body), HTTPStatus.CONFLICT
+
+
 def _upgrade_start_response() -> Response | tuple[Response, int]:
     if not is_local_request():
         return json_error("only this machine can upgrade quodeq", HTTPStatus.FORBIDDEN, CODE_FORBIDDEN)
@@ -56,13 +66,7 @@ def _upgrade_start_response() -> Response | tuple[Response, int]:
             "finish or cancel the running evaluations first",
             HTTPStatus.CONFLICT, _CODE_EVALUATIONS_RUNNING,
         )
-    result = begin_in_place_upgrade()
-    if result["ok"]:
-        return jsonify({"ok": True, "status": _status()})
-    body = {"error": result["error"], "code": result["code"]}
-    if "reason" in result:
-        body["reason"] = result["reason"]
-    return jsonify(body), HTTPStatus.CONFLICT
+    return _begin_response(begin_in_place_upgrade())
 
 
 def _restart_response() -> Response | tuple[Response, int]:
@@ -74,13 +78,7 @@ def _restart_response() -> Response | tuple[Response, int]:
 
 
 def _selfupdate_start_response() -> Response | tuple[Response, int]:
-    result = begin_self_update()
-    if result["ok"]:
-        return jsonify({"ok": True, "status": _status()})
-    body = {"error": result["error"], "code": result["code"]}
-    if "reason" in result:
-        body["reason"] = result["reason"]
-    return jsonify(body), HTTPStatus.CONFLICT
+    return _begin_response(begin_self_update())
 
 
 def register_update_routes(app: Flask) -> None:
