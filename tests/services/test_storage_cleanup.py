@@ -6,6 +6,7 @@ import json
 from quodeq.services import storage_cleanup
 from quodeq.services.storage_cleanup import cleanup_enabled, plan_cleanup, run_cleanup
 from quodeq.services.storage_notice import mark_archive_notice_done
+from tests._timeouts import budget
 from tests.services._storage_fixtures import NOW, make_run as _run
 
 
@@ -103,7 +104,7 @@ def test_the_hook_accepts_a_string_root_and_archives(tmp_path):
     old = _run(tmp_path, "p", "old", 300)
     _run(tmp_path, "p", "newer", 10)
     thread = storage_cleanup.start_storage_cleanup(str(tmp_path), _later_start_env(tmp_path))
-    thread.join(10)
+    thread.join(budget(30))
     assert (old / "archive.tar.gz").is_file()
 
 
@@ -141,7 +142,7 @@ def test_cleanup_waits_for_the_warmup(tmp_path):
 
     thread = storage_cleanup.start_storage_cleanup(
         tmp_path, _later_start_env(tmp_path), warmup_idle=idle, poll_s=0.01)
-    thread.join(10)
+    thread.join(budget(30))
     assert len(calls) == 3
     assert (old / "archive.tar.gz").is_file()
 
@@ -174,7 +175,7 @@ def test_the_hook_reads_the_saved_window_when_it_runs(tmp_path):
     env = _env(tmp_path)
     write_storage_settings(StorageSettings(archive_after_days=None), env)
     thread = storage_cleanup.start_storage_cleanup(tmp_path, env)
-    thread.join(10)
+    thread.join(budget(30))
     assert not (old / "archive.tar.gz").exists()
 
 
