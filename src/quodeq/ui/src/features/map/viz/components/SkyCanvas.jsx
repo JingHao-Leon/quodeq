@@ -3,14 +3,14 @@ import ChartKeyboardControls from '../../../../components/ChartKeyboardControls.
 import { useCanvasSize } from './galaxyCanvasSize.js';
 import { prepareLayer, useLayerTheme, KBD_MAX, WRAPPER_STYLE, LAYER_STYLE } from './canvasLayer.js';
 import { useSkyScene } from './useSkyScene.js';
-import { pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont, skyZoneFont } from '../core/skyLayers.js';
+import { pickBubble, drawSkyStatic, drawSkyOverlay, skyTitleFont } from '../core/skyLayers.js';
 import { riskItemText } from './riskAreaInfo.js';
 import { t } from '../../../../strings/index.js';
 import { KEY } from '../../../../vocab/keyboard.js';
 
 const BY_KEYBOARD = true;
 
-/** Text widths on the canvas: an area's label, and a zone's label. */
+/** Text widths on the canvas: an area's label. */
 function useMeasure(overlayRef, theme, { areas, labelText }) {
   return useMemo(() => {
     const width = (text, fontOf) => {
@@ -20,7 +20,7 @@ function useMeasure(overlayRef, theme, { areas, labelText }) {
       return ctx.measureText(text).width;
     };
     const area = (i) => width(labelText(areas[i]).title, skyTitleFont);
-    return { area, zone: (text) => width(text, skyZoneFont), fontScale: theme.fontScale || 1 };
+    return { area };
   }, [overlayRef, theme, areas, labelText]);
 }
 
@@ -57,29 +57,21 @@ function useSkyHover(areas) {
 }
 
 /** Each zone's label for a set of rings: its name and count, and its width on the canvas. */
-function useZoneText(measure) {
-  return useCallback((rings) => {
-    const counts = rings.counts || { fixFirst: 0, watch: 0 };
-    const label = (key, count) => { const text = t(key, { count }); return { text, w: measure.zone(text) }; };
-    return { fixFirst: label('map.riskZoneFixFirst', counts.fixFirst), watch: label('map.riskZoneWatch', counts.watch) };
-  }, [measure]);
-}
-
-/** Paint both layers: the static bubbles, and the overlay with veil, ring and labels. */
+/** Paint both layers: the static bubbles, and the overlay with veil, ring, the kept bubble's files and labels. */
 function useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected }) {
-  const { frame, rings, bubbles, paints, files, labels, zoneLabels } = scene;
+  const { frame, rings, bubbles, paints, files, labels } = scene;
   const { palette, font, fontScale } = theme;
   useEffect(() => {
     const ctx = prepareLayer(staticRef.current, size);
     if (!ctx || !paints || !palette) return;
-    drawSkyStatic(ctx, { frame, rings, bubbles, paints, files, palette, width: size.w, height: size.h, zoneLabels, font, fontScale });
-  }, [staticRef, frame, rings, bubbles, paints, files, palette, size, zoneLabels, font, fontScale]);
+    drawSkyStatic(ctx, { frame, rings, bubbles, paints, palette, width: size.w, height: size.h });
+  }, [staticRef, frame, rings, bubbles, paints, palette, size]);
   useEffect(() => {
     const ctx = prepareLayer(overlayRef.current, size);
     if (!ctx || !palette) return;
     const keepIndex = validHover(hover ?? selected, bubbles);
-    drawSkyOverlay(ctx, { bubbles, keepIndex, hoverIndex: hover, labels, palette, font, fontScale, width: size.w, height: size.h });
-  }, [overlayRef, bubbles, labels, hover, selected, palette, font, fontScale, size]);
+    drawSkyOverlay(ctx, { bubbles, files, keepIndex, hoverIndex: hover, labels, palette, font, fontScale, width: size.w, height: size.h });
+  }, [overlayRef, bubbles, files, labels, hover, selected, palette, font, fontScale, size]);
 }
 
 /**
@@ -101,8 +93,7 @@ export default function SkyCanvas({
   const theme = useLayerTheme(overlayRef, dark);
   const [hover, setHover] = useSkyHover(areas);
   const measure = useMeasure(overlayRef, theme, { areas, labelText });
-  const zoneText = useZoneText(measure);
-  const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText, zoneText, nodes, rings });
+  const scene = useSkyScene({ areas, average, palette: theme.palette, size, hover, selected, showLabels, measure, labelText, nodes, rings });
   useSkyDrawing({ staticRef, overlayRef, scene, theme, size, hover, selected });
 
   const onMove = (e) => {

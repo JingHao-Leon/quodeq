@@ -19,14 +19,16 @@ test('rings: hotspot solid, dormant dashed, others none', () => {
   assert.equal(skyAreaPaint(area(AREA_KIND.WATCH, {}), 1, dark).ring, null);
 });
 
-test('a heavy area takes the worse hue: glass in dark, solid in light', () => {
+test('a heavy area takes the worse hue as one solid colour, in both themes', () => {
   const heavy = area(AREA_KIND.HOTSPOT, { violations: 20, compliance: 2, weight: 40, critical: 2 });
-  const dark = skyAreaPaint(heavy, 1, { ...PALETTE, dark: true });
-  const light = skyAreaPaint(heavy, 1, { ...PALETTE, dark: false });
-  assert.equal(dark.fill, 'rgb(240, 80, 120)');
-  assert.ok(dark.alpha < 1);
-  assert.equal(light.alpha, 1);
-  assert.notEqual(light.fill, 'rgb(240, 80, 120)');
+  const light = area(AREA_KIND.HEALTHY, { violations: 3, compliance: 2, weight: 1.2 });
+  for (const dark of [true, false]) {
+    const paint = skyAreaPaint(heavy, 1, { ...PALETTE, dark });
+    assert.equal(paint.alpha, 1);
+    assert.notEqual(paint.fill, skyAreaPaint(light, 1, { ...PALETTE, dark }).fill);
+  }
+  const [r, g] = skyAreaPaint(heavy, 1, { ...PALETTE, dark: true }).fill.match(/\d+/g).map(Number);
+  assert.ok(r > g);   // red leads
 });
 
 const fileStats = (stats) => ({ violations: 0, compliance: 0, weight: 0, files: 1, critical: 0, major: 0, ...stats });
