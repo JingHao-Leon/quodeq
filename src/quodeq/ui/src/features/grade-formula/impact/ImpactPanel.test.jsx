@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ImpactPanel from './ImpactPanel.jsx';
@@ -74,5 +74,37 @@ describe('ImpactPanel', () => {
   it('allows RESET Q² from an edited draft', () => {
     mount({ isCustom: false, isDirty: true, draft: DRAFT });
     expect(screen.getByRole('button', { name: 'RESET Q²' })).toBeEnabled();
+  });
+});
+
+describe('ImpactPanel stacked layout', () => {
+  function stackedScreen(isStacked) {
+    vi.stubGlobal('matchMedia', (query) => ({ matches: isStacked, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+  }
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('folds to a one-line summary that opens on click', () => {
+    stackedScreen(true);
+    mount();
+    const head = screen.getByRole('button', { name: /What changes/ });
+    expect(head).toHaveAttribute('aria-expanded', 'false');
+    expect(head).toHaveTextContent('1 project · none change');
+    fireEvent.click(head);
+    expect(head).toHaveAttribute('aria-expanded', 'true');
+    expect(head.closest('aside')).not.toHaveClass('gf-impact--folded');
+  });
+
+  it('counts the projects the draft moves in the summary', () => {
+    stackedScreen(true);
+    mount({ draft: { ...SAVED, ceilScale: 2 }, isDirty: true, inputs: { projects: [{ id: 'a', dimensions: [{ dimension: 'security', frozenScore: null,
+      principles: [{ id: 'p', massMinor: 4, massMajor: 0, massCritical: 0, complianceMass: 1, observation: 1, worst: 'minor' }] }] }] } });
+    expect(screen.getByRole('button', { name: /What changes/ })).toHaveTextContent('1 project · 1 change');
+  });
+
+  it('is a plain heading, never folded, side by side', () => {
+    stackedScreen(false);
+    mount();
+    expect(screen.queryByRole('button', { name: /What changes/ })).toBeNull();
+    expect(screen.getByText('What changes').closest('aside')).not.toHaveClass('gf-impact--folded');
   });
 });

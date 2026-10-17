@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import PrincipleChart from './PrincipleChart.jsx';
 
@@ -81,5 +81,20 @@ describe('PrincipleChart', () => {
     expect(anchor('.gf-tick--x')).toBe('middle');
     const titles = container.querySelectorAll('.gf-axis-title');
     expect([...titles].map((n) => n.getAttribute('text-anchor'))).toEqual(['middle', 'middle']);
+  });
+});
+
+describe('PrincipleChart text scale', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('sets viewBox units per pixel from the rendered width, capped for narrow screens', () => {
+    let report;
+    vi.stubGlobal('ResizeObserver', class { constructor(cb) { report = cb; } observe() {} disconnect() {} });
+    const { container } = mount();
+    const figure = container.querySelector('figure');
+    act(() => report([{ contentRect: { width: 480 } }]));
+    expect(figure.style.getPropertyValue('--gf-k')).toBe('2');
+    act(() => report([{ contentRect: { width: 200 } }]));
+    expect(figure.style.getPropertyValue('--gf-k')).toBe('2.6');
   });
 });
