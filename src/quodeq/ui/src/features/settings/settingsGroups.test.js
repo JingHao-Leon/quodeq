@@ -1,21 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { modelState, connectionsState, aboutState, evaluationState, STATE_TONE, SETTINGS_GROUPS } from './settingsGroups.js';
+import { assistantState, connectionsState, aboutState, evaluationState, STATE_TONE, SETTINGS_GROUPS } from './settingsGroups.js';
 
 test('groups come in display order', () => {
-  assert.deepEqual(SETTINGS_GROUPS.map((g) => g.id), ['model', 'evaluation', 'connections', 'app', 'about']);
+  assert.deepEqual(SETTINGS_GROUPS.map((g) => g.id), ['evaluation', 'assistant', 'connections', 'app', 'about']);
 });
 
-test('model: ready names provider and model', () => {
-  assert.deepEqual(modelState({ provider: 'claude', model: 'sonnet' }), { tone: STATE_TONE.OK, text: 'claude · sonnet' });
+test('evaluation: ready names provider and model', () => {
+  assert.deepEqual(evaluationState({ provider: 'claude', model: 'sonnet' }), { tone: STATE_TONE.OK, text: 'claude · sonnet' });
 });
 
-test('model: a provider without a model asks for one', () => {
-  assert.deepEqual(modelState({ provider: 'ollama', model: '' }), { tone: STATE_TONE.WARN, text: 'ollama · pick a model' });
+test('evaluation: a provider without a model asks for one', () => {
+  assert.deepEqual(evaluationState({ provider: 'ollama', model: '' }), { tone: STATE_TONE.WARN, text: 'ollama · pick a model' });
 });
 
-test('model: nothing chosen asks for a provider', () => {
-  assert.equal(modelState({ provider: '', model: '' }).text, 'pick a provider');
+test('evaluation: nothing chosen asks for a provider', () => {
+  assert.equal(evaluationState({ provider: '', model: '' }).text, 'pick a provider');
 });
 
 test('connections: signed in, gh, none, loading', () => {
@@ -32,7 +32,9 @@ test('about: an update waiting warns', () => {
   assert.equal(aboutState({ status: null, failed: true }).text, 'update check unavailable');
 });
 
-test('evaluation: live feed mode', () => {
-  assert.equal(evaluationState({ newOnly: false }).text, 'live feed: all findings');
-  assert.equal(evaluationState({ newOnly: true }).text, 'live feed: new findings only');
+test('assistant: off, following the evaluation model, or its own', () => {
+  assert.equal(assistantState({ enabled: false, followsAnalysis: true }).text, 'switched off in Toolbar');
+  assert.equal(assistantState({ enabled: true, followsAnalysis: true }).text, 'uses the evaluation model');
+  assert.deepEqual(assistantState({ enabled: true, followsAnalysis: false, provider: 'codex', model: '' }),
+    { tone: STATE_TONE.WARN, text: 'codex · pick a model' });
 });

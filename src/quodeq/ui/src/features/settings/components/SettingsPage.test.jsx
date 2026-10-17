@@ -44,17 +44,26 @@ describe('SettingsPage', () => {
   it('renders the five groups in order, with no Verify or Test access', async () => {
     renderPage();
     const headings = await screen.findAllByRole('heading', { level: 2 });
-    expect(headings.map((h) => h.textContent)).toEqual(['Model', 'Evaluation', 'Connections', 'App', 'About']);
+    expect(headings.map((h) => h.textContent)).toEqual(['Evaluation', 'Assistant', 'Connections', 'App', 'About']);
     expect(screen.queryByText(/verify findings/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/test access/i)).not.toBeInTheDocument();
   });
 
-  it('puts the local server and the welcome under App, the server shown open', async () => {
+  it('puts the local server under Connections, shown open, and the welcome under About', async () => {
     renderPage();
-    const app = (await screen.findByRole('heading', { level: 2, name: 'App' })).closest('section');
-    expect(within(app).getByText(/show the welcome again/i)).toBeInTheDocument();
-    expect(within(app).getByText('Local server')).toBeInTheDocument();
-    expect(app.querySelector('details')).toBeNull();
+    const connections = (await screen.findByRole('heading', { level: 2, name: 'Connections' })).closest('section');
+    expect(within(connections).getByText('Local server')).toBeInTheDocument();
+    expect(connections.querySelector('details')).toBeNull();
+    const about = screen.getByRole('heading', { level: 2, name: 'About' }).closest('section');
+    expect(within(about).getByText(/show the welcome again/i)).toBeInTheDocument();
+  });
+
+  it('keeps the evaluation model and the assistant model in their own groups', async () => {
+    renderPage();
+    const evaluation = (await screen.findByRole('heading', { level: 2, name: 'Evaluation' })).closest('section');
+    expect(within(evaluation).getByText(/grade formula/i)).toBeInTheDocument();
+    const assistant = screen.getByRole('heading', { level: 2, name: 'Assistant' }).closest('section');
+    expect(within(assistant).getByText('Model source')).toBeInTheDocument();
   });
 
   it('shows the version once', async () => {
@@ -78,12 +87,11 @@ describe('SettingsPage', () => {
     expect(await screen.findByText('update check unavailable')).toBeInTheDocument();
   });
 
-  it('keeps the welcome and the local server on their own line when there is no desktop section', async () => {
+  it('keeps the local server on its own line under GitHub and the shared repository', async () => {
     renderPage();
-    const welcome = await screen.findByText(/show the welcome again/i);
-    const line = welcome.closest('.settings-group__line');
+    const server = await screen.findByText('Local server');
+    const line = server.closest('.settings-group__line');
     expect(line).not.toBeNull();
-    expect(within(line).getByText('Local server')).toBeInTheDocument();
-    expect(within(line).queryByText('Toolbar')).toBeNull();
+    expect(within(line).queryByText(/github access/i)).toBeNull();
   });
 });

@@ -20,7 +20,7 @@ describe('useSettingsGroupStates', () => {
 
   it('names the default tab provider when none was chosen explicitly', async () => {
     const { result } = renderHook(() => useSettingsGroupStates({ providerConfigs: {}, theme, update }), { wrapper: withStableQueryApi(fakeApi()) });
-    await waitFor(() => expect(result.current.model.text).toBe('ollama · pick a model'));
+    await waitFor(() => expect(result.current.evaluation.text).toBe('ollama · pick a model'));
   });
 
   it('follows a model chosen while the page is open', async () => {
@@ -30,7 +30,7 @@ describe('useSettingsGroupStates', () => {
       localStorage.setItem('cc-claude-model', 'sonnet');
       notifyProviderSettingsChanged();
     });
-    await waitFor(() => expect(result.current.model.text).toBe('claude · sonnet'));
+    await waitFor(() => expect(result.current.evaluation.text).toBe('claude · sonnet'));
   });
 
   it('reads connections, app and about from their sources', async () => {
@@ -38,5 +38,6 @@ describe('useSettingsGroupStates', () => {
     await waitFor(() => expect(result.current.connections.text).toBe('using gh login'));
     expect(result.current.about.text).toBe('v1.13.1');
     expect(result.current.app.text).toBe('system · daruma');
+    expect(result.current.assistant.text).toBe('uses the evaluation model');
   });
 });
