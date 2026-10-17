@@ -70,3 +70,38 @@ def test_a_normal_archive_still_restores(tmp_path):
     assert ensure_restored(run) is True
     assert (run / "events.jsonl").read_bytes() == b"{}\n"
     assert run_archive.RunArchiveError is run_archive_limits.RunArchiveError
+
+
+def _count_headers(monkeypatch) -> list[int]:
+    """Count the member headers tarfile reads, so a test can see the listing stop early."""
+    seen = [0]
+    real = tarfile.TarInfo.fromtarfile.__func__
+
+    def counting(cls, tar):
+        seen[0] += 1
+        return real(cls, tar)
+
+    monkeypatch.setattr(tarfile.TarInfo, "fromtarfile", classmethod(counting))
+    return seen
+
+
+def _flood(run: Path) -> Path:
+    files = {"events.jsonl": b"{}\n"}
+    files.update({f"evidence/d{i}_evidence.jsonl": b"" for i in range(run_archive_limits.MAX_MEMBERS + 500)})
+    return _pack(run, files)
+
+
+@pytest.mark.parametrize("reader", ["restore", "repack", "extract"])
+def test_a_member_flood_is_refused_without_reading_every_header(tmp_path, monkeypatch, reader):
+    from quodeq.data.fs.run_archive_export import extract_members_to, repack_without_db
+
+    archive = _flood(tmp_path / "run")
+    seen = _count_headers(monkeypatch)
+    read = {
+        "restore": lambda: ensure_restored(archive.parent),
+        "repack": lambda: repack_without_db(archive, tmp_path / "out" / ARCHIVE_FILENAME),
+        "extract": lambda: extract_members_to(archive, tmp_path / "out"),
+    }[reader]
+    with pytest.raises(RunArchiveError, match="members"):
+        read()
+    assert seen[0] <= run_archive_limits.MAX_MEMBERS + 1

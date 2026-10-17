@@ -22,6 +22,24 @@ def max_archive_bytes() -> int:
     return env_int("QUODEQ_ARCHIVE_MAX_MB", _DEFAULT_MAX_MB, minimum=1) * _MB
 
 
+def read_members(tar: tarfile.TarFile) -> list[tarfile.TarInfo]:
+    """The archive's members, read header by header; stops at the first one past the count or size cap.
+
+    ``getmembers()`` would read every header first: a stream of tiny headers
+    would fill memory before any limit is checked.
+    """
+    members: list[tarfile.TarInfo] = []
+    total, cap = 0, max_archive_bytes()
+    for index, member in enumerate(tar):
+        if index >= MAX_MEMBERS:
+            raise RunArchiveError(f"archive has more than the {MAX_MEMBERS} members allowed")
+        total += member.size
+        if total > cap:
+            raise RunArchiveError(f"archive is larger than {cap // _MB} MB when unpacked")
+        members.append(member)
+    return members
+
+
 def check_archive_limits(members: list[tarfile.TarInfo]) -> None:
     """Raise ``RunArchiveError`` when the archive has too many members, is too big or has no event log."""
     if len(members) > MAX_MEMBERS:

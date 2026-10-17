@@ -37,7 +37,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
     is_plain_file,
 )
-from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits, check_restore_dirs  # noqa: F401
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits, check_restore_dirs, read_members  # noqa: F401
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
@@ -188,7 +188,7 @@ def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = ()) -> list[s
     """Validate *archive* and extract it into *staging*, leaving out the members named in *skip*; their names."""
     try:
         with tarfile.open(archive, "r:gz") as tar:
-            members = tar.getmembers()
+            members = read_members(tar)
             names = [name for name in check_members(members, staging) if name not in skip]
             staging.mkdir()
             tar.extractall(staging, members=[m for m in members if m.name in names], filter="data")

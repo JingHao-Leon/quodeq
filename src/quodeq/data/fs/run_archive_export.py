@@ -26,7 +26,7 @@ from pathlib import Path
 from quodeq.data.fs.run_archive import READ_ERRORS, check_members
 from quodeq.data.fs.run_archive_files import EVENTS_NAME, archive_sources, is_plain_file
 from quodeq.data.fs.run_archive_guard import LOCK_NAME, run_lock_if_writable
-from quodeq.data.fs.run_archive_limits import RunArchiveError, check_restore_dirs
+from quodeq.data.fs.run_archive_limits import RunArchiveError, check_restore_dirs, read_members
 from quodeq.data.fs.run_archive_wal import DB_NAME
 
 _FILE_MODE = 0o644
@@ -48,7 +48,7 @@ def _order(name: str) -> tuple[bool, str]:
 
 def _log_members(tar: tarfile.TarFile, dest_dir: Path) -> list[tarfile.TarInfo]:
     """The archive's log members in archive order, after every safety check; never the database."""
-    members = tar.getmembers()
+    members = read_members(tar)
     check_members(members, dest_dir)
     return sorted((m for m in members if m.name != DB_NAME), key=lambda m: _order(m.name))
 
