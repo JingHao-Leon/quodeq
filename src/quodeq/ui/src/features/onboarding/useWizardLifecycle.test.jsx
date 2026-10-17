@@ -41,6 +41,11 @@ function props(opts) {
   };
 }
 
+// Renders the hook with props built (and tweaked) by the test.
+function renderWithProps(p) {
+  return renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+}
+
 function renderLifecycle(initial = {}) {
   const utils = renderHook((p) => useWizardLifecycle(p), { initialProps: props(initial), wrapper: withQueryClient() });
   const update = (next) => utils.rerender(props({ ...initial, ...next }));
@@ -187,7 +192,7 @@ describe('useWizardLifecycle welcome exits', () => {
   it('an add that started a clone closes the wizard onto the repositories tab, with nothing to select yet', () => {
     const p = props({});
     p.state.handleProjectChange = vi.fn();
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     act(() => { result.current.wizardHandlers.onClose({ saved: true, projectId: null, cloning: true, landed: true }); });
     expect(result.current.wizardEntry).toBeNull();
     expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.PROJECTS);
@@ -198,7 +203,7 @@ describe('useWizardLifecycle welcome exits', () => {
     const p = props({ projects: [{ id: 'a' }, { id: 'b' }] });
     p.state.handleProjectChange = vi.fn();
     p.state.selectedProject = 'a';
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     act(() => { result.current.wizardHandlers.onClose({ saved: true, projectId: 'b' }); });
     expect(result.current.wizardEntry).toBeNull();
     expect(p.navTab).not.toHaveBeenCalled();
@@ -209,7 +214,7 @@ describe('useWizardLifecycle welcome exits', () => {
     const p = props({ projects: [{ id: 'a' }] });
     p.state.handleProjectChange = vi.fn();
     p.state.selectedProject = 'a';
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     act(() => { result.current.setWizardEntry({ startStep: STEP_ANALYZE, isFirstProject: false, source: WIZARD_SOURCE.ADD }); });
     act(() => { result.current.wizardHandlers.onClose({ saved: true, projectId: 'p-new', cloning: false, landed: true }); });
     expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.PROJECTS);
@@ -218,7 +223,7 @@ describe('useWizardLifecycle welcome exits', () => {
 
   it('go to repositories closes the wizard and opens the repositories tab', () => {
     const p = props({});
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     expect(result.current.wizardEntry).not.toBeNull();
     act(() => { result.current.wizardHandlers.onGoToRepositories(); });
     expect(result.current.wizardEntry).toBeNull();
@@ -227,7 +232,7 @@ describe('useWizardLifecycle welcome exits', () => {
 
   it('open settings closes the wizard and opens the settings tab', () => {
     const p = props({});
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     act(() => { result.current.wizardHandlers.onOpenSettings(); });
     expect(result.current.wizardEntry).toBeNull();
     expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.SETTINGS);
@@ -244,7 +249,7 @@ describe('useWizardLifecycle launch hand-off', () => {
     const p = props({ projects: [{ id: 'a' }] });
     p.state.selectedProject = selected;
     p.state.handleProjectChange = vi.fn((id) => { p.state.selectedProject = id; });
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     act(() => { result.current.wizardHandlers.onLaunch(LAUNCH); });
     return p;
   }
@@ -273,7 +278,7 @@ describe('useWizardLifecycle launch hand-off', () => {
     const p = props({ projects: [{ id: 'a' }] });
     p.state.selectedProject = 'a';
     p.state.handleProjectChange = vi.fn();
-    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    const { result } = renderWithProps(p);
     act(() => { result.current.wizardHandlers.onClose({ saved: true, projectId: 'p-new', cloning: false, select: true }); });
     act(() => { result.current.wizardHandlers.onOpenSettings(); });
     expect(p.state.handleProjectChange).toHaveBeenCalledWith('p-new', PROJECT_SOURCE.LOCAL);

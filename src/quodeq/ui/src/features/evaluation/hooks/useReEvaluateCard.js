@@ -36,12 +36,14 @@ function useFirstRunLatch(projectInfo) {
   return latched;
 }
 
-// Scan scope the user picks on the card (branch, sub-path, time budget);
-// branch and path reset when the project changes. A first run starts with
+// Scan scope the user picks on the card (branch, sub-path, time budget),
+// and whether this is a first run (latched); branch and path reset when the
+// project changes. A first run starts with
 // no time limit whatever the provider's Settings say, applied once when the
 // latch settles (even when the entry arrives after mount); the chips still
 // let the user pick one.
-function useReEvalScope(project, firstRun) {
+function useReEvalScope(project, projectInfo) {
+  const firstRun = useFirstRunLatch(projectInfo) === true;
   const [branch, setBranch] = useState(null);
   const [scopePath, setScopePath] = useState(null);
   const [timeLimitS, setTimeLimitS] = useState(() => (firstRun ? 0 : initialBudgetSeconds()));
@@ -49,7 +51,7 @@ function useReEvalScope(project, firstRun) {
   useEffect(() => { setScopePath(null); setBranch(null); }, [project]);
   useEffect(() => { if (firstRun) setTimeLimitS(0); }, [firstRun]);
 
-  return { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS };
+  return { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS, isFirstRun: firstRun };
 }
 
 // Local-project-only data: the scan preview and the pre-run estimates.
@@ -74,8 +76,7 @@ export function useReEvaluateCard(project, onStart, projectInfo, preselectDims) 
   const { info, error, retry, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = useReEvalInfo(project, projectInfo, { getProjectInfo, relocateProject });
   const { allDimensions } = usePluginDimensions();
   const { showToast } = useSidePane();
-  const isFirstRun = useFirstRunLatch(projectInfo) === true;
-  const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS } = useReEvalScope(project, isFirstRun);
+  const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS, isFirstRun } = useReEvalScope(project, projectInfo);
   const { isLocal, scanData, estimates, estimatesLoading } = useReEvalScan(project, info);
 
   const { selectedDims, toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan } =
