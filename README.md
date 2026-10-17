@@ -359,7 +359,8 @@ cloud provider, your code goes to that provider using your own API key or CLI ac
 
 Quodeq makes exactly one network call of its own: a daily unauthenticated version check
 (PyPI for `pip`/`pipx`/`uv` installs, GitHub Releases for the desktop apps). It shows a
-dismissible notice with the right upgrade step and never replaces itself. Turn it off with
+dismissible notice with the right upgrade step and never replaces itself on its own;
+`quodeq upgrade` runs that step when you ask. Turn it off with
 `QUODEQ_NO_UPDATE_NOTIFIER=1`, or under **Settings → Updates**.
 
 ---
