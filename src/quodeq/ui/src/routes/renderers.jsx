@@ -23,7 +23,7 @@ import { NAV_TAB } from '../vocab/navTab.js';
 import { WIZARD_SOURCE } from '../features/onboarding/onboardingVocab.js';
 import {
   EvaluateCase, SettingsCase, renderEvalPrincipleDetail,
-  resolveSelectionAfterSharedDisconnect,
+  resolveSelectionAfterSharedDisconnect, reselectAfterDeleteAll,
 } from './routeCases.jsx';
 
 const DashboardPage = lazy(() => import('../features/dashboard/components/DashboardPage.jsx'));
@@ -200,6 +200,7 @@ export const ROUTE_RENDERERS = {
     settings={props.settings}
     onOpenGradeFormula={() => props.navigation.handleNavigate(NAV_TAB.GRADE_FORMULA)}
     onSharedDisconnected={() => reselectAfterSharedDisconnect(props.navigation)}
+    onEvaluationsDeleted={() => reselectAfterDeleteAll(props.navigation)}
     onShowWelcome={() => props.navigation.onTakeTour(WIZARD_SOURCE.SETTINGS, () => reselectAfterSharedDisconnect(props.navigation))}
   />,
   [NAV_TAB.GRADE_FORMULA]: (params, props) => (

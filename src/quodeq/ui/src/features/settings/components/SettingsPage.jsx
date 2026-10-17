@@ -28,13 +28,13 @@ const _SETTINGS_PHRASE_KEYS = [
 
 // What each group holds, keyed by group id. The sections keep their own
 // behaviour; the group panel only frames them.
-function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase }) {
+function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted, settingsPhrase }) {
   return {
     [SETTINGS_GROUP.MODEL]: (<>
       <ProviderTabs providerConfigs={providerConfigs} />
       <AssistantProviderTabs providerConfigs={providerConfigs} />
     </>),
-    [SETTINGS_GROUP.EVALUATION]: <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} />,
+    [SETTINGS_GROUP.EVALUATION]: <EvaluationSection onOpenGradeFormula={onOpenGradeFormula} onEvaluationsDeleted={onEvaluationsDeleted} />,
     [SETTINGS_GROUP.CONNECTIONS]: (<>
       <GitHubAccessSection />
       <SharedRepoSection onDisconnected={onSharedDisconnected} />
@@ -62,7 +62,7 @@ function groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSha
   };
 }
 
-export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome }) {
+export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted }) {
   const [settingsPhrase, setSettingsPhrase] = useState('');
   const [providerConfigs, setProviderConfigs] = useState({});
   // One update status for the page: the Updates section and the About line
@@ -75,7 +75,7 @@ export default function SettingsPage({ theme, onOpenGradeFormula, onSharedDiscon
     getProviderConfigs().then(setProviderConfigs).catch(() => setProviderConfigs({}));
   }, []);
 
-  const bodies = groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, settingsPhrase });
+  const bodies = groupBodies({ providerConfigs, theme, update, onOpenGradeFormula, onSharedDisconnected, onShowWelcome, onEvaluationsDeleted, settingsPhrase });
   return (
     <div className="settings-page settings-page--terminal settings-sheet">
       {SETTINGS_GROUPS.map((group) => (

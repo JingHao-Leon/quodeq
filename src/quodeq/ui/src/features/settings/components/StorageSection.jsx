@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { SettingsPillTabs, SettingsRowLabel } from './settingsRowParts.jsx';
+import { CleanModal, DeleteAllModal } from './StorageModals.jsx';
+import useStorage from '../hooks/useStorage.js';
+import { formatBytes } from '../../../utils/formatSize.js';
 import { t } from '../../../strings/index.js';
 
-// PROTOTYPE: sample numbers; the real row reads them from the storage endpoint.
-const SAMPLE = { bytes: 6.7e9, runs: 470, projects: 5, archived: 216, preview: { archive: 212, frees: 3.1e9 } };
+// The archive-after choices in days, as PUT /api/storage/settings takes them; null is never.
 const ARCHIVE_AFTER = [
-  { v: 3, l: t('storage.months', { count: 3 }) }, { v: 6, l: t('storage.months', { count: 6 }) },
-  { v: 12, l: t('storage.year') }, { v: 0, l: t('storage.never') },
+  { v: 91, l: t('storage.months', { count: 3 }) }, { v: 183, l: t('storage.months', { count: 6 }) },
+  { v: 365, l: t('storage.year') }, { v: null, l: t('storage.never') },
 ];
-const gb = (b) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
 
-function Menu({ open, onToggle, onDeleteAll }) {
+function Menu({ open, disabled, onToggle, onDeleteAll }) {
   return (
     <span className="storage-menu">
-      <button type="button" className="term-btn storage-menu__btn" aria-label={t('storage.pageMenu')} aria-expanded={open} onClick={onToggle}>⋯</button>
+      <button type="button" className="term-btn storage-menu__btn" aria-label={t('storage.pageMenu')} aria-expanded={open} disabled={disabled} onClick={onToggle}>⋯</button>
       {open && (
         <span className="storage-menu__pop" role="menu">
           <button type="button" role="menuitem" className="storage-menu__item storage-menu__item--danger" onClick={onDeleteAll}>{t('storage.deleteAll')}</button>
@@ -24,66 +25,48 @@ function Menu({ open, onToggle, onDeleteAll }) {
   );
 }
 
-function Modal({ titleId, title, children, actions, onCancel }) {
-  return (
-    <div className="modal-overlay" onClick={onCancel}>
-      <div className="modal-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
-        <h3 id={titleId} className="modal-title">{title}</h3>
-        {children}
-        <div className="modal-actions">
-          <button type="button" className="btn-secondary" onClick={onCancel}>{t('common.cancel')}</button>
-          {actions}
-        </div>
-      </div>
-    </div>
-  );
+// The Space used row's line: loading and error keep the row's height, a
+// running pass replaces the facts with its progress, and a pass this session
+// finished says what it freed.
+function factsLine({ data, isLoading, isError, clean, running, finishedHere }) {
+  if (running) return t('storage.cleaning', { done: clean.done, total: clean.total });
+  if (isError && !data) return t('storage.factsError');
+  if (isLoading || !data) return t('storage.factsLoading');
+  const facts = t('storage.facts', { size: formatBytes(data.bytes), archived: data.archived, runs: data.runs });
+  return finishedHere ? `${facts}. ${t('storage.freed', { size: formatBytes(clean.bytesFreed) })}` : facts;
 }
 
-// Same shape as deleting a standard: what goes in bold, then type the phrase.
-function DeleteAll({ data, onCancel }) {
-  const [typed, setTyped] = useState('');
-  const word = t('storage.deleteAllWord');
-  return (
-    <Modal titleId="storage-delete-title" title={t('storage.deleteAllTitle')} onCancel={onCancel}
-      actions={<button type="button" className="btn-danger" disabled={typed.toLowerCase().trim() !== word} onClick={onCancel}>{t('storage.deleteConfirm')}</button>}>
-      <p className="modal-body modal-body--warning">
-        {t('storage.deleteAllLead')} <strong>{t('storage.deleteAllWhat', { runs: data.runs, projects: data.projects, size: gb(data.bytes) })}</strong>. {t('storage.deleteAllKept')} {t('standards.cannotBeUndone')}
-      </p>
-      <p className="modal-body">{t('standards.typePrefix')} <strong>{word}</strong> {t('standards.toConfirmSuffix')}</p>
-      <input className="modal-input" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={word} aria-label={t('storage.typeToConfirmAria')} autoFocus />
-    </Modal>
-  );
-}
-
-/** Settings › Evaluation › STORAGE: space used with clean now and delete all (behind ⋯), and when old runs are archived. */
-export default function StorageSection({ data = SAMPLE }) {
-  const [after, setAfter] = useState(6);
+/**
+ * Settings › Evaluation › STORAGE: space used with clean now and delete all
+ * (behind ⋯), and when old runs are archived. `onEvaluationsDeleted` runs
+ * after delete all, so the app can leave a project that no longer exists.
+ */
+export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
+  const storage = useStorage();
+  const { data, running } = storage;
   const [menu, setMenu] = useState(false);
-  const [preview, setPreview] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const deleteAll = async () => {
+    await storage.deleteAll();
+    onEvaluationsDeleted();
+  };
   return (
     <section className="panel settings-section storage-section">
       <div className="panel-header"><SectionLabel marker="▶">{t('storage.sectionLabel')}</SectionLabel></div>
       <div className="settings-row">
-        <SettingsRowLabel hintSlot={false} label={t('storage.spaceUsed')}
-          description={t('storage.facts', { size: gb(data.bytes), archived: data.archived, runs: data.runs })} />
+        <SettingsRowLabel hintSlot={false} label={t('storage.spaceUsed')} description={factsLine(storage)} />
         <div className="storage-row__controls">
-          <button type="button" className="term-btn" onClick={() => setPreview(true)}>{t('storage.cleanNow')}</button>
-          <Menu open={menu} onToggle={() => setMenu(!menu)} onDeleteAll={() => { setMenu(false); setDeleting(true); }} />
+          <button type="button" className="term-btn" disabled={running} onClick={() => setCleaning(true)}>{t('storage.cleanNow')}</button>
+          <Menu open={menu} disabled={!data} onToggle={() => setMenu(!menu)} onDeleteAll={() => { setMenu(false); setDeleting(true); }} />
         </div>
       </div>
       <div className="settings-row settings-row--last">
         <SettingsRowLabel hintSlot={false} label={t('storage.archiveAfter')} description={t('storage.archiveAfterDesc')} />
-        <SettingsPillTabs options={ARCHIVE_AFTER} value={after} onChange={setAfter} />
+        <SettingsPillTabs options={ARCHIVE_AFTER} value={data ? data.archiveAfterDays : undefined} onChange={storage.setArchiveAfter} />
       </div>
-      {preview && (
-        <Modal titleId="storage-clean-title" title={t('storage.cleanTitle')} onCancel={() => setPreview(false)}
-          actions={<button type="button" className="term-btn term-btn--primary" onClick={() => setPreview(false)}>{t('storage.cleanConfirm')}</button>}>
-          <p>{t('storage.cleanSummary', { archive: data.preview.archive, frees: gb(data.preview.frees) })}</p>
-          <p className="settings-description">{t('storage.cleanNote')}</p>
-        </Modal>
-      )}
-      {deleting && <DeleteAll data={data} onCancel={() => setDeleting(false)} />}
+      {cleaning && <CleanModal onClean={storage.runClean} onClose={() => setCleaning(false)} />}
+      {deleting && data && <DeleteAllModal data={data} onDelete={deleteAll} onClose={() => setDeleting(false)} />}
     </section>
   );
 }

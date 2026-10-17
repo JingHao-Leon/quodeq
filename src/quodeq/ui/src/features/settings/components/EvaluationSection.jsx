@@ -4,7 +4,7 @@ import { t } from '../../../strings/index.js';
 import { SettingsPillTabs, SettingsRowLabel } from './settingsRowParts.jsx';
 import StorageSection from './StorageSection.jsx';
 
-export default function EvaluationSection({ onOpenGradeFormula }) {
+export default function EvaluationSection({ onOpenGradeFormula, onEvaluationsDeleted }) {
   const { newOnly, setNewOnly } = useLiveFeedSettings();
   return (
     <>
@@ -26,7 +26,7 @@ export default function EvaluationSection({ onOpenGradeFormula }) {
         <span className="settings-link-row__go">{t('settings.openEditorLink')}</span>
       </button>
     </section>
-    <StorageSection />
+    <StorageSection onEvaluationsDeleted={onEvaluationsDeleted} />
     </>
   );
 }
