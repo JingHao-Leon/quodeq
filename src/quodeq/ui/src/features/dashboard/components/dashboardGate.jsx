@@ -86,7 +86,7 @@ export function renderDashboardGate({ data, callbacks, runMode, archivedRun = fa
   }
   if (pageState.showNoRunsEmpty) {
     const pendingClass = dashboardPageClassName({ appearClass: pageState.dashboardAppearClass, pending: isFetching });
-    return gateFrame(pendingClass, <NoRunsEmptyContent projectInfo={projectInfo} onComplete={onSetupComplete} projectName={projectName} onNavigate={onNavigate} />);
+    return gateFrame(pendingClass, <NoRunsEmptyContent projectInfo={projectInfo} onComplete={onSetupComplete} projectName={projectName} onNavigate={onNavigate} selectedSource={selectedSource} />);
   }
   if (runMode && !loading && !dashboard && !error) {
     return renderRunModeGate({ isFetching, projectName, onRetry, readyClass, archivedRun });

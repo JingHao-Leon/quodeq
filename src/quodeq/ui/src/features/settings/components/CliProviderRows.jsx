@@ -1,20 +1,10 @@
 import { t } from '../../../strings/index.js';
-import { SettingsRowLabel, SettingsAdvanced } from './settingsRowParts.jsx';
+import { SettingsRowLabel } from './settingsRowParts.jsx';
 import CopilotModelSelect from './CopilotModelSelect.jsx';
 import CliModelPicker from './CliModelPicker.jsx';
 import { CATALOG_PROVIDERS, modelEffort, useClientModels } from '../hooks/useClientModels.js';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
-
-// Display names for effort levels (from the live model catalog or
-// ai_providers.json's `effort_levels`); a level missing here shows its raw id.
-const EFFORT_LABELS = {
-  low: t('settings.effortLow'),
-  medium: t('settings.effortMedium'),
-  high: t('settings.effortHigh'),
-  xhigh: t('settings.effortXhigh'),
-  max: t('settings.effortMax'),
-  ultra: t('settings.effortUltra'),
-};
+import { defaultEffortLabel, effortLabel } from '../effortLabels.js';
 
 // Copilot lists account models through its own RPC (ids only).
 const COPILOT_PROVIDER_ID = 'copilot';
@@ -59,15 +49,9 @@ function EffortPill({ active, onClick, children }) {
   );
 }
 
-function effortLabel(level) {
-  return EFFORT_LABELS[level] || level;
-}
-
 function EffortRow({ levels, defaultEffort, state, update }) {
   const effort = levels.includes(state[PROVIDER_SETTING_KEY.EFFORT]) ? state[PROVIDER_SETTING_KEY.EFFORT] : '';
-  const defaultLabel = defaultEffort
-    ? t('settings.effortDefaultNamed', { level: effortLabel(defaultEffort) })
-    : t('settings.effortDefault');
+  const defaultLabel = defaultEffortLabel(defaultEffort);
   return (
     <div className="settings-row">
       <SettingsRowLabel
@@ -88,7 +72,7 @@ function EffortRow({ levels, defaultEffort, state, update }) {
   );
 }
 
-function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPath }) {
+export function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPath }) {
   return (
     <div className="settings-row">
       <SettingsRowLabel
@@ -122,19 +106,13 @@ function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPa
 }
 
 /**
- * A CLI provider tab's advanced settings: the reasoning effort and the
- * launch-command override. Effort offers what the selected model takes (live
- * catalog), else the provider's `effort_levels`; it hides when there are none.
+ * The reasoning-effort row, right under the model. It offers what the
+ * selected model takes (live catalog), else the provider's `effort_levels`,
+ * and renders nothing when there are none.
  */
-export function CliAdvancedPanel({
-  providerId, providerConfig, state, update, cmdPathError, validateCmdPath,
-}) {
+export function CliEffortRow({ providerId, providerConfig, state, update }) {
   const { data: catalog } = useClientModels(providerId);
   const { levels, defaultEffort } = modelEffort(catalog, state[PROVIDER_SETTING_KEY.MODEL], providerConfig?.effort_levels);
-  return (
-    <SettingsAdvanced>
-      {levels.length > 0 && <EffortRow levels={levels} defaultEffort={defaultEffort} state={state} update={update} />}
-      <CmdOverrideRow providerId={providerId} state={state} update={update} cmdPathError={cmdPathError} validateCmdPath={validateCmdPath} />
-    </SettingsAdvanced>
-  );
+  if (!levels.length) return null;
+  return <EffortRow levels={levels} defaultEffort={defaultEffort} state={state} update={update} />;
 }

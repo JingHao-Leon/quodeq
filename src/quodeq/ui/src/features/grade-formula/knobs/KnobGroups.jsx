@@ -14,19 +14,21 @@ function reachOf(group, inputs, saved, draft) {
   return { count, text: t(group.labelsOnly ? 'gradeFormula.reachLabels' : 'gradeFormula.reachMoves', { count, total }) };
 }
 
-function GroupKnobs({ group, draft, saved, defaults, update }) {
+function GroupKnobs({ group, draft, saved, defaults, update, onHint }) {
   if (group.id === KNOB_GROUP.BANDS) {
     return <GradeBoundaryBar thresholds={draft.gradeThresholds} onChange={(next) => update({ gradeThresholds: next })} />;
   }
   return group.knobs.map((knob) => (
     <KnobSlider key={knob.id} knob={knob} value={knob.get(draft)} savedValue={knob.get(saved)}
-      defaultValue={knob.get(defaults)} onChange={(v) => update(knob.patch(draft, v))} />
+      defaultValue={knob.get(defaults)} onChange={(v) => update(knob.patch(draft, v))} onHint={onHint} />
   ));
 }
 
 function KnobGroup({ group, draft, saved, defaults, inputs, update, onHoverGroup }) {
   const reach = useMemo(() => reachOf(group, inputs, saved, draft), [group, inputs, saved, draft]);
-  const leave = () => onHoverGroup(null);
+  // One line under the head: the group's question, or the hint of the knob under the pointer.
+  const [hintKey, setHintKey] = useState(null);
+  const leave = () => { onHoverGroup(null); setHintKey(null); };
   return (
     <section className={`gf-group${reach.count > 0 ? ' gf-group--reaching' : ''}`}
       aria-label={t(group.titleKey)}
@@ -36,8 +38,8 @@ function KnobGroup({ group, draft, saved, defaults, inputs, update, onHoverGroup
         <h3 className="gf-group__title">{t(group.titleKey)}</h3>
         {reach.text && <span className="gf-group__reach">{reach.text}</span>}
       </div>
-      <p className="gf-group__question">{t(group.questionKey)}</p>
-      <GroupKnobs group={group} draft={draft} saved={saved} defaults={defaults} update={update} />
+      <p className={`gf-group__question${hintKey ? ' gf-group__question--hint' : ''}`}>{t(hintKey || group.questionKey)}</p>
+      <GroupKnobs group={group} draft={draft} saved={saved} defaults={defaults} update={update} onHint={setHintKey} />
       {group.id === KNOB_GROUP.COST && (
         <span className="gf-group__note">{t('gradeFormula.criticalRatio', { ratio: Math.round(draft.severityWeight.critical / draft.severityWeight.minor) })}</span>
       )}
@@ -56,7 +58,7 @@ export default function KnobGroups(props) {
   return (
     <div className="gf-groups">
       {GROUPS.filter((g) => !g.folded).map((g) => <KnobGroup key={g.id} group={g} {...props} />)}
-      <button type="button" className="gf-finetune" aria-expanded={open} onClick={() => setOpened(!open)}>
+      <button type="button" className="term-btn gf-finetune" aria-expanded={open} onClick={() => setOpened(!open)}>
         {t('gradeFormula.fineTune')}
       </button>
       {open && folded.map((g) => <KnobGroup key={g.id} group={g} {...props} />)}

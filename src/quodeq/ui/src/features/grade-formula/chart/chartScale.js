@@ -6,9 +6,10 @@ import { allPrinciples, GRADE_ORDER } from '../impact/impactModel.js';
 import { SCORE_SCALE_MAX } from '../../../constants.js';
 
 const WIDTH = 960;
-const HEIGHT = 400;
+// Short enough to stay pinned above the knobs at the default window height.
+const HEIGHT = 250;
 const MARGIN_LEFT = 44;
-const MARGIN_RIGHT = 96;
+const MARGIN_RIGHT = 130;
 const MARGIN_TOP = 14;
 const MARGIN_BOTTOM = 40;
 const PLOT = { left: MARGIN_LEFT, right: WIDTH - MARGIN_RIGHT, top: MARGIN_TOP, bottom: HEIGHT - MARGIN_BOTTOM };

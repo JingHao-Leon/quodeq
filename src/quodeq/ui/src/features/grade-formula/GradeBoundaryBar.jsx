@@ -105,11 +105,14 @@ export default function GradeBoundaryBar({ thresholds = [], onChange }) {
 function Segment({ i, width, hasDivider, dividerValue, onDrag, onStepKey }) {
   return (
     <>
+      {/* A segment too narrow for its name shows the initial; the name stays for screen readers and hover. */}
       <div
         className="gf-boundary-seg"
         style={{ flex: width, background: GRADE_COLOR_VARS[i] }}
+        title={SEG_LABELS[i]}
       >
-        {SEG_LABELS[i]}
+        <span className="gf-boundary-seg__name">{SEG_LABELS[i]}</span>
+        <span className="gf-boundary-seg__initial" aria-hidden="true">{SEG_LABELS[i][0]}</span>
       </div>
       {hasDivider ? (
         <div

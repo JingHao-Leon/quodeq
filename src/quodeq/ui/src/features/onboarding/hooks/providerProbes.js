@@ -14,7 +14,7 @@
 
 import { PROVIDER_TYPE } from '../../../vocab/providerType.js';
 import { SETTLED_FULFILLED } from '../../../constants.js';
-import { serverProviderId } from '../providerLabels.js';
+import { serverProviderId } from '../../reviewer/providerLabels.js';
 /** How long each detection probe waits before aborting its fetch. */
 export const PROBE_TIMEOUT_MS = 5000;
 

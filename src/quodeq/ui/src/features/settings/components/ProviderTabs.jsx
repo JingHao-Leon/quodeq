@@ -66,7 +66,7 @@ export default function ProviderTabs({ providerConfigs }) {
   const { clients, clientsError, activeTab, active, selectTab } = useProviderTabsState(providerConfigs);
 
   return (
-    <section className="panel settings-section">
+    <section className="panel settings-section settings-section--analysis">
       <div className="panel-header">
         <SectionLabel marker="▶">{t('settings.analysisLabel')}</SectionLabel>
       </div>

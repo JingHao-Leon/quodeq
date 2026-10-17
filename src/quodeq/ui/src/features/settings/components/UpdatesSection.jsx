@@ -2,6 +2,8 @@ import { useState } from 'react';
 import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { useApi } from '../../../api/ApiContext.jsx';
 import { useSelfUpdate } from '../../updates/useSelfUpdate.js';
+import { useInPlaceUpgrade } from '../../updates/useInPlaceUpgrade.js';
+import InPlaceUpgradeRow from './InPlaceUpgradeRow.jsx';
 import { openExternal } from '../../updates/openExternal.js';
 import { t } from '../../../strings/index.js';
 import { SettingsOnOffPills, SettingsRowLabel } from './settingsRowParts.jsx';
@@ -85,6 +87,7 @@ export default function UpdatesSection({ update }) {
   const { checkForUpdates, setUpdateAutoCheck } = useApi();
   const { status, adopt, setAutoCheck } = update;
   const selfUpdate = useSelfUpdate(status, adopt);
+  const upgrade = useInPlaceUpgrade(status, adopt);
   const [checking, setChecking] = useState(false);
 
   // Unlike onToggle below, there is no optimistic mutation to undo here:
@@ -124,7 +127,9 @@ export default function UpdatesSection({ update }) {
 
       <VersionRow available={available} status={status} current={current} checking={checking} onCheck={onCheck} />
 
-      {available && <UpdateAvailableRow status={status} selfUpdate={selfUpdate} />}
+      {available && (upgrade.supported || upgrade.installed || upgrade.restarting
+        ? <InPlaceUpgradeRow status={status} upgrade={upgrade} />
+        : <UpdateAvailableRow status={status} selfUpdate={selfUpdate} />)}
 
       <AutoCheckRow auto={auto} onToggle={onToggle} />
     </section>

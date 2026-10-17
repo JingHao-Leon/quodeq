@@ -2655,6 +2655,14 @@
   white-space: nowrap;
 }
 .projects-row__muted { color: var(--color-text-subtle, var(--color-text-muted)); }
+/* A never-evaluated row: one quiet cell across grade, files, last run and size. */
+.projects-row__not-evaluated {
+  grid-column: span 4;
+  font-family: var(--term-font-mono);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
 .projects-row__warn { color: var(--color-warning-text); }
 .projects-row__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .projects-row__dot--ok { background: var(--color-success); }
@@ -2747,6 +2755,9 @@
 .projects-row__ghost-meta { white-space: nowrap; }
 .projects-row__ghost-error { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
 
+/* The empty page's three ways in, the welcome's cards at reading width. */
+.projects-empty-paths { max-width: 560px; margin: var(--space-8) auto; padding: 0 var(--space-4); }
+
 /* Connect's reading placeholders: one quiet row per project found. */
 .projects-row--placeholder { cursor: default; gap: 6px; grid-template-columns: 1fr !important; }
 .projects-row--placeholder__line { display: block; height: 8px; border-radius: 4px; background: var(--color-surface-alt); }
@@ -2772,6 +2783,7 @@
   .projects-row__name { grid-area: name; }
   .projects-row__sub { display: none; }
   .projects-row__grade { grid-area: grade; justify-content: flex-end; }
+  .projects-row__not-evaluated { grid-area: grade; grid-column: auto; text-align: right; }
   .projects-row__more { grid-area: more; }
   .projects-row__action { grid-area: action; }
   .projects-row__action:empty { display: none; }

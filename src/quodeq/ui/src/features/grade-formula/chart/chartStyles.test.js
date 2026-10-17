@@ -10,8 +10,8 @@ const rule = (selector) => {
   return at < 0 ? null : CSS.slice(at, CSS.indexOf('}', at) + 1);
 };
 
-test('chart text is legible once the 960-unit viewBox is scaled down', () => {
-  assert.match(rule('.gf-chart text'), /font-size: 13px/);
+test('chart text keeps one pixel size whatever the viewBox is scaled to', () => {
+  assert.match(rule('.gf-chart text'), /font-size: calc\(11px \* var\(--gf-k, 1\)\)/);
 });
 
 test('hovering the cost or lift group enlarges the dots that move', () => {
@@ -19,7 +19,20 @@ test('hovering the cost or lift group enlarges the dots that move', () => {
   assert.match(rule(selector) ?? '', /r: 5\.5px/);
 });
 
-test('on a narrow screen the impact panel stacks above the chart', () => {
-  const narrow = CSS.slice(CSS.indexOf('@media (max-width: 960px) { .gf-split'));
-  assert.match(narrow.slice(0, narrow.indexOf('}\n') + 1), /\.gf-impact \{[^}]*order: -1/);
+// The stacked block: from its media query to the first line that closes it.
+const stacked = () => {
+  const from = CSS.indexOf('@media (max-width: 960px) {\n  .gf-split');
+  return from < 0 ? '' : CSS.slice(from, CSS.indexOf('\n}\n', from));
+};
+
+test('on a narrow screen the impact panel stacks above the chart and stops pinning', () => {
+  assert.match(stacked(), /\.gf-impact \{[^}]*position: static;[^}]*order: -1/);
+});
+
+test('the stacked block comes after the sticky impact rule, so it wins', () => {
+  assert.ok(CSS.indexOf('@media (max-width: 960px) {\n  .gf-split') > CSS.indexOf('.gf-impact { position: sticky'));
+});
+
+test('a folded impact panel hides its body on a narrow screen', () => {
+  assert.match(stacked(), /\.gf-impact--folded \.gf-impact__body \{ display: none; \}/);
 });

@@ -66,7 +66,7 @@ export default function CliModelPicker({ providerId, value, onChange, required, 
 
   if (error) {
     return (
-      <div className="settings-model-field">
+      <div className="settings-model-field settings-model-field--picker">
         <div className="settings-model-select-row">
           <TypedModelInput inputId={inputId} value={value} onChange={onChange} required={required} ariaLabel={ariaLabel} />
           <RefreshButton onRefresh={onRefresh} busy={isFetching} />
@@ -82,7 +82,7 @@ export default function CliModelPicker({ providerId, value, onChange, required, 
   }
 
   return (
-    <div className="settings-model-field">
+    <div className="settings-model-field settings-model-field--picker">
       <div className="settings-model-select-row">
         <select
           id={inputId}

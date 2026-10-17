@@ -191,12 +191,13 @@ function useDisplaySettings() {
 // its polls do not re-render the app. The root keeps the store identity (to
 // hand the provider), the dependencies the provider needs, and the one value
 // it renders from: whether a run is in flight.
-function useAppEvaluation({ navTab, navReset, projectBundle }) {
+function useAppEvaluation({ navTab, navReset, projectBundle, activePage, navStack }) {
   const { selectProjectAndRun, selectedProject } = projectBundle;
   const liveEvaluation = useLiveEvaluationStore();
   const isEvaluating = useLiveEvaluationValue(liveEvaluation, selectIsEvaluating);
   const evaluationDeps = {
-    navigation: { navTab, navReset },
+    // activeTab: a first run finishing on Evaluate moves to its Overview.
+    navigation: { navTab, navReset, activeTab: resolveActiveTab(activePage, navStack[0]?.page) },
     projects: { selectProjectAndRun },
     selectedProject,
   };

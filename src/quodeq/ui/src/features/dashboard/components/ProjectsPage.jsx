@@ -15,6 +15,10 @@ import { SYNC_PHASE } from '../../../vocab/syncPhase.js';
 import { useCloneGhost } from '../hooks/useCloneGhost.js';
 import CloningTile from './CloningTile.jsx';
 import { useStorageSummary } from '../../../hooks/useStorageSummary.js';
+import WelcomePaths from '../../onboarding/components/WelcomePaths.jsx';
+import { useSharedConnection } from '../hooks/useSharedProjects.js';
+import { useSharedDisconnect } from '../hooks/useSharedDisconnect.js';
+import { isFirstRunProject } from '../../../models/project.js';
 
 // While a connect reads the team's projects, one placeholder row per
 // project found so far heads the list; they become the real rows when
@@ -53,7 +57,7 @@ function ProjectsPageBody({ filters, onFiltersChange, shared, visibleEntries, ro
 // Everything the rows need: the merged/filtered entries plus the per-row
 // action context (confirm/relocate, publish, pull-to-local).
 function useProjectsRowsCtx({ projects, filters, selectedProject, actions }) {
-  const { onSelect, onDelete, onExport, onRelocate, onResumeSetup } = actions;
+  const { onSelect, onEvaluate, onDelete, onExport, onRelocate, onResumeSetup } = actions;
   const [confirming, setConfirming] = useState(null);
   const relocateActions = useRelocateDialog(onRelocate);
 
@@ -66,28 +70,46 @@ function useProjectsRowsCtx({ projects, filters, selectedProject, actions }) {
   const storage = useStorageSummary().data?.projects ?? null;
 
   const rowsCtx = {
-    children, selectedProject, onSelect, onResumeSetup, confirming, setConfirming, onDelete, onExport,
+    children, selectedProject, onSelect, onEvaluate, onResumeSetup, confirming, setConfirming, onDelete, onExport,
     relocateActions, publishActions, localEntryById, configured: shared.configured, pullConflictId, pullingId, pullError,
     handlePull, handleConfirmCopy, cancelConflict, pulledIds, storage,
   };
   return { shared, isEmpty, visibleEntries, rowsCtx };
 }
 
+// The empty page: the welcome's three ways in, wired to the same actions as
+// the header's buttons (add, connect an evaluations repository, import);
+// a connected repository's card disconnects as the strip does.
+function EmptyPaths({ paths }) {
+  const { configured, host } = useSharedConnection();
+  const { disconnect } = useSharedDisconnect({ onDisconnected: paths.onSharedDisconnected });
+  return (
+    <div className="projects-empty-paths">
+      <WelcomePaths
+        onStart={paths.onAddProject}
+        onConnect={paths.onConnectEvaluations}
+        onDisconnect={disconnect}
+        onImport={paths.onImportProject}
+        adaptation={{ connected: configured, host, hasLocalProjects: false }}
+      />
+    </div>
+  );
+}
+
 // The page has four mutually exclusive bodies. A function rather than a
 // ternary chain in the JSX, so each branch reads on its own line. The empty
-// page keeps the header's actions and says there is nothing yet; the ways
-// in are the header's buttons (and the welcome, on a first start). While a
+// page keeps the header's actions and shows the ways in. While a
 // connect is still reading the team's projects, the band above says what
 // is happening, so one quiet line says where the results will land. The
 // same goes for a clone that is running: its row heads the table and one
 // line says what comes next.
-function ProjectsPageContent({ projectsLoaded, isEmpty, status, ghost, bodyProps }) {
+function ProjectsPageContent({ projectsLoaded, isEmpty, status, ghost, bodyProps, paths }) {
   if (!projectsLoaded) return <LoadingScreen variant="inline" />;
   if (isEmpty && status.cloneActive) return <>{ghost}<p className="projects-empty">{t('projects.projectArriving')}</p></>;
   if (isEmpty && (status.connectActive || status.warmingActive)) {
     return <>{ghost}<ReadingPlaceholders count={status.readingCount} /><p className="projects-empty">{t('projects.teamResultsArriving')}</p></>;
   }
-  if (isEmpty) return <>{ghost}<p className="projects-empty">{t('projects.noReposYet')}</p></>;
+  if (isEmpty) return <>{ghost}<EmptyPaths paths={paths} /></>;
   return <ProjectsPageBody {...bodyProps} ghost={ghost} readingCount={status.readingCount} />;
 }
 
@@ -106,6 +128,11 @@ function readingCount(shared) {
   return shared.warming?.remaining ?? 0;
 }
 
+// The local projects with at least one run, for the header's count.
+function evaluatedCount(projects) {
+  return projects.filter((p) => !isFirstRunProject(p)).length;
+}
+
 export default function ProjectsPage({ projects = [], projectsLoaded = true, selectedProject, isEvaluating = false, filters, actions }) {
   const { onAddProject, onImportProject, onConnectEvaluations, onFiltersChange, onSharedDisconnected } = actions;
   const { shared, isEmpty, visibleEntries, rowsCtx } = useProjectsRowsCtx({ projects, filters, selectedProject, actions });
@@ -114,7 +141,7 @@ export default function ProjectsPage({ projects = [], projectsLoaded = true, sel
   return (
     <section className="projects-page projects-page--terminal">
       <ProjectsPageHeader
-        counts={{ projectsLoaded, localCount: projects.length, teamCount: shared.projects.length }}
+        counts={{ projectsLoaded, localCount: projects.length, evaluatedCount: evaluatedCount(projects), teamCount: shared.projects.length }}
         configured={shared.configured}
         onConnectEvaluations={onConnectEvaluations}
         onImportProject={onImportProject}
@@ -138,6 +165,7 @@ export default function ProjectsPage({ projects = [], projectsLoaded = true, sel
           }}
           ghost={ghost}
           bodyProps={{ filters, onFiltersChange, shared, visibleEntries, rowsCtx, cloneSlot }}
+          paths={{ onAddProject, onConnectEvaluations, onImportProject, onSharedDisconnected }}
         />
       </ProjectsTable>
     </section>

@@ -82,3 +82,14 @@ describe('GradeBoundaryBar slider keyboard accessibility (#1583)', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('GradeBoundaryBar segment labels', () => {
+  it('keep the full name for screen readers and hover, with a hidden initial for narrow segments', () => {
+    render(<GradeBoundaryBar thresholds={THRESHOLDS} onChange={vi.fn()} />);
+    const name = screen.getByText('EXEMPLARY');
+    expect(name).toHaveClass('gf-boundary-seg__name');
+    expect(name.parentElement).toHaveAttribute('title', 'EXEMPLARY');
+    expect(name.nextElementSibling).toHaveTextContent('E');
+    expect(name.nextElementSibling).toHaveAttribute('aria-hidden', 'true');
+  });
+});

@@ -33,13 +33,66 @@ function resumeWalk({ wizard, onLaunch }) {
   return { handleLaunch, nextStep, prevStep };
 }
 
+// A first evaluation runs every dimension with no time limit (0 = no limit).
+const NO_TIME_LIMIT_S = 0;
+
+// The reviewer step that follows an add: start the first evaluation, or
+// land on Repositories (later, save and close, the X), or step aside to
+// Settings. `wizard.state.added` is what the add panel handed over.
+function reviewerExits({ wizard, onClose, onLaunch, onOpenSettings }) {
+  const added = () => wizard.state.added || { projectId: null, cloning: false };
+
+  // The add panel's hand-over: a registered project (`hasRuns` when a
+  // resumed one was evaluated before), or a clone job that started (the
+  // Repositories tile carries on). The panel stays open.
+  function handleAdded({ projectId = null, cloning = false, hasRuns = false }) {
+    wizard.markAdded({ projectId, cloning, hasRuns });
+  }
+
+  // `landed` is what moves the app to Repositories and selects the project;
+  // a saved exit (the X on a resume-setup walk) only refetches.
+  function handleLater() {
+    clearDraft();
+    const { projectId, cloning } = added();
+    onClose({ saved: true, projectId, cloning, landed: true });
+  }
+
+  // The evaluation starts on the project's local folder: the server refuses
+  // a git url as a target.
+  function handleStartFirst({ provider, standardIds }) {
+    clearDraft();
+    onLaunch({
+      projectId: added().projectId,
+      repo: wizard.state.projectPath || wizard.state.repo.value,
+      provider,
+      standardIds,
+      totalTimeLimitS: NO_TIME_LIMIT_S,
+    });
+  }
+
+  // The added project is saved (the list refetches) and selected, then
+  // Settings opens.
+  function handleOpenSettings() {
+    clearDraft();
+    const { projectId, cloning } = added();
+    onClose({ saved: true, projectId, cloning, select: true });
+    onOpenSettings?.();
+  }
+
+  return { handleAdded, handleLater, handleStartFirst, handleOpenSettings };
+}
+
 /**
  * The wizard's exits: skipping the welcome (to Repositories, and remembered
  * unless opened from Settings), stepping aside for an archive import,
- * closing (a scanned project counts as saved), the add panel's hand-over,
- * and the resume-setup walk (resumeWalk). Each exit clears the draft.
+ * closing (a scanned project counts as saved; after an add it lands like
+ * `later`), the reviewer step after an add (reviewerExits) and the
+ * resume-setup walk (resumeWalk). Each exit clears the draft.
  */
-export function useOnboardingWizardHandlers({ wizard, onClose, onLaunch, onGoToRepositories, fromSettings = false, instanceId = null }) {
+export function useOnboardingWizardHandlers({
+  wizard, onClose, onLaunch, onGoToRepositories, onOpenSettings, fromSettings = false, instanceId = null,
+}) {
+  const reviewer = reviewerExits({ wizard, onClose, onLaunch, onOpenSettings });
   // A welcome opened from Settings offers no skip; even if one fires, a user
   // who went looking for the welcome has not opted out. Skip lands on
   // Repositories and is remembered for this state folder (instanceId).
@@ -62,18 +115,10 @@ export function useOnboardingWizardHandlers({ wizard, onClose, onLaunch, onGoToR
     onClose({ saved: true, projectId: wizard.state.projectId });
   }
 
-  // The add panel's hand-over: a registered project (the app selects it) or
-  // a clone job that started (the Repositories tile carries on, the app
-  // selects the project when it lands). Either way the panel closes.
-  function handleAdded({ projectId = null, cloning = false }) {
-    clearDraft();
-    // `landed` is what moves the app to Repositories and selects the project;
-    // a saved exit (the X on a resume-setup walk) only refetches.
-    onClose({ saved: true, projectId, cloning, landed: true });
-  }
-
   function handleClose() {
-    if (wizard.state.repoScanSubState === SCAN_SUB_STATE.SCANNED) {
+    if (wizard.state.added) {
+      reviewer.handleLater();
+    } else if (wizard.state.repoScanSubState === SCAN_SUB_STATE.SCANNED) {
       handleSavedExit();
     } else {
       clearDraft();
@@ -81,5 +126,5 @@ export function useOnboardingWizardHandlers({ wizard, onClose, onLaunch, onGoToR
     }
   }
 
-  return { handleSkipWelcome, handleImport, handleSavedExit, handleClose, handleAdded, ...resumeWalk({ wizard, onLaunch }) };
+  return { handleSkipWelcome, handleImport, handleSavedExit, handleClose, ...reviewer, ...resumeWalk({ wizard, onLaunch }) };
 }

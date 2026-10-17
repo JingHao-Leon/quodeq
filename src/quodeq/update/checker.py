@@ -13,6 +13,7 @@ from quodeq.shared.env import env_int
 from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.fault_isolation import run_isolated
 from quodeq.update import channel as _channel
+from quodeq.update import inplace as _inplace
 from quodeq.update import selfupdate as _selfupdate
 from quodeq.update.compare import is_newer
 from quodeq.update.source import fetch_latest
@@ -124,6 +125,7 @@ def get_status(env: dict[str, str] | None = None) -> dict:
         "auto_check_enabled": state.auto_check_enabled,
         "last_check_ts": state.last_check_ts,
         "self_update": _selfupdate.describe(state.download_url),
+        "in_place_upgrade": _inplace.describe(env),
     }
 
 
@@ -148,6 +150,27 @@ def begin_self_update(env: dict[str, str] | None = None) -> dict:
         }
     if not _selfupdate.start(status.get("download_url"), status.get("latest")):
         return {"ok": False, "code": "BUSY", "error": "self-update already running"}
+    return {"ok": True, "status": get_status(env)}
+
+
+def begin_in_place_upgrade(env: dict[str, str] | None = None) -> dict:
+    """Precondition-check and start the in-place upgrade of a pip-style install.
+
+    Same result shape as ``begin_self_update``.
+    """
+    status = get_status(env)
+    in_place = status.get("in_place_upgrade") or {}
+    if not status.get("update_available"):
+        return {"ok": False, "code": "NO_UPDATE", "error": "no update available"}
+    if not in_place.get("supported"):
+        return {
+            "ok": False,
+            "code": "UNSUPPORTED",
+            "error": "this install cannot upgrade itself",
+            "reason": in_place.get("reason"),
+        }
+    if not _inplace.start(status.get("latest"), env):
+        return {"ok": False, "code": "BUSY", "error": "an upgrade is already running or done"}
     return {"ok": True, "status": get_status(env)}
 
 

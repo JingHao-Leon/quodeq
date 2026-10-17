@@ -282,3 +282,4 @@ class TestHandoffToRunningInstance:
         assert run_dashboard(config, hooks=hooks) == 0
         instance.send_focus.assert_not_called()
         assert calls["spawned"] is True
+

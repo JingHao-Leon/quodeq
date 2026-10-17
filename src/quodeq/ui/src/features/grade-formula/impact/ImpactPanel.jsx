@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react';
 import { projectImpact, principleShifts, gradeDistribution, GRADE_ORDER, GRADE_CLASS } from './impactModel.js';
 import { t } from '../../../strings/index.js';
 import { pluralKey } from '../../../utils/plural.js';
+import { useMediaQuery } from '../../../hooks/useMediaQuery.js';
+
+// Matches the stacked layout in base.css, where the panel folds to one line.
+const STACKED = '(max-width: 960px)';
 
 // A score change of this many points fills half the change bar.
 const FULL_BAR_POINTS = 2;
@@ -94,8 +98,7 @@ function Failed({ onRetry }) {
   );
 }
 
-function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProject, onLitProject, onRetry }) {
-  const rows = useMemo(() => (inputs ? projectImpact(inputs, names, saved, draft) : []), [inputs, names, saved, draft]);
+function Body({ rows, inputs, loading, failed, saved, draft, isDirty, litProject, onLitProject, onRetry }) {
   const shifts = useMemo(() => (inputs ? principleShifts(inputs, saved, draft) : null), [inputs, saved, draft]);
   if (loading) return <p className="gf-impact__note">{t('gradeFormula.impactLoading')}</p>;
   if (failed) return <Failed onRetry={onRetry} />;
@@ -111,19 +114,39 @@ function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProjec
   );
 }
 
+// The folded panel's one line on narrow screens: how many projects, and how many the draft moves.
+function foldSummary(rows) {
+  if (rows.length === 0) return '';
+  const moved = rows.filter((r) => r.before.overall !== r.after.overall).length;
+  const key = moved === 0
+    ? pluralKey(rows.length, 'gradeFormula.foldRestOne', 'gradeFormula.foldRest')
+    : pluralKey(rows.length, 'gradeFormula.foldMovedOne', 'gradeFormula.foldMoved');
+  return t(key, { count: rows.length, moved });
+}
+
 /** What the draft does to every project, beside the knobs, with the actions. */
 export default function ImpactPanel(props) {
-  const { isDirty, isCustom, busy, changedCount, actionsRef, onReview, onUndo, onReset } = props;
+  const { inputs, names, saved, draft, isDirty, isCustom, busy, changedCount, actionsRef, onReview, onUndo, onReset } = props;
+  const rows = useMemo(() => (inputs ? projectImpact(inputs, names, saved, draft) : []), [inputs, names, saved, draft]);
+  // The stacked layout folds the panel to its summary line; side by side it is always open.
+  const stacked = useMediaQuery(STACKED);
+  const [open, setOpen] = useState(false);
+  const label = <span className="gf-impact__label">{t('gradeFormula.impactLabel')}</span>;
   return (
-    <aside className="panel gf-impact" aria-label={t('gradeFormula.impactLabel')}>
-      <div className="panel-header"><span className="gf-impact__label">{t('gradeFormula.impactLabel')}</span></div>
-      <div className="gf-impact__body"><Body {...props} /></div>
+    <aside className={`gf-impact${stacked && !open ? ' gf-impact--folded' : ''}`} aria-label={t('gradeFormula.impactLabel')}>
+      {stacked ? (
+        <button type="button" className="gf-impact__head" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {label}
+          <span className="gf-impact__fold">{foldSummary(rows)}</span>
+        </button>
+      ) : <div className="gf-impact__head">{label}</div>}
+      <div className="gf-impact__body"><Body {...props} rows={rows} /></div>
       <div className="gf-impact__actions" ref={actionsRef} tabIndex={-1}>
-        <button type="button" className="settings-pill settings-pill--active" disabled={!isDirty || busy} onClick={onReview}>
+        <button type="button" className="term-btn--primary" disabled={!isDirty || busy} onClick={onReview}>
           {t('gradeFormula.reviewApply')}
         </button>
-        <button type="button" className="settings-pill" disabled={!isDirty || busy} onClick={onUndo}>{t('gradeFormula.undoAll')}</button>
-        <button type="button" className="settings-pill" disabled={busy || (!isCustom && !isDirty)} onClick={onReset}>{t('gradeFormula.resetQ')}</button>
+        <button type="button" className="term-btn--secondary" disabled={!isDirty || busy} onClick={onUndo}>{t('gradeFormula.undoAll')}</button>
+        <button type="button" className="term-btn--ghost" disabled={busy || (!isCustom && !isDirty)} onClick={onReset}>{t('gradeFormula.resetQ')}</button>
         {changedCount > 0 && (
           <span className="gf-impact__changed">{t(pluralKey(changedCount, 'gradeFormula.changedOne', 'gradeFormula.changedMany'), { count: changedCount })}</span>
         )}

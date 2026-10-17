@@ -4,12 +4,14 @@
 import { SCORE_SCALE_MAX } from '../../../constants.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
 import { GRADE } from '../../../vocab/grade.js';
+import { KNOB_SCALE } from './knobScale.js';
 
 export const KNOB_GROUP = Object.freeze({
   COST: 'cost', BANDS: 'bands', STEEP: 'steep', LIFT: 'lift', CEIL: 'ceil', FLOOR: 'floor', DIMENSIONS: 'dimensions',
 });
 
-const SEVERITY = { min: 0.05, max: 10, step: 0.05 };
+// The server's range (core/scoring/params.py _SEVERITY_WEIGHT_RANGE), on a log slider.
+const SEVERITY = { min: 0.05, max: 25, step: 0.05, scale: KNOB_SCALE.LOG };
 const BAND_MARGIN = 0.5;
 const BAND_STEP = 0.5;
 const cap = (s) => s[0].toUpperCase() + s.slice(1);

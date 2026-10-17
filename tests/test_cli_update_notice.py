@@ -107,3 +107,12 @@ def test_upgrade_rejects_unknown_flags(restore_environ) -> None:
         cli.main(["upgrade", "--dryrun"])
     assert exc.value.code == 2
     run_upgrade.assert_not_called()
+
+
+def test_restart_stops_then_launches(restore_environ) -> None:
+    order = []
+    with patch("quodeq.cli.stop_dashboard", side_effect=lambda: order.append("stop")), \
+         patch("quodeq.cli.dashboard_main", side_effect=lambda argv: order.append("launch") or 0), \
+         patch("quodeq.cli.maybe_emit_cli_notice"):
+        assert cli.main(["restart"]) == 0
+    assert order == ["stop", "launch"]
