@@ -30,7 +30,7 @@ const PHRASES = [
   'the <b>compliance ratio</b> shows how many rules pass for every violation found',
   'click any <b>dimension card</b> to explore violations, files, and principles in detail',
   'copy a <b>fix plan</b> to your clipboard and paste it into your IDE or AI assistant',
-  'choose between <b>fast</b>, <b>balanced</b>, or <b>thorough</b> analysis modes',
+  'set the <b>effort</b> under Settings, Advanced, to let Claude Code or Codex think harder',
   'switch <b>themes</b>, from Daruma to Neo, Deckard to Galadriel',
   'the <b>score history</b> chart shows how your codebase quality evolves over time',
   'violations are ranked by <b>severity</b>: critical, major, and minor',

@@ -24,7 +24,7 @@ Delegates to an AI CLI you already have authenticated on your machine.
 
 1. Install and sign in to the CLI of your choice.
 2. In **Settings**, *Model*, pick the CLI under **AI Provider** and type a model id it accepts, such as `sonnet` for Claude Code or `gpt-6-sol` for Codex.
-3. Optionally, under **Advanced**, pin a different model per power tier (Fast, Balanced, Thorough).
+3. Optionally, for Claude Code or Codex, set the **Effort** under **Advanced**. Higher effort finds more but runs slower and uses more of your plan.
 
 #### GitHub Copilot
 
@@ -72,16 +72,6 @@ Points quodeq at a llama-server instance you run yourself. It serves one GGUF mo
 1. Start the server with `llama-server -m model.gguf --port 8080`.
 2. In **Settings**, *llama.cpp*, the loaded model appears automatically. To switch models, restart llama-server with a different GGUF.
 3. Under *Advanced*, run the parallel-agent auto-detect, which tests the server and recommends a sub-agent count.
-
-### Power tiers
-
-Each provider exposes three power levels that map to model size:
-
-| Key | Value |
-| --- | --- |
-| Fast | Smallest tier. Good for routine runs and tight budgets. |
-| Balanced | Default. Best quality-per-cost for most evaluations. |
-| Thorough | Largest tier. Use for first scans, audits, or sensitive areas. |
 
 ### Without the dashboard
 

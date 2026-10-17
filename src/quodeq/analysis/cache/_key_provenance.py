@@ -114,9 +114,14 @@ def hash_prompts_combined(prompts_dir: Path | None) -> str:
 
 
 def model_id_from(config: RunConfig) -> str:
-    """Pick the most specific model identifier available."""
+    """Pick the most specific model identifier available.
+
+    A set effort is part of the identifier: the same model at another effort
+    finds different things, so its cached results must not be reused.
+    """
     opts = config.options
-    return opts.subagent_model or opts.ai_model or "unknown"
+    model = opts.subagent_model or opts.ai_model or "unknown"
+    return f"{model}@{opts.ai_effort}" if opts.ai_effort else model
 
 
 def content_hash_for(

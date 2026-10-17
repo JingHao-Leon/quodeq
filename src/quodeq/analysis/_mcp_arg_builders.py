@@ -168,6 +168,7 @@ def build_model_budget_prompt_args(
     args: list[str] = []
     if model:
         args.extend(["--model", normalize_model_id(provider_cfg.get("cmd", ""), model)])
+    args.extend(build_effort_args(provider_cfg, config.ai_effort))
     if provider_cfg.get("supports_budget", True) and config.analysis_budget:
         args.extend(["--max-budget-usd", str(config.analysis_budget)])
     if provider_cfg.get("supports_turns", True) and config.max_turns is not None:
@@ -180,6 +181,18 @@ def build_model_budget_prompt_args(
         prompt_flag = provider_cfg.get("prompt_flag", PROMPT_FLAG_DEFAULT)
         args.extend([prompt_flag, prompt])
     return args
+
+
+def build_effort_args(provider_cfg: dict, effort: str | None) -> list[str]:
+    """The provider's effort flag for *effort*, or nothing.
+
+    Only a level the provider lists in ``effort_levels`` is passed, so a
+    provider without effort support, or a level it does not know, leaves the
+    CLI on its own default instead of failing the run.
+    """
+    if not effort or effort not in provider_cfg.get("effort_levels", ()):
+        return []
+    return [arg.replace("{effort}", effort) for arg in provider_cfg.get("effort_args", ())]
 
 
 def resolve_model_id(config: AnalysisConfig) -> str:

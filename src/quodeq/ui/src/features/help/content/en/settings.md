@@ -12,7 +12,7 @@ Which AI reads your code, and how long it may take.
 - **Test** checks the connection to a hosted model and reports its latency.
 - **Evaluation time limit** stops a run after that long. Whatever finished in time is scored, and the next run continues from there.
 - **Subagents** is how many work side by side; local servers can measure what your hardware can serve.
-- **Advanced**, on a CLI provider, holds **Analysis models** (a different model for the Fast, Balanced and Thorough tiers; leave one blank to use the main model), **Analysis power** (the tier evaluations use, applied right away without a reload) and **Command** (the command that launches the CLI, checked as you leave the field).
+- **Advanced**, on a CLI provider, holds **Effort** (Claude Code and Codex only: how hard the model thinks about each file, from Low up; **Default** leaves it to the CLI, and a change re-analyses every file on the next run) and **Command** (the command that launches the CLI, checked as you leave the field).
 
 The *Assistant* section under it picks the assistant's provider and model: **Default** follows your analysis provider and model, **Custom** lets you choose another.
 

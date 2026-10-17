@@ -1,16 +1,17 @@
-import PowerSelector from '../../evaluation/components/PowerSelector.jsx';
 import { t } from '../../../strings/index.js';
 import { SettingsRowLabel, SettingsAdvanced } from './settingsRowParts.jsx';
 import CopilotModelSelect from './CopilotModelSelect.jsx';
 import { PROVIDER_SETTING_KEY } from '../../../constants.js';
 
-// The three analysis tiers, in the order the panel lists them: the settings
-// field each writes and the key of the label beside its input.
-const ANALYSIS_TIERS = [
-  { field: PROVIDER_SETTING_KEY.MODEL_FAST, labelKey: 'settings.fast' },
-  { field: PROVIDER_SETTING_KEY.MODEL_BALANCED, labelKey: 'settings.balanced' },
-  { field: PROVIDER_SETTING_KEY.MODEL_THOROUGH, labelKey: 'settings.thorough' },
-];
+// Display names for the effort levels a provider lists in ai_providers.json
+// (`effort_levels`); a level missing here shows its raw id.
+const EFFORT_LABELS = {
+  low: t('settings.effortLow'),
+  medium: t('settings.effortMedium'),
+  high: t('settings.effortHigh'),
+  xhigh: t('settings.effortXhigh'),
+  max: t('settings.effortMax'),
+};
 
 // The one CLI provider whose models come from a live account lookup instead
 // of a free-text field.
@@ -43,37 +44,32 @@ export function ModelTextInput({ label, value, placeholder, onChange, required, 
   );
 }
 
-function AnalysisModelsRow({ providerId, state, update, analysisHint }) {
-  const placeholder = providerId === COPILOT_PROVIDER_ID ? t('settings.copilotInheritModel') : undefined;
+function EffortPill({ active, onClick, children }) {
   return (
-    <div className="settings-row">
-      <SettingsRowLabel
-        label={t('settings.analysisModels')}
-        hint={analysisHint}
-        hintAria={t('settings.analysisModelsHelpAria')}
-        description={t('settings.analysisModelsDesc')}
-      />
-      <div className="settings-model-overrides">
-        {ANALYSIS_TIERS.map(({ field, labelKey }) => (
-          <CliModelInput
-            key={field}
-            providerId={providerId}
-            placeholder={placeholder}
-            label={t(labelKey)}
-            value={state[field]}
-            onChange={(v) => update(field, v)}
-          />
-        ))}
-      </div>
-    </div>
+    <button type="button" className={`settings-pill${active ? ' settings-pill--active' : ''}`} onClick={onClick} aria-pressed={active}>
+      {children}
+    </button>
   );
 }
 
-function AnalysisPowerRow({ power, setPower, persistPower }) {
+function EffortRow({ levels, state, update }) {
+  const effort = levels.includes(state[PROVIDER_SETTING_KEY.EFFORT]) ? state[PROVIDER_SETTING_KEY.EFFORT] : '';
   return (
     <div className="settings-row">
-      <SettingsRowLabel hintSlot={false} label={t('settings.analysisPower')} description={t('settings.analysisPowerDesc')} />
-      <PowerSelector value={power} onChange={setPower} onPersist={persistPower} />
+      <SettingsRowLabel
+        label={t('settings.effort')}
+        hint={t('settings.effortHint')}
+        hintAria={t('settings.effortHelpAria')}
+        description={t('settings.effortDesc')}
+      />
+      <div className="settings-pill-group" role="group" aria-label={t('settings.effort')}>
+        <EffortPill active={!effort} onClick={() => update(PROVIDER_SETTING_KEY.EFFORT, '')}>{t('settings.effortDefault')}</EffortPill>
+        {levels.map((level) => (
+          <EffortPill key={level} active={effort === level} onClick={() => update(PROVIDER_SETTING_KEY.EFFORT, level)}>
+            {EFFORT_LABELS[level] || level}
+          </EffortPill>
+        ))}
+      </div>
     </div>
   );
 }
@@ -112,16 +108,17 @@ function CmdOverrideRow({ providerId, state, update, cmdPathError, validateCmdPa
 }
 
 /**
- * A CLI provider tab's advanced settings: analysis model overrides, analysis
- * power, the launch-command override and the shared analysis options.
+ * A CLI provider tab's advanced settings: the reasoning effort (only for a
+ * provider whose ai_providers.json entry lists `effort_levels`) and the
+ * launch-command override.
  */
 export function CliAdvancedPanel({
-  providerId, state, update, analysisHint, power, setPower, persistPower, cmdPathError, validateCmdPath,
+  providerId, providerConfig, state, update, cmdPathError, validateCmdPath,
 }) {
+  const effortLevels = providerConfig?.effort_levels || [];
   return (
     <SettingsAdvanced>
-      <AnalysisModelsRow providerId={providerId} state={state} update={update} analysisHint={analysisHint} />
-      <AnalysisPowerRow power={power} setPower={setPower} persistPower={persistPower} />
+      {effortLevels.length > 0 && <EffortRow levels={effortLevels} state={state} update={update} />}
       <CmdOverrideRow providerId={providerId} state={state} update={update} cmdPathError={cmdPathError} validateCmdPath={validateCmdPath} />
     </SettingsAdvanced>
   );

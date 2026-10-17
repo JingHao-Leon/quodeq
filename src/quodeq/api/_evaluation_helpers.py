@@ -128,6 +128,18 @@ def validate_ai_cmd(ai_cmd: str | None, env: dict[str, str] | None = None) -> tu
     return None
 
 
+def validate_ai_effort(
+    ai_cmd: str | None, ai_effort: str | None, provider_configs: Mapping[str, dict],
+) -> tuple[Response, int] | None:
+    """An effort must be one of the provider's ``effort_levels``."""
+    if ai_effort and ai_effort not in provider_configs.get(ai_cmd or "", {}).get("effort_levels", ()):
+        return json_error(
+            f"Effort '{ai_effort}' is not available for this provider.",
+            HTTPStatus.BAD_REQUEST, CODE_INVALID_INPUT,
+        )
+    return None
+
+
 def validate_ai_model(
     ai_cmd: str | None, ai_model: str | None, provider_configs: Mapping[str, dict],
 ) -> tuple[Response, int] | None:

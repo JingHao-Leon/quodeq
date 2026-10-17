@@ -238,25 +238,23 @@ describe("useEvaluationLifecycle blocked start", () => {
   });
 });
 
-describe("useEvaluationLifecycle analysis power", () => {
+describe("useEvaluationLifecycle analysis model", () => {
   beforeEach(() => {
     evaluationState.job = null;
     evaluationState.startEvaluation = vi.fn(() => Promise.resolve());
   });
 
-  it("uses the analysis power stored after mount, without a reload", () => {
+  it("uses the model stored after mount, without a reload", () => {
     const store = new Map([
       ["cc-active-provider", "claude"],
       ["cc-claude-model", "sonnet"],
-      ["cc-claude-model-balanced", "balanced-model"],
-      ["cc-claude-model-thorough", "thorough-model"],
     ]);
     const storage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)) };
     const { result } = renderLifecycle({ storage });
 
-    store.set("quodeq-analysis-power", "3"); // Settings changes power while the app runs
+    store.set("cc-claude-model", "opus"); // Settings changes the model while the app runs
     act(() => { result.current.handleStartEvaluation({ projectPath: "/p" }); });
 
-    expect(evaluationState.startEvaluation).toHaveBeenCalledWith(expect.objectContaining({ subagentModel: "thorough-model" }));
+    expect(evaluationState.startEvaluation).toHaveBeenCalledWith(expect.objectContaining({ subagentModel: "opus" }));
   });
 });

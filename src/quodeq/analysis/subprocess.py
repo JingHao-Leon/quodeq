@@ -56,7 +56,7 @@ from quodeq.config.provider import Provider, ProviderType
 from quodeq.core.constants import MCP_STYLE_CLI_REGISTER, MCP_STYLE_CONFIG_FILE
 from quodeq.core.stream.events import copilot_error, parse_stream_event
 from quodeq.shared.utils import sanitize_sensitive
-from quodeq.shared.utils import get_ai_cmd, get_ai_cmd_path, get_ai_model
+from quodeq.shared.utils import get_ai_cmd, get_ai_cmd_path, get_ai_effort, get_ai_model
 
 
 _log = logging.getLogger(__name__)
@@ -258,7 +258,7 @@ def run_analysis(
 
 
 def _fill_env_defaults(cfg: AnalysisConfig, env: Mapping[str, str]) -> AnalysisConfig:
-    """Fill the provider id, binary override and cache root the caller left unset.
+    """Fill the provider id, binary override, effort and cache root the caller left unset.
 
     The run's composition root (the CLI, via the dimension and pool config
     builders) sets all three; this keeps direct callers on the values the
@@ -268,5 +268,6 @@ def _fill_env_defaults(cfg: AnalysisConfig, env: Mapping[str, str]) -> AnalysisC
         cfg,
         ai_cmd=cfg.ai_cmd or get_ai_cmd(env),
         ai_cmd_path=cfg.ai_cmd_path or get_ai_cmd_path(env),
+        ai_effort=cfg.ai_effort or get_ai_effort(env),
         cache_root=cfg.cache_root or default_cache_root(env),
     )
