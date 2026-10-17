@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from quodeq.data.fs.run_archive import restore_or_warn
+from quodeq.data.fs.run_archive import is_archived, restore_or_warn
 from quodeq.data.sqlite._db_stamp_memo import db_stamp
 from quodeq.data.sqlite._migrations import SchemaVersionError, apply_evaluation_schema
 from quodeq.data.sqlite._schema import SCHEMA_VERSION
@@ -83,6 +83,61 @@ def _connect(path: Path) -> sqlite3.Connection:
     return conn
 
 
+def _open_mapped(path: Path) -> sqlite3.Connection:
+    """``_connect`` with its failures mapped to the errors ``open_evaluation_db`` documents."""
+    try:
+        request_metrics.count("db_opens")
+        return _connect(path)
+    except sqlite3.OperationalError as exc:
+        # Connect/IO-level failures (locked or missing file, disk I/O error):
+        # give callers a clear, run-scoped message instead of a bare sqlite3
+        # error with no path context.
+        raise RuntimeError(f"Could not open evaluation database at {path}: {exc}") from exc
+    except SqliteStoreUnreadableError:
+        # A schema-version mismatch already is the boundary error.
+        raise
+    except sqlite3.DatabaseError as exc:
+        # Generic corruption ("file is not a database") becomes the
+        # boundary's unreadable-store error, which is still a
+        # sqlite3.DatabaseError: readers (dashboard/scores/findings
+        # queries) catch either type to degrade gracefully to
+        # filesystem-based data. Wrapping in RuntimeError would break
+        # that fallback.
+        raise as_store_error(exc) from exc
+    except sqlite3.Error as exc:
+        raise RuntimeError(f"Could not open evaluation database at {path}: {exc}") from exc
+
+
+def _inode(path: Path) -> int | None:
+    try:
+        return path.stat().st_ino
+    except FileNotFoundError:
+        return None
+
+
+def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
+    """Restore the run, then connect; never leave a database beside an archive.
+
+    A connect on an archived run would create an empty database next to the
+    archive, so the run is restored first, and one archived while the
+    connection opened is dropped (with the database it created) and opened
+    again. One that stays archived is unreadable: readers fall back to the
+    JSON reports.
+    """
+    for _attempt in range(2):
+        if not restore_or_warn(run_dir):
+            raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
+        before = _inode(path)
+        conn = _open_mapped(path)
+        if not is_archived(run_dir):
+            return conn
+        conn.close()
+        if _inode(path) != before:  # created here after the archive took the original
+            for stray in (path, *(path.with_name(path.name + s) for s in ("-wal", "-shm"))):
+                stray.unlink(missing_ok=True)
+    raise SqliteStoreUnreadableError(f"run in {run_dir} was archived while its database opened")
+
+
 @contextmanager
 def open_evaluation_db(run_dir: Path) -> Iterator[sqlite3.Connection]:
     """Open (creating if needed) the run's evaluation.db with the schema applied.
@@ -97,35 +152,10 @@ def open_evaluation_db(run_dir: Path) -> Iterator[sqlite3.Connection]:
     except OSError:
         if not run_dir.is_dir():
             raise
-    # Restore before connecting: a connect on an archived run would create
-    # an empty database next to the archive. One that stays archived is
-    # unreadable, so readers fall back to the JSON reports.
-    if not restore_or_warn(run_dir):
-        raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
     path = run_dir / EVALUATION_DB_FILENAME
     conn: sqlite3.Connection | None = None
     try:
-        try:
-            request_metrics.count("db_opens")
-            conn = _connect(path)
-        except sqlite3.OperationalError as exc:
-            # Connect/IO-level failures (locked or missing file, disk I/O error):
-            # give callers a clear, run-scoped message instead of a bare sqlite3
-            # error with no path context.
-            raise RuntimeError(f"Could not open evaluation database at {path}: {exc}") from exc
-        except SqliteStoreUnreadableError:
-            # A schema-version mismatch already is the boundary error.
-            raise
-        except sqlite3.DatabaseError as exc:
-            # Generic corruption ("file is not a database") becomes the
-            # boundary's unreadable-store error, which is still a
-            # sqlite3.DatabaseError: readers (dashboard/scores/findings
-            # queries) catch either type to degrade gracefully to
-            # filesystem-based data. Wrapping in RuntimeError would break
-            # that fallback.
-            raise as_store_error(exc) from exc
-        except sqlite3.Error as exc:
-            raise RuntimeError(f"Could not open evaluation database at {path}: {exc}") from exc
+        conn = _open_unarchived(run_dir, path)
         try:
             yield conn
         except SqliteStoreUnreadableError:

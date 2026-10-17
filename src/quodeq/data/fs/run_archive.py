@@ -261,6 +261,15 @@ def restore_or_warn(run_dir: Path) -> bool:
     return True
 
 
+def restore_for_read(run_dir: Path, path: Path) -> bool:
+    """``restore_or_warn``, checked again under the run lock when the run was archived before *path* was read."""
+    if not restore_or_warn(run_dir):
+        return False
+    if path.exists() or not is_archived(run_dir):
+        return True
+    return restore_or_warn(run_dir)
+
+
 def tidy_run(run_dir: Path) -> int:
     """Remove scratch sidecars from ``evidence/``, fold the WAL and VACUUM the database; the bytes freed.
 

@@ -10,6 +10,10 @@ from quodeq.data.fs import run_archive
 from quodeq.data.fs.run_archive import (
     ARCHIVE_FILENAME, RunArchiveError, archive_run, is_archived, restore_or_warn, tidy_run,
 )
+from quodeq.data.projection import projector as projector_mod
+from quodeq.data.sqlite import connection as connection_mod
+from quodeq.data.sqlite.connection import open_evaluation_db
+from tests.api._scores_routes_helpers import _scorable_violations, _seed_run
 from tests.data.fs.test_run_archive import _run_with_files
 
 _EVIDENCE = "evidence/security_evidence.jsonl"
@@ -73,6 +77,47 @@ def test_a_failed_vacuum_is_logged_and_tidy_carries_on(tmp_path, caplog):
 
     assert freed == 2 and not (run / "evidence" / "security_queue.json").exists()
     assert "vacuum" in caplog.text.lower()
+
+
+def _projected_run(tmp_path):
+    return _seed_run(tmp_path, "proj", "run-1", _scorable_violations(5, dimension="security"))
+
+
+def test_a_run_archived_right_after_its_restore_check_is_restored_again(tmp_path, monkeypatch):
+    run = _projected_run(tmp_path)
+    real = run_archive.ensure_restored
+    calls = []
+
+    def restore_then_archive(run_dir):
+        restored = real(run_dir)
+        if not calls:
+            archive_run(run_dir)  # archived between the restore and the log check
+        calls.append(run_dir)
+        return restored
+
+    monkeypatch.setattr(run_archive, "ensure_restored", restore_then_archive)
+    projector_mod.Projector().ensure_projected(run / "events.jsonl", run, project_dir=run.parent)
+
+    assert (run / "events.jsonl").is_file() and not is_archived(run)
+
+
+def test_opening_a_database_while_its_run_is_archived_leaves_no_empty_db(tmp_path, monkeypatch):
+    run = _projected_run(tmp_path)
+    real = connection_mod._connect
+    calls = []
+
+    def archive_then_connect(path):
+        if not calls:
+            archive_run(run)  # archived between the restore and the connect
+        calls.append(path)
+        return real(path)
+
+    monkeypatch.setattr(connection_mod, "_connect", archive_then_connect)
+    with open_evaluation_db(run) as conn:
+        rows = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+
+    assert rows == 5
+    assert not (is_archived(run) and (run / "evaluation.db").exists())
 
 
 def test_an_evidence_file_created_mid_pack_aborts_the_archive(tmp_path, monkeypatch):
