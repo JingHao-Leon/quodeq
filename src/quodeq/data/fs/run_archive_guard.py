@@ -1,14 +1,16 @@
-"""Guards around a run archive: the restore stamp and the source snapshot.
+"""Guards around a run archive: the restore stamp, the source snapshot, the once-per-run warning.
 
 A restore leaves ``.restored_at`` (the UTC time, ISO format) in the run
 folder, so storage cleanup keeps a restored run warm for the full window
 instead of archiving it again on the next pass. The snapshot lets
 ``archive_run`` notice a file that changed, or a database that was opened,
-while it was packing, and keep the originals.
+while it was packing, and keep the originals. A run whose archive cannot be
+restored is warned about once per process, not on every read.
 """
 from __future__ import annotations
 
 import logging
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,6 +19,18 @@ _logger = logging.getLogger(__name__)
 RESTORED_STAMP = ".restored_at"
 
 _StatKey = tuple[int, int, int] | None
+
+_warned: set[Path] = set()
+_warned_lock = threading.Lock()
+
+
+def warn_once(run_dir: Path, message: str, *args: object) -> None:
+    """Log *message* as a warning the first time it concerns *run_dir* in this process."""
+    with _warned_lock:
+        if run_dir in _warned:
+            return
+        _warned.add(run_dir)
+    _logger.warning(message, *args)
 
 
 def write_restored_stamp(run_dir: Path) -> None:

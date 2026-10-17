@@ -9,7 +9,7 @@ multi-second rebuild measured on the biggest real runs.
 
 Safety rules: originals are deleted only after the archive is written,
 fsynced, verified and renamed into place, and only when no packed file
-changed and no database sidecar appeared meanwhile; a restore extracts into a temporary
+changed, none was added and no database sidecar appeared meanwhile; a restore extracts into a temporary
 folder and renames each file into place before the archive goes. Leftover
 temporary files from an interrupted attempt are removed at the start of the
 next one. Both operations hold a per-run lock file.
@@ -22,6 +22,7 @@ import logging
 import os
 import posixpath
 import shutil
+import sqlite3
 import tarfile
 import zlib
 from collections.abc import Iterator
@@ -30,11 +31,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.core.utils.file_lock import lock_file, unlock_file
-from quodeq.data.fs.run_archive_guard import RESTORED_STAMP, snapshot, unchanged, write_restored_stamp
+from quodeq.data.fs.run_archive_guard import RESTORED_STAMP, snapshot, unchanged, warn_once, write_restored_stamp
 from quodeq.data.fs.run_archive_files import (
     DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars, is_plain_file,
 )
-from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal
+from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, vacuum_db
 
 _logger = logging.getLogger(__name__)
 
@@ -161,7 +162,8 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         except BaseException:
             tmp.unlink(missing_ok=True)
             raise
-        if not unchanged(packed):  # a reader or writer touched the run while it was packed
+        # A reader or writer touched the run while it was packed, or added a file the archive would hold.
+        if not unchanged(packed) or archive_sources(run_dir) != sources:
             final.unlink(missing_ok=True)
             raise RunArchiveError(f"run changed while it was archived: {run_dir}")
         for path in [*(p for _, p in sources), *dropped, run_dir / RESTORED_STAMP]:
@@ -229,7 +231,7 @@ def ensure_restored(run_dir: Path) -> bool:
         try:
             names = _extract(archive, staging)
         except RunArchiveError as exc:
-            _logger.warning("Refusing to restore run archive: %s", exc)
+            warn_once(run_dir, "Refusing to restore run archive: %s", exc)
             raise
         for name in names:
             dest = run_dir / name
@@ -246,20 +248,24 @@ def restore_or_warn(run_dir: Path) -> bool:
 
     A refused archive, a timed-out lock wait or a failed move reads as a run
     without an event log, never as an error. ``ensure_restored`` already logs
-    its refusals, so only OS errors are logged here.
+    its refusals, so only OS errors are logged here; each run is warned about
+    once per process.
     """
     try:
         ensure_restored(run_dir)
     except RunArchiveError:
         return False
     except OSError as exc:
-        _logger.warning("Could not restore run archive in %s: %s", run_dir, exc)
+        warn_once(run_dir, "Could not restore run archive in %s: %s", run_dir, exc)
         return False
     return True
 
 
 def tidy_run(run_dir: Path) -> int:
-    """Remove scratch sidecars from ``evidence/`` and fold the WAL; the bytes freed."""
+    """Remove scratch sidecars from ``evidence/``, fold the WAL and VACUUM the database; the bytes freed.
+
+    A failed checkpoint or VACUUM is logged and tidy carries on.
+    """
     freed = 0
     with _run_lock(run_dir):
         evidence = run_dir / EVIDENCE_DIR
@@ -273,4 +279,9 @@ def tidy_run(run_dir: Path) -> int:
             freed += fold_wal(run_dir)
         except WalNotFoldedError as exc:
             _logger.warning("Could not checkpoint: %s", exc)
+        if not is_archived(run_dir):
+            try:
+                freed += vacuum_db(run_dir)
+            except sqlite3.Error as exc:
+                _logger.warning("Could not vacuum the database of %s: %s", run_dir, exc)
     return freed
