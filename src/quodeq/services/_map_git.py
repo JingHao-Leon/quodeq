@@ -5,7 +5,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from quodeq.core.map_history.git_log import LOG_FORMAT, commits_per_transition, parse_commit_log
+from quodeq.core.map_history.git_log import LOG_FORMAT, Commit, commits_per_transition, parse_commit_log
 from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.services.wiring import git_stdout
 from quodeq.shared.stamp_memo import StampCache
@@ -59,17 +59,25 @@ def git_commits_per_transition(repo: Path, days: list[str]) -> list[Counter[str]
     return [Counter(c) for c in cached]
 
 
-def _read_activity(repo: Path, days: list[str]) -> list[Counter[str]] | None:
-    """One git log over the run span, split per transition; None when git cannot answer."""
-    parsed = [date.fromisoformat(d[:ISO_DAY_LEN]) for d in days]
+def git_commits_between(repo: Path, first: date, last: date) -> list[Commit] | None:
+    """Every commit on any branch from *first* 00:00 through the end of *last* (UTC), paths relative to *repo*.
+
+    None when git is unavailable, *repo* is not inside a repository, or a path is not UTF-8.
+    """
     try:
         out = git_stdout(
             ["-C", str(repo), "log", "--branches", "--remotes", "--no-merges", "--name-only", "--relative", "-z",
-             LOG_FORMAT, f"--since={_git_instant(parsed[0])}", f"--until={_git_instant(parsed[-1] + _ONE_DAY)}"],
+             LOG_FORMAT, f"--since={_git_instant(first)}", f"--until={_git_instant(last + _ONE_DAY)}"],
             timeout=_TIMEOUT_S)
     except UnicodeDecodeError:
         return None  # a path git cannot hand back as UTF-8: fall back to the estimate
-    if out is None:
+    return None if out is None else parse_commit_log(out)
+
+
+def _read_activity(repo: Path, days: list[str]) -> list[Counter[str]] | None:
+    """One git log over the run span, split per transition; None when git cannot answer."""
+    parsed = [date.fromisoformat(d[:ISO_DAY_LEN]) for d in days]
+    commits = git_commits_between(repo, parsed[0], parsed[-1])
+    if commits is None:
         return None
-    return commits_per_transition(parse_commit_log(out),
-                                  [_midnight(d) for d in parsed], [_midnight(d + _ONE_DAY) for d in parsed])
+    return commits_per_transition(commits, [_midnight(d) for d in parsed], [_midnight(d + _ONE_DAY) for d in parsed])

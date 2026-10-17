@@ -40,6 +40,8 @@ from quodeq.services._publish_staging import (
 )
 from quodeq.services.github_access import forget_url
 from quodeq.services.job_status import JobSlotStatus
+from quodeq.services._fs_metadata import local_repo_root
+from quodeq.services.shared_activity import stage_activity
 from quodeq.services.wiring import (
     RepoFormat,
     bootstrap_repo_layout,
@@ -139,6 +141,8 @@ def publish_project(
                                f"{out.strip()[:GIT_ERROR_SNIPPET_MAX_CHARS]}")
         try:
             count = stage_project(project_dir, repo / "evaluations" / project_id)
+            stage_activity(project_dir, repo / "evaluations" / project_id, local_repo_root(evaluations_root, project_id),
+                           log=LoggerSink(logger))
             standards = stage_scored_standards(project_dir, repo, log=LoggerSink(logger))
         except (OSError, ValueError) as exc:
             raise PublishError(f"failed to stage project files, {exc}") from exc

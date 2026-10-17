@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from quodeq.data.fs.grade_formula_store import has_retired_formula  # noqa: F401
 from quodeq.data.fs.git_progress import ProgressUpdate, parse_progress  # noqa: F401
+from quodeq.data.fs.map_activity_file import read_published_activity, write_published_activity  # noqa: F401
 from quodeq.data.fs.git_stream import FAILED_TO_RUN, GIT_MISSING, TIMED_OUT  # noqa: F401
 from quodeq.data.fs.repo_clone import GitCloneClient  # noqa: F401
 from quodeq.data.fs.shared_clone_reset import reset_clone_to_remote  # noqa: F401

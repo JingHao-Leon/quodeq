@@ -5,26 +5,23 @@ the grade formula's severity weights apply when the history is read, so
 neither ever rebuilds a cached day."""
 from __future__ import annotations
 
-from collections import Counter
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
 from typing import NamedTuple
 
-from quodeq.core.map_history.activity import estimate_edits
 from quodeq.core.map_history.carry import carry_forward, fold_runs
-from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, RunActivity, assemble_history
+from quodeq.core.map_history.history import EMPTY_HISTORY, MapHistory, assemble_history
 from quodeq.core.map_history.raw_run import (
     RawHistory, RawHistoryWrite, RawRun, ViolationRecord, build_raw_run, referenced_records,
 )
 from quodeq.core.map_history.selection import FindingSelection
-from quodeq.core.map_history.snapshot import RunSnapshot
 from quodeq.core.map_history.timeline import ISO_DAY_LEN
 from quodeq.core.finding_identity import SuppressionSubject
 from quodeq.core.run.state import RunState
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import has_valid_score
-from quodeq.services._fs_project_primitives import repo_attach_reason
+from quodeq.services._map_activity import run_activity as _activity
 from quodeq.services._map_git import git_commits_per_transition
 from quodeq.services._run_liveness import run_still_writing
 from quodeq.services._map_snapshots import Snapshots, run_snapshots
@@ -36,7 +33,6 @@ from quodeq.services.wiring import (
     iter_readable_eval_reports,
     load_map_snapshots,
     project_dir_exists,
-    read_repository_info,
     save_map_snapshots,
 )
 
@@ -52,8 +48,6 @@ SNAPSHOT_SHAPE = "5"
 # appear in a run id, a validated path segment, nor in a dimension name).
 _KEY_RUN_SEP = ";"
 _KEY_DIMS_SEP = "="
-_SOURCE_GIT = "git"
-_SOURCE_ESTIMATED = "estimated"
 
 
 class _Candidate(NamedTuple):
@@ -255,23 +249,6 @@ def _history(rows: ProjectRows, selection: FindingSelection | None) -> _Measured
                      [p.row_id for p in days.picked.values()])
 
 
-def _estimated_activity(snaps: list[RunSnapshot]) -> RunActivity:
-    """Edits estimated from finding changes between consecutive runs."""
-    return RunActivity(_SOURCE_ESTIMATED,
-                       (Counter(), *(Counter(estimate_edits(snaps[i - 1], s)) for i, s in enumerate(snaps[1:], start=1))))
-
-
-def _activity(project_dir: Path, days: list[str], snaps: list[RunSnapshot], use_git: bool) -> RunActivity:
-    """Per transition, edits per path (index 0 is empty) and where they came from: git only on a local working copy."""
-    path = repo_attach_reason(read_repository_info(project_dir) or {})[0] if use_git else None
-    if path is None:
-        return _estimated_activity(snaps)
-    got = git_commits_per_transition(Path(path), days) if len(days) > 1 else [Counter()]
-    if got is None:
-        return _estimated_activity(snaps)
-    return RunActivity(_SOURCE_GIT, tuple(Counter({p: n for p, n in c.items() if p in snaps[i].files}) for i, c in enumerate(got)))
-
-
 def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_FRAMES,
                       selection: FindingSelection | None = None, git_activity: bool = True) -> MapHistory:
     """The project's map history: the latest frame, or every frame when *frames* is ``ALL_FRAMES``.
@@ -291,7 +268,7 @@ def build_map_history(reports_root: Path, project: str, *, frames: str = LATEST_
     if not m.days:
         return EMPTY_HISTORY
     frame_runs = list(range(len(m.days))) if frames == ALL_FRAMES else [len(m.days) - 1]
-    activity = _activity(reports_root / project, m.days, m.snaps.snapshots, git_activity)
+    activity = _activity(reports_root / project, m.days, m.snaps.snapshots, git_activity, git_commits_per_transition)
     if selection is None:
         history = assemble_history(m.days, m.snaps.snapshots, activity, frame_runs)
     else:
