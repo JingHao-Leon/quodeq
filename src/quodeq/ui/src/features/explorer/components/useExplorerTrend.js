@@ -11,8 +11,8 @@ const EMPTY_TREND = [];
 /**
  * The score history the dimension page charts. The dashboard's trend belongs
  * to the SELECTED project, so it is only valid when the page shows that
- * project: a cross-project entry (Compare's matrix, the attention list) opens
- * another project's dimension without changing the selection, and charting
+ * project: a cross-project entry (a `fromProject` other than the selection)
+ * opens another project's dimension without changing the selection, and charting
  * the borrowed trend there drew the selected project's history under the
  * other project's score.
  *
