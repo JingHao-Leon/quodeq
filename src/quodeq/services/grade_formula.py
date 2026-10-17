@@ -17,9 +17,9 @@ from pathlib import Path
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.shared.constants import RETRY_JITTER_S
 from quodeq.shared.fault_isolation import run_isolated
-from quodeq.services.wiring_sync import has_event_log, has_retired_formula  # noqa: F401 -- re-exported API
+from quodeq.services.wiring_sync import has_event_log, has_retired_formula, is_archived  # noqa: F401 -- re-exported API
 from quodeq.services.wiring import (  # noqa: F401 — grade_formula_store names are re-exported API
-    SQLiteStateStore,
+    SQLiteStateStore, SqliteFindingsRepository, has_evaluation_db,
     UnsupportedSchemaError,
     clear_rescore_pending,
     compute_run_grades,
@@ -131,6 +131,7 @@ def _recompute_with_retries(run_dir: Path, params: ScoringParams) -> bool:
     last_exc: Exception | None = None
     for attempt in range(_APPLY_RETRIES + 1):
         try:
+            project_run(run_dir)
             recompute_grades(run_dir, params=params)
             return True
         except (sqlite3.Error, OSError, ValueError, RuntimeError) as exc:
@@ -221,3 +222,15 @@ def _rescore_runs(
         if progress is not None:
             progress(done, total)
     return ApplyResult(rescored=rescored, failed=failed)
+
+
+def project_run(run_dir: Path) -> None:
+    """Build the run's database from its event log when it has none yet.
+
+    An archived run, or one a non-projecting reader restored, has an event
+    log but no database, so reading its findings straight away would grade
+    nothing. A run that has a database is left alone: preview writes nothing
+    and opens no extra database.
+    """
+    if is_archived(run_dir) or (has_event_log(run_dir) and not has_evaluation_db(run_dir)):
+        SqliteFindingsRepository(run_dir).ensure_projected()

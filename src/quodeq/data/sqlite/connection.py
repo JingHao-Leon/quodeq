@@ -98,8 +98,10 @@ def open_evaluation_db(run_dir: Path) -> Iterator[sqlite3.Connection]:
         if not run_dir.is_dir():
             raise
     # Restore before connecting: a connect on an archived run would create
-    # an empty database next to the archive.
-    restore_or_warn(run_dir)
+    # an empty database next to the archive. One that stays archived is
+    # unreadable, so readers fall back to the JSON reports.
+    if not restore_or_warn(run_dir):
+        raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
     path = run_dir / EVALUATION_DB_FILENAME
     conn: sqlite3.Connection | None = None
     try:

@@ -34,7 +34,7 @@ from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import read_run_data
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
-from quodeq.services.grade_formula import count_rescorable_runs, has_event_log, load_params
+from quodeq.services.grade_formula import count_rescorable_runs, has_event_log, load_params, project_run
 from quodeq.services.rescore import filter_excluded_violations, rescore_dimension
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.suppression_keys import SuppressionKeys
@@ -126,6 +126,7 @@ def _dimension_score(
     if src.saved_score is not None:
         return src.saved_score
     if src.run_dir not in tables:
+        project_run(src.run_dir)
         tables[src.run_dir] = compute_run_grades(src.run_dir, params)[1]
     return next(
         (row["score"] for row in tables[src.run_dir] if (row["dimension"] or "").lower() == src.name),

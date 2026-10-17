@@ -24,7 +24,7 @@ from quodeq.core.scoring.internals import finding_to_scoring_dict, principle_sta
 from quodeq.core.scoring.mass import principle_mass, requirement_rows, unit_masses
 from quodeq.core.scoring.params import ScoringParams
 from quodeq.services.evidence_rescore import EvidenceScoreRequest, rescore_dimension_from_evidence, standard_dirs
-from quodeq.services.grade_formula import load_params
+from quodeq.services.grade_formula import load_params, project_run
 from quodeq.services.grade_formula_preview import (
     ProjectSources, SourceDimension, is_touched, local_projects, project_sources,
 )
@@ -58,6 +58,7 @@ def _scored(pid: str, findings: list, compliance: list, dismissed: list, source_
 
 def _from_tables(src: SourceDimension, saved: ScoringParams, cache: dict[Path, Any]) -> dict[str, Any]:
     if src.run_dir not in cache:
+        project_run(src.run_dir)
         cache[src.run_dir] = load_grade_inputs(src.run_dir)
     inputs = cache[src.run_dir]
     keys = sorted(k for k in set(inputs.violations_by) | set(inputs.compliance_by) if k[0].lower() == src.name)

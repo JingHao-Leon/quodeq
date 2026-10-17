@@ -12,12 +12,15 @@ import pytest
 from quodeq.core.scoring.params import DEFAULT_PARAMS
 from quodeq.data.events.reader import EventLogReader
 from quodeq.data.fs import run_archive
+from quodeq.data.fs.report_parser.runs import list_runs
 from quodeq.data.fs.run_files import dimension_evidence_file
 from quodeq.data.fs.run_archive import archive_run, is_archived
 from quodeq.data.sqlite.connection import open_evaluation_db
+from quodeq.data.sqlite.errors import SqliteStoreUnreadableError
 from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository
 from quodeq.data.sqlite.state_store import SQLiteStateStore
 from quodeq.services import grade_formula
+from quodeq.services.grade_explain import explain_dimension
 from quodeq.services.run_event_readers import read_new_findings_from_events
 from quodeq.services.scoring import get_scores_raw, make_scoring_trend_fetcher
 from tests.api._scores_routes_helpers import _scorable_violations, _seed_run
@@ -113,12 +116,26 @@ def test_a_corrupt_archive_reads_as_a_run_without_an_event_log(tmp_path, caplog)
 
     with caplog.at_level(logging.WARNING):
         result = get_scores_raw(tmp_path, _PROJECT, _OLD)
-        findings = SqliteFindingsRepository(old).list_by_dimension("security")
+        listed = [r.run_id for r in list_runs(tmp_path, _PROJECT)]
+        with pytest.raises(SqliteStoreUnreadableError):
+            SqliteFindingsRepository(old).list_by_dimension("security")
 
     assert [d["overallGrade"] for d in result["dimensions"]] == ["C"]  # the report, not the SQL tables
-    assert findings == []
-    assert is_archived(old)
+    assert sorted(listed) == [_NEW, _OLD]
+    assert is_archived(old) and not (old / "evaluation.db").exists()
     assert "run archive" in caplog.text
+
+
+def test_opening_a_corrupt_archived_run_database_creates_nothing(tmp_path):
+    old, _ = _seed_project(tmp_path)
+    archive_run(old)
+    (old / run_archive.ARCHIVE_FILENAME).write_bytes(b"not a tarball")
+
+    with pytest.raises(SqliteStoreUnreadableError):
+        with open_evaluation_db(old):
+            pass
+
+    assert not (old / "evaluation.db").exists()
 
 
 def test_a_lock_timeout_during_restore_is_a_warning(tmp_path, monkeypatch, caplog):
@@ -129,10 +146,9 @@ def test_a_lock_timeout_during_restore_is_a_warning(tmp_path, monkeypatch, caplo
         raise TimeoutError("lock wait")
 
     monkeypatch.setattr(run_archive, "ensure_restored", stuck)
-    with caplog.at_level(logging.WARNING):
-        findings = SqliteFindingsRepository(old).list_by_dimension("security")
+    with caplog.at_level(logging.WARNING), pytest.raises(SqliteStoreUnreadableError):
+        SqliteFindingsRepository(old).list_by_dimension("security")
 
-    assert findings == []
     assert is_archived(old)
     assert "lock wait" in caplog.text
 
@@ -160,3 +176,22 @@ def test_opening_an_archived_run_database_restores_before_connecting(tmp_path):
         conn.execute("SELECT 1")
 
     assert (old / "events.jsonl").is_file() and not is_archived(old)
+
+
+def test_apply_and_preview_after_a_restore_that_did_not_project(tmp_path, formula_path):  # noqa: F811
+    archived_root, plain_root = tmp_path / "archived", tmp_path / "plain"
+    old, _ = _seed_project(archived_root)
+    shutil.copytree(archived_root, plain_root)
+    archive_run(old)
+    dimension_evidence_file(old, "security")  # restores, never projects
+    assert not is_archived(old) and not (old / "evaluation.db").exists()
+
+    explained = [explain_dimension(root, _PROJECT, _OLD, "security", params=_TUNED)
+                 for root in (archived_root, plain_root)]
+    assert explained[0]["principles"] and explained[0] == explained[1]
+
+    grade_formula.save_params(_TUNED)
+    for root in (archived_root, plain_root):
+        assert grade_formula.apply_to_all_runs(root).failed == []
+    archived = SQLiteStateStore(old).read_dimension_scores()
+    assert archived and archived == SQLiteStateStore(plain_root / _PROJECT / _OLD).read_dimension_scores()
