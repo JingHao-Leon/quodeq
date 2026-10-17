@@ -65,7 +65,7 @@ export function DetectedLine({ scanData, estimates = null }) {
   const count = estimates?.projectFiles > 0 ? estimates.projectFiles : s.codeFiles;
   return (
     <div className="eval-detected-line">
-      {t('evaluate.sourceFiles', { count: formatCount(count) })}
+      {t(pluralKey(count, 'evaluate.sourceFilesOne', 'evaluate.sourceFiles'), { count: formatCount(count) })}
       {langs.map(({ name }) => (
         <span key={name}> · {name}</span>
       ))}

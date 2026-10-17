@@ -49,7 +49,7 @@ describe('NeverEvaluatedPanel steps', () => {
   it('ticks the scan with its files and languages, and choose opens Evaluate', async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();
-    render(<NeverEvaluatedPanel projectName="billing" projectInfo={{ totalFiles: 42, languageStats: { py: 30, ts: 12 } }} onNavigate={onNavigate} />);
+    render(<NeverEvaluatedPanel projectName="billing" projectInfo={{ filesCount: 42, languageStats: { py: 30, ts: 12 } }} onNavigate={onNavigate} />);
     expect(screen.getByText(/42 source files/)).toBeInTheDocument();
     expect(screen.getByText('pick who reviews it.')).toBeInTheDocument();
     expect(screen.getByText('grades land here')).toBeInTheDocument();
@@ -63,5 +63,18 @@ describe('NeverEvaluatedPanel steps', () => {
     render(<NeverEvaluatedPanel projectName="billing" projectInfo={null} onNavigate={vi.fn()} />);
     expect(screen.getByText('scan')).toBeInTheDocument();
     expect(screen.queryByText(/source files/)).not.toBeInTheDocument();
+  });
+
+  it('counts the files the Overview head counts', () => {
+    render(<NeverEvaluatedPanel projectName="billing" projectInfo={{ filesCount: 40, totalFiles: 42 }} onNavigate={vi.fn()} />);
+    expect(screen.getByText('40 source files')).toBeInTheDocument();
+  });
+
+  it('one file reads in the singular, with and without languages', () => {
+    const { unmount } = render(<NeverEvaluatedPanel projectName="billing" projectInfo={{ filesCount: 1 }} onNavigate={vi.fn()} />);
+    expect(screen.getByText('1 source file')).toBeInTheDocument();
+    unmount();
+    render(<NeverEvaluatedPanel projectName="billing" projectInfo={{ filesCount: 1, languageStats: { py: 1 } }} onNavigate={vi.fn()} />);
+    expect(screen.getByText('1 source file · python')).toBeInTheDocument();
   });
 });

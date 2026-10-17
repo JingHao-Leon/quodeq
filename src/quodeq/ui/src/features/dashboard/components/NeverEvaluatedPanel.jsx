@@ -1,5 +1,7 @@
 import { t, LOCALE } from '../../../strings/index.js';
 import { extDisplayName } from '../../../utils/formatters.js';
+import { pluralKey } from '../../../utils/plural.js';
+import { projectFileCount, topLanguageStats } from '../projectSize.js';
 import { NAV_TAB } from '../../../vocab/navTab.js';
 import '../../../styles/never-evaluated.css';
 
@@ -11,17 +13,18 @@ const MAX_LANGUAGES = 3;
 const STEP_STATE = Object.freeze({ DONE: 'done', NEXT: 'next', LATER: 'later' });
 
 // What the scan found, when the projects list already carries it: the
-// source-file count, then the top languages. Null without a count.
+// source-file count the Overview head shows, then the top languages. Null
+// without a count.
 function scanDetail(projectInfo) {
-  const count = projectInfo?.totalFiles ?? projectInfo?.filesCount ?? null;
+  const count = projectFileCount(projectInfo);
   if (!count) return null;
   const files = count.toLocaleString(LOCALE);
-  const stats = projectInfo?.languageStats;
-  const languages = stats
-    ? Object.entries(stats).sort(([, a], [, b]) => b - a).slice(0, MAX_LANGUAGES).map(([ext]) => extDisplayName(ext).toLowerCase())
-    : [];
-  if (languages.length === 0) return t('overview.neverEvaluatedScanFiles', { count: files });
-  return t('overview.neverEvaluatedScanScanned', { count: files, languages: languages.join(LANGUAGE_SEPARATOR) });
+  const languages = topLanguageStats(projectInfo, MAX_LANGUAGES).map(([ext]) => extDisplayName(ext).toLowerCase());
+  if (languages.length === 0) {
+    return t(pluralKey(count, 'overview.neverEvaluatedScanFilesOne', 'overview.neverEvaluatedScanFiles'), { count: files });
+  }
+  const key = pluralKey(count, 'overview.neverEvaluatedScanScannedOne', 'overview.neverEvaluatedScanScanned');
+  return t(key, { count: files, languages: languages.join(LANGUAGE_SEPARATOR) });
 }
 
 function Step({ state, name, hint, children }) {

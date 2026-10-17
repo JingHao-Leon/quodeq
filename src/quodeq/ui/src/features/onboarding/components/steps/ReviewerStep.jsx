@@ -2,6 +2,7 @@ import ReviewerList from '../reviewer/ReviewerList.jsx';
 import { useReviewerStep } from '../../hooks/useReviewerStep.js';
 import { DETECTION_STATUS } from '../../onboardingVocab.js';
 import { t, LOCALE } from '../../../../strings/index.js';
+import { pluralKey } from '../../../../utils/plural.js';
 
 // The languages read as the evaluate card's detected line does.
 const LANGUAGE_SEPARATOR = ' · ';
@@ -11,8 +12,11 @@ const LANGUAGE_SEPARATOR = ' · ';
 function addedLine({ name, fileCount, languages }) {
   if (!fileCount) return t('onboarding.reviewerAdded', { name });
   const count = fileCount.toLocaleString(LOCALE);
-  if (languages.length === 0) return t('onboarding.reviewerAddedFiles', { name, count });
-  return t('onboarding.reviewerAddedScanned', { name, count, languages: languages.join(LANGUAGE_SEPARATOR) });
+  if (languages.length === 0) {
+    return t(pluralKey(fileCount, 'onboarding.reviewerAddedFilesOne', 'onboarding.reviewerAddedFiles'), { name, count });
+  }
+  const key = pluralKey(fileCount, 'onboarding.reviewerAddedScannedOne', 'onboarding.reviewerAddedScanned');
+  return t(key, { name, count, languages: languages.join(LANGUAGE_SEPARATOR) });
 }
 
 // The detected providers as a list; a quiet line while the probes run, and

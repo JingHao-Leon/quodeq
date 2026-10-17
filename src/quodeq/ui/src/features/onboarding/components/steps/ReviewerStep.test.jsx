@@ -125,4 +125,16 @@ describe('ReviewerStep', () => {
     expect(localStorage.getItem('cc-active-provider')).toBe('codex');
     expect(localStorage.getItem('cc-codex-model')).toBe('opus');
   });
+
+  it('one scanned file reads in the singular', () => {
+    detection.value = detected(['claude-code']);
+    renderStep({ ...FOLDER_ADD, fileCount: 1, languages: ['python'] });
+    expect(screen.getByText('✓ billing added · 1 source file · python')).toBeInTheDocument();
+  });
+
+  it('one file without languages reads in the singular', () => {
+    detection.value = detected(['claude-code']);
+    renderStep({ ...FOLDER_ADD, fileCount: 1, languages: [] });
+    expect(screen.getByText('✓ billing added · 1 source file')).toBeInTheDocument();
+  });
 });
