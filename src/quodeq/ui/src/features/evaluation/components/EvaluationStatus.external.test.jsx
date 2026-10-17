@@ -72,7 +72,7 @@ describe('the end of a PR review', () => {
   it('a review whose folder vanished reads as ended, not lost', async () => {
     getEvaluationProgress.mockResolvedValue(diff);
     renderJob({ ...prDone, status: 'done', vanished: true });
-    expect(await screen.findByText('evaluation_ended')).toBeInTheDocument();
+    expect(await screen.findByText('evaluation ended')).toBeInTheDocument();
     expect(screen.getByText('ended')).toHaveClass('eval-run-pill--neutral');
     expect(await screen.findByRole('button', { name: /open on github/i })).toBeInTheDocument();
     // Its ending is unknown: it may never have reached the post step.
@@ -90,7 +90,7 @@ describe('the end of a PR review', () => {
   it('a vanished run that was not a review offers close only', async () => {
     getEvaluationProgress.mockResolvedValue(full);
     renderJob({ ...prDone, status: 'done', vanished: true });
-    expect(await screen.findByText('evaluation_ended')).toBeInTheDocument();
+    expect(await screen.findByText('evaluation ended')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /view results/i })).toBeNull();
   });
 
