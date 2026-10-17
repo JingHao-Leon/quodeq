@@ -9,6 +9,7 @@ import logging
 from collections.abc import Mapping
 from pathlib import Path
 
+from quodeq.data.fs.shared_clone_runs import prepare_clone
 from quodeq.data.fs.shared_repo import clone_lock, refresh_shared_clone, remove_clone_dir
 from quodeq.data.fs.shared_repo_git import run_git, shared_repo_path
 from quodeq.shared.constants import GIT_DIR_NAME
@@ -44,6 +45,7 @@ def reset_clone_to_remote(url: str, env: Mapping[str, str] | None = None) -> Non
         if target is not None:
             ok, out = run_git(["reset", "--hard", target], cwd=repo)
             if ok:
+                prepare_clone(repo, env)
                 return
             logger.warning("reset_clone_to_remote: reset failed for %s: %s", url, out.strip()[:200])
         remove_clone_dir(repo)

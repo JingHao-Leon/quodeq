@@ -40,6 +40,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
 from quodeq.data.fs.run_archive_limits import RunArchiveError, check_archive_limits  # noqa: F401 -- error re-exported
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
+from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
 from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, needs_db_tidy, vacuum_db
 
 _logger = logging.getLogger(__name__)
@@ -183,14 +184,14 @@ def _check_members(members: list[tarfile.TarInfo], staging: Path) -> list[str]:
     return names
 
 
-def _extract(archive: Path, staging: Path) -> list[str]:
-    """Validate and extract *archive* into *staging*; the member names on success."""
+def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = ()) -> list[str]:
+    """Validate *archive* and extract it into *staging*, leaving out the members named in *skip*; their names."""
     try:
         with tarfile.open(archive, "r:gz") as tar:
             members = tar.getmembers()
-            names = _check_members(members, staging)
+            names = [name for name in _check_members(members, staging) if name not in skip]
             staging.mkdir()
-            tar.extractall(staging, members=members, filter="data")
+            tar.extractall(staging, members=[m for m in members if m.name in names], filter="data")
     except RunArchiveError:
         shutil.rmtree(staging, ignore_errors=True)
         raise
@@ -219,6 +220,8 @@ def restore_locked(run_dir: Path) -> bool:
         return False
     _clean_leftovers(run_dir)
     archive, staging = run_dir / ARCHIVE_FILENAME, run_dir / _RESTORE_DIR
+    if is_shared_clone_run(run_dir):  # the archive is tracked there: unpack beside it, never its database
+        return restore_clone_locked(run_dir, staging, _extract)
     try:
         names = _extract(archive, staging)
     except RunArchiveError as exc:

@@ -36,6 +36,7 @@ from pathlib import Path
 from quodeq.data.fs.repo_validation import validate_remote_url  # noqa: F401
 from quodeq.data.fs.git_progress import ProgressUpdate, parse_progress
 from quodeq.data.fs.git_stream import run_git_streaming
+from quodeq.data.fs.shared_clone_runs import prepare_clone
 from quodeq.data.fs.shared_repo_git import (  # noqa: F401 -- re-exported for existing callers
     DEFAULT_GIT_TIMEOUT_S,
     EVALUATIONS_DIRNAME,
@@ -142,6 +143,7 @@ def ensure_shared_clone(
     with clone_lock(url, env):
         repo = shared_repo_path(url, env)
         if (repo / GIT_DIR_NAME).exists():
+            prepare_clone(repo, env)
             return repo
         repo.parent.mkdir(parents=True, exist_ok=True)
         ok, out = run_git_streaming(
@@ -152,6 +154,7 @@ def ensure_shared_clone(
             logger.warning("shared clone failed for %s: %s", url, out.strip()[:500])
             remove_clone_dir(repo)
             return None
+        prepare_clone(repo, env)
         return repo
 
 
@@ -197,6 +200,7 @@ def _fetch_and_reset_clone(
         reason = out.strip()[:200]
         logger.warning("refresh_shared_clone: reset failed for %s: %s", url, reason)
         return False, reason
+    prepare_clone(repo, env)  # the reset may have checked a tracked database out over a local one
     return True, ""
 
 
