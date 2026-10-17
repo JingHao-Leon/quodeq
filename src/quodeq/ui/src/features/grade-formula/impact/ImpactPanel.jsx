@@ -98,8 +98,7 @@ function Failed({ onRetry }) {
   );
 }
 
-function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProject, onLitProject, onRetry }) {
-  const rows = useMemo(() => (inputs ? projectImpact(inputs, names, saved, draft) : []), [inputs, names, saved, draft]);
+function Body({ rows, inputs, loading, failed, saved, draft, isDirty, litProject, onLitProject, onRetry }) {
   const shifts = useMemo(() => (inputs ? principleShifts(inputs, saved, draft) : null), [inputs, saved, draft]);
   if (loading) return <p className="gf-impact__note">{t('gradeFormula.impactLoading')}</p>;
   if (failed) return <Failed onRetry={onRetry} />;
@@ -116,9 +115,8 @@ function Body({ inputs, loading, failed, names, saved, draft, isDirty, litProjec
 }
 
 // The folded panel's one line on narrow screens: how many projects, and how many the draft moves.
-function foldSummary(inputs, names, saved, draft) {
-  if (!inputs) return '';
-  const rows = projectImpact(inputs, names, saved, draft);
+function foldSummary(rows) {
+  if (rows.length === 0) return '';
   const moved = rows.filter((r) => r.before.overall !== r.after.overall).length;
   const key = moved === 0
     ? pluralKey(rows.length, 'gradeFormula.foldRestOne', 'gradeFormula.foldRest')
@@ -129,7 +127,7 @@ function foldSummary(inputs, names, saved, draft) {
 /** What the draft does to every project, beside the knobs, with the actions. */
 export default function ImpactPanel(props) {
   const { inputs, names, saved, draft, isDirty, isCustom, busy, changedCount, actionsRef, onReview, onUndo, onReset } = props;
-  const summary = useMemo(() => foldSummary(inputs, names, saved, draft), [inputs, names, saved, draft]);
+  const rows = useMemo(() => (inputs ? projectImpact(inputs, names, saved, draft) : []), [inputs, names, saved, draft]);
   // The stacked layout folds the panel to its summary line; side by side it is always open.
   const stacked = useMediaQuery(STACKED);
   const [open, setOpen] = useState(false);
@@ -139,10 +137,10 @@ export default function ImpactPanel(props) {
       {stacked ? (
         <button type="button" className="gf-impact__head" aria-expanded={open} onClick={() => setOpen(!open)}>
           {label}
-          <span className="gf-impact__fold">{summary}</span>
+          <span className="gf-impact__fold">{foldSummary(rows)}</span>
         </button>
       ) : <div className="gf-impact__head">{label}</div>}
-      <div className="gf-impact__body"><Body {...props} /></div>
+      <div className="gf-impact__body"><Body {...props} rows={rows} /></div>
       <div className="gf-impact__actions" ref={actionsRef} tabIndex={-1}>
         <button type="button" className="term-btn--primary" disabled={!isDirty || busy} onClick={onReview}>
           {t('gradeFormula.reviewApply')}
