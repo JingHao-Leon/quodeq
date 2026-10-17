@@ -86,11 +86,11 @@ describe('useAnalyzeLaunch', () => {
 
   it('a 409 PROJECT_EXISTS resumes the registered project and hands it over', async () => {
     const registerProject = vi.fn().mockRejectedValue(conflict('PROJECT_EXISTS', { existingProjectId: 'p-old' }));
-    const getProjectInfo = vi.fn(async () => ({ id: 'p-old', runsCount: 0 }));
+    const getProjectInfo = vi.fn(async () => ({ id: 'p-old', runsCount: 0, path: '/u/me/old' }));
     const getProjectScan = vi.fn(async () => ({ total_files: 3 }));
     const { result, onAdded, wizard } = setup({ registerProject, api: { getProjectInfo, getProjectScan } });
     await act(async () => { await result.current.run(); });
-    expect(wizard.succeedScan).toHaveBeenCalledWith('p-old', { total_files: 3 });
+    expect(wizard.succeedScan).toHaveBeenCalledWith('p-old', { total_files: 3 }, '/u/me/old');
     expect(onAdded).toHaveBeenCalledWith({ projectId: 'p-old', cloning: false });
     expect(result.current.startError).toBeNull();
   });
@@ -110,7 +110,7 @@ describe('useAnalyzeLaunch', () => {
     expect(api.probeGit).not.toHaveBeenCalled();
     expect(api.registerProject).toHaveBeenCalledWith({ repo: FOLDER });
     expect(wizard.startScan).toHaveBeenCalledTimes(1);
-    expect(wizard.succeedScan).toHaveBeenCalledWith('p-folder', { total_files: 9 });
+    expect(wizard.succeedScan).toHaveBeenCalledWith('p-folder', { total_files: 9 }, FOLDER);
     expect(onAdded).toHaveBeenCalledWith({ projectId: 'p-folder', cloning: false });
   });
 

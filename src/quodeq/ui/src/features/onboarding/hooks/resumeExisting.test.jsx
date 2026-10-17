@@ -5,9 +5,9 @@ describe('makeTryResumeExisting', () => {
   it('resumes a registered project with no evaluations into its scan', async () => {
     const actions = { succeedScan: vi.fn() };
     const getProjectScan = vi.fn(async () => ({ total_files: 3 }));
-    const tryResume = makeTryResumeExisting({ getProjectInfo: async () => ({ runsCount: 0 }), getProjectScan, actions });
+    const tryResume = makeTryResumeExisting({ getProjectInfo: async () => ({ runsCount: 0, path: '/u/me/p1' }), getProjectScan, actions });
     expect(await tryResume('p1')).toBe(true);
-    expect(actions.succeedScan).toHaveBeenCalledWith('p1', { total_files: 3 });
+    expect(actions.succeedScan).toHaveBeenCalledWith('p1', { total_files: 3 }, '/u/me/p1');
   });
 
   it('leaves a project that already has evaluations alone', async () => {

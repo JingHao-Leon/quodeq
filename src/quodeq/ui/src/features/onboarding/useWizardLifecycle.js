@@ -92,6 +92,11 @@ export function buildWizardHandlers({ state, setWizardEntry, navTab, queryClient
       setWizardEntry(null);
       navTab(NAV_TAB.PROJECTS);
     },
+    // The reviewer step's "other providers and api keys" and "set one up in settings".
+    onOpenSettings: () => {
+      setWizardEntry(null);
+      navTab(NAV_TAB.SETTINGS);
+    },
   };
 }
 
@@ -158,7 +163,8 @@ function useWizardAutoOpen({ state, isEvaluating, sharedSignal, wizardEntry, set
  * which is what decides whether shared content may close it.
  *
  * @returns {{ wizardEntry: Object|null, setWizardEntry: Function,
- *   wizardHandlers: { onClose: Function, onLaunch: Function, onGoToRepositories: Function, onStepChange: Function } }}
+ *   wizardHandlers: { onClose: Function, onLaunch: Function, onGoToRepositories: Function,
+ *     onOpenSettings: Function, onStepChange: Function } }}
  */
 export function useWizardLifecycle({ state, navTab, isEvaluating, sharedSignal }) {
   const [wizardEntry, setWizardEntry] = useState(null);

@@ -3,7 +3,11 @@ import ConnectStep from './steps/ConnectStep.jsx';
 import AnalyzeStep from './steps/AnalyzeStep.jsx';
 import ProviderStep from './steps/ProviderStep.jsx';
 import StandardLaunchStep from './steps/StandardLaunchStep.jsx';
-import { STEP_WELCOME, STEP_CONNECT, STEP_ANALYZE, STEP_PROVIDER, STEP_STANDARD_LAUNCH } from '../wizardSteps.js';
+import ReviewerStep from './steps/ReviewerStep.jsx';
+import { addedSummary } from '../hooks/useReviewerStep.js';
+import {
+  STEP_WELCOME, STEP_CONNECT, STEP_ANALYZE, STEP_REVIEWER, STEP_PROVIDER, STEP_STANDARD_LAUNCH,
+} from '../wizardSteps.js';
 import { WIZARD_SOURCE } from '../onboardingVocab.js';
 import { useSharedConnection } from '../../dashboard/hooks/useSharedProjects.js';
 import { useSharedDisconnect } from '../../dashboard/hooks/useSharedDisconnect.js';
@@ -56,11 +60,14 @@ function ConnectRoute({ wizard, entry, handleClose, onGoToRepositories }) {
 
 /**
  * OnboardingWizard.jsx's step-switch JSX (which step component renders for
- * the wizard's current step). The provider and standard steps are the
- * resume-setup walk (SETUP_ORDER); the provider step opens it, so it has no back.
+ * the wizard's current step). An add moves on to the reviewer step. The
+ * provider and standard steps are the resume-setup walk (SETUP_ORDER); the
+ * provider step opens it, so it has no back. `reviewer` is the reviewer
+ * step's exits (useOnboardingWizardHandlers' handleStartFirst, handleLater,
+ * handleOpenSettings).
  */
 export function OnboardingStepSwitch({
-  wizard, entry, standards, currentIndex, visibleCount,
+  wizard, entry, standards, currentIndex, visibleCount, reviewer,
   nextStep, prevStep, handleSkipWelcome, handleImport, handleAdded, handleLaunch, handleClose, onGoToRepositories,
 }) {
   const step = wizard.state.step;
@@ -82,6 +89,15 @@ export function OnboardingStepSwitch({
       {step === STEP_ANALYZE && (
         // useAnalyzeLaunch registers the project (or starts its clone), then hands over.
         <AnalyzeStep state={wizard.state} actions={wizard} onAdded={handleAdded} />
+      )}
+
+      {step === STEP_REVIEWER && wizard.state.added && (
+        <ReviewerStep
+          added={addedSummary(wizard.state)}
+          onStart={reviewer.handleStartFirst}
+          onLater={reviewer.handleLater}
+          onOpenSettings={reviewer.handleOpenSettings}
+        />
       )}
 
       {step === STEP_PROVIDER && (

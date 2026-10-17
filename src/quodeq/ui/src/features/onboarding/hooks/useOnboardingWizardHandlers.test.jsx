@@ -53,17 +53,27 @@ describe('useOnboardingWizardHandlers handleSkipWelcome', () => {
 describe('useOnboardingWizardHandlers handleAdded', () => {
   afterEach(() => localStorage.clear());
 
-  it('a registered project closes the panel as saved with its id', () => {
-    const { result, opts } = setup();
+  it('an add keeps the panel open on the reviewer step', () => {
+    const { result, opts } = setup({ wizard: { state: {}, markAdded: vi.fn() } });
     result.current.handleAdded({ projectId: 'p-new', cloning: false });
-    expect(opts.onClose).toHaveBeenCalledWith({ saved: true, projectId: 'p-new', cloning: false, landed: true });
+    expect(opts.wizard.markAdded).toHaveBeenCalledWith({ projectId: 'p-new', cloning: false });
+    expect(opts.onClose).not.toHaveBeenCalled();
   });
 
-  it('a clone that started closes the panel as cloning, with no project yet', () => {
-    const { result, opts } = setup();
-    result.current.handleAdded({ projectId: null, cloning: true });
+  it('later on a clone lands as cloning, with no project yet', () => {
+    const { result, opts } = setup({ wizard: { state: { added: { projectId: null, cloning: true } } } });
+    result.current.handleLater();
     expect(opts.onClose).toHaveBeenCalledWith({ saved: true, projectId: null, cloning: true, landed: true });
     expect(localStorage.getItem(SKIP_FLAG)).toBeNull();
+  });
+
+  it('start first launches the added project from its local folder with no time limit', () => {
+    const state = { added: { projectId: 'p1', cloning: false }, projectPath: '/u/me/p1', repo: { value: 'https://x/p1.git' } };
+    const { result, opts } = setup({ wizard: { state } });
+    result.current.handleStartFirst({ provider: { id: 'claude', model: 'sonnet' }, standardIds: ['a', 'b'] });
+    expect(opts.onLaunch).toHaveBeenCalledWith({
+      projectId: 'p1', repo: '/u/me/p1', provider: { id: 'claude', model: 'sonnet' }, standardIds: ['a', 'b'], totalTimeLimitS: 0,
+    });
   });
 });
 

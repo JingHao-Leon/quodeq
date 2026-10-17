@@ -15,7 +15,7 @@ const CODE_CLONE_IN_PROGRESS = 'CLONE_IN_PROGRESS';
  *   ctx.wizard       startScan, succeedScan, failScan
  *   ctx.set          setAccessFailure, setStartError
  *   ctx.tryResume    makeTryResumeExisting's resume of a registered repo
- *   ctx.added        ({ projectId, cloning }) => void; the panel closes on it.
+ *   ctx.added        ({ projectId, cloning }) => void; the reviewer step follows.
  *                    projectId is the registered project (null while a clone
  *                    job runs), cloning says the Repositories tile carries on.
  *                    A no-op once the panel closed (it may run after a slow await).
@@ -37,7 +37,7 @@ export async function startFolder(ctx, { repo }) {
   ctx.wizard.startScan();
   try {
     const { projectId, scanData } = await ctx.api.registerProject({ repo });
-    ctx.wizard.succeedScan(projectId, scanData);
+    ctx.wizard.succeedScan(projectId, scanData, repo);
     ctx.added({ projectId, cloning: false });
   } catch (err) {
     if (await resumed(ctx, err)) return;

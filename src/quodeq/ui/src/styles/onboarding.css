@@ -85,6 +85,10 @@
 .onboarding-step__actions--end {
   justify-content: flex-end;
 }
+/* The reviewer step: the quiet way out on the left, the first run on the right. */
+.onboarding-step__actions--split {
+  justify-content: space-between;
+}
 /* Wizard CTA rows: on narrow viewports the buttons grow to fill the
    row so longer labels (e.g. "scan and run", "start evaluation")
    stay legible and the primary action is comfortably tappable. */
@@ -473,4 +477,18 @@
 }
 .reviewer-list__footer {
   display: flex;
+}
+
+/* The reviewer step after an add: what was added, and the empty state
+   when no provider answered on this machine. */
+.reviewer-step__added {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.reviewer-step__none {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--term-space-2);
 }

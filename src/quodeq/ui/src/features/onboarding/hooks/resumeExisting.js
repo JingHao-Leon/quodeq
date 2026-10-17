@@ -26,7 +26,7 @@ export function makeTryResumeExisting({ getProjectInfo, getProjectScan, actions 
         signal: AbortSignal.timeout(RESUME_SCAN_TIMEOUT_MS),
         timeout: RESUME_SCAN_TIMEOUT_MS,
       });
-      actions.succeedScan(existingProjectId, scanData);
+      actions.succeedScan(existingProjectId, scanData, info.path);
       return true;
     } catch (err) {
       console.warn('[resumeExisting] resume existing project failed:', err);

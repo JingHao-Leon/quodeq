@@ -39,8 +39,8 @@ function RepositoryBlock({ form, locked }) {
  * folder` button fills it from the picker), and where a url's working copy
  * goes. `add` registers the repository (useAnalyzeLaunch: a folder at once,
  * a url as a clone job the Repositories tile follows) and hands `onAdded`
- * `{ projectId, cloning }`; the panel closes on it. Who reviews the project
- * and against what is decided on Evaluate, not here.
+ * `{ projectId, cloning }`; the reviewer step (who reviews the project, and
+ * its first evaluation) follows.
  */
 export default function AnalyzeStep({ state, actions, onAdded }) {
   const wizard = { ...actions, state };

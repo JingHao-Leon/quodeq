@@ -1,14 +1,22 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import OnboardingWizard from './OnboardingWizard.jsx';
 import { STEP_ANALYZE, STEP_CONNECT } from '../wizardSteps.js';
 import { WIZARD_SOURCE } from '../onboardingVocab.js';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
+import { invalidateDimensionCache } from '../../evaluation/hooks/usePluginDimensions.js';
 
 vi.mock('../hooks/useProviderDetection.js', () => ({
-  useProviderDetection: () => ({ status: 'detected', preselection: { id: 'codex-cli', classification: 'cli', model: 'gpt-5.2-codex' } }),
+  useProviderDetection: () => ({
+    status: 'detected',
+    results: DETECTED,
+    preselection: { id: 'claude-code', classification: 'cli', model: null },
+  }),
 }));
+
+// One array for every render: useReviewerChoice keys its memos on it.
+const DETECTED = vi.hoisted(() => [{ id: 'claude-code', detected: true }]);
 
 const shared = vi.hoisted(() => ({ status: { configured: false }, disconnect: null }));
 
@@ -19,7 +27,11 @@ vi.mock('../../dashboard/hooks/useSharedDisconnect.js', () => ({
 }));
 
 vi.mock('../../../api/index.js', () => ({
-  registerProject: vi.fn().mockResolvedValue({ projectId: 'uuid-9', scanData: { total_files: 7, languages: { py: 7 }, branches: ['main'], modules: [] } }),
+  registerProject: vi.fn(async ({ repo }) => (repo.startsWith('https://')
+    ? { started: true, repo }
+    : { projectId: 'uuid-9', scanData: { total_files: 7, code_files: 7, languages: { py: 7 }, branches: ['main'], modules: [] } })),
+  listPlugins: vi.fn().mockResolvedValue([{ dimensions: [{ id: 'security' }, { id: 'maintainability' }] }]),
+  getClientModels: vi.fn().mockResolvedValue({ catalog: [{ id: 'sonnet', label: 'Sonnet', efforts: [], defaultEffort: '', isDefault: true, pinned: false }] }),
   listStandards: vi.fn().mockResolvedValue([{ id: 'std-a', name: 'Security 101', description: 'Common checks' }]),
   getProjectInfo: vi.fn().mockResolvedValue({ id: 'uuid-9', runsCount: 0 }),
   getProjectScan: vi.fn().mockResolvedValue({ total_files: 7, languages: { py: 7 }, branches: ['main'], modules: [] }),
@@ -33,10 +45,81 @@ vi.mock('../../../api/index.js', () => ({
 const SKIP_FLAG = 'quodeq_onboarding_skipped';
 
 function renderWizard(entry, handlers = {}) {
-  const props = { onClose: vi.fn(), onLaunch: vi.fn(), onGoToRepositories: vi.fn(), ...handlers };
+  const props = { onClose: vi.fn(), onLaunch: vi.fn(), onGoToRepositories: vi.fn(), onOpenSettings: vi.fn(), ...handlers };
   render(<OnboardingWizard entry={entry} {...props} />, { wrapper: withQueryClient() });
   return props;
 }
+
+// Adds a repository on the add panel and waits for the reviewer step.
+async function addRepository(value) {
+  fireEvent.change(screen.getByRole('textbox', { name: 'repository' }), { target: { value } });
+  fireEvent.click(screen.getByRole('button', { name: 'add' }));
+  await screen.findByRole('heading', { name: 'Who reviews it' });
+}
+
+const ADD_ENTRY = { startStep: STEP_ANALYZE, isFirstProject: false, source: WIZARD_SOURCE.ADD };
+
+describe('OnboardingWizard reviewer step', () => {
+  beforeEach(() => {
+    invalidateDimensionCache();
+    localStorage.setItem('quodeq-visible-standards', JSON.stringify(['security', 'maintainability']));
+  });
+  afterEach(() => localStorage.clear());
+
+  it('folder add opens the reviewer step', async () => {
+    const { onClose } = renderWizard(ADD_ENTRY);
+    await addRepository('/u/me/billing');
+    expect(screen.getByText('✓ billing added · 7 source files · python')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('start first evaluation launches with all dimensions, no time limit and the chosen model', async () => {
+    const { onLaunch } = renderWizard(ADD_ENTRY);
+    await addRepository('/u/me/billing');
+    await screen.findByText('all 2 dimensions · no time limit. you can change both on Evaluate.');
+    const start = screen.getByRole('button', { name: 'start first evaluation' });
+    await waitFor(() => expect(start).toBeEnabled());
+    fireEvent.click(start);
+    expect(onLaunch).toHaveBeenCalledWith({
+      projectId: 'uuid-9', repo: '/u/me/billing', provider: { id: 'claude', model: 'sonnet' },
+      standardIds: ['security', 'maintainability'], totalTimeLimitS: 0,
+    });
+  });
+
+  it('later saves the reviewer and lands on repositories with the project selected', async () => {
+    const { onClose, onLaunch } = renderWizard(ADD_ENTRY);
+    await addRepository('/u/me/billing');
+    await screen.findByRole('option', { name: 'Sonnet (default)' });
+    fireEvent.click(screen.getByRole('button', { name: 'later, take me to the project' }));
+    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: 'uuid-9', cloning: false, landed: true });
+    expect(onLaunch).not.toHaveBeenCalled();
+    expect(localStorage.getItem('cc-claude-model')).toBe('sonnet');
+  });
+
+  it('the close button after an add lands like later', async () => {
+    const { onClose } = renderWizard(ADD_ENTRY);
+    await addRepository('/u/me/billing');
+    fireEvent.click(screen.getByRole('button', { name: /close onboarding/i }));
+    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: 'uuid-9', cloning: false, landed: true });
+  });
+
+  it('clone add shows save and close and never launches', async () => {
+    const { onClose, onLaunch } = renderWizard(ADD_ENTRY);
+    await addRepository('https://github.com/acme/billing.git');
+    expect(screen.getByText('✓ billing added')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'save and close' }));
+    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: null, cloning: true, landed: true });
+    expect(onLaunch).not.toHaveBeenCalled();
+  });
+
+  it('other providers and api keys closes onto settings', async () => {
+    const { onClose, onOpenSettings } = renderWizard(ADD_ENTRY);
+    await addRepository('/u/me/billing');
+    fireEvent.click(screen.getByRole('button', { name: 'other providers and api keys' }));
+    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: 'uuid-9', cloning: false });
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('OnboardingWizard', () => {
   afterEach(() => {

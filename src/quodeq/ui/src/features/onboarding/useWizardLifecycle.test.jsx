@@ -220,4 +220,12 @@ describe('useWizardLifecycle welcome exits', () => {
     expect(result.current.wizardEntry).toBeNull();
     expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.PROJECTS);
   });
+
+  it('open settings closes the wizard and opens the settings tab', () => {
+    const p = props({});
+    const { result } = renderHook((q) => useWizardLifecycle(q), { initialProps: p, wrapper: withQueryClient() });
+    act(() => { result.current.wizardHandlers.onOpenSettings(); });
+    expect(result.current.wizardEntry).toBeNull();
+    expect(p.navTab).toHaveBeenCalledWith(NAV_TAB.SETTINGS);
+  });
 });

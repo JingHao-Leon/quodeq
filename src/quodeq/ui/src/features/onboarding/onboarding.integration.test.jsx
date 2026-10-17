@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 // The url clones as a job: the slot reads idle until the post, then done
@@ -28,6 +28,7 @@ vi.mock('../../api/index.js', async () => {
     ]),
     getProjectInfo: vi.fn().mockResolvedValue({ id: 'uuid-9', runsCount: 0 }),
     getProviderConfigs: vi.fn().mockResolvedValue({}),
+    listPlugins: vi.fn().mockResolvedValue([{ dimensions: [{ id: 'std-a' }] }]),
     getSharedStatus: vi.fn().mockResolvedValue({ configured: false }),
   };
 });
@@ -63,7 +64,7 @@ describe('Onboarding integration — happy path', () => {
     localStorage.setItem('quodeq-visible-standards', JSON.stringify(['std-a', 'std-b']));
   });
 
-  it('walks Welcome → add, posts the clone and closes the panel as cloning; nothing launches', async () => {
+  it('walks Welcome → add → reviewer, posts the clone and closes as cloning; nothing launches', async () => {
     const onLaunch = vi.fn();
     const onClose = vi.fn();
     render(<OnboardingWizard entry={{ isFirstProject: true }} onLaunch={onLaunch} onClose={onClose} />, { wrapper: withQueryClient() });
@@ -78,9 +79,11 @@ describe('Onboarding integration — happy path', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'repository' }), { target: { value: 'https://github.com/acme/billing.git' } });
     fireEvent.click(screen.getByRole('button', { name: 'add' }));
 
-    // The clone job is posted and the panel hands over; the evaluation is
-    // started from the Evaluate tab later, never from here.
-    await waitFor(() => expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: null, cloning: true, landed: true }));
+    // The clone job is posted and the reviewer step follows; a clone has no
+    // project yet, so it only saves and closes onto Repositories.
+    expect(await screen.findByText('no provider found on this machine.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'save and close' }));
+    expect(onClose).toHaveBeenCalledWith({ saved: true, projectId: null, cloning: true, landed: true });
     expect(clone.posted).toBe(true);
     expect(onLaunch).not.toHaveBeenCalled();
   });
