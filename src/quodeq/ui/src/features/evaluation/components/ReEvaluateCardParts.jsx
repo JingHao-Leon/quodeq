@@ -191,12 +191,13 @@ function ModelCell({ activeModel, popover, cellRef }) {
   );
 }
 
-// The scope cell's tooltip: always carries the repository's absolute path
-// (the cell itself shows only "whole project" or the sub-path), plus the
-// subfolder hint where the cell opens the folder browser.
+// The scope cell's tooltip: carries the repository's absolute path (the
+// cell itself shows only "whole project" or the sub-path), plus the
+// subfolder hint where the cell opens the folder browser; the plain hint
+// while the path is unknown.
 function scopeCellTitle(info, scope) {
   if (!scope.isLocal) return scope.scopePath || info.path;
-  return t('evaluate.scopeCellTitle', { path: info.path });
+  return info.path ? t('evaluate.scopeCellTitle', { path: info.path }) : t('evaluate.scopeCellHint');
 }
 
 // The model popover hangs under the strip, not inside it: the strip clips

@@ -6,8 +6,8 @@ import { IdentityHeader, RunBar } from './ReEvaluateCardParts.jsx';
 const info = { name: 'Spoon-Knife', path: '/u/repos/Spoon-Knife' };
 const scope = { isLocal: true, scopePath: null };
 
-function renderHeader(activeModel) {
-  render(<IdentityHeader info={info} project="p1" scope={scope} branchLabel={null} scopeValue="/u/repos/Spoon-Knife/ · whole project" activeModel={activeModel} modelPopover={{ open: false, onOpen: vi.fn(), onClose: vi.fn() }} onOpenScopeBrowser={vi.fn()} onGoToSettings={vi.fn()} onGoToProjects={vi.fn()} />);
+function renderHeader(activeModel, headerInfo = info) {
+  render(<IdentityHeader info={headerInfo} project="p1" scope={scope} branchLabel={null} scopeValue="/u/repos/Spoon-Knife/ · whole project" activeModel={activeModel} modelPopover={{ open: false, onOpen: vi.fn(), onClose: vi.fn() }} onOpenScopeBrowser={vi.fn()} onGoToSettings={vi.fn()} onGoToProjects={vi.fn()} />);
 }
 
 describe('the model cell', () => {
@@ -21,6 +21,19 @@ describe('the model cell', () => {
     renderHeader({ provider: 'ollama', model: 'gemma4' });
     const cell = screen.getByRole('button', { name: /gemma4/ }).closest('.eval-identity__cell');
     expect(cell).not.toHaveClass('eval-identity__cell--attention');
+  });
+});
+
+describe('the scope cell', () => {
+  it('its tooltip names the repository path', () => {
+    renderHeader(null);
+    expect(screen.getByTitle('/u/repos/Spoon-Knife/ · Restrict the evaluation to a subfolder')).toBeInTheDocument();
+  });
+
+  it('without a path its tooltip is the plain hint', () => {
+    renderHeader(null, { name: 'Spoon-Knife' });
+    expect(screen.getByTitle('Restrict the evaluation to a subfolder')).toBeInTheDocument();
+    expect(screen.queryByTitle(/null/)).toBeNull();
   });
 });
 

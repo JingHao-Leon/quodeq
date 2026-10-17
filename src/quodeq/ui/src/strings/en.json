@@ -676,6 +676,7 @@
   "evaluate.scanInProgress": "scan in progress",
   "evaluate.scanModeLabel": "scan mode",
   "evaluate.scanningForMore": "scanning for more",
+  "evaluate.scopeCellHint": "Restrict the evaluation to a subfolder",
   "evaluate.scopeCellTitle": "{path}/ · Restrict the evaluation to a subfolder",
   "evaluate.select": "Select",
   "evaluate.selectRepoFolderTitle": "Select Repository Folder",
