@@ -163,12 +163,13 @@ def build_mcp_args(
 
 def build_model_budget_prompt_args(
     prompt: str, config: AnalysisConfig, provider_cfg: dict, model: str,
+    *, log: LogSink = NULL_LOG,
 ) -> list[str]:
     """Build model, budget, turns, and prompt args."""
     args: list[str] = []
     if model:
         args.extend(["--model", normalize_model_id(provider_cfg.get("cmd", ""), model)])
-    args.extend(build_effort_args(provider_cfg, config.ai_effort))
+    args.extend(build_effort_args(provider_cfg, config.ai_effort, log=log))
     if provider_cfg.get("supports_budget", True) and config.analysis_budget:
         args.extend(["--max-budget-usd", str(config.analysis_budget)])
     if provider_cfg.get("supports_turns", True) and config.max_turns is not None:
@@ -183,14 +184,19 @@ def build_model_budget_prompt_args(
     return args
 
 
-def build_effort_args(provider_cfg: dict, effort: str | None) -> list[str]:
+def build_effort_args(provider_cfg: dict, effort: str | None, *, log: LogSink = NULL_LOG) -> list[str]:
     """The provider's effort flag for *effort*, or nothing.
 
     Only a level the provider lists in ``effort_levels`` is passed, so a
     provider without effort support, or a level it does not know, leaves the
-    CLI on its own default instead of failing the run.
+    CLI on its own default instead of failing the run. The API rejects such a
+    level up front; a headless AI_EFFORT gets a warning here instead.
     """
-    if not effort or effort not in provider_cfg.get("effort_levels", ()):
+    if not effort:
+        return []
+    if effort not in provider_cfg.get("effort_levels", ()):
+        provider = provider_cfg.get("cmd", "this provider")
+        log.warning(f"AI_EFFORT={effort!r} is not an effort {provider} accepts; using its default")
         return []
     return [arg.replace("{effort}", effort) for arg in provider_cfg.get("effort_args", ())]
 

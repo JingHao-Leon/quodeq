@@ -19,7 +19,7 @@ from quodeq.services.filesystem import FilesystemActionProvider
 
 
 def _effort_args(provider: str, effort: str | None) -> list[str]:
-    """The args between --model's value and the prompt for *provider*."""
+    """The full command line build_ai_cmd makes for *provider* at *effort*."""
     args, _ = build_ai_cmd("p", AnalysisConfig(ai_cmd=provider, ai_model="m", ai_effort=effort))
     return args
 
@@ -37,6 +37,7 @@ class TestEffortOnTheCommandLine:
         ("claude", None), ("claude", "bogus"), ("codex", "max"), ("gemini", "high"),
     ])
     def test_unset_unlisted_or_unsupported_passes_nothing(self, provider: str, effort: str | None) -> None:
+        # An unlisted level logs a warning (headless AI_EFFORT) and falls back.
         args = _effort_args(provider, effort)
         assert "--effort" not in args
         assert not any("model_reasoning_effort" in a for a in args)
@@ -117,8 +118,12 @@ class TestEvaluateRoute:
         assert captured["options"].ai_effort == "xhigh"
 
     @pytest.mark.parametrize(("provider", "effort"), [("codex", "max"), ("gemini", "high")])
-    def test_effort_the_provider_lacks_is_rejected(self, tmp_path: Path, provider: str, effort: str) -> None:
+    def test_effort_the_provider_lacks_is_rejected_without_echo(self, tmp_path: Path, provider: str, effort: str) -> None:
         status, captured, body = self._post(tmp_path, {"aiCmd": provider, "aiEffort": effort})
         assert status == HTTPStatus.BAD_REQUEST
-        assert body["error"] == f"Effort '{effort}' is not available for this provider."
+        assert effort not in body["error"]
         assert "options" not in captured
+
+    def test_rejection_lists_the_accepted_levels(self, tmp_path: Path) -> None:
+        _, _, body = self._post(tmp_path, {"aiCmd": "codex", "aiEffort": "max"})
+        assert body["error"] == "Unsupported effort. This provider accepts: low, medium, high, xhigh."

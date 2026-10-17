@@ -70,7 +70,7 @@ def build_ai_cmd(
             "Use view, glob and grep where instructions refer to Read, Glob and Grep. "
             "Shell tools are unavailable.\n\n" + prompt
         )
-    args.extend(build_model_budget_prompt_args(prompt, config, provider_cfg, model))
+    args.extend(build_model_budget_prompt_args(prompt, config, provider_cfg, model, log=LoggerSink(_log)))
 
     return args, mcp_config_path
 
