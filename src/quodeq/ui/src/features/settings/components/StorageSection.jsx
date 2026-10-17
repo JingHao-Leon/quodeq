@@ -21,7 +21,7 @@ function ArchiveNotice({ data }) {
   const period = ARCHIVE_AFTER.find((o) => o.v === data.archiveAfterDays)?.l ?? '';
   return (
     <p className="storage-notice" role="status">
-      {t('storage.archiveNotice', { runs: notice.runs, period, size: formatBytes(notice.bytes) })}
+      {t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', { runs: notice.runs, period, size: formatBytes(notice.bytes) })}
     </p>
   );
 }
@@ -88,7 +88,10 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
         <SettingsPillTabs options={ARCHIVE_AFTER} value={data ? data.archiveAfterDays : undefined} onChange={storage.setArchiveAfter} />
       </div>
       {storage.saveFailed && <p className="inline-error storage-save-error">{t('storage.saveFailed')}</p>}
-      {cleaning && <CleanModal onClean={storage.runClean} onClose={() => setCleaning(false)} />}
+      {cleaning && (
+        <CleanModal autoArchive={Boolean(data?.autoCleanup && data.archiveAfterDays != null)}
+          onClean={storage.runClean} onClose={() => setCleaning(false)} />
+      )}
       {deleting && data && <DeleteAllModal data={data} onDelete={deleteAll} onClose={() => setDeleting(false)} />}
     </section>
   );

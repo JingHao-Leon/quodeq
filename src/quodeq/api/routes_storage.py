@@ -98,7 +98,7 @@ def _put_settings(env: Mapping[str, str] | None) -> Response | tuple[Response, i
 
 
 def _rescore_busy(app: Flask) -> bool:
-    """A grade-formula rescore runs or is owed: it restores archived runs, so no clean overlaps it."""
+    """A grade-formula rescore runs or waits to run: it restores archived runs, so no clean overlaps it."""
     rescorer = app.extensions.get("grade_formula_rescore")
     return rescorer is not None and rescorer.owes_pass()
 

@@ -7,7 +7,8 @@ export function useRunThroughput(jobId) {
   const api = useApi();
   return useQuery({
     queryKey: ['runThroughput', jobId],
-    queryFn: () => api.getEvaluationProgress(jobId),
+    // Files and time only: counting findings would unpack an archived run.
+    queryFn: () => api.getEvaluationProgress(jobId, { findings: false }),
     enabled: Boolean(jobId),
     staleTime: Infinity,
     select: summariseThroughput,

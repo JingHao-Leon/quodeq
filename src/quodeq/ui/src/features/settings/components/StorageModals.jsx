@@ -36,8 +36,11 @@ function previewText(preview, isError) {
   return t('storage.cleanSummary', { archive: preview.archive, frees: formatBytes(preview.frees) });
 }
 
-/** "Clean now": what a pass would archive (fetched on open), then start it. */
-export function CleanModal({ onClean, onClose }) {
+/**
+ * "Clean now": what a pass would archive (fetched on open), then start it.
+ * `autoArchive` says old runs are also archived after each start (cleanup on, a window set).
+ */
+export function CleanModal({ onClean, onClose, autoArchive = false }) {
   const { getCleanPreview } = useApi();
   const preview = useQuery({ queryKey: storageKeys.preview(), queryFn: getCleanPreview, staleTime: 0, gcTime: 0 });
   const [error, setError] = useState(null);
@@ -58,7 +61,9 @@ export function CleanModal({ onClean, onClose }) {
     <Modal titleId="storage-clean-title" title={t('storage.cleanTitle')} onCancel={onClose}
       actions={<button type="button" className="term-btn term-btn--primary" disabled={!canClean} onClick={confirm}>{t('storage.cleanConfirm')}</button>}>
       <p>{previewText(preview.data, preview.isError)}</p>
-      <p className="settings-description">{t('storage.cleanNote')}</p>
+      <p className="settings-description">
+        {autoArchive ? `${t('storage.cleanNote')} ${t('storage.cleanNoteAuto')}` : t('storage.cleanNote')}
+      </p>
       <ModalError message={error} />
     </Modal>
   );
