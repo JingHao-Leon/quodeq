@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import KnobSlider from './KnobSlider.jsx';
 import GradeBoundaryBar from '../GradeBoundaryBar.jsx';
-import { GROUPS, KNOB_GROUP } from './knobGroups.js';
+import { GROUPS, KNOB_GROUP, withRange } from './knobGroups.js';
 import { groupReach, allPrinciples } from '../impact/impactModel.js';
 import { t } from '../../../strings/index.js';
 
@@ -14,17 +14,17 @@ function reachOf(group, inputs, saved, draft) {
   return { count, text: t(group.labelsOnly ? 'gradeFormula.reachLabels' : 'gradeFormula.reachMoves', { count, total }) };
 }
 
-function GroupKnobs({ group, draft, saved, defaults, update, onHint }) {
+function GroupKnobs({ group, draft, saved, defaults, ranges, update, onHint }) {
   if (group.id === KNOB_GROUP.BANDS) {
     return <GradeBoundaryBar thresholds={draft.gradeThresholds} onChange={(next) => update({ gradeThresholds: next })} />;
   }
   return group.knobs.map((knob) => (
-    <KnobSlider key={knob.id} knob={knob} value={knob.get(draft)} savedValue={knob.get(saved)}
+    <KnobSlider key={knob.id} knob={withRange(knob, ranges)} value={knob.get(draft)} savedValue={knob.get(saved)}
       defaultValue={knob.get(defaults)} onChange={(v) => update(knob.patch(draft, v))} onHint={onHint} />
   ));
 }
 
-function KnobGroup({ group, draft, saved, defaults, inputs, update, onHoverGroup }) {
+function KnobGroup({ group, draft, saved, defaults, ranges, inputs, update, onHoverGroup }) {
   const reach = useMemo(() => reachOf(group, inputs, saved, draft), [group, inputs, saved, draft]);
   // One line under the head: the group's question, or the hint of the knob under the pointer.
   const [hintKey, setHintKey] = useState(null);
@@ -39,7 +39,7 @@ function KnobGroup({ group, draft, saved, defaults, inputs, update, onHoverGroup
         {reach.text && <span className="gf-group__reach">{reach.text}</span>}
       </div>
       <p className={`gf-group__question${hintKey ? ' gf-group__question--hint' : ''}`}>{t(hintKey || group.questionKey)}</p>
-      <GroupKnobs group={group} draft={draft} saved={saved} defaults={defaults} update={update} onHint={setHintKey} />
+      <GroupKnobs group={group} draft={draft} saved={saved} defaults={defaults} ranges={ranges} update={update} onHint={setHintKey} />
       {group.id === KNOB_GROUP.COST && (
         <span className="gf-group__note">{t('gradeFormula.criticalRatio', { ratio: Math.round(draft.severityWeight.critical / draft.severityWeight.minor) })}</span>
       )}

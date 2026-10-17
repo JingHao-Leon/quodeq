@@ -54,6 +54,8 @@ export function useGradeFormulaState() {
   const [isCustom, setIsCustom] = useState(false);
   const [retiredCustom, setRetiredCustom] = useState(false);
   const [defaults, setDefaults] = useState(null);
+  // The bounds the server validates each knob against (GET's `ranges`); the sliders read them.
+  const [ranges, setRanges] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   // Set when an apply/reset rescored some runs but not all (a locked/corrupt
@@ -73,6 +75,7 @@ export function useGradeFormulaState() {
     getGradeFormula()
       .then((d) => {
         setDefaults(d.defaults);
+        setRanges(d.ranges);
         adoptServerFormula(d.current, d.isCustom, d.retiredCustom);
         if (d.rescore?.state === RESCORE_STATE.RUNNING) setResumeFrom(d);
         // A pass that failed while the editor was closed: say so on return.
@@ -82,7 +85,7 @@ export function useGradeFormulaState() {
   }, [adoptServerFormula]);
 
   return {
-    saved, draft, isCustom, retiredCustom, defaults, busy, error, partialNotice,
+    saved, draft, isCustom, retiredCustom, defaults, ranges, busy, error, partialNotice,
     resumeFrom, ...intents,
   };
 }
