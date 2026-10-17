@@ -13,12 +13,14 @@ const EVEN_ODD = 'evenodd';
  * plain strokes. (shadowBlur looked the same but cost a blur per folder on every frame the pack
  * redraws, zooms and hover fades included, and stuttered on large projects.)
  */
-const GLOW_REACH_PX = 8;   // how far the worst folder's glow reaches each side of its rim
+const GLOW_REACH_PX = 14;  // how far in from its rim the worst folder's glow reaches
+const GLOW_REACH_SHARE = 0.25; // and never more than this share of the radius, so a small folder keeps a ring
 const GLOW_STEPS = 3;
-const GLOW_ALPHA_BASE = 0.06;
-const GLOW_ALPHA_SPAN = 0.14;
-const RIM_ALPHA_BASE = 0.1;
-const RIM_ALPHA_SPAN = 0.2;
+/** Glow and rim opacity, base plus span times the glow; a worse folder's rim stays close to its fill. */
+const GLOW_TONE = Object.freeze({
+  worse: { glowBase: 0.12, glowSpan: 0.3, rimBase: 0.05, rimSpan: 0.05 },
+  better: { glowBase: 0.14, glowSpan: 0.4, rimBase: 0.03, rimSpan: 0.03 },
+});
 const RIM_PX = 1;
 /** Folders smaller than this on screen get no glow: it would not read, and costs strokes. */
 const GLOW_MIN_R_PX = 8;
@@ -26,7 +28,7 @@ const GLOW_MIN_R_PX = 8;
 const rgba = ({ r, g, b }, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 
 /**
- * Dark glass: a soft glow in the folder's own hue around its rim, sized by
+ * Dark glass: a soft glow in the folder's own hue inside its rim, sized by
  * `paint.glow` (0 draws nothing). Leaves the alpha at 1.
  * @param {{px: number, py: number}} p circle centre in pixels
  * @param {number} r folder radius in pixels
@@ -34,16 +36,22 @@ const rgba = ({ r, g, b }, a) => `rgba(${r}, ${g}, ${b}, ${a})`;
 export function drawFolderGlow(ctx, p, r, paint, fade = 1) {
   const g = paint.glow;
   if (!(g > 0) || !paint.hue || paint.arriving || r < GLOW_MIN_R_PX) return;
-  ctx.beginPath();
-  ctx.arc(p.px, p.py, r, 0, TAU);
+  const tone = paint.badness < 0 ? GLOW_TONE.better : GLOW_TONE.worse;
   ctx.globalAlpha = fade;
-  ctx.strokeStyle = rgba(paint.hue, (GLOW_ALPHA_BASE + GLOW_ALPHA_SPAN * g) / GLOW_STEPS);
+  ctx.strokeStyle = rgba(paint.hue, (tone.glowBase + tone.glowSpan * g) / GLOW_STEPS);
+  // Each stroke sits just inside the rim (its radius less half its width), so the glow points inward.
+  const reach = Math.min(GLOW_REACH_PX, r * GLOW_REACH_SHARE) * g;
   for (let k = GLOW_STEPS; k > 0; k--) {
-    ctx.lineWidth = 2 * GLOW_REACH_PX * g * (k / GLOW_STEPS);
+    const w = reach * (k / GLOW_STEPS);
+    ctx.beginPath();
+    ctx.arc(p.px, p.py, r - w / 2, 0, TAU);
+    ctx.lineWidth = w;
     ctx.stroke();
   }
+  ctx.beginPath();
+  ctx.arc(p.px, p.py, r, 0, TAU);
   ctx.lineWidth = RIM_PX;
-  ctx.strokeStyle = rgba(paint.hue, RIM_ALPHA_BASE + RIM_ALPHA_SPAN * g);
+  ctx.strokeStyle = rgba(paint.hue, tone.rimBase + tone.rimSpan * g);
   ctx.stroke();
   ctx.globalAlpha = 1;
 }

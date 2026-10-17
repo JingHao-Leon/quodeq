@@ -58,10 +58,16 @@ test('dark glass: folders holding files carry the hue, parents a faint veil, cut
   assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, false).at('src').holeShare, undefined);
 });
 
-test('dark: a worse folder glows, a better one does not; light never glows', () => {
+test('dark: the more a folder glows, the fainter its outline', () => {
+  const dark = paint(PACK_COLOR_MODE.CONCENTRATION, true).at;
+  assert.ok(dark('src/bad').glow > dark('src/good').glow);
+  assert.ok(dark('src/bad').strokeAlpha < dark('src/good').strokeAlpha);
+});
+
+test('dark: a worse folder glows, a better one less; light never glows', () => {
   const dark = paint(PACK_COLOR_MODE.CONCENTRATION, true).at;
   assert.ok(dark('src/bad').glow > 0);
-  assert.equal(dark('src/good').glow, 0);
+  assert.ok(dark('src/good').glow > 0 && dark('src/good').glow < dark('src/bad').glow);
   assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, false).at('src/bad').glow, 0);
 });
 
@@ -155,4 +161,18 @@ test('files: better than average take the better hue (clean ones at full strengt
     assert.notEqual(at('src/good/d.py').fill, at('src/good/c.py').fill);
   }
   assert.equal(paint(PACK_COLOR_MODE.CONCENTRATION, true).at('src/good/c.py').fill, 'rgb(0, 212, 255)');
+});
+
+test('dark: a folder that only wraps one sub-folder does not glow; the folder holding the files does', () => {
+  const bad = (p) => file(p, 10, 0, 3);
+  const top = folder('', [
+    folder('wrap', [folder('wrap/main', [bad('wrap/main/a.py'), bad('wrap/main/b.py')])]),
+    folder('ok', [file('ok/c.py', 0, 5), file('ok/d.py', 0, 5)]),
+  ]);
+  const root = hierarchy(top, (d) => d.children).sum((d) => (d.children ? 0 : 1));
+  const circles = root.descendants();
+  const out = buildPackPaint({ root, circles, mode: PACK_COLOR_MODE.CONCENTRATION, palette: { ...PALETTE, dark: true }, weights: DEFAULT_SEVERITY_WEIGHTS, editsByPath: new Map() });
+  const at = (path) => out[circles.findIndex((c) => c.data.path === path)];
+  assert.equal(at('wrap').glow, 0);
+  assert.ok(at('wrap/main').glow > 0);
 });
