@@ -59,7 +59,7 @@ def test_get_storage_on_an_empty_root_is_zeros(client):
     resp = client.get("/api/storage")
     assert resp.status_code == 200
     assert resp.get_json() == {
-        "bytes": 0, "runs": 0, "archived": 0, "projects": {}, "archiveAfterDays": 183,
+        "bytes": 0, "runs": 0, "archived": 0, "projects": {}, "keepRuns": 10, "archiveAfterDays": 183,
         "autoCleanup": True, "archiveNotice": None,
         "clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0},
     }
@@ -79,7 +79,7 @@ def test_put_settings_persists_every_choice(client):
     for choice in (91, 365, None, 183):
         resp = client.put("/api/storage/settings", json={"archiveAfterDays": choice})
         assert resp.status_code == 200
-        assert resp.get_json() == {"archiveAfterDays": choice, "autoCleanup": True}
+        assert resp.get_json() == {"keepRuns": 10, "archiveAfterDays": choice, "autoCleanup": True}
         assert client.get("/api/storage").get_json()["archiveAfterDays"] == choice
 
 
