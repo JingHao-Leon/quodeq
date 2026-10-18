@@ -6,7 +6,11 @@ import { useFillHeight } from '../hooks/useFillHeight.js';
 import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
 import { LIST_CAP, RowMeta } from '../workbench/FindingList.jsx';
 import { sevAbbr } from '../workbench/sevWords.js';
-import { FindingCard, CompliantDetail, CHECK_MARK, principleOf, whereOf } from './ScopeCards.jsx';
+import { CompliantDetail, CHECK_MARK, principleOf, whereOf } from './ScopeCards.jsx';
+import FindingView, { Where } from '../workbench/FindingView.jsx';
+import FixPlanButton from '../workbench/FixPlanButton.jsx';
+import DismissMenu from '../workbench/DismissMenu.jsx';
+import { VerifiedChip } from '../components/VerifiedChip.jsx';
 import ReqGroupHeader from './ReqGroupHeader.jsx';
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 
@@ -33,6 +37,27 @@ function ListRow({ item, index, within, selected, onSelect }) {
       <RowMeta level={level} word={violation ? sevAbbr(f.severity) : t('violations.scopeCompliantShort')}
         where={whereOf(f, within)} tail={principleOf(f, within)} />
     </button>
+  );
+}
+
+/**
+ * The selected violation in full, as in the Violations workbench: fix plan
+ * and dismiss as its pills (none on a past day or a shared project). A
+ * principle's items can come without their dimension; the scope's fills it,
+ * so the rule's text can be looked up.
+ */
+function ViolationPane({ finding, within, onDismiss, readOnly }) {
+  const v = finding.dimension || !within.dimension ? finding : { ...finding, dimension: within.dimension };
+  return (
+    <FindingView v={v} where={<Where finding={v} confidence={v.confidence} />}>
+      {(!readOnly || onDismiss) && (
+        <div className="wb-actions wb-bar">
+          {!readOnly && <FixPlanButton v={v} principle={v.principle} />}
+          {onDismiss && <DismissMenu row={null} onDismiss={() => onDismiss(v)} />}
+          <VerifiedChip v={v} />
+        </div>
+      )}
+    </FindingView>
   );
 }
 
@@ -134,11 +159,8 @@ export function ScopeList({ rows, within, onDismiss, readOnly, onToggleReq }) {
       </section>
       <SplitDivider split={split} />
       <section className="qd-cards-panel wb-panel wb-detail">
-        <div className="wb-detail__body">
-          {current && (isViolationRow(current)
-            ? <FindingCard v={current.v} within={within} onDismiss={onDismiss} readOnly={readOnly} />
-            : <CompliantDetail c={current.c} within={within} />)}
-        </div>
+        {current && isViolationRow(current) && <ViolationPane finding={current.v} within={within} onDismiss={onDismiss} readOnly={readOnly} />}
+        {current && !isViolationRow(current) && <div className="wb-detail__body"><CompliantDetail c={current.c} within={within} /></div>}
       </section>
     </div>
   );

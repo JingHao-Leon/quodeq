@@ -65,9 +65,9 @@ describe('ScopedFindings', () => {
     expect(views.map((b) => b.textContent)).toEqual([t('violations.scopeViewList'), t('violations.scopeViewCards')]);
     expect(views[0]).toHaveAttribute('aria-pressed', 'true');
     expect(rowTitles(container)).toEqual(['Critical early', 'Major late', 'Minor other', 'Checked middle']);
-    expect(container.querySelector('.wb-detail .findings-card__title')).toHaveTextContent('Critical early');
+    expect(container.querySelector('.wb-detail .wb-headline__title, .wb-detail .findings-card__title')).toHaveTextContent('Critical early');
     fireEvent.click(screen.getByRole('option', { name: /Checked middle/ }));
-    expect(container.querySelector('.wb-detail .findings-card__title')).toHaveTextContent('Checked middle');
+    expect(container.querySelector('.wb-detail .wb-headline__title, .wb-detail .findings-card__title')).toHaveTextContent('Checked middle');
   });
 
   it('switches to the cards, every finding with its code closed (the list opens the selected one)', () => {
