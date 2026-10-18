@@ -102,11 +102,25 @@ describe('ExplorerPage header', () => {
     expect(screen.queryByRole('button', { name: new RegExp(t('overview.showAllViolationsAria')) })).toBeNull();
   });
 
-  it('reads header, principle cards, score history beside the radial, then Fix first beside where the findings are', async () => {
+  it('reads header, principle cards, the score history (alone under three principles), then Fix first beside where the findings are', async () => {
     const { container } = page({ onNavigate: vi.fn() });
     await screen.findByRole('button', { name: 'principle card' });
     const order = [...container.querySelector('.explorer-page').children].map((n) => n.getAttribute('aria-label') || n.className);
-    expect(order).toEqual(['findings-head__sticky', t('overview.sinceTipLabel'), 'findings-head qd-cards-panel', t('explorer.principlesAria'), 'qd-top-grid explorer-top-grid', 'explorer-bottom']);
+    expect(order).toEqual(['findings-head__sticky', t('overview.sinceTipLabel'), 'findings-head qd-cards-panel', t('explorer.principlesAria'), 'qd-top-grid explorer-top-grid qd-top-grid--single', 'explorer-bottom']);
+  });
+
+  it('puts the principles radial beside the history from three principles', async () => {
+    data.d.principleGrades = ['Dependency Rule', 'Layering', 'Boundaries'].map((principle) => ({ principle, score: '7.5', grade: 'B' }));
+    const { container } = page({ onNavigate: vi.fn() });
+    await screen.findByRole('button', { name: 'principle card' });
+    expect(container.querySelector('.explorer-top-grid')).not.toHaveClass('qd-top-grid--single');
+    expect(screen.getByTestId('radial')).toBeInTheDocument();
+  });
+
+  it('under three principles leaves the radial out (no shape to draw)', async () => {
+    page({ onNavigate: vi.fn() });
+    await screen.findByRole('button', { name: 'principle card' });
+    expect(screen.queryByTestId('radial')).toBeNull();
   });
 
   it('a principle card opens its principle, a file row its file', async () => {

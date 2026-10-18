@@ -52,11 +52,25 @@ describe('AccumulatedOverviewPanel layout', () => {
     expect(within(since).queryByRole('button')).toBeNull();
   });
 
-  it('shows the dimensions radial beside the history, and the areas first in the Where panel', () => {
-    renderPanel();
+  it('shows the dimensions radial beside the history from three dimensions, and the areas first in the Where panel', () => {
+    const three = [...DIMS, { dimension: 'performance', overallScore: '7.0/10', fromRunId: 'r2' }];
+    renderPanel({ accumulated: { summary: { numericAverage: 7 }, dimensions: three }, accumulatedDimensions: three });
     expect(screen.getByRole('region', { name: 'Dimensions radial' })).toBeInTheDocument();
+    expect(document.querySelector('.overview-top-grid')).not.toHaveClass('qd-top-grid--single');
     expect(screen.getByRole('button', { name: 'areas' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('areas table')).toBeInTheDocument();
+  });
+
+  it('under three dimensions drops the radial (no shape to draw) and the history takes the row', () => {
+    renderPanel();
+    expect(screen.queryByRole('region', { name: 'Dimensions radial' })).toBeNull();
+    expect(document.querySelector('.overview-top-grid')).toHaveClass('qd-top-grid--single');
+  });
+
+  it('with no history and no radial there is no top row', () => {
+    const one = [DIMS[1]];
+    renderPanel({ accumulated: { summary: { numericAverage: 7 }, dimensions: one }, accumulatedDimensions: one, trend: [] });
+    expect(document.querySelector('.overview-top-grid')).toBeNull();
   });
 
   it('hands the header the past-run note when an older run is picked', () => {

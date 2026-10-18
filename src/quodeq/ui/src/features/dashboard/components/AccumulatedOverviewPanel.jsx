@@ -12,6 +12,7 @@ import WherePanel, { WHERE, WHERE_VIEWS, WHERE_PAGE } from '../../../components/
 import { useWhereView } from '../../../components/useWhereView.js';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import RadialPanel from '../../../components/radial/RadialPanel.jsx';
+import { hasRadialShape } from '../../../components/radial/radialGeometry.js';
 import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import { riskMapParams, packMapParams } from '../../map/model/riskLinks.js';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
@@ -84,11 +85,18 @@ function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionCl
   );
 }
 
-/** The score history (grade bands and change marks, as the dimension page's) beside the dimensions radial. */
+/**
+ * The score history (grade bands and change marks, as the dimension page's)
+ * beside the dimensions radial. Under three dimensions the radial has no
+ * shape (the cards already show those scores), so the history takes the row,
+ * and with no history either there is no row.
+ */
 function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
+  const radial = hasRadialShape(sorted.length);
+  if (!radial && !chart.mountable) return null;
   const onPoint = onDimensionClick ? (name) => { const d = sorted.find((x) => x.dimension === name); if (d) onDimensionClick(d); } : undefined;
   return (
-    <div className={withPending('qd-top-grid overview-top-grid', pending)} aria-busy={pending || undefined}>
+    <div className={withPending(`qd-top-grid overview-top-grid${radial ? '' : ' qd-top-grid--single'}`, pending)} aria-busy={pending || undefined}>
       <Suspense fallback={<RunHistoryPanelPlaceholder />}>
         {chart.mountable && (
           <RunHistoryPanel
@@ -102,8 +110,10 @@ function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
           />
         )}
       </Suspense>
-      <RadialPanel radialPrinciples={dimensionPoints(sorted)} label={t('overview.dimensionsRadialLabel')} ariaLabel={t('overview.dimensionsRadialAria')}
-        onPrincipleClick={onPoint} highlighted={lit.name} onHover={lit.setName} />
+      {radial && (
+        <RadialPanel radialPrinciples={dimensionPoints(sorted)} label={t('overview.dimensionsRadialLabel')} ariaLabel={t('overview.dimensionsRadialAria')}
+          onPrincipleClick={onPoint} highlighted={lit.name} onHover={lit.setName} />
+      )}
     </div>
   );
 }

@@ -20,18 +20,18 @@ const secDim = (score) => ({
   ],
 });
 
-function makeView() {
+function makeView(dim = secDim) {
   const summaries = {
-    a: makeSummary({ dims: [secDim(6), DIM_USE(8)] }),
-    b: makeSummary({ dims: [secDim(8), DIM_USE(5)] }),
+    a: makeSummary({ dims: [dim(6), DIM_USE(8)] }),
+    b: makeSummary({ dims: [dim(8), DIM_USE(5)] }),
   };
   const rows = ['a', 'b'].map((id) => buildRow(makeProject({ id }), summaries[id], NOW));
   return buildDimensionView('security', rows, NOW, summaries);
 }
 
-const renderView = () => render(
+const renderView = (dim) => render(
   <CompareDimensionView
-    view={makeView()}
+    view={makeView(dim)}
     board={board}
     fleet={null}
     onOpenDimension={vi.fn()}
@@ -50,5 +50,11 @@ describe('CompareDimensionView accessibility (#6521)', () => {
   it('contains the radar chart for the dimension', () => {
     renderView();
     expect(screen.getByRole('img', { name: /Radar chart/ })).toBeInTheDocument();
+  });
+
+  it('under three principles leaves the radar out and the projects table takes the row', () => {
+    const { container } = renderView((score) => ({ ...secDim(score), principles: secDim(score).principles.slice(0, 2) }));
+    expect(screen.queryByRole('img', { name: /Radar chart/ })).toBeNull();
+    expect(container.querySelector('.compare-dim__pair')).toHaveClass('compare-dim__pair--single');
   });
 });
