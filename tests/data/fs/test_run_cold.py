@@ -6,7 +6,7 @@ import json
 import pytest
 
 from quodeq.data.fs.run_archive import RunArchiveError, archive_run, ensure_restored, has_event_log, is_archived
-from quodeq.data.fs.run_cold import cold_since, is_cold, is_frozen, trim_run
+from quodeq.data.fs.run_cold import is_cold, is_frozen, trim_run
 from tests.services._archive_fixtures import make_run
 
 
@@ -17,7 +17,6 @@ def test_trim_turns_an_archived_run_cold_and_frees_the_archive(tmp_path):
     freed = trim_run(run)
     assert freed == size and is_cold(run) and is_frozen(run) and not is_archived(run)
     assert not (run / "archive.tar.gz").exists() and (run / "scalars.json").is_file()
-    assert cold_since(run) is not None
     assert json.loads((run / "cold.json").read_text())["archive_bytes"] == size
 
 

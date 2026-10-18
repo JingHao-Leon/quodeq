@@ -16,7 +16,7 @@ from quodeq.services.storage_cleanup import CLEANUP_LOCK
 from quodeq.services.storage_plan import plan_cleanup
 from quodeq.services.storage_settings import ArchiveNotice, StorageSettings
 from quodeq.services.wiring import UnsupportedSchemaError, list_runs, read_json_object, read_status, repository_info_exists
-from quodeq.services.wiring_sync import dropped_bytes, is_archived, packed_bytes, report_bytes, run_pid_alive
+from quodeq.services.wiring_sync import dropped_bytes, is_cold, is_frozen, packed_bytes, report_bytes, run_pid_alive
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
 # The database is deleted, not packed, so it is counted as freed in full.
@@ -40,12 +40,13 @@ class StorageBusyError(RuntimeError):
 
 @dataclass(frozen=True)
 class ProjectStorage:
-    """One project's folder: its size, its runs and how many of them are archived."""
+    """One project's folder: its size, its runs, how many are archived (cold ones included) and how many are cold."""
 
     project_id: str
     bytes: int
     runs: int
     archived: int
+    cold: int = 0
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class StorageSummary:
     runs: int
     archived: int
     projects: tuple[ProjectStorage, ...]
+    cold: int = 0
 
 
 @dataclass(frozen=True)
@@ -109,7 +111,8 @@ def _subdirs(path: Path) -> list[Path]:
 
 def _project_storage(project: Path) -> ProjectStorage:
     runs = [r for r in _subdirs(project) if (r / _STATUS_FILE).is_file()]
-    return ProjectStorage(project.name, dir_size(project), len(runs), sum(1 for r in runs if is_archived(r)))
+    frozen, cold = sum(1 for r in runs if is_frozen(r)), sum(1 for r in runs if is_cold(r))
+    return ProjectStorage(project.name, dir_size(project), len(runs), frozen, cold)
 
 
 def storage_summary(root: Path) -> StorageSummary:
@@ -117,7 +120,7 @@ def storage_summary(root: Path) -> StorageSummary:
     projects = tuple(_project_storage(p) for p in _subdirs(Path(root)))
     return StorageSummary(
         bytes=sum(p.bytes for p in projects), runs=sum(p.runs for p in projects),
-        archived=sum(p.archived for p in projects), projects=projects,
+        archived=sum(p.archived for p in projects), projects=projects, cold=sum(p.cold for p in projects),
     )
 
 

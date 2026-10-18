@@ -18,7 +18,7 @@ from typing import Callable
 from quodeq.core.observability import LogSink
 from quodeq.core.types import DimensionResult
 from quodeq.services._accumulated_data import read_scalar_dimensions
-from quodeq.services.wiring_sync import is_archived
+from quodeq.services.wiring_sync import is_frozen
 from quodeq.shared.validation import validate_path_segment
 
 _Fetcher = Callable[[str], list[DimensionResult]]
@@ -28,12 +28,12 @@ def serve_archived_runs_frozen(
     reports_root: Path, project: str, fetch: _Fetcher, read_scalars: Callable[..., list[DimensionResult]],
     frozen: set[str], *, log: LogSink,
 ) -> _Fetcher:
-    """*fetch* for live runs; an archived run's scalars otherwise, its id added to *frozen* (not to persist)."""
+    """*fetch* for live runs; an archived or cold run's scalars otherwise, its id added to *frozen* (not to persist)."""
     project_dir = reports_root / project
 
     def fetch_run(run_id: str) -> list[DimensionResult]:
         validate_path_segment(run_id)
-        if not is_archived(project_dir / run_id):
+        if not is_frozen(project_dir / run_id):
             return fetch(run_id)
         frozen.add(run_id)
         return read_scalar_dimensions(reports_root, project, run_id, scalar_reader=read_scalars, log=log)

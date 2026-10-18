@@ -67,7 +67,7 @@ def is_archived(run_dir: Path) -> bool:
 
 
 def has_event_log(run_dir: Path) -> bool:
-    """True when ``events.jsonl`` is a file, or the run is archived."""
+    """True when ``events.jsonl`` is a file, or the run is archived (never for a cold run: its log is gone)."""
     return (run_dir / EVENTS_NAME).is_file() or is_archived(run_dir)
 
 

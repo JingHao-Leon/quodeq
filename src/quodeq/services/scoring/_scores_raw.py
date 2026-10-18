@@ -28,7 +28,7 @@ from quodeq.services.scoring._response_builders import (
 )
 from quodeq.shared.stamp_memo import StampCache, file_stamp, memoized_by_stamp
 from quodeq.shared.validation import validate_path_segment
-from quodeq.services.wiring_sync import has_event_log, is_archived, read_archived_run_data
+from quodeq.services.wiring_sync import has_event_log, is_frozen, read_archived_run_data
 from quodeq.services.scoring.compliance_detail import defer_dimension_detail
 
 _logger = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ def get_scores_raw(
 
     params = load_params()
     project_dir = reports_root / project
-    if keep_archived and is_archived(run_dir):
+    if keep_archived and is_frozen(run_dir):
         rescored = rescore_dimensions(
             read_archived_run_data(run_dir), SuppressionKeys(frozenset()), params=params, run_dir=run_dir,
         )

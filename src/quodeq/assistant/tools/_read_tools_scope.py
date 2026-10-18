@@ -21,7 +21,7 @@ from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.scoring import rescore_accumulated, scored_run_dimensions
 from quodeq.services.wiring import iter_eval_reports
-from quodeq.services.wiring_sync import is_archived
+from quodeq.services.wiring_sync import is_archived, is_cold
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.lru import LRUDict
 from quodeq.shared.serialization import coerce_line, to_camel_dict
@@ -140,7 +140,7 @@ def _sql_finding_keys(ctx: ToolContext, keys: set[tuple]) -> bool:
     kicks a projection on a run that has none -- when there is no db there
     are no SQL findings to miss anyway. An archived run keeps its db in the
     archive, so it is read (restored) too. False when the db was unreadable."""
-    if not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file() and not is_archived(ctx.run_dir):
+    if is_cold(ctx.run_dir) or (not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file() and not is_archived(ctx.run_dir)):
         return True
     try:
         for req, file, line in findings_repo(ctx, ctx.run_dir).list_keys():

@@ -15,7 +15,6 @@ from pathlib import Path
 from quodeq.data.fs.run_archive_files import ARCHIVE_FILENAME, DROPPED_FILES, write_json_sidecar
 from quodeq.data.fs.run_archive_guard import run_lock
 from quodeq.data.fs.run_archive_limits import RunArchiveError
-from quodeq.data.fs.run_artifacts import read_json_object
 from quodeq.data.fs.run_scalars import SCALARS_NAME
 
 COLD_NAME = "cold.json"
@@ -29,15 +28,6 @@ def is_cold(run_dir: Path) -> bool:
 def is_frozen(run_dir: Path) -> bool:
     """True for an archived or a cold run: served from its sidecars, never restored by a routine reader."""
     return (run_dir / ARCHIVE_FILENAME).is_file() or is_cold(run_dir)
-
-
-def cold_since(run_dir: Path) -> datetime | None:
-    """When the run went cold, None when it is not cold or the marker is unreadable."""
-    data = read_json_object(run_dir / COLD_NAME)
-    try:
-        return datetime.fromisoformat(str(data["since"]).replace("Z", "+00:00")) if data else None
-    except (KeyError, ValueError, TypeError):
-        return None
 
 
 def trim_run(run_dir: Path) -> int:

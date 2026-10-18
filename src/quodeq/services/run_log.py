@@ -33,7 +33,7 @@ from quodeq.services.scan_progress import ScanProgress, build_scan_progress
 from quodeq.services.score_cache import score_cache_version
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.wiring import ScoreCacheError, take_run_changes
-from quodeq.services.wiring_sync import is_archived
+from quodeq.services.wiring_sync import is_archived, is_cold
 from quodeq.shared.clock import normalise_utc_iso
 
 # Length of the short commit hash History shows.
@@ -175,7 +175,7 @@ def _meta_fields(snap: JobSnapshot | None) -> dict[str, Any]:
 
 def _entry(
     scored: _Scored, snap: JobSnapshot | None, baseline: tuple[str, str] | None,
-    change: dict[str, Any] | None, archived: bool,
+    change: dict[str, Any] | None, archived: bool, cold: bool = False,
 ) -> dict[str, Any]:
     e = scored.entry
     data = change or {}
@@ -197,6 +197,7 @@ def _entry(
         "resolvedSev": data.get("resolvedSev") if baseline else None,
         "pending": change is None,
         "archived": archived,
+        "cold": cold,
     }
 
 
@@ -230,7 +231,10 @@ def build_run_log(
     project_dir = rows.reports_root / rows.project
     return {
         "runs": [
-            _entry(s, meta.get(s.run_id), baselines[s.run_id], changes.get(s.run_id), is_archived(project_dir / s.run_id))
+            _entry(
+                s, meta.get(s.run_id), baselines[s.run_id], changes.get(s.run_id),
+                is_archived(project_dir / s.run_id), is_cold(project_dir / s.run_id),
+            )
             for s in scored
         ],
         "running": _running(snapshots),

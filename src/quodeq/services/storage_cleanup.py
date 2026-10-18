@@ -23,7 +23,7 @@ from quodeq.services.storage_plan import CleanupPlan, plan_cleanup, project_in_f
 from quodeq.services.storage_notice import first_start_may_archive
 from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring import ScoreCacheError, SqliteFindingsRepository, has_evaluation_db, save_run_keys
-from quodeq.services.wiring_sync import RunArchiveError, archive_run, is_archived, pack_reports_locked, tidy_run
+from quodeq.services.wiring_sync import RunArchiveError, archive_run, is_archived, is_frozen, pack_reports_locked, tidy_run
 from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.fault_isolation import run_isolated
 
@@ -82,8 +82,8 @@ def archive_keeping_keys(run_dir: Path, log: LogSink):
 
 
 def _gone(run_dir: Path) -> bool:
-    """Deleted or archived by someone else since the plan (another quodeq process, a delete)."""
-    return not run_dir.is_dir() or is_archived(run_dir)
+    """Deleted, archived or trimmed by someone else since the plan (another quodeq process, a delete)."""
+    return not run_dir.is_dir() or is_frozen(run_dir)
 
 
 def _archive_unless_gone(run_dir: Path, log: LogSink):

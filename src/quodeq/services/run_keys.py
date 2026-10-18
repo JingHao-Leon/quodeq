@@ -24,7 +24,7 @@ from quodeq.services.wiring import has_evaluation_db, read_report_key_sets, read
 
 def read_run_key_sets(run_dir: Path) -> tuple[set[tuple], set[tuple]]:
     """``(dismiss_keys, class_keys)`` present in *run_dir*'s findings."""
-    if has_evaluation_db(run_dir):  # False for an archived run: its reports answer, no restore
+    if has_evaluation_db(run_dir):  # False for an archived or cold run: its reports answer, no restore
         return read_run_key_sets_from_db(run_dir)
     return read_report_key_sets(run_dir)
 
