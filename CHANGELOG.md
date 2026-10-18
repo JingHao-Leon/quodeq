@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.15.0] - 2026-10-18
 
 ### Before you upgrade
 - **One overall score**: a dimension that stopped on a failure streak keeps a provisional score, and every overall average now leaves it out: the Overview headline, the trend, the project card and Compare agree (only Compare did before). A run with such a dimension can show a different score in History after the update; the first start rebuilds the score cache.
