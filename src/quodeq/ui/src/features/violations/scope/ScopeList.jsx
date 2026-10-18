@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { severityLabel } from '../../../strings/labels.js';
 import { t } from '../../../strings/index.js';
 import { KEY } from '../../../vocab/keyboard.js';
 import { useSplitWidth } from '../hooks/useSplitWidth.js';
 import { useFillHeight } from '../hooks/useFillHeight.js';
 import SplitDivider, { splitColumns } from '../components/SplitDivider.jsx';
-import { LIST_CAP } from '../workbench/FindingList.jsx';
-import { FindingCard, CompliantDetail, SEP, CHECK_MARK, principleOf, whereOf } from './ScopeCards.jsx';
+import { LIST_CAP, RowMeta } from '../workbench/FindingList.jsx';
+import { sevAbbr } from '../workbench/sevWords.js';
+import { FindingCard, CompliantDetail, CHECK_MARK, principleOf, whereOf } from './ScopeCards.jsx';
 import ReqGroupHeader from './ReqGroupHeader.jsx';
 import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 
@@ -21,17 +21,17 @@ const entryKey = (entry) => {
   return entry.index == null ? `h-req-${entry.item.req}` : rowKey(entry.item, entry.index);
 };
 
-/** One line of the list: the finding's title, where it is, its severity (or compliant) and principle; the selected one takes the tab stop. */
+/** One line of the list: the finding's title, then its severity (or compliant), where it is and its principle; the selected one takes the tab stop. */
 function ListRow({ item, index, within, selected, onSelect }) {
   const f = findingOfRow(item);
   const violation = isViolationRow(item);
-  const meta = [violation ? severityLabel(f.severity) : t('violations.scopeCompliantShort'), principleOf(f, within)];
+  const level = violation ? f.severity : COMPLIANT_ROW;
   return (
     <button type="button" role="option" aria-selected={selected} tabIndex={selected ? 0 : -1} data-index={index}
-      className={`wb-row wb-row--${violation ? f.severity : COMPLIANT_ROW}${selected ? ' is-sel' : ''}`} onClick={() => onSelect(index)}>
+      className={`wb-row wb-row--${level}${selected ? ' is-sel' : ''}`} onClick={() => onSelect(index)}>
       <span className="wb-row__t">{violation ? '' : `${CHECK_MARK} `}{f.title || f.principle}</span>
-      <span className="wb-row__f wb-row__f--line">{whereOf(f, within)}</span>
-      <span className="wb-row__meta">{meta.filter(Boolean).join(SEP)}</span>
+      <RowMeta level={level} word={violation ? sevAbbr(f.severity) : t('violations.scopeCompliantShort')}
+        where={whereOf(f, within)} tail={principleOf(f, within)} />
     </button>
   );
 }

@@ -21,6 +21,15 @@ describe('FindingList', () => {
     expect(screen.getByRole('button', { name: /Old warning/ })).toHaveClass('is-dismissed');
   });
 
+  it('the second line reads severity word, then the path with its file name, then principle and dimension', () => {
+    render(<FindingList {...base} groups={groupFindings(findings, FINDING_GROUP.NONE)} />);
+    const row = screen.getByRole('button', { name: /Swallowed error/ });
+    expect(row.querySelector('.wb-row__sev')).toHaveTextContent('crit');
+    expect(row.querySelector('.wb-row__dir')).toHaveTextContent('src/c/');
+    expect(row.querySelector('.wb-row__f')).toHaveTextContent('src/c/z.js:7');
+    expect(row.querySelector('.wb-row__tail')).toHaveTextContent('reliability');
+  });
+
   it('clicking a row selects it', async () => {
     const onSelect = vi.fn();
     render(<FindingList {...base} onSelect={onSelect} groups={groupFindings(findings, FINDING_GROUP.NONE)} />);

@@ -6,10 +6,8 @@ import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 import { t } from '../../../strings/index.js';
 
-// The finding card needs the app's side pane; here it only shows what it was given.
-vi.mock('../../explorer/components/EvalCards.jsx', () => ({
-  EvalViolationCard: ({ v, readOnly }) => <div data-testid="card" data-readonly={String(Boolean(readOnly))}>{v.title}</div>,
-}));
+// The fix-plan pill needs the app's side pane; here it is a stub.
+vi.mock('../workbench/FixPlanButton.jsx', () => ({ default: () => <button type="button">fix plan</button> }));
 
 const dim = (title) => [{
   dimension: 'security', fromRunId: 'run-1', compliance: [],
@@ -45,10 +43,11 @@ describe('ViolationsPage as of a past day', () => {
     expect(screen.getByRole('button', { name: t('violations.asOfBack') })).toBeInTheDocument();
   });
 
-  it('is read-only: the card gets no fix plan', async () => {
+  it('is read-only: the detail offers no fix plan', async () => {
     renderPage({ runId: 'run-7', day: '2026-08-07' });
     fireEvent.click((await screen.findAllByText('Past finding'))[0]);
-    expect(screen.getAllByTestId('card').every((c) => c.dataset.readonly === 'true')).toBe(true);
+    expect(await screen.findByRole('heading', { name: 'Past finding' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'fix plan' })).toBeNull();
   });
 
   it('goes back to today from the banner', async () => {
