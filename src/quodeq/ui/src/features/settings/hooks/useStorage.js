@@ -90,6 +90,7 @@ export default function useStorage() {
   const summary = useStorageSummary();
   const progress = useCleanProgress(summary);
   const keepRuns = useStorageSetting('keepRuns');
+  const coldAfter = useStorageSetting('coldAfterDays');
   const autoCleanup = useStorageSetting('autoCleanup');
   const runClean = async () => {
     const result = await startClean();
@@ -106,7 +107,7 @@ export default function useStorage() {
   };
   return {
     data: summary.data ?? null, isLoading: summary.isPending, isError: summary.isError,
-    ...progress, setKeepRuns: keepRuns.mutate, setAutoCleanup: autoCleanup.mutate,
-    saveFailed: keepRuns.isError || autoCleanup.isError, runClean, deleteAll,
+    ...progress, setKeepRuns: keepRuns.mutate, setColdAfter: coldAfter.mutate, setAutoCleanup: autoCleanup.mutate,
+    saveFailed: keepRuns.isError || coldAfter.isError || autoCleanup.isError, runClean, deleteAll,
   };
 }

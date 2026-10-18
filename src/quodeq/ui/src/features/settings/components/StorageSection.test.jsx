@@ -11,7 +11,7 @@ const GB = 1024 ** 3;
 const POLL_WAIT = { timeout: 2500 };
 const IDLE = { state: 'idle', done: 0, total: 0, archived: 0, bytesFreed: 0 };
 const SUMMARY = {
-  bytes: 6.5 * GB, runs: 470, archived: 216, keepRuns: 10, archiveAfterDays: 183, autoCleanup: true, archiveNotice: null, clean: IDLE,
+  bytes: 6.5 * GB, runs: 470, archived: 216, keepRuns: 10, coldAfterDays: null, archiveAfterDays: 183, autoCleanup: true, archiveNotice: null, clean: IDLE,
   projects: { p1: { bytes: 1, runs: 1, archived: 0 }, p2: { bytes: 1, runs: 1, archived: 0 } },
 };
 
@@ -62,7 +62,7 @@ describe('StorageSection', () => {
     const { section } = setup({ getStorage: vi.fn(async () => { throw new Error('boom'); }) });
     await waitFor(() => expect(section().getByText("Couldn't read storage.")).toBeInTheDocument());
     expect(section().getByRole('button', { name: 'clean now' })).toBeInTheDocument();
-    expect(section().getAllByRole('tab')).toHaveLength(6);
+    expect(section().getAllByRole('tab')).toHaveLength(10);
   });
 
   it('saves how many runs stay in full, all as null', async () => {
