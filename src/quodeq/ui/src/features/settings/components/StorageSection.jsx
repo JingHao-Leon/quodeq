@@ -6,22 +6,22 @@ import useStorage, { CLEAN_STATE } from '../hooks/useStorage.js';
 import { formatBytes } from '../../../utils/formatSize.js';
 import { t } from '../../../strings/index.js';
 
-// The archive-after choices in days, as PUT /api/storage/settings takes them; null is never.
-const ARCHIVE_AFTER = [
-  { v: 91, l: t('storage.months', { count: 3 }) }, { v: 183, l: t('storage.months', { count: 6 }) },
-  { v: 365, l: t('storage.year') }, { v: null, l: t('storage.never') },
+// How many of a project's newest runs stay in full, as PUT /api/storage/settings takes them; null keeps all.
+const KEEP_RUNS = [
+  { v: 5, l: t('storage.runs', { count: 5 }) }, { v: 10, l: t('storage.runs', { count: 10 }) },
+  { v: 25, l: t('storage.runs', { count: 25 }) }, { v: null, l: t('storage.all') },
 ];
 const AUTO_CLEANUP = [{ v: true, l: t('settings.on') }, { v: false, l: t('settings.off') }];
 
-// The first start after the archive arrived held it back; this says what the
-// next start archives, under the settings that change it.
+// The first start under the count rule held the archive back; this says what
+// the next start archives, under the settings that change it.
 function ArchiveNotice({ data }) {
   const notice = data?.archiveNotice;
   if (!notice) return null;
-  const period = ARCHIVE_AFTER.find((o) => o.v === data.archiveAfterDays)?.l ?? '';
+  const keep = data.keepRuns ?? '';
   return (
     <p className="storage-notice" role="status">
-      {t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', { runs: notice.runs, period, size: formatBytes(notice.bytes) })}
+      {t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', { runs: notice.runs, keep, size: formatBytes(notice.bytes) })}
     </p>
   );
 }
@@ -54,8 +54,8 @@ function factsLine({ data, isLoading, isError, clean, running, endedHere }) {
 
 /**
  * Settings › Evaluation › STORAGE: space used with clean now and delete all
- * (behind ⋯), whether cleanup runs after start, and when old runs are
- * archived; above them, the first-start notice while one is pending. `onEvaluationsDeleted` runs
+ * (behind ⋯), whether cleanup runs after start, and how many of a project's
+ * runs stay in full; above them, the first-start notice while one is pending. `onEvaluationsDeleted` runs
  * after delete all, so the app can leave a project that no longer exists.
  */
 export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
@@ -84,12 +84,12 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
         <SettingsPillTabs options={AUTO_CLEANUP} value={data ? data.autoCleanup : undefined} onChange={storage.setAutoCleanup} />
       </div>
       <div className="settings-row settings-row--last">
-        <SettingsRowLabel hintSlot={false} label={t('storage.archiveAfter')} description={t('storage.archiveAfterDesc')} />
-        <SettingsPillTabs options={ARCHIVE_AFTER} value={data ? data.archiveAfterDays : undefined} onChange={storage.setArchiveAfter} />
+        <SettingsRowLabel hintSlot={false} label={t('storage.keepRuns')} description={t('storage.keepRunsDesc')} />
+        <SettingsPillTabs options={KEEP_RUNS} value={data ? data.keepRuns : undefined} onChange={storage.setKeepRuns} />
       </div>
       {storage.saveFailed && <p className="inline-error storage-save-error">{t('storage.saveFailed')}</p>}
       {cleaning && (
-        <CleanModal autoArchive={Boolean(data?.autoCleanup && data.archiveAfterDays != null)}
+        <CleanModal autoArchive={Boolean(data?.autoCleanup && data.keepRuns != null)}
           onClean={storage.runClean} onClose={() => setCleaning(false)} />
       )}
       {deleting && data && <DeleteAllModal data={data} onDelete={deleteAll} onClose={() => setDeleting(false)} />}
