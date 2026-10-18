@@ -88,15 +88,17 @@ function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionCl
 /**
  * The score history (grade bands and change marks, as the dimension page's)
  * beside the dimensions radial. Under three dimensions the radial has no
- * shape (the cards already show those scores), so the history takes the row,
- * and with no history either there is no row.
+ * shape (the cards already show those scores), and with a single evaluation
+ * there is no history, so whichever is left takes the row; with neither there
+ * is no row.
  */
 function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
   const radial = hasRadialShape(sorted.length);
   if (!radial && !chart.mountable) return null;
+  const both = radial && chart.mountable;
   const onPoint = onDimensionClick ? (name) => { const d = sorted.find((x) => x.dimension === name); if (d) onDimensionClick(d); } : undefined;
   return (
-    <div className={withPending(`qd-top-grid overview-top-grid${radial ? '' : ' qd-top-grid--single'}`, pending)} aria-busy={pending || undefined}>
+    <div className={withPending(`qd-top-grid overview-top-grid${both ? '' : ' qd-top-grid--single'}`, pending)} aria-busy={pending || undefined}>
       <Suspense fallback={<RunHistoryPanelPlaceholder />}>
         {chart.mountable && (
           <RunHistoryPanel

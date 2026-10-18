@@ -95,24 +95,17 @@ function useDimTrends(filteredDimensions, filteredTrend, currentOverviewRun, gra
   }, [filteredDimensions, asOfTrend, granularity]);
 }
 
-function usePeriodTrends(trend, granularity) {
-  const dayTrend = useMemo(() => collapseByPeriod(trend, GRANULARITY.DAY), [trend]);
-  const periodTrend = useMemo(() => collapseByPeriod(trend, granularity), [trend, granularity]);
-  return { dayTrend, periodTrend };
-}
-
-// Everything the visible-standards filter touches: the three trend shapes
-// (daily, period, raw per-run) and the accumulated dimensions themselves.
-function useVisibleFilteredTrends({ trend, dayTrend, periodTrend, granularity, accumulatedDimensions }) {
+// Everything the visible-standards filter touches: the two trend shapes
+// (period, raw per-run) and the accumulated dimensions themselves.
+function useVisibleFilteredTrends({ trend, periodTrend, granularity, accumulatedDimensions }) {
   const visibleIds = useMemo(() => readVisibleStandardIds(), [accumulatedDimensions]);
   const visibleSet = useMemo(() => new Set(visibleIds), [visibleIds]);
-  const filteredDayTrend = useMemo(() => filterTrendByVisibleStandardsDaily(trend, dayTrend, visibleSet, GRANULARITY.DAY), [trend, dayTrend, visibleSet]);
   const filteredPeriodTrend = useMemo(() => filterTrendByVisibleStandardsDaily(trend, periodTrend, visibleSet, granularity), [trend, periodTrend, visibleSet, granularity]);
   // Raw (per-run) filtered trend — sparklines show every evaluation, not the
   // period-collapsed representatives.
   const filteredTrend = useMemo(() => filterTrendByVisibleStandards(trend, visibleSet), [trend, visibleSet]);
   const filteredDimensions = useMemo(() => accumulatedDimensions.filter((d) => visibleSet.has((d.dimension || '').toLowerCase())), [accumulatedDimensions, visibleIds]);
-  return { visibleSet, filteredDayTrend, filteredPeriodTrend, filteredTrend, filteredDimensions };
+  return { visibleSet, filteredPeriodTrend, filteredTrend, filteredDimensions };
 }
 
 /**
@@ -127,12 +120,12 @@ function useVisibleFilteredTrends({ trend, dayTrend, periodTrend, granularity, a
 export function useAccumulatedComputations(data) {
   const { accumulated, accumulatedDimensions, availableRuns, dailyRuns, overviewRunIndex, trend, selectedRunId, granularity = GRANULARITY.DAY } = data;
   const dayRuns = dailyRuns || availableRuns;
-  const { dayTrend, periodTrend } = usePeriodTrends(trend, granularity);
+  const periodTrend = useMemo(() => collapseByPeriod(trend, granularity), [trend, granularity]);
 
   const { currentOverviewRun, selectedDayDimNames } = useOverviewRunSelection({ trend, periodTrend, dayRuns, overviewRunIndex, selectedRunId, granularity });
 
-  const { visibleSet, filteredDayTrend, filteredPeriodTrend, filteredTrend, filteredDimensions } =
-    useVisibleFilteredTrends({ trend, dayTrend, periodTrend, granularity, accumulatedDimensions });
+  const { visibleSet, filteredPeriodTrend, filteredTrend, filteredDimensions } =
+    useVisibleFilteredTrends({ trend, periodTrend, granularity, accumulatedDimensions });
 
   const dimTrends = useDimTrends(filteredDimensions, filteredTrend, currentOverviewRun, granularity);
   const filteredAccumulated = useMemo(
@@ -144,9 +137,9 @@ export function useAccumulatedComputations(data) {
     [filteredDimensions, filteredPeriodTrend, currentOverviewRun],
   );
 
-  // Preserve today's "panel appears iff ≥2 days of data" behavior, regardless
-  // of the chosen grouping — so the selector never disappears on collapse.
-  const chartMountable = filteredDayTrend.length >= 2;
+  // The history appears from the second evaluation, whatever the grouping, so
+  // the selector never disappears when a week or month collapses them to one point.
+  const chartMountable = filteredTrend.length >= 2;
 
   return {
     currentOverviewRun, selectedDayDimNames, filteredPeriodTrend, filteredTrend,
