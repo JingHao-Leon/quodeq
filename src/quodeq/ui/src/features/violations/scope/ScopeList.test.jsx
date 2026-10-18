@@ -4,7 +4,6 @@ import '@testing-library/jest-dom/vitest';
 import { ScopeList } from './ScopeList.jsx';
 import { LIST_CAP } from '../workbench/FindingList.jsx';
 import { SidePaneProvider } from '../../side-pane/index.js';
-import { ApiProvider } from '../../../api/ApiContext.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { t } from '../../../strings/index.js';
 
@@ -33,15 +32,6 @@ describe('ScopeList', () => {
     expect(screen.getByRole('button', { name: t('violations.wbFixPlan') })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: t('violations.wbDismiss') }));
     expect(onDismiss).toHaveBeenCalledWith(expect.objectContaining({ title: 'Finding 1' }));
-  });
-
-  it('a finding without its dimension takes the scope one, so the rule text is looked up there', async () => {
-    const getStandard = vi.fn().mockResolvedValue({ principles: [{ name: 'P', requirements: [{ id: 'S-AUT-2', text: 'Shell commands MUST NOT be built from input' }] }] });
-    const bare = { kind: 'violation', v: { ...row(1).v, dimension: null, req: 'S-AUT-2' } };
-    render(<ApiProvider value={{ getStandard }}><SidePaneProvider><ScopeList rows={[bare]} within={{ ...within, dimension: 'security' }} readOnly /></SidePaneProvider></ApiProvider>,
-      { wrapper: withQueryClient() });
-    expect(await screen.findByText('Shell commands MUST NOT be built from input')).toBeInTheDocument();
-    expect(getStandard).toHaveBeenCalledWith('security');
   });
 
   it('a past day shows no action pills', () => {

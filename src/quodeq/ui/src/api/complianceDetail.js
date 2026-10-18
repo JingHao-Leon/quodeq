@@ -172,10 +172,14 @@ export function pageSelector(items) {
   return (row) => wanted.every(([read, value]) => read(row) === value);
 }
 
+// A row of the accumulated lists carries no dimension of its own (it sits in
+// its dimension's group): it takes the one it was requested for, so hydrating
+// keeps what the page filled in (a dismiss reads it for the dimension's run).
 function selectedRows(loaded, select) {
   const byKey = new Map();
   for (const { ref, items: rows } of loaded) {
-    byKey.set(detailRefKey(ref), (rows || []).filter(select).map((row) => ({ ...row, detailRef: ref, detailDeferred: false })));
+    byKey.set(detailRefKey(ref), (rows || []).filter(select)
+      .map((row) => ({ ...row, dimension: row.dimension || ref.dimension, detailRef: ref, detailDeferred: false })));
   }
   return byKey;
 }

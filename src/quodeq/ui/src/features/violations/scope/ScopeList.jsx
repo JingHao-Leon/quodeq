@@ -40,14 +40,8 @@ function ListRow({ item, index, within, selected, onSelect }) {
   );
 }
 
-/**
- * The selected violation in full, as in the Violations workbench: fix plan
- * and dismiss as its pills (none on a past day or a shared project). A
- * principle's items can come without their dimension; the scope's fills it,
- * so the rule's text can be looked up.
- */
-function ViolationPane({ finding, within, onDismiss, readOnly }) {
-  const v = finding.dimension || !within.dimension ? finding : { ...finding, dimension: within.dimension };
+/** The selected violation in full, as in the Violations workbench: fix plan and dismiss as its pills (none on a past day or a shared project). */
+function ViolationPane({ v, onDismiss, readOnly }) {
   return (
     <FindingView v={v} where={<Where finding={v} confidence={v.confidence} />}>
       {(!readOnly || onDismiss) && (
@@ -159,7 +153,7 @@ export function ScopeList({ rows, within, onDismiss, readOnly, onToggleReq }) {
       </section>
       <SplitDivider split={split} />
       <section className="qd-cards-panel wb-panel wb-detail">
-        {current && isViolationRow(current) && <ViolationPane finding={current.v} within={within} onDismiss={onDismiss} readOnly={readOnly} />}
+        {current && isViolationRow(current) && <ViolationPane v={current.v} onDismiss={onDismiss} readOnly={readOnly} />}
         {current && !isViolationRow(current) && <div className="wb-detail__body"><CompliantDetail c={current.c} within={within} /></div>}
       </section>
     </div>
