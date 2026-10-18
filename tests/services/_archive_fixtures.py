@@ -13,8 +13,14 @@ PROJECT = "proj"
 NOW = datetime(2026, 10, 17, tzinfo=timezone.utc)
 
 
-def make_run(root: Path, run_id: str, *, n: int = 5, dimension: str = "security", days: int = 300) -> Path:
-    run = _seed_run(root, PROJECT, run_id, _scorable_violations(n, dimension=dimension))
+def make_run(
+    root: Path, run_id: str, *, n: int = 5, dimension: str = "security", days: int = 300, snippet: str | None = None,
+) -> Path:
+    """A finished, projected run; *snippet* goes on its first finding (R0 in f0.py, line 10)."""
+    violations = _scorable_violations(n, dimension=dimension)
+    if snippet is not None:
+        violations[0]["snippet"] = snippet
+    run = _seed_run(root, PROJECT, run_id, violations)
     started = (NOW - timedelta(days=days)).isoformat()
     (run / "status.json").write_text(json.dumps({"state": "done", "started_at": started}))
     (run / "evaluation").mkdir()

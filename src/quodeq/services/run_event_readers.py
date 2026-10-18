@@ -148,7 +148,7 @@ def read_new_findings_from_events(
     finding-shaping step in one try/except, so the two failure modes share a
     single WARNING and an all-or-nothing outcome.
     """
-    wiring_sync.restore_or_warn(run_dir)
+    wiring_sync.restore_or_warn(run_dir, project=False)  # streams the event log only
     events_log = run_dir / "events.jsonl"
     if not events_log.is_file():
         return []

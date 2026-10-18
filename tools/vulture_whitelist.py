@@ -334,3 +334,4 @@ _.minimized  # dashboard/_webview_window_visibility.py: pywebview window event, 
 _.workflow
 _.run_url
 
+_.archive_notice  # services/storage_settings.py: storage.json key of the 1.14 age rule, kept as stored for a later release (cold tier); read only to be written back.

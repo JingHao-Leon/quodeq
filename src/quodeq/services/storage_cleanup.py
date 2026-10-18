@@ -1,10 +1,11 @@
 """Storage cleanup: tidy finished runs and archive the old ones.
 
 On by default; the storage settings' ``auto_cleanup`` (Settings › Storage) or
-``QUODEQ_STORAGE_CLEANUP=0`` turns the pass after start off. The archive window
-comes from the storage settings (None means tidy only); which runs are
-tidied and which archived is decided in ``storage_plan``. The first start
-that would archive only tidies (see ``storage_notice``).
+``QUODEQ_STORAGE_CLEANUP=0`` turns the pass after start off. How many of a
+project's newest done runs stay unpacked comes from the storage settings'
+``keep_runs`` (None means tidy only); which runs are tidied and which
+archived is decided in ``storage_plan``. The first start that would archive
+only tidies (see ``storage_notice``).
 """
 from __future__ import annotations
 
@@ -129,16 +130,16 @@ class _InFlightWatch:
 
 
 def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink, *, archive: bool = True) -> CleanupResult | None:
-    """One startup pass with the archive window read now, not at import; tidy only when *archive* is False."""
-    days = read_storage_settings(env).archive_after_days if archive else None
-    result = try_run_cleanup(root, datetime.now(timezone.utc), warm_days=days, log=log)
+    """One startup pass with the kept count read now, not at import; tidy only when *archive* is False."""
+    keep = read_storage_settings(env).keep_runs if archive else None
+    result = try_run_cleanup(root, datetime.now(timezone.utc), keep_runs=keep, log=log)
     if result is None:
         log.debug("storage cleanup: another pass holds the lock, skipping the startup pass")
     return result
 
 
 def run_cleanup(
-    evaluations_root: Path | str, now: datetime, *, warm_days: int | None, log: LogSink = NULL_LOG,
+    evaluations_root: Path | str, now: datetime, *, keep_runs: int | None, log: LogSink = NULL_LOG,
     on_progress: Callable[[int, int], None] | None = None, should_stop: Callable[[], bool] | None = None,
 ) -> CleanupResult:
     """Apply the plan; one failing run is logged and the rest carry on.
@@ -153,7 +154,7 @@ def run_cleanup(
     archive), and a run whose status changed within ``TIDY_SETTLE_S`` is
     not tidied.
     """
-    plan = plan_cleanup(evaluations_root, now, warm_days)
+    plan = plan_cleanup(evaluations_root, now, keep_runs)
     to_archive, tidy = set(plan.archive), set(plan.tidy)
     runs = [*plan.tidy, *(r for r in plan.archive if r not in tidy)]  # the plan archives only runs it tidies
     watch, wall_now = _InFlightWatch(), time.time()
@@ -187,14 +188,14 @@ CLEANUP_LOCK = threading.Lock()
 
 
 def try_run_cleanup(
-    evaluations_root: Path | str, now: datetime, *, warm_days: int | None, log: LogSink = NULL_LOG,
+    evaluations_root: Path | str, now: datetime, *, keep_runs: int | None, log: LogSink = NULL_LOG,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> CleanupResult | None:
     """Single-flight run_cleanup: None when another pass already holds the lock."""
     if not CLEANUP_LOCK.acquire(blocking=False):
         return None
     try:
-        return run_cleanup(evaluations_root, now, warm_days=warm_days, log=log, on_progress=on_progress)
+        return run_cleanup(evaluations_root, now, keep_runs=keep_runs, log=log, on_progress=on_progress)
     finally:
         CLEANUP_LOCK.release()
 

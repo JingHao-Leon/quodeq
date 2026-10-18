@@ -78,7 +78,7 @@ def test_round_trip_restores_identical_bytes(tmp_path):
     assert result.bytes_after < result.bytes_before
     assert ensure_restored(run) is True and not is_archived(run)
     restored = _bytes(run)
-    for name in (_EVENTS, _EVIDENCE, "evaluation.db", *_KEPT):
+    for name in (_EVENTS, _EVIDENCE, *_KEPT):  # the database is rebuilt from the event log, never restored
         assert restored[name] == before[name]
     assert not (run / "evaluation.db-wal").exists()
 

@@ -16,9 +16,10 @@ from quodeq.services.storage_cleanup import CLEANUP_LOCK
 from quodeq.services.storage_plan import plan_cleanup
 from quodeq.services.storage_settings import ArchiveNotice, StorageSettings
 from quodeq.services.wiring import UnsupportedSchemaError, list_runs, read_json_object, read_status, repository_info_exists
-from quodeq.services.wiring_sync import is_archived, packable_bytes, run_pid_alive
+from quodeq.services.wiring_sync import dropped_bytes, is_archived, packed_bytes, run_pid_alive
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
+# The database is deleted, not packed, so it is counted as freed in full.
 ARCHIVE_SAVING = 0.76
 _STATUS_FILE = "status.json"
 _REPO_INFO_FILE = "repository_info.json"
@@ -117,17 +118,18 @@ def storage_summary(root: Path) -> StorageSummary:
     )
 
 
-def _packable(run_dir: Path) -> int:
+def _frees(run_dir: Path) -> float:
+    """Bytes archiving *run_dir* frees: the dropped files in full, the packed ones at ARCHIVE_SAVING."""
     try:
-        return packable_bytes(run_dir)
+        return dropped_bytes(run_dir) + ARCHIVE_SAVING * packed_bytes(run_dir)
     except OSError:
-        return 0
+        return 0.0
 
 
-def clean_preview(root: Path, now: datetime, warm_days: int | None) -> CleanPreview:
-    """Runs a clean would archive now and the bytes it would free, estimated with ARCHIVE_SAVING."""
-    plan = plan_cleanup(root, now, warm_days)
-    return CleanPreview(len(plan.archive), int(ARCHIVE_SAVING * sum(_packable(r) for r in plan.archive)))
+def clean_preview(root: Path, now: datetime, keep_runs: int | None) -> CleanPreview:
+    """Runs a clean would archive now and about how many bytes it would free."""
+    plan = plan_cleanup(root, now, keep_runs)
+    return CleanPreview(len(plan.archive), int(sum(_frees(r) for r in plan.archive)))
 
 
 def _state(status: dict) -> RunState | None:
@@ -164,13 +166,13 @@ def _live_projects(projects: list[Path]) -> tuple[str, ...]:
 def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, cleanup_on: bool) -> CleanPreview | None:
     """What the next start archives while the first-start notice is pending; None when there is nothing to say.
 
-    Read with the settings as they are now, so changing the window or
+    Read with the settings as they are now, so changing the kept count or
     turning cleanup off changes (or clears) the notice at once.
     """
-    days = settings.archive_after_days
-    if settings.archive_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or days is None:
+    keep = settings.keep_runs
+    if settings.keep_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or keep is None:
         return None
-    preview = clean_preview(root, now, days)
+    preview = clean_preview(root, now, keep)
     return preview if preview.archive else None
 
 

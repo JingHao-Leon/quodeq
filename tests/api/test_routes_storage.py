@@ -11,8 +11,17 @@ from quodeq.api.routes_storage import register_storage_routes
 from quodeq.services import storage_cleanup, storage_job
 from quodeq.services.storage_cleanup import CleanupResult
 from quodeq.services.storage_job import CleanJob
+from quodeq.services.storage_settings import StorageSettings, write_storage_settings
 from tests._timeouts import budget
 from tests.services._storage_fixtures import FakeProvider as _Provider, make_run as _run
+
+
+def _crowded(root):
+    """One old run beyond the ten newest done runs the default keeps."""
+    old = _run(root, "p", "old", 400)
+    for i in range(10):
+        _run(root, "p", f"newer{i}", 10 + i)
+    return old
 
 
 @pytest.fixture
@@ -50,7 +59,7 @@ def test_get_storage_on_an_empty_root_is_zeros(client):
     resp = client.get("/api/storage")
     assert resp.status_code == 200
     assert resp.get_json() == {
-        "bytes": 0, "runs": 0, "archived": 0, "projects": {}, "archiveAfterDays": 183,
+        "bytes": 0, "runs": 0, "archived": 0, "projects": {}, "keepRuns": 10, "archiveAfterDays": 183,
         "autoCleanup": True, "archiveNotice": None,
         "clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0},
     }
@@ -70,7 +79,7 @@ def test_put_settings_persists_every_choice(client):
     for choice in (91, 365, None, 183):
         resp = client.put("/api/storage/settings", json={"archiveAfterDays": choice})
         assert resp.status_code == 200
-        assert resp.get_json() == {"archiveAfterDays": choice, "autoCleanup": True}
+        assert resp.get_json() == {"keepRuns": 10, "archiveAfterDays": choice, "autoCleanup": True}
         assert client.get("/api/storage").get_json()["archiveAfterDays"] == choice
 
 
@@ -83,16 +92,14 @@ def test_put_settings_rejects_other_values(client, body):
 
 
 def test_preview_uses_the_stored_setting(client, root):
-    _run(root, "p", "old", 300)
-    _run(root, "p", "newer", 10)
+    _crowded(root)
     assert client.get("/api/storage/preview").get_json()["archive"] == 1
-    client.put("/api/storage/settings", json={"archiveAfterDays": None})
+    write_storage_settings(StorageSettings(keep_runs=None))
     assert client.get("/api/storage/preview").get_json() == {"archive": 0, "frees": 0}
 
 
 def test_clean_starts_and_finishes(client, root):
-    old = _run(root, "p", "old", 400)
-    _run(root, "p", "newer", 10)
+    old = _crowded(root)
     resp = client.post("/api/storage/clean")
     assert resp.status_code == 202
     assert resp.get_json()["clean"]["state"] in ("running", "done")

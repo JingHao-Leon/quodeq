@@ -14,7 +14,7 @@ from quodeq.data.events.reader import EventLogReader
 from quodeq.data.fs import run_archive
 from quodeq.data.fs.report_parser.runs import list_runs
 from quodeq.data.fs.run_files import dimension_evidence_file
-from quodeq.data.fs.run_archive import archive_run, is_archived
+from quodeq.data.fs.run_archive import archive_run, ensure_restored, is_archived
 from quodeq.data.sqlite import connection
 from quodeq.data.sqlite.connection import open_evaluation_db
 from quodeq.data.sqlite.errors import SqliteStoreUnreadableError
@@ -143,7 +143,7 @@ def test_a_lock_timeout_during_restore_is_a_warning(tmp_path, monkeypatch, caplo
     old, _ = _seed_project(tmp_path)
     archive_run(old)
 
-    def stuck(_run_dir):
+    def stuck(_run_dir, **_):
         raise TimeoutError("lock wait")
 
     monkeypatch.setattr(run_archive, "ensure_restored", stuck)
@@ -185,8 +185,7 @@ def test_apply_and_preview_after_a_restore_without_a_database(tmp_path, formula_
     old, _ = _seed_project(archived_root)
     shutil.copytree(archived_root, plain_root)
     archive_run(old)
-    dimension_evidence_file(old, "security")  # restores, never projects
-    (old / "evaluation.db").unlink()  # no-db variant: force a rebuild from the event log
+    dimension_evidence_file(old, "security")  # restores, never projects: a new archive brings no database
     assert not is_archived(old) and not (old / "evaluation.db").exists()
 
     explained = [explain_dimension(root, _PROJECT, _OLD, "security", params=_TUNED)
@@ -205,7 +204,7 @@ def test_apply_and_preview_after_a_restore_with_the_archived_database(tmp_path, 
     old, _ = _seed_project(archived_root)
     shutil.copytree(archived_root, plain_root)
     archive_run(old)
-    dimension_evidence_file(old, "security")  # restores, never projects
+    assert ensure_restored(old)  # restores and rebuilds the database from the event log
     assert not is_archived(old) and (old / "evaluation.db").is_file()
 
     explained = [explain_dimension(root, _PROJECT, _OLD, "security", params=_TUNED)

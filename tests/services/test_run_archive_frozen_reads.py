@@ -60,7 +60,7 @@ def test_cleanup_projects_a_pending_dismissal_before_it_archives(tmp_path, monke
     make_run(tmp_path, "20261001", days=10)
     dismiss_finding(tmp_path / PROJECT, {"project": PROJECT, **_KEY})  # not projected into the old run yet
 
-    run_cleanup(tmp_path, NOW, warm_days=183)
+    run_cleanup(tmp_path, NOW, keep_runs=1)
 
     assert is_archived(old)
     (_dims, _principles, counts) = read_scalars(old)
