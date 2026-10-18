@@ -2,8 +2,29 @@
 
 ## [Unreleased]
 
-### Changed
-- **Storage keeps a number of runs, not an age**: cleanup now keeps the newest 10 finished runs of each project in full (5, 10, 25 or all in Settings › Storage) and archives the rest at the next start, cancelled runs included, whatever their age. An archive no longer stores the run's database, which is rebuilt from the event log in a couple of seconds when the run is opened, and a run you open stays unpacked for 30 days. The first start after the update only tidies: Settings › Storage then says how many runs the next start will archive and how much space that frees, so you can pick a larger number or turn **Clean up after start** off first. The *archive runs untouched for* choice of 1.14 is no longer used; a 1.14 **never** carries over as **all**. Archived runs' reports are compressed in place too; runs archived by 1.14 stay archived and get their reports compressed by the pass after the notice. Going back to 1.14 cannot read a compressed report until the run is opened in this version. A new choice, **Keep the findings of archived runs for**, removes the findings of runs archived more than 3 months, 6 months or 1 year ago (off by default, confirmed before it takes effect); such runs stay in History as **report only** with their grades and reports. 1.14 shows the eval-time grades for them.
+### Before you upgrade
+- **One full score rebuild on first launch**: every run's cache version now carries its grade stamp (the fix for grades that stayed stale after a formula change), so the first start after the update rebuilds the scores of every project once, with the strip under the top bar showing how far along it is. The last known grades stay on screen, dimmed, until each project's new ones land.
+- **Storage keeps a number of runs, not an age**: cleanup now keeps the newest 10 finished runs of each project in full (5, 10, 25 or all in Settings › Storage) and archives the rest, cancelled runs included, whatever their age: a project evaluated daily sees runs from last week archived. The first start after the update only tidies and shows a notice in Settings › Storage with how many runs the next start will archive and how much space that frees, so you can pick a larger number or turn **Clean up after start** off first. A 1.14 **never** carries over as **all**; the 1.14 age choice is no longer used.
+- **Archives are smaller and reports are compressed too**: an archive no longer stores the run's database, which is rebuilt from the event log in a couple of seconds when the run is opened, and an archived run's reports are compressed in place; the pass after the notice compresses the reports of runs already archived. A run you open stays unpacked for 30 days. New files beside an archived run: `evaluation/<dimension>.json.gz`, `scalars.json`, `precedents.json`, and `grades.stamp` beside every database.
+- **Going back to 1.14 after this update**: 1.14 cannot read a compressed report, so an archived run shows no dimensions there until this version opens it first (opening it in 1.14 first restores the archive without the reports). A run whose findings were removed (see Storage below) shows no results at all in 1.14.
+
+### Features
+- **Storage, an opt-in cold tier**: a new choice in Settings › Storage, **Keep the findings of archived runs for** (3 months, 6 months, 1 year or forever, the default), removes the findings of runs archived longer ago than that; such runs stay in History as **report only** with their grades, dismissals and reports, open at once, still count in the trend and still compare, and cannot be rescored or searched. Choosing a period asks for a confirmation first, since it cannot be undone; the clean now preview and the first-start notice say how many runs it concerns.
+- **Evaluate on a remote project**: a remote project keeps its **Evaluate** action and shows a card that pulls a local copy first (pull, review, score), with a toast that brings you back if you moved away.
+- **Principle page grouped by requirement**: the findings of a principle open grouped by requirement, the worst one first, with a requirement filter in the bar, search, and open all or fold all; the requirements rail is gone.
+- **Finding rows and detail redesigned**: two-line rows (the title, then severity, path, principle and dimension), a detail that leads with the title, where it is, why, the rule and the code, one row of actions (fix plan, open file, dismiss), and **dismiss** as a menu that can dismiss this finding, every finding of the rule in the project, or in the principle. The principle and file pages show a finding the same way.
+- **Dimensions header counts what is not evaluated yet**: the Quality dimensions header ends with how many standards are switched on but not evaluated and an **evaluate** action, with their names in the tooltip, replacing the line under the cards.
+- **Code in reasons as chips**: backticked code in a finding's reason renders as amber chips.
+
+### Improvements
+- **Score history**: the history draws from the second evaluation on and shows a single week or month as one bar with its minimum, maximum and average; week buckets are labelled with their date range; the radial is left out under three points and takes the whole row while the history is hidden.
+- **Grade formula page**: the chart keeps its frame while the projects load.
+- **Headers**: a wrapped page header spans the full width.
+
+### Fixes
+- **Stale grades after a formula change**: a read that raced the rescore no longer pins the old grades in the Overview, Compare and History.
+- **Code blocks**: a code block no longer scrolls inside itself and catches the page scroll.
+- **Principle dismissals from a file page** find their run again (hydrated rows keep their dimension).
 
 ## [1.14.0] - 2026-10-17
 
