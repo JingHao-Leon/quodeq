@@ -16,7 +16,7 @@ from quodeq.data.fs.run_archive import (
     is_archived,
     tidy_run,
 )
-from tests.data.fs.test_run_archive import _bytes, _rows, _run_with_files
+from tests.data.fs.test_run_archive import _bytes, _run_with_files
 
 _EVENTS = "events.jsonl"
 _EVIDENCE = "evidence/security_evidence.jsonl"
@@ -35,7 +35,7 @@ def _wal_run(tmp_path: Path):
     return run, conn
 
 
-def test_rows_only_in_the_wal_survive_archive_and_restore(tmp_path):
+def test_a_wal_only_database_is_folded_and_goes_with_the_archive(tmp_path):
     # Build the WAL beside a scratch copy while its writer is open, then copy the database and
     # its WAL into the run: the run holds real WAL-only frames and no open handle (Windows
     # cannot unlink a database a connection still holds).
@@ -58,9 +58,10 @@ def test_rows_only_in_the_wal_survive_archive_and_restore(tmp_path):
     wal = run / "evaluation.db-wal"
     assert wal.is_file() and wal.stat().st_size > 0
     archive_run(run)
-    assert not (run / "evaluation.db").exists()
+    # The folded database is read for the sidecars and then deleted; a restore rebuilds it from the event log.
+    assert not any((run / n).exists() for n in ("evaluation.db", "evaluation.db-wal", "evaluation.db-shm"))
     assert ensure_restored(run) is True
-    assert _rows(run) == expected
+    assert not (run / "evaluation.db-wal").exists()
 
 
 def test_a_busy_checkpoint_refuses_the_archive_and_keeps_everything(tmp_path, monkeypatch):

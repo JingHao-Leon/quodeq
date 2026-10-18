@@ -153,8 +153,9 @@ def archive_run(run_dir: Path) -> ArchiveResult:
             for sidecar in (PRECEDENTS_NAME, SCALARS_NAME):
                 (run_dir / sidecar).unlink(missing_ok=True)
             raise
-        _drop_originals(run_dir, sources)
-        for path in [*dropped, run_dir / RESTORED_STAMP]:
+        # The database goes like a packed original: one left beside an archive would be opened as current.
+        _drop_originals(run_dir, [*sources, *((DB_NAME, p) for p in dropped if p.name == DB_NAME)])
+        for path in [*(p for p in dropped if p.name != DB_NAME), run_dir / RESTORED_STAMP]:
             try:  # a restore drops stray sidecars and rewrites the stamp, so one left behind is harmless
                 path.unlink(missing_ok=True)
             except OSError as exc:
@@ -212,7 +213,8 @@ def ensure_restored(run_dir: Path) -> bool:
         return False
     with run_lock(run_dir):
         names = _restore_locked(run_dir)
-    if names is not None and DB_NAME not in names:  # an archive written before 1.15 brings its database back
+    # An archive written before 1.15 brings its database back; a shared clone's is rebuilt when its database is opened.
+    if names is not None and DB_NAME not in names and not is_shared_clone_run(run_dir):
         _project_after_restore(run_dir)  # outside the lock: opening the database takes it
     return names is not None
 
