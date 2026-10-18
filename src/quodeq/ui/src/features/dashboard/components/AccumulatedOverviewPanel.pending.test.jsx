@@ -92,11 +92,11 @@ describe('section-pending stylesheet', () => {
 });
 
 describe('AccumulatedOverviewPanel standards not evaluated yet', () => {
-  it('lists them on one line under the cards instead of empty cards', () => {
+  it('counts them in the dimensions header instead of empty cards', () => {
     const { container } = renderPanel({});
-    const line = screen.getByRole('note');
-    expect(line.closest('.quality-dimensions')).not.toBeNull();
-    expect(line).not.toHaveTextContent('maintainability');
+    const action = screen.getByRole('button', { name: /not evaluated yet/ });
+    expect(action.closest('.quality-dimensions__head')).not.toBeNull();
+    expect(action).not.toHaveAccessibleName(/maintainability/);
     expect(container.querySelectorAll('.quality-dimensions .dim-gauge-card')).toHaveLength(1);
   });
 });

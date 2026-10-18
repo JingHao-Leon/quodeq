@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
-import NotEvaluatedLine from './NotEvaluatedLine.jsx';
+import NotEvaluatedAction from './NotEvaluatedAction.jsx';
 import { rememberShape } from '../overviewShape.js';
 import { useRememberedHeight } from '../../../hooks/useRememberedHeight.js';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
@@ -55,10 +55,9 @@ export { useAccumulatedComputations, computeAccumulatedStats };
 /** The dimensions as compact cards, weakest first, each lit with its radial point. */
 function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, pending, notEvaluated, onEvaluate, lit }) {
   const cards = sortedDimensions.length;
-  const hasLine = Boolean(notEvaluated?.length);
   const ref = useRef(null);
   // The next skeleton for this project draws this footprint, height included (overviewShape.js).
-  useRememberedHeight(ref, !pending, (height) => rememberShape(project, { cards, notEvaluated: hasLine, height }), [project, cards, hasLine]);
+  useRememberedHeight(ref, !pending, (height) => rememberShape(project, { cards, height }), [project, cards]);
   return (
     <section
       ref={ref}
@@ -68,7 +67,10 @@ function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionCl
     >
       <div className="quality-dimensions__head">
         <SectionLabel>{t('overview.qualityDimensionsLabel')} · {sortedDimensions.length}</SectionLabel>
-        {pending && <span className="quality-dimensions__pending">{t('overview.updating')}</span>}
+        <span className="quality-dimensions__head-end">
+          {pending && <span className="quality-dimensions__pending">{t('overview.updating')}</span>}
+          <NotEvaluatedAction ids={notEvaluated} onEvaluate={onEvaluate} />
+        </span>
       </div>
       <div className="dimensions-panel">
         <DimensionCardsGrid
@@ -80,7 +82,6 @@ function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionCl
           lit={lit}
         />
       </div>
-      <NotEvaluatedLine ids={notEvaluated} onEvaluate={onEvaluate} />
     </section>
   );
 }

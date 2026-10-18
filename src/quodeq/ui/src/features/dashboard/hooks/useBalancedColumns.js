@@ -2,11 +2,13 @@ import { useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * Columns that spread `count` cards evenly over the rows they need: 9 cards
- * that fit 8 across become 5 + 4, never 8 + 1. Pure, for the hook below.
+ * that fit 8 across become 5 + 4, never 8 + 1. Fewer cards than fit in one
+ * row keep a card's width rather than stretch over it. Pure, for the hook below.
  */
 export function balancedColumns(count, width, minCard, gap) {
   if (count <= 0 || width <= 0) return null;
   const fit = Math.max(1, Math.floor((width + gap) / (minCard + gap)));
+  if (count < fit) return fit;
   const rows = Math.ceil(count / fit);
   return Math.ceil(count / rows);
 }

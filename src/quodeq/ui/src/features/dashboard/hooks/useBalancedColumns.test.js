@@ -14,6 +14,10 @@ test('three rows of 3 for 9 cards that fit 4 across', () => {
   assert.equal(balancedColumns(9, 700, 160, 12), 3);
 });
 
+test('a lone card keeps a card\'s width: as many columns as fit', () => {
+  assert.equal(balancedColumns(1, 1300, 160, 12), 7);
+});
+
 test('no layout before measuring or with nothing to place', () => {
   assert.equal(balancedColumns(0, 1000, 160, 12), null);
   assert.equal(balancedColumns(5, 0, 160, 12), null);

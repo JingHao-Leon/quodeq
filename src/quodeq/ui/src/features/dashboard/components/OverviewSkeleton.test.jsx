@@ -20,7 +20,7 @@ describe('OverviewSkeleton', () => {
   });
 
   it('leaves the radial out when the last footprint had under three cards, the history alone in the row', () => {
-    const { container } = render(<OverviewSkeleton projectName="quodeq" shape={{ cards: 1, notEvaluated: true }} />);
+    const { container } = render(<OverviewSkeleton projectName="quodeq" shape={{ cards: 1 }} />);
     expect(container.querySelector('.overview-top-grid')).toHaveClass('qd-top-grid--single');
     expect(container.querySelector('.overview-top-grid [data-testid="run-history-panel-placeholder"]')).not.toBeNull();
     expect(container.querySelector('.overview-top-grid .qd-radial')).toBeNull();
