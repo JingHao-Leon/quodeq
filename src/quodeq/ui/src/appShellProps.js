@@ -88,14 +88,14 @@ export function buildProjectSwitcherProps({ state, sharedProjects, navigation, n
 // (buildDashboardDataBundle / buildNavigationBundle), no new derivation.
 export function buildContentProps({
   state, sharedSignal, navTab, navStackLength, isEvaluating, showToast, setWizardEntry,
-  dismissFinding, applyDelta, recordDismissed,
+  dismissFinding, applyDelta, recordDismissed, remotePull = null,
 }) {
   return {
     dashboardData: buildDashboardDataBundle({ state, sharedHasContent: sharedSignal.hasContent }),
     navigation: buildNavigationBundle({
       state, navTab, navStackLength,
       isEvaluating, showToast, setWizardEntry,
-      sharedHasContent: sharedSignal.hasContent,
+      sharedHasContent: sharedSignal.hasContent, remotePull,
     }),
     serverHealth: { connected: state.serverConnected, setConnected: state.setServerConnected },
     settings: state.settings,
@@ -128,14 +128,14 @@ export function buildContentProps({
 // without touching hook order.
 export function buildAppShell({
   state, sharedSignal, navTab, navStack, activeTab, activePage, isEvaluating, showToast, setWizardEntry,
-  dismissFinding, applyDelta, recordDismissed, selectedProjectInfo, showEvaluate,
+  dismissFinding, applyDelta, recordDismissed, selectedProjectInfo, showEvaluate, remotePull,
   assistantCtx, APP_VERSION, sidebarPinned, setSidebarPinned, sidebarProvider, sidebarModel,
   navGoTo, navPop, breadcrumbSiblingsFor, effectiveDark, toggleTheme, showStartupLoader, wizardEntry, wizardHandlers,
   filteredAccumulated, filteredTrend,
 }) {
   const contentProps = buildContentProps({
     state, sharedSignal, navTab, navStackLength: navStack.length, isEvaluating, showToast, setWizardEntry,
-    dismissFinding, applyDelta, recordDismissed,
+    dismissFinding, applyDelta, recordDismissed, remotePull,
   });
 
   // Resolve the project's friendly name (see resolveProjectDisplayName): local

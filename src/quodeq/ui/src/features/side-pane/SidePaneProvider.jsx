@@ -47,6 +47,15 @@ export function SidePaneToast({ notice, onDismiss }) {
       onClick={onDismiss}
     >
       {notice.message}
+      {notice.action && (
+        <button
+          type="button"
+          className="side-pane-toast__action"
+          onClick={(e) => { e.stopPropagation(); notice.action.onClick(); onDismiss(); }}
+        >
+          {notice.action.label}
+        </button>
+      )}
       <button
         type="button"
         className="side-pane-toast__dismiss"
@@ -93,10 +102,11 @@ function useNoticeState() {
   // Generic snackbar trigger for callers outside the side-pane (e.g. the
   // evaluation form's "select at least one standard" hint, or App.jsx's
   // "an evaluation is in progress" block on Add Project). Reuses the same
-  // visual + auto-dismiss as the side-pane's own at-cap notice.
-  const showToast = useCallback((message) => {
+  // visual + auto-dismiss as the side-pane's own at-cap notice. An optional
+  // `action` ({ label, onClick }) adds one button, which also dismisses.
+  const showToast = useCallback((message, action = null) => {
     if (!message) return;
-    setNotice({ message, key: Date.now() });
+    setNotice({ message, action, key: Date.now() });
   }, []);
 
   return { notice, showAtCapNotice, clearNotice, showToast };

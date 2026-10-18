@@ -2,9 +2,7 @@ import { ICON_OVERVIEW, ICON_VIOLATIONS, ICON_MAP, ICON_HISTORY, ICON_EVALUATE, 
 import { cloneElement } from 'react';
 import { BRAND_NAME } from '../strings/brand.js';
 import { t, LOCALE } from '../strings/index.js';
-import { isEvaluatableSource } from '../appGating.js';
 import { useSidebarPin } from '../hooks/useSidebarPin.js';
-import { PROJECT_SOURCE } from '../vocab/projectSource.js';
 import {
   LOGO_VIEWBOX,
   LOGO_PATH_TRANSFORM,
@@ -182,10 +180,10 @@ function SidebarScrim({ isPinned, onClose }) {
   );
 }
 
-// Evaluate needs a selected local project that has landed (the parent's
-// shouldShowEvaluate); a shared selection never has it.
-function EvaluateNav({ selectedSource, showEvaluate, activeTab, handleNav }) {
-  if (!showEvaluate || !isEvaluatableSource(selectedSource)) return null;
+// Evaluate needs a selected local project that has landed, or a remote one
+// (where it pulls a local copy first): the parent's shouldShowEvaluate.
+function EvaluateNav({ showEvaluate, activeTab, handleNav }) {
+  if (!showEvaluate) return null;
   return (
     <nav className="sidebar-nav sidebar-block">
       <NavButton id={NAV_TAB.EVALUATE} label="evaluate" icon={ICON_EVALUATE} activeTab={activeTab} onNavTab={handleNav} />
@@ -215,14 +213,11 @@ function ProjectsNav({ repoName, activeTab, handleNav }) {
  * @param {boolean} [props.isPinned] - Controlled pin state — when provided,
  *   the parent owns the toggle. Falls back to internal state when the parent
  *   doesn't care.
- * @param {'local'|'shared'} [props.selectedSource] - Evaluation is local-only
- *   (there is no shared mutation route on the backend), so the Evaluate nav
- *   item is hidden outright for a shared selection. Without this, a shared
- *   project's id (which can collide with a local one by design) could start
- *   a real evaluation run whose output writes into the LOCAL project's store.
  * @param {boolean} [props.showEvaluate] - When false, the Evaluate nav item
  *   is hidden: nothing is selected yet, or the selected project's clone is
- *   still running (the parent's shouldShowEvaluate decides).
+ *   still running (the parent's shouldShowEvaluate decides). A shared
+ *   selection keeps it: its Evaluate route pulls a local copy and never
+ *   starts a run (routes/renderers.jsx).
  * @param {boolean} [props.showCompareTab] - Compare ranks projects against
  *   each other, so it needs at least two analyzed projects to say anything —
  *   below that the tab is hidden as redundant. The parent computes this from
@@ -240,7 +235,6 @@ export default function Sidebar({
   lastEvalAt = null,
   isPinned: controlledPinned,
   onPinChange,
-  selectedSource = PROJECT_SOURCE.LOCAL,
   showCompareTab = false,
   showEvaluate = true,
   inert = undefined,
@@ -264,7 +258,7 @@ export default function Sidebar({
           historyCount={historyCount}
         />
 
-        <EvaluateNav selectedSource={selectedSource} showEvaluate={showEvaluate} activeTab={activeTab} handleNav={handleNav} />
+        <EvaluateNav showEvaluate={showEvaluate} activeTab={activeTab} handleNav={handleNav} />
         <ProjectsNav repoName={repoName} activeTab={activeTab} handleNav={handleNav} />
 
         <div className="sidebar-spacer" />

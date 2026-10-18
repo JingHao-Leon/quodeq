@@ -34,6 +34,7 @@ const ProjectsPage = lazy(() => import('../features/dashboard/components/Project
 const GradeFormulaPage = lazy(() => import('../features/grade-formula/GradeFormulaPage.jsx'));
 const StandardsPage = lazy(() => import('../features/standards/StandardsPage.jsx'));
 const HelpPage = lazy(() => import('../features/help/components/HelpPage.jsx'));
+const RemoteEvaluatePanel = lazy(() => import('../features/evaluation/components/RemoteEvaluatePanel.jsx'));
 
 // The source gate, buildEvalPrincipal, buildDashboardDataBundle and
 // buildNavigationBundle are re-exported below
@@ -135,16 +136,18 @@ export const ROUTE_RENDERERS = {
     />
   ),
   evaluate: (params, props) => {
-    // Shared projects have no Evaluate flow (evaluation is local-only) --
-    // shouldShowEvaluate already keeps the TopBar's Evaluate button
-    // from ever linking here for a shared selection, but a stale nav-stack
-    // entry (e.g. the user was sitting on Evaluate and switched to a shared
-    // project) could still land the router on this route. Belt-and-braces:
-    // fall back to the Overview, the least-surprising landing spot, rather
-    // than rendering a dead-end evaluate screen with no source-appropriate
-    // action.
+    // Evaluation is local-only, so a shared project's Evaluate never mounts
+    // the evaluate screen (its id can collide with a local one by design,
+    // and a run would write into the LOCAL project's store). It offers to
+    // pull a local copy instead.
     if (isSharedSource(props.navigation.selectedSource)) {
-      return ROUTE_RENDERERS.overview(params, props);
+      return (
+        <RemoteEvaluatePanel
+          projectId={props.navigation.selectedProject}
+          projectName={props.navigation.sharedProjectInfo?.name}
+          remotePull={props.navigation.remotePull}
+        />
+      );
     }
     return (
       <EvaluateCase

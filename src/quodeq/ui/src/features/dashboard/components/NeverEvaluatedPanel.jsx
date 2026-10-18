@@ -10,7 +10,7 @@ const LANGUAGE_SEPARATOR = ' · ';
 const MAX_LANGUAGES = 3;
 
 // Each step's look: ticked, the one to do now, or still ahead (muted).
-const STEP_STATE = Object.freeze({ DONE: 'done', NEXT: 'next', LATER: 'later' });
+export const STEP_STATE = Object.freeze({ DONE: 'done', NEXT: 'next', LATER: 'later' });
 
 // What the scan found, when the projects list already carries it: the
 // source-file count the Overview head shows, then the top languages. Null
@@ -27,7 +27,7 @@ function scanDetail(projectInfo) {
   return t(key, { count: files, languages: languages.join(LANGUAGE_SEPARATOR) });
 }
 
-function Step({ state, name, hint, children }) {
+export function Step({ state, name, hint, children }) {
   return (
     <li className={`never-evaluated__step never-evaluated__step--${state}`}>
       <span className="never-evaluated__mark" aria-hidden="true" />

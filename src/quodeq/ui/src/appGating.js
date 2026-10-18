@@ -20,15 +20,16 @@ export function isEvaluatableSource(selectedSource) {
 
 /**
  * Whether Evaluate (the TopBar button and the sidebar tab) is there at all.
- * It needs a selected LOCAL project that exists in the list, and one whose
- * clone is not still running: until then there is nothing to evaluate, and
- * the screen would open on a folder that does not exist yet. Shared
- * projects have no Evaluate flow (evaluation is local-only).
- * @param {{ selectedSource?: string, selectedProjectInfo?: Object|null, cloneSlot?: Object|null }} args
+ * A selected SHARED project has it too: evaluation is local-only, so its
+ * Evaluate is the card that pulls a local copy (RemoteEvaluatePanel), never
+ * a run. A LOCAL project needs to exist in the list, with a clone that is
+ * not still running: until then there is nothing to evaluate, and the
+ * screen would open on a folder that does not exist yet.
+ * @param {{ selectedSource?: string, selectedProject?: string|null, selectedProjectInfo?: Object|null, cloneSlot?: Object|null }} args
  *   cloneSlot: the clone job's slot while it is ACTIVE, else null
  */
-export function shouldShowEvaluate({ selectedSource, selectedProjectInfo, cloneSlot = null }) {
-  if (!isEvaluatableSource(selectedSource)) return false;
+export function shouldShowEvaluate({ selectedSource, selectedProject = null, selectedProjectInfo, cloneSlot = null }) {
+  if (!isEvaluatableSource(selectedSource)) return Boolean(selectedProject);
   if (!selectedProjectInfo) return false;
   return !isCloningProject(selectedProjectInfo, cloneSlot);
 }

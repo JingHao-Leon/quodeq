@@ -225,5 +225,18 @@ describe('SidePaneProvider', () => {
       expect(document.querySelector('.side-pane-toast')).toBeNull();
       expect(screen.getByRole('status')).toBeEmptyDOMElement();
     });
+
+    it('renders an optional action button that runs and dismisses', () => {
+      const onClick = vi.fn();
+      function ActionProbe() {
+        const { showToast } = useSidePane();
+        return <button onClick={() => showToast('copy is ready', { label: 'evaluate', onClick })}>fire-action</button>;
+      }
+      render(<SidePaneProvider><ActionProbe /></SidePaneProvider>);
+      fireEvent.click(screen.getByText('fire-action'));
+      fireEvent.click(screen.getByRole('button', { name: 'evaluate' }));
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(document.querySelector('.side-pane-toast')).toBeNull();
+    });
   });
 });

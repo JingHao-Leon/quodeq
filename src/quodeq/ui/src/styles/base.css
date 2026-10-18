@@ -631,6 +631,19 @@ textarea:focus {
   cursor: pointer;
 }
 
+.side-pane-toast__action {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm, 4px);
+  color: inherit;
+  font: inherit;
+  line-height: 1;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  margin-left: var(--space-3, 12px);
+  cursor: pointer;
+}
+
+.side-pane-toast__action:focus-visible,
 .side-pane-toast__dismiss:focus-visible {
   outline: 2px solid var(--color-bg, #0d1117);
   outline-offset: 2px;

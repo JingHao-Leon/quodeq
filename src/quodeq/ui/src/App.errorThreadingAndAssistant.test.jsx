@@ -171,7 +171,7 @@ describe('Assistant drawer close on shared project switch', () => {
 // the TopBar from linking here, but a stale nav-stack entry could still land
 // the router on the 'evaluate' route with a shared selection -- it must fall
 // back to the Overview rather than rendering the dead-end evaluate screen.
-describe('evaluate route: shared-source fallback (Critical 1 belt-and-braces)', () => {
+describe('evaluate route: a shared selection never mounts the evaluate screen', () => {
   function baseProps(selectedSource) {
     const projects = [{ id: 'proj1', name: 'proj1' }];
     return {
@@ -192,11 +192,13 @@ describe('evaluate route: shared-source fallback (Critical 1 belt-and-braces)', 
     expect(el.props).toHaveProperty('selectedProject', 'proj1');
   });
 
-  it('falls back to exactly what the overview route renders for a shared selection', () => {
+  it('renders the pull card for a shared selection, never EvaluateCase', () => {
     const props = baseProps('shared');
+    const remotePull = { start: vi.fn() };
+    props.navigation.remotePull = remotePull;
     const evalEl = ROUTE_RENDERERS.evaluate({}, props);
-    const overviewEl = ROUTE_RENDERERS.overview({}, props);
-    expect(evalEl.type).toBe(overviewEl.type);
     expect(evalEl.props).not.toHaveProperty('onGoToProjects');
+    expect(evalEl.props).toHaveProperty('projectId', 'proj1');
+    expect(evalEl.props.remotePull).toBe(remotePull);
   });
 });
