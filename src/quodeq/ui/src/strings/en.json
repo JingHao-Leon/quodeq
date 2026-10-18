@@ -1289,7 +1289,6 @@
   "overview.showRunComplianceAria": "Show compliance entries for this run",
   "overview.showRunViolationsAria": "Show all violations for this run",
   "overview.sortedBySeverity": "SORTED BY SEVERITY",
-  "overview.sparseTrend": "Only one {period} of data. Choose a finer grouping to see a trend.",
   "overview.startEvaluation": "Start evaluation",
   "overview.statCompliance": "COMPLIANCE",
   "overview.statRatio": "RATIO",

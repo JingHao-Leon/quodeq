@@ -67,6 +67,13 @@ describe('AccumulatedOverviewPanel layout', () => {
     expect(document.querySelector('.overview-top-grid')).toHaveClass('qd-top-grid--single');
   });
 
+  it('with a single evaluation drops the history and the radial takes the row', () => {
+    const three = [...DIMS, { dimension: 'performance', overallScore: '7.0/10', fromRunId: 'r2' }];
+    renderPanel({ accumulated: { summary: { numericAverage: 7 }, dimensions: three }, accumulatedDimensions: three, trend: [TREND[0]] });
+    expect(screen.getByRole('region', { name: 'Dimensions radial' })).toBeInTheDocument();
+    expect(document.querySelector('.overview-top-grid')).toHaveClass('qd-top-grid--single');
+  });
+
   it('with no history and no radial there is no top row', () => {
     const one = [DIMS[1]];
     renderPanel({ accumulated: { summary: { numericAverage: 7 }, dimensions: one }, accumulatedDimensions: one, trend: [] });
