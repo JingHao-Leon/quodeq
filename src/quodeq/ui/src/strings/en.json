@@ -2468,7 +2468,7 @@
   "storage.deleteAll": "delete all evaluation data",
   "storage.deleteAllWord": "delete all",
   "storage.keepRuns": "Runs kept in full per project",
-  "storage.keepRunsDesc": "The newest finished runs stay as they are. Older ones, cancelled runs included, are stored compressed in place and open in a few seconds the first time.",
+  "storage.keepRunsDesc": "The newest finished runs stay as they are. Older ones, cancelled runs included, are stored compressed in place, reports too, and open in a few seconds the first time.",
   "storage.runs": "{count} runs",
   "storage.all": "all",
   "storage.autoCleanup": "Clean up after start",
