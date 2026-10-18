@@ -143,12 +143,6 @@ function SkeletonDimensions({ label, shape }) {
           {placeholders(count).map((index) => <SkeletonDimensionCard key={index} index={index} />)}
         </div>
       </div>
-      {shape?.notEvaluated && (
-        <p className="not-evaluated-line">
-          <Bar kind="since-label" />
-          <span className="term-btn not-evaluated-line__btn overview-skeleton__ghost">{'\u00a0'}</span>
-        </p>
-      )}
     </section>
   );
 }
@@ -213,7 +207,7 @@ export function SkeletonBottom({ run = false, height = null }) {
  * @param {string} [props.sub] the header's sub line in place of the loading one (an archived run being restored)
  * @param {string} [props.title] the header's name in place of the Overview's (a dimension page's dimension)
  * @param {string} [props.cardsLabel] the cards' section label in place of "quality dimensions" (a dimension's principles)
- * @param {{cards: number, notEvaluated: boolean}} [props.shape] the project's last drawn footprint (overviewShape.js)
+ * @param {{cards: number, height?: number, bottom?: number}} [props.shape] the project's last drawn footprint (overviewShape.js)
  */
 export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, sub, title, cardsLabel, shape = DEFAULT_SHAPE }) {
   return (
