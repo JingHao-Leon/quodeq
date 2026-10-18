@@ -15,9 +15,9 @@ describe('Sidebar evaluate nav item — source gating', () => {
     expect(screen.getByTitle('evaluate')).toBeInTheDocument();
   });
 
-  it('omits the evaluate nav item for a shared selection', () => {
+  it('keeps the evaluate nav item for a shared selection (it offers a pull)', () => {
     render(<Sidebar activeTab="overview" onNavTab={vi.fn()} selectedSource="shared" />);
-    expect(screen.queryByTitle('evaluate')).toBeNull();
+    expect(screen.getByTitle('evaluate')).toBeInTheDocument();
   });
 
   it('defaults to local (evaluate shown) when selectedSource is not passed', () => {

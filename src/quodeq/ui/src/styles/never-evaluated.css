@@ -69,6 +69,20 @@
   color: var(--color-text-subtle, var(--color-text-muted));
 }
 .never-evaluated__actions {
+  gap: var(--term-space-2);
   display: flex;
   justify-content: flex-end;
+}
+/* The remote project's Evaluate: one line on why it needs a local copy. */
+.never-evaluated__lede {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.never-evaluated__step--next .never-evaluated__mark {
+  border-color: var(--color-accent);
+}
+.never-evaluated__error {
+  color: var(--color-danger-text);
 }
