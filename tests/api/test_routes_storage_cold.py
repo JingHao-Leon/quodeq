@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import os
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from flask import Flask
@@ -10,7 +12,7 @@ from quodeq.api.routes_storage import register_storage_routes
 from quodeq.core.observability import NULL_LOG
 from quodeq.services.storage_cleanup import archive_keeping_keys
 from quodeq.services.storage_settings import storage_settings_path
-from tests.services._archive_fixtures import make_run
+from tests.services._archive_fixtures import freeze_grades, make_run
 from tests.services._storage_fixtures import FakeProvider
 
 
@@ -53,9 +55,11 @@ def test_a_cold_after_days_outside_the_choices_is_refused(client):
 
 
 def test_the_preview_and_the_notice_report_trim_work(client, root):
-    old = make_run(root, "run-old", days=400)
+    old = freeze_grades(make_run(root, "run-old", days=400))
     make_run(root, "run-new", days=10)
     archive_keeping_keys(old, NULL_LOG)
+    stamp = int((datetime.now(timezone.utc) - timedelta(days=120)).timestamp())
+    os.utime(old / "scalars.json", (stamp, stamp))  # archived four months ago
     _settings(keep_runs=5, cold_after_days=91, keep_notice="pending")
     preview = client.get("/api/storage/preview").get_json()
     notice = client.get("/api/storage").get_json()["archiveNotice"]

@@ -7,11 +7,11 @@ import pytest
 
 from quodeq.data.fs.run_archive import RunArchiveError, archive_run, ensure_restored, has_event_log, is_archived
 from quodeq.data.fs.run_cold import is_cold, is_frozen, trim_run
-from tests.services._archive_fixtures import make_run
+from tests.services._archive_fixtures import freeze_grades, make_run
 
 
 def test_trim_turns_an_archived_run_cold_and_frees_the_archive(tmp_path):
-    run = make_run(tmp_path, "r1")
+    run = freeze_grades(make_run(tmp_path, "r1"))
     archive_run(run)
     size = (run / "archive.tar.gz").stat().st_size
     freed = trim_run(run)
@@ -26,14 +26,14 @@ def test_trim_refuses_a_warm_run_and_a_run_without_frozen_grades(tmp_path):
         trim_run(warm)
     bare = make_run(tmp_path, "r2")
     archive_run(bare)
-    (bare / "scalars.json").unlink()
+    (bare / "scalars.json").write_text('{"version": 1, "dimensions": [], "principles": [], "counts": {}}')  # archived before any grade was computed: nothing to freeze
     with pytest.raises(RunArchiveError):
         trim_run(bare)
     assert is_archived(bare) and not is_cold(bare) and not is_cold(warm)
 
 
 def test_a_cold_run_is_frozen_but_has_no_event_log(tmp_path):
-    run = make_run(tmp_path, "r1")
+    run = freeze_grades(make_run(tmp_path, "r1"))
     archive_run(run)
     trim_run(run)
     assert is_frozen(run) and not has_event_log(run)
@@ -42,7 +42,7 @@ def test_a_cold_run_is_frozen_but_has_no_event_log(tmp_path):
 
 
 def test_trim_sweeps_a_stray_database_beside_the_archive(tmp_path):
-    run = make_run(tmp_path, "r1")
+    run = freeze_grades(make_run(tmp_path, "r1"))
     archive_run(run)
     (run / "evaluation.db").write_bytes(b"stray")
     (run / "evaluation.db-wal").write_bytes(b"stray")

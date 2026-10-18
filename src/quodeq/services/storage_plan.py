@@ -9,8 +9,8 @@ still in flight is left alone entirely. A run restored within the last
 ``RESTORE_GRACE_DAYS`` stays unpacked. A run without a start time, or bigger
 than a restore accepts, is never archived. A run archived before its reports
 were packed in place gets them packed by the next pass, without a restore. With
-``cold_after_days`` set, an archived run that started earlier than that loses its
-archive for good (``trim``) once it has frozen grades to stand in.
+``cold_after_days`` set, a run archived longer ago than that (the time its frozen
+grades were written) loses its archive for good (``trim``).
 """
 from __future__ import annotations
 
@@ -22,7 +22,8 @@ from quodeq.services.wiring import list_report_files
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
 from quodeq.services.wiring_sync import (
-    SCALARS_NAME, has_event_log, is_archived, is_cold, max_archive_bytes, packed_bytes, report_bytes, restored_at,
+    SCALARS_NAME, has_event_log, is_archived, is_cold, max_archive_bytes, packed_bytes, read_scalars, report_bytes,
+    restored_at,
 )
 
 
@@ -103,11 +104,27 @@ def _restored_recently(run_dir: Path, now: datetime) -> bool:
     return restored is not None and restored >= now - timedelta(days=RESTORE_GRACE_DAYS)
 
 
-def _trims(run_dir: Path, when: datetime | None, now: datetime, cold_after_days: int | None) -> bool:
-    """An archived run old enough to lose its findings: not cold yet, with frozen grades to stand in."""
-    if cold_after_days is None or when is None or is_cold(run_dir):
+def _archived_at(run_dir: Path) -> datetime | None:
+    """When the run was archived: the frozen-grades sidecar is written then (and again on a re-archive).
+
+    None without a scored dimension in the sidecar: such a run is never trimmed.
+    """
+    if read_scalars(run_dir) is None:
+        return None
+    try:
+        return datetime.fromtimestamp((run_dir / SCALARS_NAME).stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _trims(run_dir: Path, now: datetime, cold_after_days: int | None) -> bool:
+    """An archived run that loses its findings: archived longer ago than the period, or a trim left half done."""
+    if is_cold(run_dir):  # the marker is there but the archive stayed (an interrupted trim): finish it, whatever the period
+        return True
+    archived_at = _archived_at(run_dir)
+    if cold_after_days is None or archived_at is None:
         return False
-    return when < now - timedelta(days=cold_after_days) and (run_dir / SCALARS_NAME).is_file()
+    return archived_at < now - timedelta(days=cold_after_days)
 
 
 def _plan_project(project: Path, now: datetime, keep_runs: int | None, cold_after_days: int | None) -> CleanupPlan:
@@ -121,8 +138,10 @@ def _plan_project(project: Path, now: datetime, keep_runs: int | None, cold_afte
         if is_archived(run_dir):
             if report_bytes(run_dir):
                 pack.append(run_dir)
-            if _trims(run_dir, when, now, cold_after_days):
+            if _trims(run_dir, now, cold_after_days):
                 trim.append(run_dir)
+        elif is_cold(run_dir):
+            continue  # neither tidied nor a warm-set candidate: its findings are gone, its grades frozen
         elif state in TERMINAL_STATES:
             runs.append((run_dir, when, state))
     tidy = [r for r, _, _ in runs]

@@ -72,4 +72,20 @@ describe('StorageSection, keeping the findings of archived runs', () => {
     expect(dialog.getByText(/The findings of those runs are deleted for good; their grades and reports stay\./)).toBeInTheDocument();
     expect(dialog.getByRole('button', { name: 'clean now' })).toBeEnabled();
   });
+
+  it('the first-start notice names the findings it will remove and never says nothing is deleted', async () => {
+    const getStorage = vi.fn()
+      .mockResolvedValueOnce({ ...SUMMARY, coldAfterDays: 183, archiveNotice: { runs: 3, pack: 0, trim: 12, bytes: GB } })
+      .mockResolvedValue({ ...SUMMARY, coldAfterDays: 183, archiveNotice: { runs: 0, pack: 0, trim: 12, bytes: GB } });
+    const { section } = setup({ getStorage });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 3 runs beyond the 10 newest of each project, freeing about 1.0 GB.'));
+    expect(section().getByRole('status')).toHaveTextContent('It also removes the findings of 12 runs archived more than 6 months ago, which cannot be brought back; their grades and reports stay.');
+  });
+
+  it('a trim-only notice says what goes and how to keep it', async () => {
+    const getStorage = vi.fn(async () => ({ ...SUMMARY, coldAfterDays: 91, archiveNotice: { runs: 0, pack: 0, trim: 7, bytes: GB } }));
+    const { section } = setup({ getStorage });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('Next time quodeq starts, it removes the findings of 7 runs archived more than 3 months ago, freeing about 1.0 GB. They cannot be brought back; grades and reports stay. To keep them, choose forever below or turn Clean up after start off.'));
+    expect(section().getByRole('status')).not.toHaveTextContent('Nothing is deleted');
+  });
 });

@@ -2479,6 +2479,8 @@
   "storage.coldConfirmTitle": "Remove old findings",
   "storage.coldConfirmBody": "The findings of runs archived more than {period} ago are removed at the next clean up. Their grades and reports stay. This cannot be undone.",
   "storage.coldConfirm": "remove findings",
+  "storage.noticeTrim": "It also removes the findings of {trim} runs archived more than {period} ago, which cannot be brought back; their grades and reports stay.",
+  "storage.noticeTrimOnly": "Next time quodeq starts, it removes the findings of {trim} runs archived more than {period} ago, freeing about {size}. They cannot be brought back; grades and reports stay. To keep them, choose forever below or turn Clean up after start off.",
   "storage.cleanTrim": "It also removes the findings of {trim} runs archived more than {period} ago.",
   "storage.cleanTrimOnly": "Removes the findings of {trim} runs archived more than {period} ago, freeing about {frees}.",
   "storage.cleanNoteTrim": "The findings of those runs are deleted for good; their grades and reports stay.",

@@ -56,7 +56,7 @@ function previewText(preview, isError, period) {
 export function ConfirmColdModal({ period, onConfirm, onClose }) {
   return (
     <Modal titleId="storage-cold-title" title={t('storage.coldConfirmTitle')} onCancel={onClose}
-      actions={<button type="button" className="term-btn term-btn--danger" onClick={onConfirm}>{t('storage.coldConfirm')}</button>}>
+      actions={<button type="button" className="btn-danger" onClick={onConfirm}>{t('storage.coldConfirm')}</button>}>
       <p>{t('storage.coldConfirmBody', { period })}</p>
     </Modal>
   );

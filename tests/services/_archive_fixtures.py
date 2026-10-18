@@ -5,7 +5,9 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from quodeq.core.scoring.params import DEFAULT_PARAMS
 from quodeq.data.fs import run_archive
+from quodeq.data.projection.grade_projector import recompute_grades
 from quodeq.data.fs.run_archive import archive_run
 from tests.api._scores_routes_helpers import _scorable_violations, _seed_run
 
@@ -28,6 +30,12 @@ def make_run(
         "dimension": dimension, "overallScore": 50, "overallGrade": "C",
         "principles": [], "violations": [], "totals": {"violations": n},
     }))
+    return run
+
+
+def freeze_grades(run: Path) -> Path:
+    """Bake the run's grade tables (the warm-up does this for every real run), so an archive carries frozen grades."""
+    recompute_grades(run, params=DEFAULT_PARAMS)
     return run
 
 

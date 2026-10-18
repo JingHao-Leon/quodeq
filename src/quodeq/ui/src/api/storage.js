@@ -15,7 +15,7 @@ export function getStorage() {
   return request('/storage');
 }
 
-/** @returns {Promise<{clean: {state: string, done: number, total: number, archived: number, bytesFreed: number}}>} */
+/** @returns {Promise<{clean: {state: string, done: number, total: number, archived: number, packed: number, trimmed: number, bytesFreed: number}}>} */
 export function getCleanStatus() {
   return request('/storage/clean');
 }

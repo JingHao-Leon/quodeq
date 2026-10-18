@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import copy
 import logging
+from dataclasses import replace
 from pathlib import Path
 
 from quodeq.services.grade_formula import load_params
 from quodeq.services.ports import StoreUnreadableError
-from quodeq.services.rescore import rescore_dimensions
+from quodeq.services.rescore import filter_excluded_violations, with_hidden_counts, rescore_dimensions
 from quodeq.services.suppression_keys import SuppressionKeys
 from quodeq.services.score_cache import params_fingerprint
 from quodeq.services.deleted import deleted_keys
@@ -21,6 +22,7 @@ from quodeq.services.wiring import (
     SQLiteStateStore, SqliteFindingsRepository, count_eval_files, evaluation_db_stamp,
     load_suppression_rules,
 )
+from quodeq.core.scoring.params import ScoringParams
 from quodeq.services.scoring._deps import ScoringDeps, NO_DEPS
 from quodeq.services.scoring._response_builders import (
     build_response_from_eval_files,
@@ -28,7 +30,7 @@ from quodeq.services.scoring._response_builders import (
 )
 from quodeq.shared.stamp_memo import StampCache, file_stamp, memoized_by_stamp
 from quodeq.shared.validation import validate_path_segment
-from quodeq.services.wiring_sync import has_event_log, is_frozen, read_archived_run_data
+from quodeq.services.wiring_sync import has_event_log, is_cold, is_frozen, read_archived_run_data
 from quodeq.services.scoring.compliance_detail import defer_dimension_detail
 
 _logger = logging.getLogger(__name__)
@@ -148,11 +150,8 @@ def get_scores_raw(
 
     params = load_params()
     project_dir = reports_root / project
-    if keep_archived and is_frozen(run_dir):
-        rescored = rescore_dimensions(
-            read_archived_run_data(run_dir), SuppressionKeys(frozenset()), params=params, run_dir=run_dir,
-        )
-        return {"dimensions": rescored.get("dimensions", []), "summary": rescored.get("summary", {})}
+    if is_cold(run_dir) or (keep_archived and is_frozen(run_dir)):  # a cold run has only its frozen grades
+        return _frozen_response(run_dir, project_dir, params, d)
 
     # SQL path is meaningful only when events.jsonl exists. For older runs
     # without one, skip straight to the JSON-file fallback so we don't have
@@ -165,6 +164,25 @@ def get_scores_raw(
     return build_response_from_eval_files(
         reports_root, project, run_id, params=params, deps=deps,
     )
+
+
+def _frozen_response(run_dir: Path, project_dir: Path, params: ScoringParams, d: ScoringDeps) -> dict:
+    """The frozen grades of an archived or cold run, with the suppressed findings taken out of its lists.
+
+    The grades are never recomputed here (the evidence is packed or gone):
+    the lists lose the dismissed, deleted and rule-suppressed rows so no
+    view shows a finding another view hides, and the counts say how many.
+    """
+    keys = SuppressionKeys(
+        (d.dismissed_keys or dismissed_keys)(project_dir), (d.deleted_keys or deleted_keys)(project_dir),
+        tuple((d.load_suppression_rules or load_suppression_rules)(project_dir)),
+    )
+    shown = []
+    for dim in read_archived_run_data(run_dir):
+        filtered = replace(dim, violations=filter_excluded_violations(dim, keys))
+        shown.append(with_hidden_counts(dim, filtered, keys))
+    rescored = rescore_dimensions(shown, SuppressionKeys(frozenset()), params=params, run_dir=run_dir)
+    return {"dimensions": rescored.get("dimensions", []), "summary": rescored.get("summary", {})}
 
 
 def get_scores_slim(

@@ -20,10 +20,14 @@ const COLD_AFTER = [QUARTER_DAYS, HALF_YEAR_DAYS, YEAR_DAYS, null].map((v) => ({
 function ArchiveNotice({ data }) {
   const notice = data?.archiveNotice;
   if (!notice) return null;
-  const args = { runs: notice.runs, pack: notice.pack ?? 0, keep: data.keepRuns ?? '', size: formatBytes(notice.bytes) };
-  const text = notice.runs === 0
-    ? t('storage.noticePackOnly', args)
-    : t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', args) + (args.pack ? ` ${t('storage.noticePack', args)}` : '');
+  const trim = notice.trim ?? 0;
+  const args = { runs: notice.runs, pack: notice.pack ?? 0, trim, keep: data.keepRuns ?? '', period: periodLabel(data.coldAfterDays), size: formatBytes(notice.bytes) };
+  let text;
+  if (notice.runs === 0 && args.pack === 0) text = t('storage.noticeTrimOnly', args);
+  else if (notice.runs === 0) text = t('storage.noticePackOnly', args);
+  else text = t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', args);
+  if (notice.runs > 0 && args.pack) text += ` ${t('storage.noticePack', args)}`;
+  if (trim && !(notice.runs === 0 && args.pack === 0)) text += ` ${t('storage.noticeTrim', args)}`;
   return <p className="storage-notice" role="status">{text}</p>;
 }
 

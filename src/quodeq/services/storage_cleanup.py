@@ -87,7 +87,14 @@ def _archive_one(run_dir: Path, log: LogSink):
 
 
 def _trim_unless_gone(run_dir: Path) -> int | None:
-    return None if not is_archived(run_dir) else trim_run(run_dir)
+    if not is_archived(run_dir):
+        return None
+    try:
+        return trim_run(run_dir)
+    except RunArchiveError:
+        if is_archived(run_dir):
+            raise
+        return None  # restored by someone else between the plan and now
 
 
 def _trim_one(run_dir: Path, log: LogSink) -> int | None:

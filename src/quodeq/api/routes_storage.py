@@ -9,7 +9,7 @@ POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean (S
                                    (STORAGE_WARMUP) or a grade-formula rescore (STORAGE_RESCORE) runs
 DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while a run, a clean, the warm-up or a rescore runs
 
-``archiveNotice`` is ``{runs, pack, bytes}`` while the first start held the archive
+``archiveNotice`` is ``{runs, pack, trim, bytes}`` while the first start held the archive
 back (see ``services/storage_notice``), else null. ``keepRuns`` is how many of
 a project's newest done runs stay unpacked (null keeps all); ``archiveAfterDays``
 is the 1.14 age choice, kept for a later release and no longer driving the plan.

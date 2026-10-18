@@ -10,11 +10,11 @@ from quodeq.data.sqlite.connection import open_evaluation_db
 from quodeq.data.sqlite.errors import SqliteStoreUnreadableError
 from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository
 from quodeq.services.run_keys import read_run_key_sets
-from tests.services._archive_fixtures import make_run
+from tests.services._archive_fixtures import freeze_grades, make_run
 
 
 def _cold(tmp_path):
-    run = make_run(tmp_path, "r1", n=4)
+    run = freeze_grades(make_run(tmp_path, "r1", n=4))
     archive_run(run)
     trim_run(run)
     return run
