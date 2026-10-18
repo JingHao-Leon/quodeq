@@ -4,7 +4,7 @@ from __future__ import annotations
 import threading
 
 from quodeq.services import storage_cleanup
-from quodeq.services.storage_cleanup import run_cleanup
+from quodeq.services.storage_cleanup import CleanupHooks, run_cleanup
 from quodeq.services.storage_job import CleanJob
 from quodeq.services.storage_settings import (
     ArchiveNotice, StorageSettings, read_storage_settings, write_storage_settings,
@@ -104,7 +104,7 @@ def test_a_pass_stops_when_a_rescore_starts(tmp_path):
         asked.append(1)
         return len(asked) > 1
 
-    result = run_cleanup(tmp_path, NOW, keep_runs=1, should_stop=rescore_started)
+    result = run_cleanup(tmp_path, NOW, keep_runs=1, hooks=CleanupHooks(should_stop=rescore_started))
 
     assert (first / "archive.tar.gz").is_file() and not (second / "archive.tar.gz").exists()
     assert result.archived == 1

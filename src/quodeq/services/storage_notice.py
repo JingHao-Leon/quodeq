@@ -3,7 +3,8 @@
 storage.json has no ``keep_notice`` until a start decides it. The first
 start whose pass would archive anything beyond the kept runs only tidies and
 records the notice ``pending``; Settings › Storage then says what the next
-start archives, with the kept-count setting and the off switch beside it. The
+start archives (and whose reports it packs), with the kept-count setting and
+the off switch beside it. The
 next pass that runs (the next start, or clean now) archives as set and records
 ``done``. A start with nothing to archive records ``done`` at once, so a fresh
 install never sees the notice. The 1.14 age rule's ``archive_notice`` is left
@@ -40,8 +41,8 @@ def first_start_may_archive(
     if settings.keep_notice is not None:
         mark_archive_notice_done(env, log)
         return True
-    keep = settings.keep_runs
-    held = keep is not None and bool(plan_cleanup(root, now, keep).archive)
+    plan = plan_cleanup(root, now, settings.keep_runs)
+    held = bool(plan.archive or plan.pack)  # packing the reports of earlier archives waits for the notice too
     notice = ArchiveNotice.PENDING if held else ArchiveNotice.DONE
     saved = write_storage_settings(replace(settings, keep_notice=notice), env, log=log)
     if held and saved:

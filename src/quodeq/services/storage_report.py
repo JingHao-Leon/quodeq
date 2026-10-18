@@ -60,10 +60,11 @@ class StorageSummary:
 
 @dataclass(frozen=True)
 class CleanPreview:
-    """How many runs a clean would archive and about how many bytes it would free."""
+    """Runs a clean would archive, archived runs whose reports it would pack, and about how many bytes it frees."""
 
     archive: int
     frees: int
+    pack: int = 0
 
 
 def _children(path: Path) -> list[os.DirEntry]:
@@ -137,10 +138,10 @@ def _frees(run_dir: Path) -> float:
 
 
 def clean_preview(root: Path, now: datetime, keep_runs: int | None) -> CleanPreview:
-    """Runs a clean would archive or pack now (counted together) and about how many bytes it would free."""
+    """Runs a clean would archive now, archived runs whose reports it would pack, and about how many bytes it frees."""
     plan = plan_cleanup(root, now, keep_runs)
     frees = sum(_frees(r) for r in plan.archive) + sum(_report_frees(r) for r in plan.pack)
-    return CleanPreview(len(plan.archive) + len(plan.pack), int(frees))
+    return CleanPreview(len(plan.archive), int(frees), len(plan.pack))
 
 
 def _state(status: dict) -> RunState | None:
@@ -180,11 +181,10 @@ def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, 
     Read with the settings as they are now, so changing the kept count or
     turning cleanup off changes (or clears) the notice at once.
     """
-    keep = settings.keep_runs
-    if settings.keep_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or keep is None:
+    if settings.keep_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup):
         return None
-    preview = clean_preview(root, now, keep)
-    return preview if preview.archive else None
+    preview = clean_preview(root, now, settings.keep_runs)
+    return preview if preview.archive or preview.pack else None
 
 
 def _is_project(root: Path, folder: Path) -> bool:

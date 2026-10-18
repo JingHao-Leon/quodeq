@@ -9,7 +9,7 @@ from quodeq.core.observability import NULL_LOG
 from quodeq.data.fs.report_parser.finding_details import read_eval_report
 from quodeq.data.fs.run_archive import is_archived
 from quodeq.data.fs.run_artifacts import copy_reports_plain
-from quodeq.services.fs_reports import get_dimension_eval
+from quodeq.services.fs_reports import get_dashboard, get_dimension_eval
 from quodeq.services.map_history import ALL_FRAMES, build_map_history
 from quodeq.services.run_diff import diff_runs
 from quodeq.services.scoring import get_project_scores
@@ -31,8 +31,11 @@ def root(tmp_path, monkeypatch):
 def _archived_project(root):
     old = make_run(root, _OLD, n=5, days=400)
     make_run(root, _NEW, n=7, days=10)
-    archive_keeping_keys(old, NULL_LOG)
-    assert is_archived(old)
+    cancelled = make_run(root, "run-cancelled", n=3, days=200)  # History lists it as a partial run from its report
+    (cancelled / "status.json").write_text(json.dumps({"state": "cancelled", "started_at": "2026-04-01T00:00:00+00:00"}))
+    for run in (old, cancelled):
+        archive_keeping_keys(run, NULL_LOG)
+        assert is_archived(run)
     return old
 
 
@@ -40,6 +43,7 @@ def _archived_project(root):
     pytest.param(lambda r: get_project_scores(r, PROJECT), False, id="trend"),
     pytest.param(lambda r: diff_runs(r, PROJECT, _NEW, None, since_baseline=False), False, id="diff"),
     pytest.param(lambda r: build_map_history(r, PROJECT, frames=ALL_FRAMES, git_activity=False), False, id="map"),
+    pytest.param(lambda r: get_dashboard(str(r), PROJECT, _NEW)["partialRuns"], False, id="partials"),
     # Opening a dimension's detail is opening the run: it restores, as it did before this change.
     pytest.param(lambda r: get_dimension_eval(str(r), PROJECT, _OLD, "security"), True, id="detail"),
 ])
@@ -49,6 +53,7 @@ def test_archived_runs_read_the_same_packed_or_plain(root, read, restores):
     if restores:
         archive_keeping_keys(old, NULL_LOG)
     pack_reports(old)
+    pack_reports(root / PROJECT / "run-cancelled")
     assert read(root) == before and before
     assert is_archived(old) is not restores
 

@@ -44,9 +44,36 @@ def test_the_preview_counts_the_report_saving(tmp_path):
     assert preview.archive == 1 and preview.frees == int(expected)
 
 
-def test_the_preview_counts_runs_whose_reports_wait_to_be_packed(tmp_path):
+def test_the_preview_frees_counts_runs_whose_reports_wait_to_be_packed(tmp_path):
     old = _archived_the_old_way(tmp_path, "run-old", 400)
     make_run(tmp_path, "run-new", days=10)
     report = (old / "evaluation" / "security.json").stat().st_size
     preview = clean_preview(tmp_path, NOW, 1)
-    assert preview.archive == 1 and preview.frees == int(ARCHIVE_SAVING_REPORTS * report)
+    assert (preview.archive, preview.pack) == (0, 1) and preview.frees == int(ARCHIVE_SAVING_REPORTS * report)
+
+
+def _start(root, env):
+    from quodeq.services import storage_cleanup
+    from tests._timeouts import budget
+    thread = storage_cleanup.start_storage_cleanup(root, env)
+    if thread is not None:
+        thread.join(budget(10))
+
+
+def test_the_held_first_start_does_not_pack(tmp_path):
+    from quodeq.services.storage_settings import ArchiveNotice, read_storage_settings
+    root, env = tmp_path / "evals", {"QUODEQ_DIR": str(tmp_path / "qdir")}
+    old = _archived_the_old_way(root, "run-old", 400)
+    make_run(root, "run-new", days=10)
+    _start(root, env)
+    assert (old / "evaluation" / "security.json").is_file()  # held: only tidied
+    assert read_storage_settings(env).keep_notice is ArchiveNotice.PENDING
+    _start(root, env)
+    assert (old / "evaluation" / "security.json.gz").is_file() and not (old / "evaluation" / "security.json").exists()
+
+
+def test_the_preview_reports_pack_candidates_apart_from_archives(tmp_path):
+    _archived_the_old_way(tmp_path, "run-old", 400)
+    make_run(tmp_path, "run-new", days=10)
+    preview = clean_preview(tmp_path, NOW, 1)
+    assert (preview.archive, preview.pack) == (0, 1) and preview.frees > 0

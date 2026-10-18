@@ -10,19 +10,21 @@ under the run lock, without restoring them.
 from __future__ import annotations
 
 import gzip
+import logging
 import os
 from pathlib import Path
 
 from quodeq.data.fs.report_files import (
-    PACKED_REPORT_SUFFIX, REPORT_SUFFIX, is_packed_report, list_report_files, report_dimension,
+    PACKED_REPORT_SUFFIX, REPORT_SUFFIX, is_packed_report, list_report_files, read_report_bytes, report_dimension,
 )
+from quodeq.data.fs.run_archive_files import ARCHIVE_FILENAME
 from quodeq.data.fs.run_archive_guard import run_lock
 from quodeq.data.fs.run_archive_limits import RunArchiveError
 
+_logger = logging.getLogger(__name__)
 _EVAL_DIR = "evaluation"
 _TMP_SUFFIX = ".tmp"
 _LEVEL = 6
-_ARCHIVE_FILENAME = "archive.tar.gz"  # run_archive_files.ARCHIVE_FILENAME; a run is archived while this file exists
 
 
 def _write_replacing(dest: Path, data: bytes, mtime_ns: int) -> None:
@@ -75,7 +77,7 @@ def pack_reports_in_place(run_dir: Path) -> tuple[int, int]:
 def pack_reports_locked(run_dir: Path) -> tuple[int, int]:
     """``pack_reports_in_place`` under the run lock, for a run archived earlier; ``(0, 0)`` once it is no longer archived."""
     with run_lock(run_dir):
-        if not (run_dir / _ARCHIVE_FILENAME).is_file():
+        if not (run_dir / ARCHIVE_FILENAME).is_file():
             return 0, 0
         return pack_reports_in_place(run_dir)
 
@@ -83,8 +85,10 @@ def pack_reports_locked(run_dir: Path) -> tuple[int, int]:
 def unpack_reports_in_place(run_dir: Path) -> None:
     """Bring every packed report of *run_dir* back as a plain file, mtime kept; a plain twin wins and the packed file goes.
 
-    Raises ``RunArchiveError`` on the first failure; the reports already
-    unpacked stay valid.
+    A packed file that cannot be read (damaged) is logged and left in place:
+    the readers skip it, and the run's grades come from the event log, not
+    the report. Only a failure to write the plain file raises
+    ``RunArchiveError``; the reports already unpacked stay valid.
     """
     eval_dir = run_dir / _EVAL_DIR
     try:
@@ -92,15 +96,18 @@ def unpack_reports_in_place(run_dir: Path) -> None:
     except OSError:
         return
     for packed in packed_files:
-        dimension = report_dimension(packed)
-        plain = eval_dir / f"{dimension}{REPORT_SUFFIX}"
-        try:
-            if not plain.exists():
-                with gzip.open(packed, "rb") as fh:
-                    _write_replacing(plain, fh.read(), packed.stat().st_mtime_ns)
-            packed.unlink()
-        except (OSError, EOFError) as exc:
-            raise RunArchiveError(f"could not unpack the report {packed.name} of {run_dir}: {exc}") from exc
+        plain = eval_dir / f"{report_dimension(packed)}{REPORT_SUFFIX}"
+        if not plain.is_file():
+            try:
+                data = read_report_bytes(packed)
+            except OSError as exc:
+                _logger.warning("Leaving the damaged packed report %s of %s in place: %s", packed.name, run_dir, exc)
+                continue
+            try:
+                _write_replacing(plain, data, packed.stat().st_mtime_ns)
+            except OSError as exc:
+                raise RunArchiveError(f"could not unpack the report {packed.name} of {run_dir}: {exc}") from exc
+        packed.unlink(missing_ok=True)
 
 
 def clean_report_leftovers(run_dir: Path) -> None:

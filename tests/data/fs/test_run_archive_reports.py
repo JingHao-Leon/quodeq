@@ -88,3 +88,15 @@ def test_pack_reports_in_place_counts_bytes_and_skips_a_run_without_plain_report
     before, after = pack_reports_in_place(run)
     assert before == plain_size and 0 < after < before
     assert pack_reports_in_place(run) == (0, 0)
+
+
+def test_a_corrupt_packed_report_does_not_block_the_restore(tmp_path):
+    run = make_run(tmp_path, "r1")
+    write_report(run / "evaluation", "quality", {"dimension": "quality", "violations": []})
+    archive_run(run)
+    body = bytearray(_packed(run).read_bytes())
+    body[10:18] = b"\x00\xff" * 4  # a damaged deflate stream
+    _packed(run).write_bytes(bytes(body))
+    assert ensure_restored(run) and not is_archived(run) and (run / "events.jsonl").is_file()
+    assert _packed(run).is_file() and not _plain(run).exists()  # the bad one stays packed, readers skip it
+    assert read_eval_report(run / "evaluation", "quality")["dimension"] == "quality"

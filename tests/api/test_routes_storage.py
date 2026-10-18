@@ -61,7 +61,7 @@ def test_get_storage_on_an_empty_root_is_zeros(client):
     assert resp.get_json() == {
         "bytes": 0, "runs": 0, "archived": 0, "projects": {}, "keepRuns": 10, "archiveAfterDays": 183,
         "autoCleanup": True, "archiveNotice": None,
-        "clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0},
+        "clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "packed": 0, "bytesFreed": 0},
     }
 
 
@@ -95,7 +95,7 @@ def test_preview_uses_the_stored_setting(client, root):
     _crowded(root)
     assert client.get("/api/storage/preview").get_json()["archive"] == 1
     write_storage_settings(StorageSettings(keep_runs=None))
-    assert client.get("/api/storage/preview").get_json() == {"archive": 0, "frees": 0}
+    assert client.get("/api/storage/preview").get_json() == {"archive": 0, "pack": 0, "frees": 0}
 
 
 def test_clean_starts_and_finishes(client, root):
@@ -172,7 +172,7 @@ def test_get_clean_returns_only_the_snapshot(client, monkeypatch):
     monkeypatch.setattr(routes_storage, "storage_summary", lambda _root: pytest.fail("no disk walk"))
     resp = client.get("/api/storage/clean")
     assert resp.status_code == 200
-    assert resp.get_json() == {"clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0}}
+    assert resp.get_json() == {"clean": {"state": "idle", "done": 0, "total": 0, "archived": 0, "packed": 0, "bytesFreed": 0}}
 
 
 def test_the_app_registers_the_storage_routes(root):

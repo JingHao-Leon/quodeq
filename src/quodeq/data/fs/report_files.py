@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import zlib
 from pathlib import Path
 
 REPORT_SUFFIX = ".json"
@@ -62,11 +63,14 @@ def report_file(eval_dir: Path, dimension: str) -> Path | None:
 
 
 def read_report_bytes(path: Path) -> bytes:
-    """The report's bytes, decompressed when packed; read errors propagate (``OSError``, ``EOFError``)."""
-    if is_packed_report(path):
+    """The report's bytes, decompressed when packed; a damaged packed file raises ``gzip.BadGzipFile`` (an ``OSError``)."""
+    if not is_packed_report(path):
+        return path.read_bytes()
+    try:
         with gzip.open(path, "rb") as fh:
             return fh.read()
-    return path.read_bytes()
+    except (zlib.error, EOFError) as exc:  # a damaged deflate stream or a truncated file, not just a bad header
+        raise gzip.BadGzipFile(f"{path.name}: {exc}") from exc
 
 
 def read_report_json(path: Path) -> object:

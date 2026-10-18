@@ -30,7 +30,7 @@ _memo: OrderedDict[str, tuple[_Key, list[dict[str, Any]]]] = OrderedDict()
 
 def _report_stamps(run_dir: Path) -> tuple[tuple[str, int], ...]:
     try:
-        return tuple((p.name, p.stat().st_mtime_ns) for _, p in list_report_files(run_dir / _REPORT_DIR))
+        return tuple((dimension, p.stat().st_mtime_ns) for dimension, p in list_report_files(run_dir / _REPORT_DIR))
     except OSError:
         return ()
 

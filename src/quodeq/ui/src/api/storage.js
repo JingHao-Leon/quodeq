@@ -9,7 +9,7 @@ import { request } from './request.js';
  * change; poll getCleanStatus() for clean progress instead.
  * `archiveNotice` is what the next start archives while the first-start
  * notice is pending, else null.
- * @returns {Promise<{bytes: number, runs: number, archived: number, projects: Object<string, {bytes: number, runs: number, archived: number}>, keepRuns: number|null, archiveAfterDays: number|null, autoCleanup: boolean, archiveNotice: {runs: number, bytes: number}|null, clean: {state: string, done: number, total: number, archived: number, bytesFreed: number}}>}
+ * @returns {Promise<{bytes: number, runs: number, archived: number, projects: Object<string, {bytes: number, runs: number, archived: number}>, keepRuns: number|null, archiveAfterDays: number|null, autoCleanup: boolean, archiveNotice: {runs: number, pack: number, bytes: number}|null, clean: {state: string, done: number, total: number, archived: number, bytesFreed: number}}>}
  */
 export function getStorage() {
   return request('/storage');
@@ -30,7 +30,7 @@ export function putStorageSettings(settings) {
   return request('/storage/settings', { method: 'PUT', body: JSON.stringify(settings) });
 }
 
-/** @returns {Promise<{archive: number, frees: number}>} */
+/** @returns {Promise<{archive: number, pack: number, frees: number}>} */
 export function getCleanPreview() {
   return request('/storage/preview');
 }

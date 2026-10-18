@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from quodeq.data.fs.report_files import (
     list_report_files, read_report_json, report_dimension, report_file, report_stamp_ns,
 )
@@ -44,3 +46,14 @@ def test_the_plain_report_wins_over_its_packed_twin(tmp_path):
     write_report(tmp_path, "a", {"v": "plain"})
     write_report(tmp_path, "a", {"v": "packed"}, packed=True)
     assert read_report_json(report_file(tmp_path, "a")) == {"v": "plain"}
+
+
+def test_a_corrupt_packed_body_reads_as_an_os_error(tmp_path):
+    # A damaged deflate stream raises zlib.error inside gzip; readers must see an OSError like for a bad header.
+    packed = write_report(tmp_path, "a", {"x": "0123456789abcdef" * 400}, packed=True)
+    body = bytearray(packed.read_bytes())
+    body[10:18] = b"\x00\xff" * 4
+    packed.write_bytes(bytes(body))
+    with pytest.raises(OSError):
+        read_report_json(packed)
+    assert list_report_files(tmp_path) == [("a", packed)]  # still listed; the readers that skip, skip it
