@@ -218,7 +218,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 3,
-          "provisional": false,
           "score": 9.8,
           "violations": 3
         }
@@ -250,7 +249,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 2,
-          "provisional": false,
           "score": 9.9,
           "violations": 2
         }
@@ -282,7 +280,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 3,
-          "provisional": false,
           "score": 9.7,
           "violations": 3
         }
@@ -314,7 +311,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 4,
-          "provisional": false,
           "score": 9.6,
           "violations": 4
         }
@@ -346,7 +342,6 @@
           "grade": "Exemplary",
           "majors": 0,
           "openTypes": 5,
-          "provisional": false,
           "score": 9.5,
           "violations": 5
         }
