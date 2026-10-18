@@ -21,7 +21,7 @@ def test_trend_averages_leave_out_a_failure_streak_dimension():
     assert entry["runNumericAverage"] == 6.0
     by_dim = {d["dimension"]: d for d in entry["dimensionDetails"]}
     assert by_dim["flexibility"]["provisional"] is True
-    assert by_dim["security"]["provisional"] is False
+    assert "provisional" not in by_dim["security"]  # the usual payload is unchanged
 
 
 def test_trend_averages_keep_a_time_limit_dimension():

@@ -36,13 +36,14 @@ def _build_dimension_details(
         score = parse_numeric_score(dim.overall_score) if dim.overall_score else None
         prev_score = parse_numeric_score(prev.overall_score) if prev and prev.overall_score else None
         delta = round(score - prev_score, 2) if score is not None and prev_score is not None else None
-        provisional = is_provisional(dim)
+        # Only a provisional score says so: every other payload stays as it was.
+        provisional = {"provisional": True} if is_provisional(dim) else {}
         details.append({
             "dimension": dim.dimension,
             "score": score,
             "grade": dim.overall_grade,
             "delta": delta,
-            "provisional": provisional,
+            **provisional,
             **dimension_counts(dim),
         })
     return details

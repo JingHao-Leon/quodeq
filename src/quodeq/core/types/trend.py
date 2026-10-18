@@ -5,7 +5,7 @@ logic depends on a contract rather than on the response format.
 """
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class RunInfoPayload(TypedDict):
@@ -29,7 +29,7 @@ class DimensionDetail(TypedDict):
     score: float | None
     grade: str | None
     delta: float | None
-    provisional: bool
+    provisional: NotRequired[bool]  # present, and True, only for a failure-streak score
     violations: int
     majors: int
     openTypes: int
