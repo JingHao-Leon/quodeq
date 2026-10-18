@@ -73,6 +73,20 @@ describe('PrincipleChart', () => {
     expect(screen.getByText(/^1 principle · 1 move · \d change grade$/)).toBeInTheDocument();
   });
 
+  it('draws only the bands while the projects load, nothing the x range moves', () => {
+    const { container } = mount({ inputs: null, loading: true });
+    expect(container.querySelectorAll('.gf-band')).toHaveLength(5);
+    expect(container.querySelector('.gf-curve')).not.toBeInTheDocument();
+    expect(container.querySelector('.gf-tick--x')).not.toBeInTheDocument();
+    expect(container.querySelectorAll('.gf-dot')).toHaveLength(0);
+    expect(screen.getByText('Reading your projects…')).toBeInTheDocument();
+  });
+
+  it('drops the loading line when the projects fail to load', () => {
+    mount({ inputs: null, loading: false });
+    expect(screen.queryByText('Reading your projects…')).not.toBeInTheDocument();
+  });
+
   it('anchors the axis text so ticks and titles sit on their positions', () => {
     const { container } = mount();
     const anchor = (sel) => container.querySelector(sel).getAttribute('text-anchor');

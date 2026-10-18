@@ -17,15 +17,13 @@ import { t } from '../../strings/index.js';
 import { pluralKey } from '../../utils/plural.js';
 import { usePageFocus } from '../../hooks/usePageFocus.js';
 
-function FormulaBody({ editor, inputs, view }) {
+function FormulaBody({ editor, inputs, inputsLoading, view }) {
   return (
     <>
-      {inputs && (
-        <div className="gf-chart-pin">
-          <PrincipleChart inputs={inputs} saved={editor.saved} draft={editor.draft} highlight={view.hoverGroup}
-            litProject={view.litProject} onHoverProject={view.setLitProject} />
-        </div>
-      )}
+      <div className="gf-chart-pin">
+        <PrincipleChart inputs={inputs} loading={inputsLoading} saved={editor.saved} draft={editor.draft} highlight={view.hoverGroup}
+          litProject={view.litProject} onHoverProject={view.setLitProject} />
+      </div>
       <KnobGroups draft={editor.draft} saved={editor.saved} defaults={editor.defaults} ranges={editor.ranges} inputs={inputs}
         update={editor.update} onHoverGroup={view.setHoverGroup} />
     </>
@@ -178,7 +176,7 @@ export default function GradeFormulaPage({ navigation, scope = EMPTY_SCOPE }) {
   // Fall back to the first tab rather than indexing into undefined if `tab`
   // ever holds a value that doesn't match any TABS entry.
   const ActiveBody = (TABS.find((entry) => entry.id === view.tab) ?? TABS[0]).Body;
-  const bodyProps = { editor, inputs, view, draft: editor.draft, ranges: editor.ranges, update: editor.update, ...types };
+  const bodyProps = { editor, inputs, inputsLoading: loading, view, draft: editor.draft, ranges: editor.ranges, update: editor.update, ...types };
   return (
     <div className="settings-page settings-page--terminal">
       <PageToolbar title={t('gradeFormula.headerName')} facts={headerFacts(editor, inputs?.projects?.length ?? (projects || []).length)}>
