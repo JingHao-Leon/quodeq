@@ -16,7 +16,9 @@ from quodeq.services.storage_cleanup import CLEANUP_LOCK
 from quodeq.services.storage_plan import plan_cleanup
 from quodeq.services.storage_settings import ArchiveNotice, StorageSettings
 from quodeq.services.wiring import UnsupportedSchemaError, list_runs, read_json_object, read_status, repository_info_exists
-from quodeq.services.wiring_sync import dropped_bytes, is_cold, is_frozen, packed_bytes, report_bytes, run_pid_alive
+from quodeq.services.wiring_sync import (
+    ARCHIVE_FILENAME, dropped_bytes, is_cold, is_frozen, packed_bytes, report_bytes, run_pid_alive,
+)
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
 # The database is deleted, not packed, so it is counted as freed in full.
@@ -67,6 +69,7 @@ class CleanPreview:
     archive: int
     frees: int
     pack: int = 0
+    trim: int = 0  # archived runs that lose their findings for good
 
 
 def _children(path: Path) -> list[os.DirEntry]:
@@ -140,11 +143,19 @@ def _frees(run_dir: Path) -> float:
         return 0.0
 
 
-def clean_preview(root: Path, now: datetime, keep_runs: int | None) -> CleanPreview:
-    """Runs a clean would archive now, archived runs whose reports it would pack, and about how many bytes it frees."""
-    plan = plan_cleanup(root, now, keep_runs)
+def _archive_size(run_dir: Path) -> int:
+    try:
+        return (run_dir / ARCHIVE_FILENAME).stat().st_size
+    except OSError:
+        return 0
+
+
+def clean_preview(root: Path, now: datetime, keep_runs: int | None, cold_after_days: int | None = None) -> CleanPreview:
+    """Runs a clean would archive, pack or trim now, and about how many bytes it would free."""
+    plan = plan_cleanup(root, now, keep_runs, cold_after_days)
     frees = sum(_frees(r) for r in plan.archive) + sum(_report_frees(r) for r in plan.pack)
-    return CleanPreview(len(plan.archive), int(frees), len(plan.pack))
+    frees += sum(_archive_size(r) for r in plan.trim)
+    return CleanPreview(len(plan.archive), int(frees), len(plan.pack), len(plan.trim))
 
 
 def _state(status: dict) -> RunState | None:
@@ -186,8 +197,8 @@ def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, 
     """
     if settings.keep_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup):
         return None
-    preview = clean_preview(root, now, settings.keep_runs)
-    return preview if preview.archive or preview.pack else None
+    preview = clean_preview(root, now, settings.keep_runs, settings.cold_after_days)
+    return preview if preview.archive or preview.pack or preview.trim else None
 
 
 def _is_project(root: Path, folder: Path) -> bool:
