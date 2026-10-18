@@ -62,7 +62,7 @@ def test_preview_estimates_the_saving_of_the_runs_it_would_archive(tmp_path):
     (old / "evidence" / "quality_evidence.jsonl").write_bytes(b"v" * 6000)
     (old / "evidence" / "manifest.json").write_bytes(b"m" * 400)
     _run(tmp_path, "p", "newer", 10)
-    assert clean_preview(tmp_path, NOW, 183) == CleanPreview(archive=1, frees=int(ARCHIVE_SAVING * 10000))
+    assert clean_preview(tmp_path, NOW, 1) == CleanPreview(archive=1, frees=int(ARCHIVE_SAVING * 10000))
 
 
 def test_preview_with_never_is_zero(tmp_path):

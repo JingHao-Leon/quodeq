@@ -1,11 +1,13 @@
 """Which finished runs a storage cleanup tidies and which it archives, decided without touching disk.
 
 A run is touched only when its ``status.json`` is readable and in a terminal
-state. The newest finished run of each dimension (the one the Overview
-reads) is tidied but never archived, and a project with a run still in
-flight is left alone entirely. A restored run counts as touched when it was
-restored, so it stays warm for the window. A run bigger than a restore
-accepts is never archived.
+state. Each project keeps its ``keep_runs`` newest done runs unpacked (the
+warm set); every other finished run with an event log is archived, cancelled
+and failed ones included. The newest finished run of each dimension (the one
+the Overview reads) is tidied but never archived, and a project with a run
+still in flight is left alone entirely. A run restored within the last
+``RESTORE_GRACE_DAYS`` stays unpacked. A run without a start time, or bigger
+than a restore accepts, is never archived.
 """
 from __future__ import annotations
 
@@ -16,6 +18,9 @@ from pathlib import Path
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
 from quodeq.services.wiring_sync import has_event_log, is_archived, max_archive_bytes, packable_bytes, restored_at
+
+
+RESTORE_GRACE_DAYS = 30  # a run you opened stays unpacked this long
 
 
 @dataclass(frozen=True)
@@ -79,13 +84,18 @@ def project_in_flight(project: Path) -> bool:
     return any(_in_flight(run_dir, read_run(run_dir)[0]) for run_dir in _subdirs(project))
 
 
-def _last_touched(run_dir: Path, started: datetime) -> datetime:
-    """The later of the run's start and its last restore."""
+def _warm_set(runs: list[tuple[Path, datetime | None, RunState]], keep_runs: int) -> set[Path]:
+    """The project's *keep_runs* newest done runs with a start time."""
+    done = sorted(((w, r) for r, w, s in runs if s == RunState.DONE and w is not None), reverse=True)
+    return {r for _, r in done[:keep_runs]}
+
+
+def _restored_recently(run_dir: Path, now: datetime) -> bool:
     restored = restored_at(run_dir)
-    return max(started, restored) if restored is not None else started
+    return restored is not None and restored >= now - timedelta(days=RESTORE_GRACE_DAYS)
 
 
-def _plan_project(project: Path, now: datetime, warm_days: int | None) -> tuple[list[Path], list[Path]]:
+def _plan_project(project: Path, now: datetime, keep_runs: int | None) -> tuple[list[Path], list[Path]]:
     runs: list[tuple[Path, datetime | None, RunState]] = []
     for run_dir in _subdirs(project):
         state, when = read_run(run_dir)
@@ -93,23 +103,24 @@ def _plan_project(project: Path, now: datetime, warm_days: int | None) -> tuple[
             return [], []
         if state in TERMINAL_STATES and not is_archived(run_dir):
             runs.append((run_dir, when, state))
-    protected = _newest_per_dimension(runs)
-    cutoff = now - timedelta(days=warm_days) if warm_days is not None else None
     tidy = [r for r, _, _ in runs]
-    archive = [] if cutoff is None else [
+    if keep_runs is None:
+        return tidy, []
+    kept = _newest_per_dimension(runs) | _warm_set(runs, keep_runs)
+    archive = [
         r for r, w, _ in runs
-        if w is not None and r not in protected and has_event_log(r) and _last_touched(r, w) < cutoff
+        if w is not None and r not in kept and has_event_log(r) and not _restored_recently(r, now)
     ]
     cap = max_archive_bytes()  # a run past the restore cap would never open again: it stays unpacked
     return tidy, [r for r in archive if packable_bytes(r) <= cap]
 
 
-def plan_cleanup(evaluations_root: Path | str, now: datetime, warm_days: int | None) -> CleanupPlan:
-    """Decide which runs to tidy and which to archive, without touching disk. None warm_days: tidy only."""
+def plan_cleanup(evaluations_root: Path | str, now: datetime, keep_runs: int | None) -> CleanupPlan:
+    """Decide which runs to tidy and which to archive, without touching disk. None keep_runs: tidy only."""
     tidy: list[Path] = []
     archive: list[Path] = []
     for project in _subdirs(Path(evaluations_root)):
-        t, a = _plan_project(project, now, warm_days)
+        t, a = _plan_project(project, now, keep_runs)
         tidy += t
         archive += a
     return CleanupPlan(tuple(tidy), tuple(archive))

@@ -30,12 +30,13 @@ def test_a_fresh_job_is_idle():
 def test_the_job_archives_and_reports_done(tmp_path):
     root = tmp_path / "evals"
     old = _run(root, "p", "old", 400)
-    _run(root, "p", "newer", 10)
+    for i in range(10):  # the default keeps ten runs; the eleventh is archived
+        _run(root, "p", f"newer{i}", 10 + i)
     job = CleanJob()
     assert job.start(root, _env(tmp_path)) is True
     assert _wait(job, "done")
     snap = job.snapshot()
-    assert (snap["archived"], snap["done"], snap["total"]) == (1, 2, 2)  # two runs: both tidied, one archived
+    assert (snap["archived"], snap["done"], snap["total"]) == (1, 11, 11)  # eleven runs: all tidied, one archived
     assert (old / "archive.tar.gz").is_file()
     assert storage_cleanup.CLEANUP_LOCK.locked() is False
 

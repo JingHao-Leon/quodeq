@@ -124,9 +124,9 @@ def _packable(run_dir: Path) -> int:
         return 0
 
 
-def clean_preview(root: Path, now: datetime, warm_days: int | None) -> CleanPreview:
+def clean_preview(root: Path, now: datetime, keep_runs: int | None) -> CleanPreview:
     """Runs a clean would archive now and the bytes it would free, estimated with ARCHIVE_SAVING."""
-    plan = plan_cleanup(root, now, warm_days)
+    plan = plan_cleanup(root, now, keep_runs)
     return CleanPreview(len(plan.archive), int(ARCHIVE_SAVING * sum(_packable(r) for r in plan.archive)))
 
 
@@ -164,13 +164,13 @@ def _live_projects(projects: list[Path]) -> tuple[str, ...]:
 def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, cleanup_on: bool) -> CleanPreview | None:
     """What the next start archives while the first-start notice is pending; None when there is nothing to say.
 
-    Read with the settings as they are now, so changing the window or
+    Read with the settings as they are now, so changing the kept count or
     turning cleanup off changes (or clears) the notice at once.
     """
-    days = settings.archive_after_days
-    if settings.archive_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or days is None:
+    keep = settings.keep_runs
+    if settings.archive_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or keep is None:
         return None
-    preview = clean_preview(root, now, days)
+    preview = clean_preview(root, now, keep)
     return preview if preview.archive else None
 
 

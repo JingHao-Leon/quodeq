@@ -3,7 +3,7 @@
 One pass at a time across the whole process: ``start`` takes the shared
 ``CLEANUP_LOCK`` itself, so a press while the startup pass (or an earlier
 press) still runs is refused at once instead of reporting a pass that never
-ran. The daemon thread runs the cleanup with the archive window read at
+ran. The daemon thread runs the cleanup with the kept count read at
 start and releases the lock when it ends, whatever happens.
 """
 from __future__ import annotations
@@ -64,12 +64,12 @@ class CleanJob:
         if self._rescore_busy() or not CLEANUP_LOCK.acquire(blocking=False):
             return False
         try:
-            days = read_storage_settings(env).archive_after_days if archive else None
+            keep = read_storage_settings(env).keep_runs if archive else None
             with self._mu:
                 self._state = CleanState.RUNNING
                 self._done = self._total = self._archived = self._freed = 0
             thread = threading.Thread(
-                target=self._run, args=(Path(root), days, log), name=WORKER_THREAD_NAME, daemon=True,
+                target=self._run, args=(Path(root), keep, log), name=WORKER_THREAD_NAME, daemon=True,
             )
             thread.start()
         except BaseException:
@@ -86,22 +86,22 @@ class CleanJob:
                 "archived": self._archived, "bytesFreed": self._freed,
             }
 
-    def _run(self, root: Path, days: int | None, log: LogSink) -> None:
+    def _run(self, root: Path, keep: int | None, log: LogSink) -> None:
         try:
-            self._isolated_pass(root, days, log)
+            self._isolated_pass(root, keep, log)
         finally:
             CLEANUP_LOCK.release()
 
-    def _isolated_pass(self, root: Path, days: int | None, log: LogSink) -> None:
+    def _isolated_pass(self, root: Path, keep: int | None, log: LogSink) -> None:
         run_isolated(
-            lambda: self._pass(root, days, log), label="storage clean now", log=log,
+            lambda: self._pass(root, keep, log), label="storage clean now", log=log,
             on_error=lambda _exc: self._finish(CleanState.FAILED),
         )
 
-    def _pass(self, root: Path, days: int | None, log: LogSink) -> None:
+    def _pass(self, root: Path, keep: int | None, log: LogSink) -> None:
         now = datetime.now(timezone.utc)
         result = run_cleanup(
-            root, now, warm_days=days, log=log, on_progress=self._on_progress, should_stop=self._rescore_busy,
+            root, now, keep_runs=keep, log=log, on_progress=self._on_progress, should_stop=self._rescore_busy,
         )
         self._finish(CleanState.DONE, result)
 

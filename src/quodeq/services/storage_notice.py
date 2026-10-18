@@ -39,8 +39,8 @@ def first_start_may_archive(
     if settings.archive_notice is not None:
         mark_archive_notice_done(env, log)
         return True
-    days = settings.archive_after_days
-    held = days is not None and bool(plan_cleanup(root, now, days).archive)
+    keep = settings.keep_runs
+    held = keep is not None and bool(plan_cleanup(root, now, keep).archive)
     notice = ArchiveNotice.PENDING if held else ArchiveNotice.DONE
     saved = write_storage_settings(replace(settings, archive_notice=notice), env, log=log)
     if held and saved:

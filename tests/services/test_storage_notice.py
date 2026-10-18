@@ -26,8 +26,10 @@ def _start(tmp_path, env, **kwargs):
 
 
 def _project(tmp_path):
+    """One run beyond the ten newest done runs the default keeps."""
     old = make_run(tmp_path / "evals", "p", "old", 300)
-    make_run(tmp_path / "evals", "p", "newer", 10)
+    for i in range(10):
+        make_run(tmp_path / "evals", "p", f"newer{i}", 10 + i)
     return old
 
 
@@ -57,7 +59,7 @@ def test_a_setting_changed_after_the_notice_is_the_one_the_next_start_uses(tmp_p
     _start(tmp_path, env)
 
     settings = read_storage_settings(env)
-    write_storage_settings(StorageSettings(archive_after_days=None, archive_notice=settings.archive_notice), env)
+    write_storage_settings(StorageSettings(keep_runs=None, archive_notice=settings.archive_notice), env)
     _start(tmp_path, env)
 
     assert not (old / "archive.tar.gz").exists()
@@ -102,7 +104,7 @@ def test_a_pass_stops_when_a_rescore_starts(tmp_path):
         asked.append(1)
         return len(asked) > 1
 
-    result = run_cleanup(tmp_path, NOW, warm_days=183, should_stop=rescore_started)
+    result = run_cleanup(tmp_path, NOW, keep_runs=1, should_stop=rescore_started)
 
     assert (first / "archive.tar.gz").is_file() and not (second / "archive.tar.gz").exists()
     assert result.archived == 1

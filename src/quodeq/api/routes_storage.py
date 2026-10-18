@@ -137,8 +137,8 @@ def register_storage_routes(app: Flask, provider: ActionProvider, env: Mapping[s
 
     @app.get("/api/storage/preview")
     def get_storage_preview() -> Response:
-        days = read_storage_settings(env).archive_after_days
-        preview = clean_preview(Path(reports_dir()), datetime.now(timezone.utc), days)
+        keep = read_storage_settings(env).keep_runs
+        preview = clean_preview(Path(reports_dir()), datetime.now(timezone.utc), keep)
         return jsonify({"archive": preview.archive, "frees": preview.frees})
 
     @app.get("/api/storage/clean")
