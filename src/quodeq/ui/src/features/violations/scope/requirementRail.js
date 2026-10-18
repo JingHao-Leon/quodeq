@@ -109,8 +109,9 @@ export function requirementGroups(rows, rail) {
     const f = item.v || item.c;
     if (!f) continue;
     const req = f.req || '';
-    if (!byReq.has(req)) byReq.set(req, []);
-    byReq.get(req).push(item);
+    const list = byReq.get(req) || [];
+    list.push(item);
+    byReq.set(req, list);
   }
   const known = [...rail.failing, ...rail.passing];
   const text = new Map(known.map((r) => [r.req, r.text]));
