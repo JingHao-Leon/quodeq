@@ -245,9 +245,7 @@ def _restore_locked(run_dir: Path) -> list[str] | None:
     except RunArchiveError as exc:
         warn_once(run_dir, "Refusing to restore run archive: %s", exc)
         raise
-    # A database or sidecar beside an archive is a stray (an archive step that could not delete it);
-    # left there, SQLite would replay a stale WAL into the restored or rebuilt database.
-    for stray in DROPPED_FILES:
+    for stray in DROPPED_FILES:  # a database or sidecar beside an archive is a stray; SQLite would replay a stale WAL
         (run_dir / stray).unlink(missing_ok=True)
     for name in names:
         dest = run_dir / name
