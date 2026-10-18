@@ -135,9 +135,12 @@ describe('HelpPage violations section', () => {
     expect(container.textContent).not.toMatch(/as a list ›/);
   });
 
-  it('describes a principle\'s page: its requirements beside its findings, failing first, then Passing', () => {
+  it('describes a principle\'s page: findings grouped by requirement, the worst open, a requirement filter in the bar', () => {
     const { container } = render(<HelpPage initialSection="violations" />);
-    expect(container.textContent).toMatch(/three columns: its requirements, its findings and the selected finding/);
+    expect(container.textContent).toMatch(/groups its findings under their requirements/);
+    expect(container.textContent).toMatch(/The worst requirement opens and the rest stay folded/);
+    expect(container.textContent).toMatch(/requirement: all ▸/);
+    expect(container.textContent).toMatch(/open all and fold all/);
     expect(container.textContent).toMatch(/how many of its requirements fail, of how many were checked/);
     expect(container.textContent).toMatch(/Passing/);
   });

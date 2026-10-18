@@ -31,12 +31,14 @@ COMPLIANT   src/api.py:88       Parameterized query prevents injection     CWE-8
 
 ### The workbench
 
-Every finding of the project sits in one list, with the selected one in full beside it. Drag the line between them to give the list more or less room; the width is remembered.
+Every finding of the project sits in one list, with the selected one in full beside it. Each row takes two lines: the finding's title, then its severity as a short word (*crit*, *maj* or *min*), its path and line, and, at the end of the line, its principle and dimension; a dismissed finding carries a *dismissed* tag. Drag the line between the list and the finding to give the list more or less room; the width is remembered.
 
 - **Search** (`grep -r`) matches a finding's title, file or rule id. Its suggestions offer files and folders: pick one to narrow the list to it as a *path* chip. A finding's detail offers the same for its own file and folder.
 - **severity**, **dimension**, **status** and **group** menus narrow and arrange the list. Status is *open*, *dismissed* or *all*. Group by requirement, file or dimension, or browse **folders** one level at a time with a breadcrumb back up.
 - An area opened from the Map's Risk tab arrives as an *area* chip. Remove a chip, or **clear** them all, to widen the list again.
 - `↑` `↓` move through the list and `/` jumps to the search.
+
+The selected finding reads top to bottom: its severity and title as the headline; where it is, the file and line, its folder and the model's confidence; one row of pills, **fix plan**, **open file ›** and **dismiss** (a dismissed finding offers **Restore** and **Delete** instead); then **WHY**, the model's reason; **RULE**, the requirement's id and what the standard asks, with its references and any gate that lowered the severity; and the code. **dismiss** is a menu: **Dismiss this finding**, **Dismiss all N <requirement> in this project** or **Dismiss all N <requirement> in <principle>**. The two bulk choices ask before they act; see *Dismissing a whole type* below.
 
 ### Drilling in
 
@@ -45,7 +47,7 @@ Every finding of the project sits in one list, with the selected one in full bes
 | Click a dimension | Open the Explorer with all principles, scores, and findings. |
 | Click a principle | Open the principle's findings as one page, a scoped findings view (see below). |
 | Click a file, folder, requirement or area | Open its findings as one page, the same kind of view. |
-| Click a finding | Open the leaf finding card with breadcrumb context. |
+| Select a finding | Show it in full beside the list: its place, actions, reason, rule and code. |
 
 ### One file, folder or area at a time
 
@@ -59,15 +61,15 @@ The header names the scope and gives its numbers; the line under the name says w
 - **Risk**, on a folder or an area only: the zone its weighted findings per file put it in, measured as the Map's Risk tab measures an area. Test files are left out unless the folder holds nothing else, and with fewer than three other files it is too small to judge.
 - **Risk**, on a principle: how many of the Map's areas, measured over the principle's findings, are in **fix first** and in **watch**, or **none**. Click it to open the Map's Risk tab filtered to the principle.
 
-Below the header, the filters narrow the page to one severity or to the compliant checks; a view opened from a severity or a compliance number starts on that filter. The findings read by severity, with the compliant checks after the violations, or **by line**, down each file in order. **list** (the default) shows them one line each beside the selected finding in full, with a divider you can drag as in the workbench; **cards** shows every finding as a card with its code open, and findings flagged as likely false positives sit in a collapsed **Low confidence** group. Rows leave out what the page already names: inside a file they give the line only, inside a principle they leave the principle out.
+Below the header, the filters narrow the page to one severity or to the compliant checks; a view opened from a severity or a compliance number starts on that filter. The findings read by severity, with the compliant checks after the violations, or **by line**, down each file in order. **list** (the default) shows them as the workbench's two-line rows beside the selected finding in full, read as in the workbench, with a divider you can drag; **cards** shows every finding as a card with its code open, and findings flagged as likely false positives sit in a collapsed **Low confidence** group. Rows leave out what the page already names: inside a file they give the line only, inside a principle they leave the principle out.
 
-A principle's page reads in three columns: its requirements, its findings and the selected finding. Its header also shows the principle's change since the previous period, and its violations, severity badges and pass rate carry their change against the principle's findings in the previous period's run. Under the header, one line gives its new and fixed findings since the previous day, week or month, or **no new or fixed findings**. The requirements list the failing ones first, worst first, each with its severities and how many files break it, then **Passing** with the ones that only pass. Pick one to narrow the findings and the filters' counts to it; pick it again, or **All findings**, to see them all. On a narrow screen the requirements sit above the findings.
+A principle's page groups its findings under their requirements. Its header also shows the principle's change since the previous period, and its violations, severity badges and pass rate carry their change against the principle's findings in the previous period's run. Under the header, one line gives its new and fixed findings since the previous day, week or month, or **no new or fixed findings**. The list opens **by requirement**, the first order next to **by severity** and **by line**: one header per requirement, the failing ones worst first, each with its id, what it asks, its severities and how many files break it, then the ones that only pass with their count of checks. The worst requirement opens and the rest stay folded; click a header to open or fold it, or **open all** and **fold all** in the bar. The bar's first control, **requirement: all ▸**, lists every requirement with a search by id or keyword, the failing ones first and the passing ones under **Passing**; pick one and the list and the filters' counts narrow to it, under a line such as *Only S-AUT-3 · 188 of 377 findings* with **show all 12 requirements** to widen the list again.
 
-Dismissing a finding from its card works as everywhere else, and the dismissal goes to the run of the finding's own dimension. A view opened from a past run (an older run picked on the Overview, a run page, a past bar in the Explorer, a past day of the Map's time-lapse) shows the findings as of that run, and is read-only: dismissing and fix plans act on today. Its header says **Viewing** that day, and **back to latest ›** opens the same scope on today's findings.
+**dismiss** on the selected finding dismisses that one finding, as everywhere else, and the dismissal goes to the run of the finding's own dimension. A view opened from a past run (an older run picked on the Overview, a run page, a past bar in the Explorer, a past day of the Map's time-lapse) shows the findings as of that run, and is read-only: dismissing and fix plans act on today. Its header says **Viewing** that day, and **back to latest ›** opens the same scope on today's findings.
 
 ### Fix plans
 
-From any violation, the **Fix plan** button opens a side-pane with a structured remediation packet: file path, line number, code context, the violated principle, and concrete guidance. Copy it into your AI agent or IDE; it carries everything the model needs to apply the fix.
+From any violation, the **fix plan** pill opens a side-pane with a structured remediation packet: file path, line number, code context, the violated principle, and concrete guidance. Copy it into your AI agent or IDE; it carries everything the model needs to apply the fix.
 
 ### Verified findings
 
@@ -84,7 +86,7 @@ If a finding is a false positive or an accepted trade-off, dismiss it from the v
 
 ### Dismissing a whole type
 
-Select a finding in the workbench and open the ⋯ beside **open file ›**: it offers **Dismiss all N <requirement> in this project** and **Dismiss all N <requirement> in <principle>**, and asks before it acts. These act on many findings at once, which is why they wait behind the ⋯ while the one-finding dismiss stays on the card. Each finding gets its own dismissal, written the same way as a single dismiss, so they all appear under *dismissed* and can be restored one by one or all at once. A dismissed type stops counting against the grade; the type is not closed, it is dismissed, and the Overview's open-type count no longer includes it.
+Select a finding in the workbench and open its **dismiss** menu: under **Dismiss this finding** it offers **Dismiss all N <requirement> in this project** and **Dismiss all N <requirement> in <principle>**, and asks before it acts. These act on many findings at once, which is why they sit in the menu while the one-finding choice comes first. Each finding gets its own dismissal, written the same way as a single dismiss, so they all appear under *dismissed* and can be restored one by one or all at once. A dismissed type stops counting against the grade; the type is not closed, it is dismissed, and the Overview's open-type count no longer includes it.
 
 ### Trust model and suppression rules
 
