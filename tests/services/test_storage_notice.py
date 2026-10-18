@@ -38,11 +38,11 @@ def test_the_first_start_holds_the_archive_back_and_the_next_one_archives(tmp_pa
 
     _start(tmp_path, env)
     assert not (old / "archive.tar.gz").exists()
-    assert read_storage_settings(env).archive_notice is ArchiveNotice.PENDING
+    assert read_storage_settings(env).keep_notice is ArchiveNotice.PENDING
 
     _start(tmp_path, env)
     assert (old / "archive.tar.gz").is_file()
-    assert read_storage_settings(env).archive_notice is ArchiveNotice.DONE
+    assert read_storage_settings(env).keep_notice is ArchiveNotice.DONE
 
 
 def test_a_start_with_nothing_to_archive_never_raises_the_notice(tmp_path):
@@ -51,7 +51,7 @@ def test_a_start_with_nothing_to_archive_never_raises_the_notice(tmp_path):
 
     _start(tmp_path, env)
 
-    assert read_storage_settings(env).archive_notice is ArchiveNotice.DONE
+    assert read_storage_settings(env).keep_notice is ArchiveNotice.DONE
 
 
 def test_a_setting_changed_after_the_notice_is_the_one_the_next_start_uses(tmp_path):
@@ -59,7 +59,7 @@ def test_a_setting_changed_after_the_notice_is_the_one_the_next_start_uses(tmp_p
     _start(tmp_path, env)
 
     settings = read_storage_settings(env)
-    write_storage_settings(StorageSettings(keep_runs=None, archive_notice=settings.archive_notice), env)
+    write_storage_settings(StorageSettings(keep_runs=None, keep_notice=settings.keep_notice), env)
     _start(tmp_path, env)
 
     assert not (old / "archive.tar.gz").exists()
@@ -67,19 +67,19 @@ def test_a_setting_changed_after_the_notice_is_the_one_the_next_start_uses(tmp_p
 
 def test_cleanup_turned_off_in_settings_runs_no_pass(tmp_path, monkeypatch):
     old, env = _project(tmp_path), _env(tmp_path)
-    write_storage_settings(StorageSettings(auto_cleanup=False, archive_notice=ArchiveNotice.DONE), env)
+    write_storage_settings(StorageSettings(auto_cleanup=False, keep_notice=ArchiveNotice.DONE), env)
     tidied = []
     monkeypatch.setattr(storage_cleanup, "tidy_run", lambda d: tidied.append(d) or 0)
 
     _start(tmp_path, env)
 
     assert tidied == [] and not (old / "archive.tar.gz").exists()
-    assert read_storage_settings(env).archive_notice is ArchiveNotice.DONE
+    assert read_storage_settings(env).keep_notice is ArchiveNotice.DONE
 
 
 def test_the_startup_pass_waits_while_a_rescore_is_owed(tmp_path):
     old, env = _project(tmp_path), _env(tmp_path)
-    write_storage_settings(StorageSettings(archive_notice=ArchiveNotice.DONE), env)
+    write_storage_settings(StorageSettings(keep_notice=ArchiveNotice.DONE), env)
     owed = iter([True, True, False])
     job = CleanJob(rescore_busy=lambda: next(owed, False))
 

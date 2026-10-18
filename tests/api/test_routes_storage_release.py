@@ -69,20 +69,20 @@ def test_the_notice_says_what_the_next_start_archives(root):
     make_run(root, "p", "old", 300)
     for i in range(5):
         make_run(root, "p", f"newer{i}", 10 + i)
-    _write_settings(keep_runs=5, archive_notice="pending")
+    _write_settings(keep_runs=5, keep_notice="pending")
     client = _client()
 
     notice = client.get("/api/storage").get_json()["archiveNotice"]
 
     assert notice["runs"] == 1 and notice["bytes"] > 0
-    _write_settings(keep_runs=10, archive_notice="pending")
+    _write_settings(keep_runs=10, keep_notice="pending")
     assert client.get("/api/storage").get_json()["archiveNotice"] is None  # all six kept: nothing to say
 
 
 def test_turning_cleanup_off_clears_the_notice(root):
     make_run(root, "p", "old", 300)
     make_run(root, "p", "newer", 10)
-    _write_settings(archive_after_days=183, archive_notice="pending")
+    _write_settings(keep_runs=5, keep_notice="pending")
     client = _client()
 
     client.put("/api/storage/settings", json={"autoCleanup": False})
@@ -93,12 +93,12 @@ def test_turning_cleanup_off_clears_the_notice(root):
 def test_clean_now_retires_the_notice(root):
     make_run(root, "p", "old", 300)
     make_run(root, "p", "newer", 10)
-    _write_settings(archive_after_days=183, archive_notice="pending")
+    _write_settings(keep_runs=5, keep_notice="pending")
 
     client = _client()
     assert client.post("/api/storage/clean", headers=_LOCALHOST).status_code == 202
 
-    assert _saved()["archive_notice"] == "done"
+    assert _saved()["keep_notice"] == "done"
     assert _wait_done(client)
 
 

@@ -170,7 +170,7 @@ def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, 
     turning cleanup off changes (or clears) the notice at once.
     """
     keep = settings.keep_runs
-    if settings.archive_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or keep is None:
+    if settings.keep_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or keep is None:
         return None
     preview = clean_preview(root, now, keep)
     return preview if preview.archive else None
