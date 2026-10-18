@@ -9,7 +9,6 @@ import urllib.error
 from urllib.request import Request, urlopen
 
 from quodeq.ci._suppressions import filter_suppressed_violations
-from quodeq.data.fs.report_parser.report_files import list_report_files, read_report_json
 from quodeq.ci.review_builder import (
     ReviewOptions,
     build_review_summary,
@@ -17,6 +16,7 @@ from quodeq.ci.review_builder import (
     determine_verdict,
     violation_to_comment,
 )
+from quodeq.services.wiring import list_report_files, read_report_json
 from quodeq.shared.env_resolve import resolve_env
 
 _logger = logging.getLogger(__name__)
