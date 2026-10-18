@@ -6,16 +6,16 @@ def test_version_changes_only_for_intersecting_suppression():
     run_dismiss = {("R1", "a.py", 1)}
     run_class = {("security", "P1", "a.py")}
 
-    base = run_scoped_version(DEFAULT_PARAMS, run_dismiss, run_class, set(), set(), standards="")
+    base = run_scoped_version(DEFAULT_PARAMS, (run_dismiss, run_class), set(), set(), standards="")
     # A dismissal NOT present in this run's keys must not change its version.
     unrelated = run_scoped_version(
-        DEFAULT_PARAMS, run_dismiss, run_class, {("OTHER", "z.py", 9)}, set(), standards="")
+        DEFAULT_PARAMS, (run_dismiss, run_class), {("OTHER", "z.py", 9)}, set(), standards="")
     assert unrelated == base
     # A dismissal that IS present must change it.
     related = run_scoped_version(
-        DEFAULT_PARAMS, run_dismiss, run_class, {("R1", "a.py", 1)}, set(), standards="")
+        DEFAULT_PARAMS, (run_dismiss, run_class), {("R1", "a.py", 1)}, set(), standards="")
     assert related != base
     # A delete of this run's class must change it.
     deleted = run_scoped_version(
-        DEFAULT_PARAMS, run_dismiss, run_class, set(), {("security", "P1", "a.py")}, standards="")
+        DEFAULT_PARAMS, (run_dismiss, run_class), set(), {("security", "P1", "a.py")}, standards="")
     assert deleted != base

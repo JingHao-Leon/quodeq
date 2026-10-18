@@ -188,6 +188,9 @@ from quodeq.data.fs.report_parser.runs import (  # noqa: F401
     safe_read_dir,
 )
 
+# Which grade formula a run's grade tables embody (score cache versions).
+from quodeq.data.fs.grades_stamp_store import read_grades_stamp  # noqa: F401
+
 # Repo-URL validation + child-project discovery.
 from quodeq.data.fs.repo_handler import is_valid_repo_url  # noqa: F401
 from quodeq.data.fs.children import find_children  # noqa: F401

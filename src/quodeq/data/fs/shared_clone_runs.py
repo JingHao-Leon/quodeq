@@ -20,7 +20,7 @@ nothing the repository carries trusted:
   commit can carry;
 - the run, its project and the evaluations folder must be real folders inside
   the clone, and nothing is restored through a linked ``evidence`` folder;
-- ``.git/info/exclude`` keeps the databases and temporary files out of
+- ``.git/info/exclude`` keeps the databases, grade stamps and temporary files out of
   ``git status``, so a publish from this clone never stages them.
 
 Every function that changes a run folder runs under the run lock.
@@ -39,6 +39,7 @@ from pathlib import Path
 from quodeq.data.fs.run_archive_files import (
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, is_plain_file, write_json_sidecar,
 )
+from quodeq.data.fs.grades_stamp_store import GRADES_STAMP_NAME
 from quodeq.data.fs.run_archive_guard import warn_once
 from quodeq.data.fs.shared_clone_db_token import new_token, read_db_token, write_db_token
 from quodeq.data.fs.run_archive_limits import RunArchiveError, check_restore_dirs
@@ -49,7 +50,9 @@ from quodeq.shared.constants import GIT_DIR_NAME
 
 _logger = logging.getLogger(__name__)
 
-CLONE_EXCLUDES = (DB_NAME, *DB_SIDECARS, ".restored_at", ".archive.lock", ".restore.tmp/", "*.tmp")
+CLONE_EXCLUDES = (
+    DB_NAME, *DB_SIDECARS, GRADES_STAMP_NAME, ".restored_at", ".archive.lock", ".restore.tmp/", "*.tmp",
+)
 _DB_FILES = (DB_NAME, *DB_SIDECARS)
 _MARKER_ROOT = ("quodeq", "runs")
 
