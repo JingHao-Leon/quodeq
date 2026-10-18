@@ -80,6 +80,7 @@ describe('StorageSection, keeping the findings of archived runs', () => {
     const { section } = setup({ getStorage });
     await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 3 runs beyond the 10 newest of each project, freeing about 1.0 GB.'));
     expect(section().getByRole('status')).toHaveTextContent('It also removes the findings of 12 runs archived more than 6 months ago, which cannot be brought back; their grades and reports stay.');
+    expect(section().getByRole('status')).not.toHaveTextContent('Nothing is deleted');
   });
 
   it('a trim-only notice says what goes and how to keep it', async () => {
