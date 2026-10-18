@@ -3,21 +3,37 @@ import { SectionLabel } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
 import { FINDING_STATUS } from '../violationsVocab.js';
 import { Crumbs, FolderRows } from './FolderRows.jsx';
+import { sevAbbr } from './sevWords.js';
 
 export const LIST_CAP = 300;
 
+/**
+ * A row's second line: the severity word, where the finding is (its folder
+ * dimmed, cut from the left so the file name stays) and, pushed right, what
+ * it belongs to. `children` sit between the place and the tail (a tag).
+ */
+export function RowMeta({ level, word, where, tail, children }) {
+  const cut = where ? where.lastIndexOf('/') + 1 : 0;
+  return (
+    <span className="wb-row__meta">
+      <span className={`wb-row__sev wb-sevword--${level}`}>{word}</span>
+      {where && <span className="wb-row__f"><span className="wb-row__dir">{where.slice(0, cut)}</span>{where.slice(cut)}</span>}
+      {children}
+      {tail && <span className="wb-row__tail">{tail}</span>}
+    </span>
+  );
+}
+
 function Row({ f, selected, onSelect, lineOnly }) {
   const dismissed = f.status === FINDING_STATUS.DISMISSED;
-  const where = `${lineOnly ? '' : f.file}${f.line != null ? `:${f.line}` : ''}`;
+  const where = `${lineOnly ? '' : f.file || ''}${f.line != null ? `:${f.line}` : ''}`;
   return (
     <button type="button" aria-current={selected || undefined} onClick={() => onSelect(f.id)}
       className={`wb-row wb-row--${f.severity}${selected ? ' is-sel' : ''}${dismissed ? ' is-dismissed' : ''}`}>
       <span className="wb-row__t">{f.title}</span>
-      <span className={`wb-row__f${lineOnly ? ' wb-row__f--line' : ''}`}>{where}</span>
-      <span className="wb-row__meta">
+      <RowMeta level={f.severity} word={sevAbbr(f.severity)} where={where} tail={[f.principle, f.dimension].filter(Boolean).join(' · ')}>
         {dismissed && <span className="wb-tag">{t('violations.wbDismissedTag')}</span>}
-        {[f.principle, f.dimension].filter(Boolean).join(' · ')}
-      </span>
+      </RowMeta>
     </button>
   );
 }

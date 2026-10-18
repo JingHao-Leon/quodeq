@@ -45,26 +45,43 @@
   background: var(--color-surface); border-top: 1px solid var(--color-border); font-size: 11px; font-weight: 600; color: var(--color-text); }
 .wb-group__k { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wb-group__n { color: var(--color-text-muted); font-weight: 400; }
-.wb-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t f" "m m"; gap: 2px 12px; width: 100%;
-  padding: 7px 14px 7px 12px; border: 0; border-left: 2px solid var(--color-border); border-bottom: 1px solid var(--color-border);
+.wb-row { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "t" "m"; gap: 3px; width: 100%;
+  padding: 7px 14px 7px 11px; border: 0; border-left: 3px solid var(--color-border); border-bottom: 1px solid var(--color-border);
   background: none; text-align: left; font: inherit; color: var(--color-text); cursor: pointer; }
-.wb-row--critical { border-left-color: var(--color-sev-critical-border); }
-.wb-row--major { border-left-color: var(--color-sev-major-border); }
-.wb-row--minor { border-left-color: var(--color-sev-minor-border); }
+.wb-row--critical { border-left-color: var(--color-sev-critical-text); }
+.wb-row--major { border-left-color: var(--color-sev-major-text); }
+.wb-row--minor { border-left-color: var(--color-sev-minor-text); }
 .wb-row:hover { background: var(--wb-hover-bg); }
 .wb-row.is-sel { background: var(--wb-hover-bg); box-shadow: var(--wb-hover-bar); }
 .wb-row.is-dismissed .wb-row__t { text-decoration: line-through; text-decoration-color: var(--color-text-muted); }
 .wb-row__t { grid-area: t; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wb-row__f { grid-area: f; font-size: 11px; color: var(--color-text-muted); max-width: 260px; overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap; direction: rtl; text-align: right; }
-.wb-row__f--line { direction: ltr; }
-.wb-row__meta { grid-area: m; font-size: 10px; color: var(--color-text-muted); }
+/* Second line: severity word, the place (cut from the left so the file name stays), then what it belongs to. */
+.wb-row__meta { grid-area: m; display: flex; align-items: baseline; gap: 10px; min-width: 0; font-size: 11px; color: var(--color-text-muted); }
+.wb-row__sev { flex: none; min-width: 30px; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.wb-row__f { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; color: var(--color-text); }
+.wb-row__dir { color: var(--color-text-muted); }
+.wb-row__tail { flex: none; margin-left: auto; }
+.wb-row__meta .wb-tag { flex: none; }
 .wb-tag { margin-right: 8px; padding: 0 5px; border: 1px solid var(--color-border); border-radius: var(--term-radius); }
 .wb-more { width: 100%; padding: 10px 14px; border: 0; background: none; font: inherit; font-size: 11px; color: var(--color-text-muted); cursor: pointer; text-align: left; }
 .wb-more:hover { color: var(--color-text); }
-.wb .qd-cards-panel > .wb-detail__body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 18px 22px; }
+.wb .qd-cards-panel > .wb-detail__body { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 16px; padding: 18px 22px; }
 .wb-where { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; }
 .wb-muted { color: var(--color-text-muted); }
+/* The detail: a severity edge, the title as headline, one bar of pills, then WHY / RULE / code. */
+.wb-detail__body--critical { --vrow-accent: var(--color-sev-critical-text); }
+.wb-detail__body--major { --vrow-accent: var(--color-sev-major-text); }
+.wb-detail__body--minor { --vrow-accent: var(--color-sev-minor-text); }
+.wb-detail__body--critical, .wb-detail__body--major, .wb-detail__body--minor { border-left: 3px solid var(--vrow-accent); }
+.wb-headline { display: flex; align-items: baseline; gap: 12px; }
+.wb-headline__title { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.4; color: var(--color-text); }
+.wb-bar { padding-bottom: 14px; border-bottom: 1px solid var(--color-border); }
+.wb-fixplan svg { color: var(--color-accent); }
+.wb-sec { display: flex; flex-direction: column; gap: 6px; }
+.wb-sec .vlive-detail-reason { margin: 0; }
+.wb-rule { margin: 0; font-size: 12px; color: var(--color-text); }
+.wb-rule__id { margin-right: 10px; color: var(--color-text-muted); }
+.wb-code { padding: 0; border: 0; background: none; }
 .wb-dismissed { font-size: 11px; color: var(--color-text-muted); }
 .wb-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 /* An actions row whose controls (open file, the ⋯ of bulk actions) sit at the right edge. */

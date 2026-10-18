@@ -5,9 +5,9 @@ import ViolationsPage from './ViolationsPage.jsx';
 import { withQueryClient } from '../../../test-utils/withQueryClient.jsx';
 import { ApiProvider } from '../../../api/ApiContext.jsx';
 
-// The finding card needs the app's side pane; the page under test is the
-// wiring around it, so the card is a stub here.
-vi.mock('../../explorer/components/EvalCards.jsx', () => ({ EvalViolationCard: ({ v }) => <div data-testid="card">{v.title}</div> }));
+// The fix-plan pill needs the app's side pane; the page under test is the
+// wiring around it, so the pill is a stub here.
+vi.mock('../workbench/FixPlanButton.jsx', () => ({ default: () => <button type="button">fix plan</button> }));
 
 // Covers evaluate CTA gating, teammate persona (shared selection + zero
 // local projects), and the shared read-only chip. ViolationsPage's default
