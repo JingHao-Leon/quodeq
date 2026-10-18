@@ -21,7 +21,7 @@
 - **Sidebar badge**: counts the open findings, the number the Violations page leads with, instead of criticals plus majors.
 - **History**: the what-changed strip appears only once two runs compare against the same model, and the run card says *1 dimension*.
 - **Assistant**: when no session can start, the drawer says why and offers **open settings** in place of the suggestions, with the input disabled.
-- **Labels**: the score history reads *3 weeks* instead of *3w*, the since line says *rules opened*, a dimension card says *files read*, and the Map head says *violations to compliance 1:3*.
+- **Labels**: the score history reads *3 weeks* instead of *3w*, the since line says *rules opened*, and the Map head says *violations to compliance 1:3*.
 - **Score history**: the history draws from the second evaluation on and shows a single week or month as one bar with its minimum, maximum and average; week buckets are labelled with their date range; the radial is left out under three points and takes the whole row while the history is hidden.
 - **Grade formula page**: the chart keeps its frame while the projects load.
 - **Headers**: a wrapped page header spans the full width.
