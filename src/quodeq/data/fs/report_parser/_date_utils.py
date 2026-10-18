@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from quodeq.shared.logging import log_debug
+from quodeq.data.fs.report_parser.report_files import REPORT_SUFFIX, list_report_files, read_report_json
 from quodeq.shared.utils import read_json
 
 
@@ -36,6 +37,15 @@ def normalize_date(raw: str) -> tuple[str, str] | None:
     return None
 
 
+def _dated_candidates(
+    directory: Path, suffix: str, safe_read_dir: Callable[[Path], list[os.DirEntry[str]]],
+) -> list[Path]:
+    """The files to scan: the reports in both forms for ``.json``, else the entries ending in *suffix*."""
+    if suffix == REPORT_SUFFIX:
+        return [path for _, path in list_report_files(directory)]
+    return [Path(e.path) for e in safe_read_dir(directory) if e.is_file() and e.name.endswith(suffix)]
+
+
 def find_date_in_dir(
     directory: Path, suffix: str, safe_read_dir: Callable[[Path], list[os.DirEntry[str]]],
 ) -> tuple[str | None, str] | None:
@@ -51,16 +61,14 @@ def find_date_in_dir(
         A ``(sortable_iso, human_label)`` tuple from the first file whose
         ``"date"`` field is parsable, or ``None`` if no date is found.
     """
-    for entry in safe_read_dir(directory):
-        if not entry.is_file() or not entry.name.endswith(suffix):
-            continue
+    for path in _dated_candidates(directory, suffix, safe_read_dir):
         try:
-            data = read_json(Path(entry.path))
+            data = read_report_json(path) if suffix == REPORT_SUFFIX else read_json(path)
             raw = data.get("date")
             if raw:
                 result = normalize_date(str(raw))
                 if result:
                     return result
         except (ValueError, OSError, UnicodeDecodeError) as exc:
-            log_debug(f"Failed to read date from {entry.name}: {exc}")
+            log_debug(f"Failed to read date from {path.name}: {exc}")
     return None

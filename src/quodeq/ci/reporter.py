@@ -9,6 +9,7 @@ import urllib.error
 from urllib.request import Request, urlopen
 
 from quodeq.ci._suppressions import filter_suppressed_violations
+from quodeq.data.fs.report_parser.report_files import list_report_files, read_report_json
 from quodeq.ci.review_builder import (
     ReviewOptions,
     build_review_summary,
@@ -187,7 +188,7 @@ def filter_comments_to_diff(
 def load_evaluation_reports(evaluation_dir: Path) -> list[dict]:
     """Load dashboard report JSONs from the evaluation directory.
 
-    Reads {dimension}.json files, skipping {dimension}_full.json. Each
+    Reads {dimension}.json files (plain or packed), skipping {dimension}_full.json. Each
     report's violations are filtered through `filter_suppressed_violations`
     so findings the user dismissed or deleted in the dashboard don't
     reappear in `ci report` PR comments or `export sarif` output. The run
@@ -196,12 +197,10 @@ def load_evaluation_reports(evaluation_dir: Path) -> list[dict]:
     """
     project_dir = evaluation_dir.parent.parent
     reports = []
-    for path in sorted(evaluation_dir.glob("*.json")):
-        if path.stem.endswith("_full"):
+    for dimension, path in list_report_files(evaluation_dir):
+        if dimension.endswith("_full"):
             continue
-        with open(path, encoding="utf-8") as f:
-            report = json.load(f)
-        reports.append(filter_suppressed_violations(report, project_dir))
+        reports.append(filter_suppressed_violations(read_report_json(path), project_dir))
     return reports
 
 
