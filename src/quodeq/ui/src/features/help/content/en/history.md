@@ -24,9 +24,9 @@ A small chart above the list plots each run's own score over time. Hover a bar t
 
 ### Group the Overview chart by day, week, or month
 
-The *score history* chart on the **Overview** groups runs per day by default. Use the selector in the chart header to switch to **Week** or **Month**. Each bar aggregates the runs of one period, tooltips carry the period label, and your choice is remembered across sessions.
+The *score history* chart on the **Overview** groups runs per day by default. Use the selector in the chart header to switch to **Week** or **Month**. Each bar aggregates the runs of one period, tooltips carry the period label, a week being named by its dates, such as *23 – 29 Mar 2026*, rather than a week number, and your choice is remembered across sessions.
 
-If all your runs fit inside a single week or month, the chart suggests a finer grouping instead of drawing one lonely bar.
+The chart appears from the second evaluation, whatever the grouping. If all your runs fit inside a single week or month, it draws that one bar all the same, with the min, max and average of the bars on show in its header, and the selector stays so you can go back to a finer grouping.
 
 ```figure
 component: ScoreGroupingFigure
