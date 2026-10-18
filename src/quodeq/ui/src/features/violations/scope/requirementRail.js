@@ -6,6 +6,7 @@
  */
 import { groupByRequirement, mostFrequent } from '../../../models/findingsGrouping.js';
 import { SEVERITY_ORDER } from '../../../vocab/severity.js';
+import { ROW_KIND } from '../../explorer/components/findingListRows.js';
 
 const allViolations = (file) => Object.values(file.violationsBySeverity || {}).flat();
 const reqsOf = (items) => items.map((i) => i.req).filter(Boolean);
@@ -76,4 +77,57 @@ export function reqKindCounts(file, req, isLive) {
     sev[level] += list.filter((v) => v.req === req && isLive(v)).length;
   }
   return { sev, compliance: (file.compliance || []).filter((c) => c.req === req).length };
+}
+
+/**
+ * A group's counts over the findings it shows: violations by severity, and
+ * the files they break (as the rail counts them), or with none, the files
+ * its compliant checks read.
+ */
+function groupOf(req, text, items) {
+  const sev = {};
+  const broken = new Set();
+  const checked = new Set();
+  for (const item of items) {
+    if (item.v) { sev[item.v.severity] = (sev[item.v.severity] || 0) + 1; broken.add(item.v.file); } else checked.add(item.c.file);
+  }
+  return { req, text, items, sev, fileCount: (broken.size ? broken : checked).size };
+}
+
+/**
+ * The list's findings grouped by requirement, in the rail's order (failing
+ * worst first, then the passing ones), each finding kept in the order
+ * `rows` gives it and each group counted over what it shows. Requirements
+ * the rail does not know follow by id; findings with none close the list
+ * (`req` '').
+ * @param {object[]} rows the list's rows (headers and toggles are dropped)
+ * @param {{failing: object[], passing: object[]}} rail
+ */
+export function requirementGroups(rows, rail) {
+  const byReq = new Map();
+  for (const item of rows) {
+    const f = item.v || item.c;
+    if (!f) continue;
+    const req = f.req || '';
+    if (!byReq.has(req)) byReq.set(req, []);
+    byReq.get(req).push(item);
+  }
+  const known = [...rail.failing, ...rail.passing];
+  const text = new Map(known.map((r) => [r.req, r.text]));
+  const order = known.map((r) => r.req).filter((req) => byReq.has(req));
+  const rest = [...byReq.keys()].filter((req) => req && !text.has(req)).sort();
+  if (byReq.has('')) rest.push('');
+  return [...order, ...rest].map((req) => groupOf(req, text.get(req) || req, byReq.get(req)));
+}
+
+/**
+ * The grouped list's rows: each group's header, then its findings while it
+ * is open (`isOpen(req)`).
+ */
+export function groupedRows(groups, isOpen) {
+  return groups.flatMap((g) => {
+    const open = isOpen(g.req);
+    const header = { kind: ROW_KIND.REQ_HEADER, req: g.req, text: g.text, sev: g.sev, count: g.items.length, fileCount: g.fileCount, open };
+    return open ? [header, ...g.items] : [header];
+  });
 }

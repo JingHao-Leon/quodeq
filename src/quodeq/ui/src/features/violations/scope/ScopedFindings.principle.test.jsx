@@ -50,7 +50,10 @@ function renderPrinciple(history = HISTORY, onOpenMap = undefined) {
 
 const rowTitles = (container) => [...container.querySelectorAll('.wb-row__t')].map((n) => n.textContent.replace('✓ ', ''));
 const kindButtons = () => within(screen.getByRole('group', { name: t('violations.scopeKindAria') })).getAllByRole('button').map((b) => b.textContent);
-const railItem = (container, id) => [...container.querySelectorAll('.req-rail__item')].find((n) => n.querySelector('.req-rail__id')?.textContent.endsWith(id));
+const headers = (container) => [...container.querySelectorAll('.req-group')];
+const header = (container, id) => headers(container).find((n) => n.querySelector('.req-group__id').textContent === id);
+const sortButton = (name) => within(screen.getByRole('group', { name: t('violations.scopeSortAria') })).getByRole('button', { name });
+const reqMenu = (value) => screen.getByRole('button', { name: t('violations.wbMenuButton', { label: t('violations.scopeReqMenu'), value }) });
 
 describe('ScopedFindings, a principle', () => {
   beforeEach(() => { deltas.map = new Map(); deltas.previous = null; deltas.diffs = []; deltas.areas = []; deltas.riskArgs = null; deltas.seriesRows = []; });
@@ -62,14 +65,47 @@ describe('ScopedFindings, a principle', () => {
     expect(screen.queryByText(t('violations.scopeStatCriticalK'))).toBeNull();
   });
 
-  it('a requirement on the rail narrows the list and the kind counts; All brings them back', () => {
+  it('opens grouped by requirement, worst first, only the worst open; a header folds or opens its findings', () => {
     const { container } = renderPrinciple();
+    expect(sortButton(t('violations.scopeSort_requirement'))).toHaveAttribute('aria-pressed', 'true');
+    expect(headers(container).map((n) => n.querySelector('.req-group__id').textContent)).toEqual(['R2', 'R1', 'R3']);
+    expect(rowTitles(container)).toEqual(['Secret in code']);
+    fireEvent.click(header(container, 'R1'));
+    expect(rowTitles(container)).toEqual(['Secret in code', 'Unchecked input', 'Loose parse', 'Checked form']);
+    fireEvent.click(header(container, 'R2'));
+    expect(rowTitles(container)).toEqual(['Unchecked input', 'Loose parse', 'Checked form']);
+    expect(header(container, 'R1')).toHaveTextContent(t('violations.scopeReqFile'));
+  });
+
+  it('opens every group or folds them all; by severity reads the list without headers', () => {
+    const { container } = renderPrinciple();
+    fireEvent.click(screen.getByRole('button', { name: t('violations.scopeReqOpenAll') }));
+    expect(rowTitles(container)).toEqual(['Secret in code', 'Unchecked input', 'Loose parse', 'Checked form', 'Escaped output']);
+    fireEvent.click(screen.getByRole('button', { name: t('violations.scopeReqFoldAll') }));
+    expect(rowTitles(container)).toEqual([]);
+    fireEvent.click(sortButton(t('violations.scopeSort_severity')));
+    expect(headers(container)).toHaveLength(0);
     expect(rowTitles(container)).toEqual(['Secret in code', 'Unchecked input', 'Loose parse', 'Escaped output', 'Checked form']);
-    fireEvent.click(railItem(container, 'R1'));
+  });
+
+  it('the requirement menu narrows the list and the kind counts, says so above the list, and shows all again', () => {
+    const { container } = renderPrinciple();
+    fireEvent.click(reqMenu(t('violations.wbAll')));
+    fireEvent.click(screen.getAllByRole('menuitemradio').find((n) => n.textContent.startsWith('R1')));
+    expect(reqMenu('R1')).toBeInTheDocument();
     expect(rowTitles(container)).toEqual(['Unchecked input', 'Loose parse', 'Checked form']);
     expect(kindButtons()).toEqual([t('violations.scopeKindAll'), 'major1', 'minor1', `${t('violations.scopeCompliantShort')}1`]);
-    fireEvent.click(screen.getByRole('button', { name: new RegExp(t('violations.scopeRailAll')) }));
-    expect(rowTitles(container)).toHaveLength(5);
+    expect(container.querySelector('.req-note')).toHaveTextContent(t('violations.scopeReqOnly', { req: 'R1', shown: 3, total: 5 }));
+    fireEvent.click(screen.getByRole('button', { name: t('violations.scopeReqShowAll', { count: 3 }) }));
+    expect(container.querySelector('.req-note')).toBeNull();
+    expect(rowTitles(container)).toEqual(['Secret in code']);
+  });
+
+  it('the requirement menu finds a requirement by its words', () => {
+    renderPrinciple();
+    fireEvent.click(reqMenu(t('violations.wbAll')));
+    fireEvent.change(screen.getByRole('searchbox', { name: t('violations.scopeReqSearchAria') }), { target: { value: 'secret' } });
+    expect(screen.getAllByRole('menuitemradio').map((n) => n.querySelector('.req-menu__id, .req-menu__all').textContent)).toEqual([t('violations.scopeReqAll'), 'R2']);
   });
 
   it('reads its change since the previous period from the history it is handed, hidden under 0.05', () => {
