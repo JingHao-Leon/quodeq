@@ -10,6 +10,7 @@ import threading
 import time
 from pathlib import Path
 
+from quodeq.services.wiring import list_report_files
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import default_findings_repo_factory, requirement_of
 from quodeq.assistant.tools.registry import ToolError
@@ -124,7 +125,7 @@ def _eval_json_finding_keys(ctx: ToolContext, add) -> bool:
     # drops only its own findings, not every healthy dimension's keys. The
     # helper skips silently, so a report count short of the file count is
     # how a skipped file shows up here.
-    expected = len(list(eval_dir.glob("*.json")))
+    expected = len(list_report_files(eval_dir))
     parsed = 0
     for _dimension, data in iter_eval_reports(eval_dir, skip_corrupt=True):
         parsed += 1
@@ -188,7 +189,7 @@ def _source_stamp(run_dir: Path) -> tuple:
     catches a file replaced in place (same mtime, same size, new content)
     that an mtime/size stamp alone would miss."""
     eval_dir = run_dir / "evaluation"
-    paths = sorted(eval_dir.glob("*.json")) if eval_dir.is_dir() else []
+    paths = [path for _, path in list_report_files(eval_dir)]
     paths.extend(run_dir / name for name in _RUN_KEY_SOURCES)
     stamp = []
     for path in paths:

@@ -1,7 +1,7 @@
 """Pack a finished run's event log and evidence into one file, restore it on demand.
 
-An archived run keeps its reports, ``status.json``, ``dimensions.json`` and
-``evidence/manifest.json`` in place. ``events.jsonl`` and the
+An archived run keeps its reports (gzipped in place, see ``run_archive_reports``),
+``status.json``, ``dimensions.json`` and ``evidence/manifest.json``. ``events.jsonl`` and the
 ``evidence/*_evidence.jsonl`` files move into ``archive.tar.gz`` inside the
 run folder; ``evaluation.db`` (WAL folded in first) and its ``-wal`` and
 ``-shm`` sidecars are deleted, and the run's dismissals are kept beside the
@@ -20,7 +20,6 @@ next one. Both operations hold a per-run lock file.
 """
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 import shutil
@@ -38,6 +37,8 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME
     dropped_sidecars, is_plain_file,
 )
 from quodeq.data.fs.run_archive_limits import RunArchiveError, check_members, check_packable, check_restore_dirs, read_members  # noqa: F401
+from quodeq.data.fs.run_archive_reports import clean_report_leftovers, pack_reports_in_place, unpack_reports_in_place
+from quodeq.data.fs.run_archive_write import verify_archive, write_archive
 from quodeq.data.fs.run_archive_tidy import TIDY_PATTERNS, tidy_run  # noqa: F401 -- re-exported for the archive's callers
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
@@ -49,7 +50,6 @@ _logger = logging.getLogger(__name__)
 
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
-_CHUNK = 1 << 20
 READ_ERRORS = (tarfile.TarError, OSError, EOFError, zlib.error)
 
 
@@ -74,45 +74,12 @@ def has_event_log(run_dir: Path) -> bool:
 def _clean_leftovers(run_dir: Path) -> None:
     """Remove a temporary archive or restore folder left by an interrupted attempt."""
     (run_dir / _TMP_ARCHIVE).unlink(missing_ok=True)
+    clean_report_leftovers(run_dir)
     staging = run_dir / _RESTORE_DIR
     if staging.is_dir() and not staging.is_symlink():
         shutil.rmtree(staging)
     else:
         staging.unlink(missing_ok=True)
-
-
-def _write_archive(tmp: Path, sources: list[tuple[str, Path]]) -> None:
-    """Write *sources* into *tmp* as a gzip tar and fsync it to disk."""
-    with open(tmp, "wb") as raw:
-        with tarfile.open(fileobj=raw, mode="w:gz") as tar:
-            for name, path in sources:
-                tar.add(path, arcname=name, recursive=False)
-        raw.flush()
-        os.fsync(raw.fileno())
-
-
-def _digest(stream) -> str:
-    sha = hashlib.sha256()
-    for chunk in iter(lambda: stream.read(_CHUNK), b""):
-        sha.update(chunk)
-    return sha.hexdigest()
-
-
-def _verify_archive(tmp: Path, sources: list[tuple[str, Path]]) -> None:
-    """Reopen *tmp* and check it holds exactly *sources*, byte for byte."""
-    expected = {}
-    for name, path in sources:
-        with open(path, "rb") as fh:
-            expected[name] = (path.stat().st_size, _digest(fh))
-    found = {}
-    with tarfile.open(tmp, "r:gz") as tar:
-        for member in tar:
-            stream = tar.extractfile(member) if member.isreg() else None
-            if stream is None:
-                raise RunArchiveError(f"archive member {member.name!r} is not a regular file")
-            found[member.name] = (member.size, _digest(stream))
-    if found != expected:
-        raise RunArchiveError("archive contents do not match the run's files")
 
 
 def archive_run(run_dir: Path) -> ArchiveResult:
@@ -141,8 +108,8 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         try:
             write_precedents(run_dir)  # precedent matching reads these without a restore
             write_scalars(run_dir)  # and the run list, trend and warm-up read these
-            _write_archive(tmp, sources)
-            _verify_archive(tmp, sources)
+            write_archive(tmp, sources)
+            verify_archive(tmp, sources)
             os.replace(tmp, final)
             # A reader or writer touched the run while it was packed, or added a file the archive would hold.
             if not unchanged(packed) or archive_sources(run_dir) != sources:
@@ -160,7 +127,9 @@ def archive_run(run_dir: Path) -> ArchiveResult:
                 path.unlink(missing_ok=True)
             except OSError as exc:
                 _logger.debug("Could not remove %s after archiving: %s", path, exc)
-        return ArchiveResult(bytes_before=bytes_before, bytes_after=final.stat().st_size)
+        # Last, once the run is archived: the reports, gzipped in place (a failure leaves them readable, see the module).
+        reports_before, reports_after = pack_reports_in_place(run_dir)
+        return ArchiveResult(bytes_before=bytes_before + reports_before, bytes_after=final.stat().st_size + reports_after)
 
 
 def _drop_originals(run_dir: Path, sources: list[tuple[str, Path]]) -> None:
@@ -251,6 +220,7 @@ def _restore_locked(run_dir: Path) -> list[str] | None:
         dest = run_dir / name
         dest.parent.mkdir(parents=True, exist_ok=True)
         os.replace(staging / name, dest)
+    unpack_reports_in_place(run_dir)  # before the archive goes: a failure leaves a consistent archived run
     archive.unlink()
     shutil.rmtree(staging, ignore_errors=True)
     write_restored_stamp(run_dir)
@@ -266,8 +236,10 @@ def _ensure_projected(run_dir: Path) -> None:
 def _project_after_restore(run_dir: Path) -> None:
     """Rebuild the database of a run whose archive held none, so the next reader finds its grades.
 
-    A failed rebuild is logged; the readers that project rebuild it on
-    their first read.
+    The projecting readers would rebuild it anyway; the point is the readers
+    that guard on ``has_evaluation_db`` (run keys, finding details, the
+    scalar reader) taking the database path right after a restore instead of
+    the slower report path. A failed rebuild is logged.
     """
     run_isolated(lambda: _ensure_projected(run_dir), label=f"rebuild the database of restored run {run_dir}", log=_logger)
 

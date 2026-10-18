@@ -22,7 +22,7 @@ from quodeq.data.fs.report_parser.external_pid import resolve_external_pid
 from quodeq.data.fs.report_parser._evidence import load_evidence_map
 from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db, manifest_metadata
 from quodeq.data.fs.report_parser._run_scalars import scalars_to_dimension_results
-from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX, MANIFEST_FILENAME
+from quodeq.shared.constants import EVIDENCE_DIRNAME, MANIFEST_FILENAME
 from quodeq.data.fs.report_parser._repository import (
     build_repository_info as build_repository_info,
 )
@@ -33,6 +33,7 @@ from quodeq.data.fs.report_parser._run_info import (
 )
 from quodeq.data.fs.report_parser.run_dates import remember_run_dates, remembered_run_dates
 from quodeq.data.fs.run_archive import is_archived, restore_or_warn
+from quodeq.data.fs.report_files import list_report_files
 from quodeq.data.fs.run_scalars import read_scalars
 from quodeq.shared.validation import validate_path_segment
 
@@ -116,11 +117,7 @@ def _read_run_scalars_from_sql(run_dir: Path) -> "tuple[list[dict], list[dict]] 
     if any(r.get("score") is None for r in dim_rows):
         return None
 
-    eval_dir = run_dir / "evaluation"
-    on_disk = (
-        sum(1 for p in eval_dir.iterdir() if p.suffix == JSON_SUFFIX)
-        if eval_dir.is_dir() else 0
-    )
+    on_disk = len(list_report_files(run_dir / "evaluation"))
     if on_disk and len(dim_rows) != on_disk:
         return None
 

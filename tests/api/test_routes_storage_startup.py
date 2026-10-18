@@ -39,8 +39,8 @@ def _wait(client, state) -> bool:
 def test_the_startup_pass_shows_as_running_and_clean_now_is_busy(app, tmp_path, monkeypatch):
     release, entered = threading.Event(), threading.Event()
 
-    def slow(*_a, on_progress=None, **_k):
-        on_progress(1, 4)
+    def slow(*_a, hooks=None, **_k):
+        hooks.on_progress(1, 4)
         entered.set()
         release.wait(budget(10))
         return CleanupResult(1, 0, 0)

@@ -7,12 +7,12 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Callable
 
+from quodeq.services.wiring import list_report_files
 from quodeq.services.wiring import RunInfo, read_run_data, read_run_manifest, read_run_scalars, run_fingerprint
 from quodeq.services.wiring_sync import is_archived, read_archived_run_data
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.dimension import open_types_of
-from quodeq.shared.constants import JSON_SUFFIX
 
 # A run's per-dimension evaluation reports; without them the full read yields no
 # dimensions, so the scalar read (which would still find grade rows) must not be used.
@@ -118,10 +118,7 @@ def make_slim_run_fetcher(
 
 def _report_dimensions(run_dir: Path) -> set[str]:
     """Dimensions with an evaluation report (``evaluation/<dimension>.json``) in *run_dir*."""
-    eval_dir = run_dir / _EVALUATION_DIR
-    if not eval_dir.is_dir():
-        return set()
-    return {p.stem for p in eval_dir.iterdir() if p.suffix == JSON_SUFFIX}
+    return {dimension for dimension, _ in list_report_files(run_dir / _EVALUATION_DIR)}
 
 
 def _scalars_match_reports(dims: list[DimensionResult], reports: set[str]) -> bool:

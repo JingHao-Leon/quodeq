@@ -6,20 +6,19 @@ event-log scoring engine and so never produced that table.
 """
 from __future__ import annotations
 
-import json
 from collections.abc import Iterator
 from pathlib import Path
 
 from quodeq.core.finding_identity import coerce_line, finding_dismiss_keys
-from quodeq.shared.constants import JSON_SUFFIX
+from quodeq.data.fs.report_files import list_report_files, read_report_json, report_file
 
 # A run's folder of per-dimension scored reports.
 _EVAL_DIR = "evaluation"
 
 
 def iter_eval_reports(eval_dir: Path, *, skip_corrupt: bool = False) -> Iterator[tuple[str, dict]]:
-    """Yield ``(dimension, data)`` for every ``<dim>.json`` file in
-    *eval_dir*, in filename order. ``dimension`` is the filename stem.
+    """Yield ``(dimension, data)`` for every ``<dim>.json`` (or packed
+    ``<dim>.json.gz``) file in *eval_dir*, in dimension order.
 
     Malformed JSON propagates by default -- a corrupt evaluation report is a
     bug in the run, not something callers should silently skip over.
@@ -28,36 +27,31 @@ def iter_eval_reports(eval_dir: Path, *, skip_corrupt: bool = False) -> Iterator
     that must keep serving every healthy dimension even when one report is
     truncated or corrupt -- a known failure mode of deadline-cut runs.
     """
-    for path in sorted(eval_dir.glob("*.json")):
+    for dimension, path in list_report_files(eval_dir):
         if skip_corrupt:
             try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
+                data = read_report_json(path)
+            except (OSError, EOFError, ValueError):
                 continue
-            yield path.stem, data
+            yield dimension, data
         else:
-            yield path.stem, json.loads(path.read_text(encoding="utf-8"))
+            yield dimension, read_report_json(path)
 
 
 def iter_readable_eval_reports(run_dir: Path) -> Iterator[tuple[str, object]]:
-    """Yield ``(dimension, data)`` for each readable ``evaluation/<dim>.json`` in *run_dir*.
+    """Yield ``(dimension, data)`` for each readable ``evaluation/<dim>.json`` (or packed) in *run_dir*.
 
-    Directory order, not sorted (unlike ``iter_eval_reports``). A file that
+    Dimension order. A file that
     cannot be read or is not valid JSON is skipped; ``data`` is whatever the
     JSON holds, so callers that need an object check for one. No
     ``evaluation/`` directory yields nothing.
     """
-    eval_dir = run_dir / _EVAL_DIR
-    if not eval_dir.is_dir():
-        return
-    for path in eval_dir.iterdir():
-        if path.suffix != JSON_SUFFIX:
-            continue
+    for dimension, path in list_report_files(run_dir / _EVAL_DIR):
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+            data = read_report_json(path)
+        except (OSError, EOFError, ValueError):
             continue
-        yield path.stem, data
+        yield dimension, data
 
 
 def eval_report_dimensions(run_dir: Path) -> list[str]:
@@ -67,19 +61,16 @@ def eval_report_dimensions(run_dir: Path) -> list[str]:
     readable reports use ``iter_readable_eval_reports``. No ``evaluation/``
     directory gives an empty list.
     """
-    try:
-        return sorted(path.stem for path in (run_dir / _EVAL_DIR).iterdir() if path.suffix == JSON_SUFFIX)
-    except OSError:
-        return []
+    return [dimension for dimension, _ in list_report_files(run_dir / _EVAL_DIR)]
 
 
 def read_eval_report(eval_dir: Path, dimension: str) -> dict | None:
     """Read the single ``<dimension>.json`` report from *eval_dir*, or
     ``None`` if it doesn't exist. Malformed JSON propagates."""
-    path = eval_dir / f"{dimension}.json"
-    if not path.is_file():
+    path = report_file(eval_dir, dimension)
+    if path is None:
         return None
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_report_json(path)
 
 
 def read_finding_details_from_json_eval(

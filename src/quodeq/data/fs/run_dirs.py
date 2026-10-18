@@ -10,9 +10,10 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+from quodeq.data.fs.report_files import list_report_files
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.utils.io import is_within
-from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX
+from quodeq.shared.constants import EVIDENCE_DIRNAME
 
 _EVALUATION_DIRNAME = "evaluation"
 _EVIDENCE_SUFFIX = "_evidence.jsonl"
@@ -92,7 +93,7 @@ def run_dimension_ids(run_dir: Path) -> frozenset[str]:
     has at least ``evidence/<dim>_evidence.jsonl``. Missing folders and other
     files contribute nothing.
     """
-    ids = {p.stem.lower() for p in _entries(run_dir / _EVALUATION_DIRNAME) if p.suffix == JSON_SUFFIX}
+    ids = {dimension.lower() for dimension, _ in list_report_files(run_dir / _EVALUATION_DIRNAME)}
     ids |= {
         p.name[: -len(_EVIDENCE_SUFFIX)].lower()
         for p in _entries(run_dir / EVIDENCE_DIRNAME) if p.name.endswith(_EVIDENCE_SUFFIX)

@@ -24,7 +24,7 @@ def _wait(job, state):
 
 
 def test_a_fresh_job_is_idle():
-    assert CleanJob().snapshot() == {"state": "idle", "done": 0, "total": 0, "archived": 0, "bytesFreed": 0}
+    assert CleanJob().snapshot() == {"state": "idle", "done": 0, "total": 0, "archived": 0, "packed": 0, "bytesFreed": 0}
 
 
 def test_the_job_archives_and_reports_done(tmp_path):

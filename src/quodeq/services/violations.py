@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from quodeq.services.wiring import report_file
 from quodeq.config.services_env import max_violation_files as _resolve_max_violation_files
 from quodeq.core.types import ViolationFileEntry, ViolationResponse, ViolationSummary
 from quodeq.core.types.severity import Severity
@@ -192,8 +193,8 @@ def _suppression_keys(base: Path) -> SuppressionKeys:
 def _resolve_from_source(
     base: Path, ctx: ViolationContext, opts: ResolveOptions, keys: SuppressionKeys,
 ) -> ViolationResponse | dict[str, Any] | None:
-    eval_path = base / "evaluation" / f"{ctx.dimension}.json"
-    if opts.exists_fn(eval_path):
+    eval_path = report_file(base / "evaluation", ctx.dimension)
+    if eval_path is not None and opts.exists_fn(eval_path):
         return _resolve_from_json_eval(eval_path, base, ctx, opts, keys)
 
     markdown_path = base / "evaluation" / f"{ctx.dimension}_eval.md"

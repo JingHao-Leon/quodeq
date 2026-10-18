@@ -14,13 +14,13 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Any
 
+from quodeq.services.wiring import list_report_files
 from quodeq.core.run.state import RunState
 from quodeq.services.dashboard_trend import build_partial_run_entries
 from quodeq.services.scoring import ProjectRows
 
 # Projects whose partial entries are remembered; the least recently used one is dropped.
 _MAX_PROJECTS = 16
-_REPORT_GLOB = "*.json"
 _REPORT_DIR = "evaluation"
 
 _Key = tuple[Any, ...]
@@ -30,7 +30,7 @@ _memo: OrderedDict[str, tuple[_Key, list[dict[str, Any]]]] = OrderedDict()
 
 def _report_stamps(run_dir: Path) -> tuple[tuple[str, int], ...]:
     try:
-        return tuple(sorted((p.name, p.stat().st_mtime_ns) for p in (run_dir / _REPORT_DIR).glob(_REPORT_GLOB)))
+        return tuple((dimension, p.stat().st_mtime_ns) for dimension, p in list_report_files(run_dir / _REPORT_DIR))
     except OSError:
         return ()
 

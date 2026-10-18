@@ -15,6 +15,7 @@ import tempfile
 from collections.abc import Callable
 from pathlib import Path
 
+from quodeq.data.fs.report_files import REPORT_SUFFIX, list_report_files, read_report_bytes
 from quodeq.shared.json_state import dump_json_and_replace
 
 _logger = logging.getLogger(__name__)
@@ -66,6 +67,20 @@ def copy_matching_files(src_dir: Path, dest_dir: Path, pattern: str) -> list[Pat
     for src in sorted(src_dir.glob(pattern)):
         write_replacing(dest_dir / src.name, lambda tmp, s=src: shutil.copy2(s, tmp))
         written.append(dest_dir / src.name)
+    return written
+
+
+def copy_reports_plain(src_eval_dir: Path, dest_eval_dir: Path) -> list[Path]:
+    """Copy a run's reports into *dest_eval_dir* as plain ``<dim>.json``, unpacking a packed one; the paths written.
+
+    A shared clone's reports stay plain JSON whatever form the local run keeps.
+    """
+    ensure_dir(dest_eval_dir)
+    written = []
+    for dimension, src in list_report_files(src_eval_dir):
+        dest = dest_eval_dir / f"{dimension}{REPORT_SUFFIX}"
+        write_replacing(dest, lambda tmp, s=src: tmp.write_bytes(read_report_bytes(s)))
+        written.append(dest)
     return written
 
 

@@ -23,6 +23,8 @@ from quodeq.data.fs.report_parser.markdown import (
     parse_eval_markdown,
     split_table_row,
 )
+from quodeq.data.fs.report_parser._date_utils import find_date_in_dir
+from quodeq.data.fs.report_parser._evaluations import load_evaluations
 from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db
 from quodeq.data.fs.report_parser._report_keys import read_report_key_sets
 from quodeq.data.fs.report_parser.runs import (
@@ -42,6 +44,8 @@ __all__ = [
     "build_repository_info",
     "build_totals",
     "empty_severity_buckets",
+    "find_date_in_dir",
+    "load_evaluations",
     "calculate_trend",
     "clean_cell",
     "extract_exec_summary",

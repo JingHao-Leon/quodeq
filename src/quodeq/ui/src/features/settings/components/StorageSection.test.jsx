@@ -244,4 +244,33 @@ describe('StorageSection', () => {
     const dialog = await openClean(section);
     expect(dialog.queryByText(/archived on their own/)).not.toBeInTheDocument();
   });
+
+  it('says the clean also compresses the reports of earlier archives', async () => {
+    const { section } = setup({ getCleanPreview: vi.fn(async () => ({ archive: 2, pack: 240, frees: GB })) });
+    await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
+    fireEvent.click(section().getByRole('button', { name: 'clean now' }));
+    const dialog = within(screen.getByRole('dialog'));
+    await waitFor(() => expect(dialog.getByText('Archives 2 runs beyond the newest ones you keep and compresses the reports of 240 runs archived earlier, freeing about 1.0 GB.')).toBeInTheDocument());
+    expect(dialog.getByRole('button', { name: 'clean now' })).toBeEnabled();
+  });
+
+  it('can clean when there is only report packing to do', async () => {
+    const { section } = setup({ getCleanPreview: vi.fn(async () => ({ archive: 0, pack: 7, frees: GB })) });
+    await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
+    fireEvent.click(section().getByRole('button', { name: 'clean now' }));
+    const dialog = within(screen.getByRole('dialog'));
+    await waitFor(() => expect(dialog.getByText(/^Compresses the reports of 7 runs archived earlier, freeing about 1\.0 GB\./)).toBeInTheDocument());
+    expect(dialog.getByRole('button', { name: 'clean now' })).toBeEnabled();
+  });
+
+  it('the notice names the reports it will compress, alone or beside the archives', async () => {
+    const getStorage = vi.fn()
+      .mockResolvedValueOnce({ ...SUMMARY, archiveNotice: { runs: 0, pack: 240, bytes: GB } })
+      .mockResolvedValue({ ...SUMMARY, archiveNotice: { runs: 3, pack: 240, bytes: 2 * GB } });
+    const { section, qc } = setup({ getStorage });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('Next time quodeq starts, it compresses the reports of 240 runs archived earlier, freeing about 1.0 GB.'));
+    await qc.refetchQueries({ queryKey: ['storage'] });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 3 runs beyond the 10 newest of each project, freeing about 2.0 GB.'));
+    expect(section().getByRole('status')).toHaveTextContent('It also compresses the reports of 240 runs archived earlier.');
+  });
 });

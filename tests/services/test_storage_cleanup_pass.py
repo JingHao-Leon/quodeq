@@ -6,7 +6,7 @@ import time
 
 from quodeq.data.fs.run_archive import archive_run, is_archived
 from quodeq.services import storage_cleanup, storage_plan
-from quodeq.services.storage_cleanup import run_cleanup
+from quodeq.services.storage_cleanup import CleanupHooks, run_cleanup
 from tests.services._storage_fixtures import NOW, make_run as _run
 
 
@@ -48,7 +48,7 @@ def test_progress_counts_every_run_of_the_pass_tidied_or_archived(tmp_path):
         _run(tmp_path, name, "newer", 10)
     seen = []
 
-    run_cleanup(tmp_path, NOW, keep_runs=1, on_progress=lambda d, t: seen.append((d, t)))
+    run_cleanup(tmp_path, NOW, keep_runs=1, hooks=CleanupHooks(on_progress=lambda d, t: seen.append((d, t))))
 
     assert seen == [(i, 4) for i in range(1, 5)]  # four runs: all tidied, two of them archived too
 

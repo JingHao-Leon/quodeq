@@ -32,8 +32,11 @@ function ModalError({ message }) {
 function previewText(preview, isError) {
   if (isError) return t('storage.previewFailed');
   if (!preview) return t('storage.cleanPreviewLoading');
-  if (preview.archive === 0) return t('storage.cleanNothing');
-  return t('storage.cleanSummary', { archive: preview.archive, frees: formatBytes(preview.frees) });
+  const pack = preview.pack ?? 0;
+  if (preview.archive === 0 && pack === 0) return t('storage.cleanNothing');
+  const args = { archive: preview.archive, pack, frees: formatBytes(preview.frees) };
+  if (preview.archive === 0) return t('storage.cleanPackOnly', args);
+  return t(pack ? 'storage.cleanSummaryPack' : 'storage.cleanSummary', args);
 }
 
 /**
@@ -45,7 +48,7 @@ export function CleanModal({ onClean, onClose, autoArchive = false }) {
   const preview = useQuery({ queryKey: storageKeys.preview(), queryFn: getCleanPreview, staleTime: 0, gcTime: 0 });
   const [error, setError] = useState(null);
   const [starting, setStarting] = useState(false);
-  const canClean = !starting && (preview.data?.archive ?? 0) > 0;
+  const canClean = !starting && ((preview.data?.archive ?? 0) + (preview.data?.pack ?? 0)) > 0;
   const confirm = async () => {
     setStarting(true);
     setError(null);

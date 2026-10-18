@@ -6,7 +6,7 @@ import tarfile
 
 from quodeq.data.fs import run_archive
 from quodeq.data.fs.run_archive import archive_run, ensure_restored
-from quodeq.data.fs.run_archive_files import archive_sources, packed_bytes
+from quodeq.data.fs.run_archive_files import archive_sources, packed_bytes, report_bytes
 from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository
 from quodeq.services.scoring import get_scores_raw
 from quodeq.services.storage_report import clean_preview
@@ -71,4 +71,4 @@ def test_the_preview_counts_the_database_as_freed_in_full(tmp_path):
     preview = clean_preview(tmp_path, NOW, 1)
     dropped = sum((old / n).stat().st_size for n in _DB_FILES if (old / n).exists())
     assert preview.archive == 1
-    assert preview.frees == int(dropped + 0.76 * packed_bytes(old))
+    assert preview.frees == int(dropped + 0.76 * packed_bytes(old) + 0.80 * report_bytes(old))

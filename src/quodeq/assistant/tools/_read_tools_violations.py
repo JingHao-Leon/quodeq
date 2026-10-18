@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import heapq
 
+from quodeq.services.wiring import report_file
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import (
     find_dimension,
@@ -209,8 +210,7 @@ def _violations_from_run(ctx: ToolContext, dimension: str | None):
     eval_dir = ctx.run_dir / "evaluation"
     if dimension:
         validate_dimension(dimension)
-        path = eval_dir / f"{dimension}.json"
-        if not path.is_file():
+        if report_file(eval_dir, dimension) is None:
             raise ToolError(
                 f"no report for dimension: {dimension} in this run. "
                 "Check get_scores for available dimensions, or get_overview "

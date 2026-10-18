@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 
+from quodeq.data.fs.report_files import is_packed_report, list_report_files
 from quodeq.data.fs.run_archive_wal import DB_NAME, WAL_NAME
 
 ARCHIVE_FILENAME = "archive.tar.gz"
@@ -51,9 +52,9 @@ def dropped_bytes(run_dir: Path) -> int:
     return sum(p.stat().st_size for p in dropped_sidecars(run_dir))
 
 
-def packable_bytes(run_dir: Path) -> int:
-    """Bytes the archive would pack or drop: event log, evidence logs, database and sidecars."""
-    return packed_bytes(run_dir) + dropped_bytes(run_dir)
+def report_bytes(run_dir: Path) -> int:
+    """Bytes of the run's plain reports, the ones an archive gzips in place."""
+    return sum(p.stat().st_size for _, p in list_report_files(run_dir / "evaluation") if not is_packed_report(p))
 
 
 def write_json_sidecar(sidecar: Path, payload: dict) -> None:

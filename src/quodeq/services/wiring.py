@@ -73,7 +73,7 @@ from quodeq.data.fs.standards_scan import file_stamp, scoring_content_hash, stan
 # Run-artifact copy/replace mechanics (shared-repo publish staging).
 from quodeq.data.fs.run_artifacts import (  # noqa: F401
     copy_file_if_exists,
-    copy_matching_files,
+    copy_matching_files, copy_reports_plain,
     ensure_dir,
     read_json_object,
     replace_json_file,
@@ -91,7 +91,7 @@ from quodeq.data.fs.stream_files import (  # noqa: F401
 # Legacy per-run evaluation/*.json finding details (SQL twin:
 # quodeq.data.sqlite.findings_queries.read_finding_details).
 from quodeq.data.fs.report_parser.finding_details import (  # noqa: F401
-    eval_report_dimensions, iter_eval_reports,
+    eval_report_dimensions, iter_eval_reports, list_report_files, read_report_json, report_file,
     iter_readable_eval_reports,
     read_eval_report,
     read_finding_details_from_json_eval,

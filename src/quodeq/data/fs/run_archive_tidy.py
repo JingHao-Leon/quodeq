@@ -5,7 +5,7 @@ import logging
 import sqlite3
 from pathlib import Path
 
-from quodeq.data.fs.run_archive_files import EVIDENCE_DIR, is_plain_file
+from quodeq.data.fs.run_archive_files import ARCHIVE_FILENAME, EVIDENCE_DIR, is_plain_file
 from quodeq.data.fs.run_archive_guard import run_lock
 from quodeq.data.fs.run_archive_wal import WalNotFoldedError, fold_wal, needs_db_tidy, vacuum_db
 
@@ -13,11 +13,10 @@ _logger = logging.getLogger(__name__)
 
 # The dispatch queues (``*_queue.json``) stay: files analysed and partly scanned dimensions read them.
 TIDY_PATTERNS = ("*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
-_ARCHIVE_FILENAME = "archive.tar.gz"  # as run_archive_files.ARCHIVE_FILENAME; named here to keep the import one way
 
 
 def _is_archived(run_dir: Path) -> bool:
-    return (run_dir / _ARCHIVE_FILENAME).is_file()
+    return (run_dir / ARCHIVE_FILENAME).is_file()
 
 
 def tidy_run(run_dir: Path) -> int:

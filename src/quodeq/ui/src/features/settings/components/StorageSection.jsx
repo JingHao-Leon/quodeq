@@ -18,12 +18,11 @@ const AUTO_CLEANUP = [{ v: true, l: t('settings.on') }, { v: false, l: t('settin
 function ArchiveNotice({ data }) {
   const notice = data?.archiveNotice;
   if (!notice) return null;
-  const keep = data.keepRuns ?? '';
-  return (
-    <p className="storage-notice" role="status">
-      {t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', { runs: notice.runs, keep, size: formatBytes(notice.bytes) })}
-    </p>
-  );
+  const args = { runs: notice.runs, pack: notice.pack ?? 0, keep: data.keepRuns ?? '', size: formatBytes(notice.bytes) };
+  const text = notice.runs === 0
+    ? t('storage.noticePackOnly', args)
+    : t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', args) + (args.pack ? ` ${t('storage.noticePack', args)}` : '');
+  return <p className="storage-notice" role="status">{text}</p>;
 }
 
 function Menu({ open, disabled, onToggle, onDeleteAll }) {

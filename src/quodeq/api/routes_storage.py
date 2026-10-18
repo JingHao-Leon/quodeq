@@ -2,13 +2,13 @@
 
 GET    /api/storage             -- size, runs, archived runs per project, the settings, the first-start notice, clean progress
 PUT    /api/storage/settings    -- {keepRuns?: 5|10|25|null, archiveAfterDays?: 91|183|365|null, autoCleanup?: bool}, at least one
-GET    /api/storage/preview     -- what a clean would archive now, and about how much it frees
+GET    /api/storage/preview     -- what a clean would archive now, whose reports it would pack, and about how much it frees
 GET    /api/storage/clean       -- clean progress only, no disk walk (cheap to poll)
 POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean (STORAGE_BUSY), the score warm-up
                                    (STORAGE_WARMUP) or a grade-formula rescore (STORAGE_RESCORE) runs
 DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while a run, a clean, the warm-up or a rescore runs
 
-``archiveNotice`` is ``{runs, bytes}`` while the first start held the archive
+``archiveNotice`` is ``{runs, pack, bytes}`` while the first start held the archive
 back (see ``services/storage_notice``), else null. ``keepRuns`` is how many of
 a project's newest done runs stay unpacked (null keeps all); ``archiveAfterDays``
 is the 1.14 age choice, kept for a later release and no longer driving the plan.
@@ -75,7 +75,7 @@ def _summary_payload(env: Mapping[str, str] | None, job: CleanJob) -> dict:
         _KEEP_KEY: settings.keep_runs,
         _SETTING_KEY: settings.archive_after_days,
         _AUTO_KEY: settings.auto_cleanup,
-        "archiveNotice": {"runs": notice.archive, "bytes": notice.frees} if notice else None,
+        "archiveNotice": {"runs": notice.archive, "pack": notice.pack, "bytes": notice.frees} if notice else None,
         "clean": job.snapshot(),
     }
 
@@ -145,7 +145,7 @@ def register_storage_routes(app: Flask, provider: ActionProvider, env: Mapping[s
     def get_storage_preview() -> Response:
         keep = read_storage_settings(env).keep_runs
         preview = clean_preview(Path(reports_dir()), datetime.now(timezone.utc), keep)
-        return jsonify({"archive": preview.archive, "frees": preview.frees})
+        return jsonify({"archive": preview.archive, "pack": preview.pack, "frees": preview.frees})
 
     @app.get("/api/storage/clean")
     def get_storage_clean() -> Response:

@@ -15,10 +15,11 @@ import logging
 from collections.abc import Sequence
 from pathlib import Path
 
+from quodeq.data.fs.report_files import list_report_files, report_file
 from quodeq.core.run.state import RunState, parse_run_state
 from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.data.fs.run_artifacts import read_json_object
-from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX, MANIFEST_FILENAME
+from quodeq.shared.constants import EVIDENCE_DIRNAME, MANIFEST_FILENAME
 
 _logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ _EVIDENCE_SUFFIX = "_evidence.jsonl"
 
 
 def count_eval_files(run_dir: Path, *, strict: bool = False) -> int | None:
-    """Number of ``evaluation/*.json`` files, or None when the dir is absent.
+    """Number of reports (``evaluation/*.json``, plain or packed), or None when the dir is absent.
 
     None vs 0 matters: callers anchored on the directory existing (unit
     tests that pre-seed caches) must treat "no directory" as "no signal".
@@ -48,11 +49,12 @@ def count_eval_files(run_dir: Path, *, strict: bool = False) -> int | None:
     if not eval_dir.is_dir():
         return None
     try:
-        return sum(1 for p in eval_dir.iterdir() if p.suffix == JSON_SUFFIX)
+        list(eval_dir.iterdir())  # an unreadable directory is "no signal", or an error when strict
     except OSError:
         if strict:
             raise
         return None
+    return len(list_report_files(eval_dir))
 
 
 def read_run_state(run_dir: Path) -> RunState | None:
@@ -148,7 +150,7 @@ def dimension_report_exists(evaluation_dir: Path, dim_id: str) -> bool:
     Deliberately ``.is_file()`` rather than ``.exists()``: a directory or a
     symlink to nothing at that path must not count as a scored report.
     """
-    return (evaluation_dir / f"{dim_id}.json").is_file()
+    return report_file(evaluation_dir, dim_id) is not None
 
 
 def read_run_status_json(run_dir: Path) -> dict:
