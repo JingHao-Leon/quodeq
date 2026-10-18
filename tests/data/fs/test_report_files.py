@@ -58,3 +58,15 @@ def test_a_corrupt_packed_body_reads_as_an_os_error(tmp_path):
     with pytest.raises(OSError):
         read_report_json(packed)
     assert list_report_files(tmp_path) == [("a", packed)]  # still listed; the readers that skip, skip it
+
+
+def test_a_packed_report_that_inflates_past_the_cap_reads_as_an_os_error(tmp_path, monkeypatch):
+    import gzip
+    monkeypatch.setenv("QUODEQ_REPORT_MAX_MB", "1")
+    bomb = tmp_path / "a.json.gz"
+    bomb.write_bytes(gzip.compress(b'{"x": "' + b"0" * (2 * 1024 * 1024) + b'"}', 9))
+    assert bomb.stat().st_size < 64 * 1024  # a few KB that would unpack to 2 MB
+    with pytest.raises(OSError, match="past"):
+        read_report_json(bomb)
+    monkeypatch.setenv("QUODEQ_REPORT_MAX_MB", "4")
+    assert len(read_report_json(bomb)["x"]) == 2 * 1024 * 1024

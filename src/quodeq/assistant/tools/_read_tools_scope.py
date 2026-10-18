@@ -137,8 +137,8 @@ def _sql_finding_keys(ctx: ToolContext, keys: set[tuple]) -> bool:
     """Keys from the SQL findings table (the search_findings source). Read
     only an EXISTING db so a read-only draft never creates evaluation.db or
     kicks a projection on a run that has none -- when there is no db there
-    are no SQL findings to miss anyway. An archived run keeps its db in the
-    archive, so it is read (restored) too. False when the db was unreadable."""
+    are no SQL findings to miss anyway. An archived run is restored and its db
+    rebuilt from the event log, so it is read too; a cold run has none. False when the db was unreadable."""
     if is_cold(ctx.run_dir) or (not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file() and not is_archived(ctx.run_dir)):
         return True
     try:

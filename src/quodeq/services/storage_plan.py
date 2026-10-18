@@ -120,15 +120,15 @@ def _trims(run_dir: Path, now: datetime, cold_after_days: int | None) -> bool:
     """An archived run that loses its findings: archived longer ago than the period, or a trim left half done."""
     if is_cold(run_dir):  # the marker is there but the archive stayed (an interrupted trim): finish it, whatever the period
         return True
-    archived_at = _archived_at(run_dir)
-    if cold_after_days is None or archived_at is None:
+    if cold_after_days is None:
         return False
-    return archived_at < now - timedelta(days=cold_after_days)
+    archived_at = _archived_at(run_dir)  # parses the sidecar: only once a period is set
+    return archived_at is not None and archived_at < now - timedelta(days=cold_after_days)
 
 
 def _plan_project(project: Path, now: datetime, keep_runs: int | None, cold_after_days: int | None) -> CleanupPlan:
     runs: list[tuple[Path, datetime | None, RunState]] = []
-    pack: list[Path] = []  # archived before the reports were packed in place (1.15.0): packed by the next pass
+    pack: list[Path] = []  # archived before the reports were packed in place (before 1.15): packed by the next pass
     trim: list[Path] = []
     for run_dir in _subdirs(project):
         state, when = read_run(run_dir)
