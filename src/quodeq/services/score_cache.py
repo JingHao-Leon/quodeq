@@ -67,7 +67,7 @@ if TYPE_CHECKING:
 # Bumped whenever the accumulated/project-card cache-key computation changes
 # (see the version history in the payload below); an old value recomputes
 # instead of serving a stale entry.
-_ACCUMULATED_CACHE_ALGO_VERSION = 6
+_ACCUMULATED_CACHE_ALGO_VERSION = 7
 
 
 def score_cache_version(project_dir: Path, params: ScoringParams) -> str:

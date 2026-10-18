@@ -6,7 +6,7 @@ from typing import Callable
 from quodeq.core.run.state import RunState
 from quodeq.core.scoring.internals import score_to_grade_label
 from quodeq.core.scoring.params import ScoringParams
-from quodeq.core.scoring.report_grades import most_frequent_grade, parse_numeric_score
+from quodeq.core.scoring.report_grades import is_provisional, most_frequent_grade, parse_numeric_score
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.severity import Severity
 from quodeq.core.types.trend import DimensionDetail, RunInfoPayload, TrendEntry
@@ -36,11 +36,13 @@ def _build_dimension_details(
         score = parse_numeric_score(dim.overall_score) if dim.overall_score else None
         prev_score = parse_numeric_score(prev.overall_score) if prev and prev.overall_score else None
         delta = round(score - prev_score, 2) if score is not None and prev_score is not None else None
+        provisional = is_provisional(dim)
         details.append({
             "dimension": dim.dimension,
             "score": score,
             "grade": dim.overall_grade,
             "delta": delta,
+            "provisional": provisional,
             **dimension_counts(dim),
         })
     return details

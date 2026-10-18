@@ -29,6 +29,7 @@ class DimensionDetail(TypedDict):
     score: float | None
     grade: str | None
     delta: float | None
+    provisional: bool
     violations: int
     majors: int
     openTypes: int
