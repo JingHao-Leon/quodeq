@@ -21,6 +21,7 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, dropped_bytes, packed_bytes, report_bytes,
 )
 from quodeq.data.fs.run_archive_reports import pack_reports_locked  # noqa: F401
+from quodeq.data.fs.run_cold import COLD_NAME, is_cold, is_frozen, trim_run  # noqa: F401
 from quodeq.data.fs.run_archive_limits import max_archive_bytes  # noqa: F401
 from quodeq.data.fs.run_archive_wal import DB_NAME  # noqa: F401
 from quodeq.data.fs.run_archive_guard import restored_at  # noqa: F401
