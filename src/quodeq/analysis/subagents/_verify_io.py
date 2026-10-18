@@ -6,7 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from quodeq.services.wiring import report_file
+from quodeq.data.fs.report_files import report_file
 from quodeq.core.types.finding_type import FINDING_TYPES
 from quodeq.data.fs.report_parser.runs import list_runs
 from quodeq.shared.constants import EVIDENCE_DIRNAME

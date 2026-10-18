@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from quodeq.assistant.tools import ToolContext
+from quodeq.assistant.tools import ToolContext, ToolError
 from quodeq.assistant.tools._read_tools import _search_findings, finding_keys_in_scope
 from quodeq.core.types.finding import Finding
 from quodeq.data.ports.findings import FindingsRepository
 from quodeq.data.sqlite.assistant_repository import AssistantRepository
+import pytest  # after the grandfathered import above: the private-import gate keys on its line
 
 
 class FakeFindingsRepo:
@@ -127,3 +128,11 @@ def test_finding_keys_in_scope_reads_keys_not_full_rows(tmp_path):
     (ctx.run_dir / "evaluation.db").touch()
 
     assert ("req-1", "src/a.py", 3) in finding_keys_in_scope(ctx)
+
+
+def test_search_findings_says_why_a_cold_run_cannot_be_searched(tmp_path):
+    from ._tools_read_helpers import _run_ctx
+    ctx = _run_ctx(tmp_path)
+    (ctx.run_dir / "cold.json").write_text('{"since": "2026-10-18T00:00:00+00:00", "archive_bytes": 1}')
+    with pytest.raises(ToolError, match="findings were removed"):
+        _search_findings(ctx, query="risk")

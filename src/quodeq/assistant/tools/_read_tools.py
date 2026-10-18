@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 
+from quodeq.services.wiring_sync import is_cold
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import find_dimension, raw_run_dims, validate_dimension
 from quodeq.assistant.tools._read_tools_compare import register_compare_tools
@@ -46,6 +47,10 @@ _SEARCH_FINDINGS_MAX_LIMIT = 50
 
 def _search_findings(ctx: ToolContext, query: str, limit: int = _SEARCH_FINDINGS_DEFAULT_LIMIT) -> dict:
     run_dir = require_run(ctx)
+    if is_cold(run_dir):
+        raise ToolError(
+            "this run's findings were removed to save space (Settings > Storage); only its report is "
+            "available. Use get_report or get_violations for this run.")
     repo = findings_repo(ctx, run_dir)
     # Hidden dims must be known BEFORE the query runs, so the exclusion can be
     # pushed into SQL ahead of LIMIT (see SqliteFindingsRepository.search).

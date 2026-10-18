@@ -21,13 +21,15 @@ function ArchiveNotice({ data }) {
   const notice = data?.archiveNotice;
   if (!notice) return null;
   const trim = notice.trim ?? 0;
+  const packOnly = notice.runs === 0;
   const args = { runs: notice.runs, pack: notice.pack ?? 0, trim, keep: data.keepRuns ?? '', period: periodLabel(data.coldAfterDays), size: formatBytes(notice.bytes) };
+  // The safety sentence: "nothing is deleted" holds only while no findings are to be removed.
+  args.safety = trim ? t('storage.noticeTrim', args) : t(packOnly ? 'storage.noticeSafePack' : 'storage.noticeSafe');
   let text;
-  if (notice.runs === 0 && args.pack === 0) text = t('storage.noticeTrimOnly', args);
-  else if (notice.runs === 0) text = t('storage.noticePackOnly', args);
+  if (packOnly && args.pack === 0) text = t('storage.noticeTrimOnly', args);
+  else if (packOnly) text = t('storage.noticePackOnly', args);
   else text = t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', args);
-  if (notice.runs > 0 && args.pack) text += ` ${t('storage.noticePack', args)}`;
-  if (trim && !(notice.runs === 0 && args.pack === 0)) text += ` ${t('storage.noticeTrim', args)}`;
+  if (!packOnly && args.pack) text += ` ${t('storage.noticePack', args)}`;
   return <p className="storage-notice" role="status">{text}</p>;
 }
 

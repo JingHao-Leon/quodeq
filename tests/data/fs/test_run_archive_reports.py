@@ -2,14 +2,12 @@
 from __future__ import annotations
 
 import gzip
-import os
 from pathlib import Path
 
-import pytest
 
 from quodeq.data.fs import run_archive_reports
 from quodeq.data.fs.report_parser.finding_details import read_eval_report
-from quodeq.data.fs.run_archive import RunArchiveError, archive_run, ensure_restored, is_archived
+from quodeq.data.fs.run_archive import archive_run, ensure_restored, is_archived
 from quodeq.data.fs.run_archive_reports import pack_reports_in_place
 from quodeq.data.projection.grade_projector import report_stamp
 from tests.data.fs._report_fixtures import write_report
@@ -52,20 +50,20 @@ def test_a_restored_run_does_not_rederive_its_grades(tmp_path):
     assert before != "0" and packed_stamp == before and report_stamp(run) == before
 
 
-def test_an_interrupted_pack_leaves_a_readable_archived_run(tmp_path, monkeypatch):
+def test_an_interrupted_pack_leaves_a_readable_archived_run(tmp_path, monkeypatch, caplog):
     run = make_run(tmp_path, "r1")
     write_report(run / "evaluation", "quality", {"dimension": "quality", "violations": []})
-    real = os.replace
+    real = run_archive_reports._write_replacing
 
-    def fail_second(src, dst):
-        if str(dst).endswith("security.json.gz"):
+    def fail_security(dest, data, mtime_ns):
+        if dest.name == "security.json.gz":
             raise OSError("disk full")
-        return real(src, dst)
+        return real(dest, data, mtime_ns)
 
-    monkeypatch.setattr(run_archive_reports.os, "replace", fail_second)
-    with pytest.raises(RunArchiveError):
-        archive_run(run)
-    assert is_archived(run)
+    monkeypatch.setattr(run_archive_reports, "_write_replacing", fail_security)
+    with caplog.at_level("WARNING"):
+        result = archive_run(run)  # the run is archived; the pack failure is logged, not raised
+    assert is_archived(run) and result.bytes_after > 0 and "could be packed" in caplog.text
     assert read_eval_report(run / "evaluation", "security")["dimension"] == "security"  # still plain
     assert read_eval_report(run / "evaluation", "quality")["dimension"] == "quality"  # packed
     assert not list((run / "evaluation").glob("*.tmp"))

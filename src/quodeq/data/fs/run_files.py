@@ -15,7 +15,7 @@ import logging
 from collections.abc import Sequence
 from pathlib import Path
 
-from quodeq.data.fs.report_files import list_report_files, report_file
+from quodeq.data.fs.report_files import report_dimension, report_file
 from quodeq.core.run.state import RunState, parse_run_state
 from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.data.fs.run_artifacts import read_json_object
@@ -49,12 +49,12 @@ def count_eval_files(run_dir: Path, *, strict: bool = False) -> int | None:
     if not eval_dir.is_dir():
         return None
     try:
-        list(eval_dir.iterdir())  # an unreadable directory is "no signal", or an error when strict
-    except OSError:
+        entries = [p for p in eval_dir.iterdir() if p.is_file()]
+    except OSError:  # an unreadable directory is "no signal", or an error when strict
         if strict:
             raise
         return None
-    return len(list_report_files(eval_dir))
+    return len({report_dimension(p) for p in entries if report_dimension(p) is not None})
 
 
 def read_run_state(run_dir: Path) -> RunState | None:
