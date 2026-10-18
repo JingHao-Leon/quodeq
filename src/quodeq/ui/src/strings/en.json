@@ -2017,7 +2017,7 @@
   "compare.trendChartAria": "Score trend of {a} and {b} over time",
   "compare.radarChartAria": "Radar chart of dimension scores",
   "overview.cardPass": "{pct}% pass",
-  "overview.cardRead": "{pct}% files read",
+  "overview.cardRead": "{pct}% read",
   "overview.dimensionsRadialLabel": "dimensions_radial",
   "overview.dimensionsRadialAria": "Dimensions radial",
   "overview.per100Hint": "averaged over {count} dimensions",
