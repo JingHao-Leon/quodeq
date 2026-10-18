@@ -224,8 +224,8 @@ class TestScoredOnly:
 
 class TestVersionHashesFoldStandards:
     def test_run_scoped_version_changes_with_standards(self):
-        a = run_scoped_version(DEFAULT_PARAMS, set(), set(), set(), set(), standards="s1")
-        b = run_scoped_version(DEFAULT_PARAMS, set(), set(), set(), set(), standards="s2")
+        a = run_scoped_version(DEFAULT_PARAMS, (set(), set()), set(), set(), standards="s1")
+        b = run_scoped_version(DEFAULT_PARAMS, (set(), set()), set(), set(), standards="s2")
         assert a != b
 
     def test_memo_fingerprint_changes_with_standards(self):

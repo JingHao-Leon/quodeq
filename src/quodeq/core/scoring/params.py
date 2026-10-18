@@ -6,6 +6,8 @@ formula can run with user overrides without any global mutation.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Iterable, Mapping
@@ -121,6 +123,26 @@ def params_to_dict(params: ScoringParams) -> dict[str, Any]:
         "dimensionWeightsEnabled": params.dimension_weights_enabled,
         "dimensionWeights": dict(params.dimension_weights),
     }
+
+
+def params_fingerprint(params: ScoringParams) -> str:
+    """Deterministic serialization of the grade-formula params (sorted maps)."""
+    return json.dumps({
+        "severity_weight": dict(sorted(params.severity_weight.items())),
+        "base_k": params.base_k,
+        "lift_compress": params.lift_compress,
+        "ceil_scale": params.ceil_scale,
+        "floor_minor": params.floor_minor,
+        "floor_major": params.floor_major,
+        "grade_thresholds": [list(t) for t in params.grade_thresholds],
+        "dimension_weights_enabled": params.dimension_weights_enabled,
+        "dimension_weights": dict(sorted(params.dimension_weights.items())),
+    }, sort_keys=True)
+
+
+def grades_stamp(params: ScoringParams) -> str:
+    """Short hash of *params*: which formula a run's stored grade tables embody."""
+    return hashlib.sha256(params_fingerprint(params).encode("utf-8")).hexdigest()[:16]
 
 
 def params_from_dict(data: Mapping[str, Any]) -> ScoringParams:
