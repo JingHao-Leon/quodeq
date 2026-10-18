@@ -8,6 +8,8 @@
   margin-top: var(--space-4, 16px);
   align-items: stretch;
 }
+/* One panel (no radial under three points) takes the row. */
+.qd-top-grid--single { grid-template-columns: minmax(0, 1fr); }
 .qd-top-right { display: flex; }
 .qd-top-right > .panel { flex: 1; display: flex; flex-direction: column; }
 .qd-top-right > .panel .qd-radial { flex: 1; align-items: center; }

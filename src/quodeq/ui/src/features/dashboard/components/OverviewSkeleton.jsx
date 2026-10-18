@@ -6,6 +6,7 @@ import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import { COMPACT_MIN_WIDTH, GRID_GAP } from './DimensionCardsGrid.jsx';
 import { useBalancedColumns } from '../hooks/useBalancedColumns.js';
 import { DEFAULT_SHAPE } from '../overviewShape.js';
+import { hasRadialShape } from '../../../components/radial/radialGeometry.js';
 
 // Skeleton frame for the Overview's full footprint, top to bottom as
 // AccumulatedOverviewPanel lays it out: the header panel (ring, title and sub
@@ -152,18 +153,20 @@ function SkeletonDimensions({ label, shape }) {
   );
 }
 
-function SkeletonTopGrid() {
+/** The history placeholder beside the radial's, or alone when the last footprint had too few cards for a radial. */
+function SkeletonTopGrid({ cards }) {
+  const radial = hasRadialShape(cards);
   return (
-    <div className="qd-top-grid overview-top-grid" aria-hidden="true">
+    <div className={`qd-top-grid overview-top-grid${radial ? '' : ' qd-top-grid--single'}`} aria-hidden="true">
       <RunHistoryPanelPlaceholder />
-      <div className="qd-top-right">
+      {radial && <div className="qd-top-right">
         <section className="run-history-panel--terminal panel">
           <div className="run-history-panel__header">
             <SectionLabel>{t('overview.dimensionsRadialLabel')}</SectionLabel>
           </div>
           <div className="qd-radial"><Bar kind="radial" /></div>
         </section>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -218,7 +221,7 @@ export default function OverviewSkeleton({ projectName, lastKnown = null, run = 
       <SkeletonSince />
       <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} sub={sub} />
       <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} shape={shape} />
-      {!run && <SkeletonTopGrid />}
+      {!run && <SkeletonTopGrid cards={shape?.cards ?? DIMENSION_CARD_COUNT} />}
       <SkeletonBottom run={run} height={run ? null : shape?.bottom} />
     </div>
   );
