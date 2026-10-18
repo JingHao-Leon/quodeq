@@ -12,6 +12,7 @@ import { sinceSummary } from '../../../models/sinceSummary.js';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import { HERO_CARD_KIND } from '../../../vocab/heroCardKind.js';
 import RadialPanel from '../../../components/radial/RadialPanel.jsx';
+import { hasRadialShape } from '../../../components/radial/radialGeometry.js';
 import { ExplorerHead, PrinciplesPanel, DimensionFindingsPanels, pastRunNote } from './explorerPageSections.jsx';
 import { useExplorerPageSpecs } from './useExplorerPageSpecs.jsx';
 import { buildRadialPrinciples, buildEnrichedPrinciples } from './explorerPrincipleView.js';
@@ -108,16 +109,17 @@ function buildDimensionRootFile(evalData, allViolations, complianceByPrinciple) 
   );
 }
 
-/** Top grid: the score history beside the principles radial. */
+/** Top grid: the score history beside the principles radial (the history alone under three principles, which draw no shape). */
 function ExplorerTopGrid({ d, trend, granularity, onGranularityChange, setActiveRunId, setActiveDateLabel, activeRunId, radialPrinciples, onPrincipleClick, lit }) {
+  const radial = hasRadialShape(radialPrinciples.length);
   return (
-    <div className="qd-top-grid explorer-top-grid">
+    <div className={`qd-top-grid explorer-top-grid${radial ? '' : ' qd-top-grid--single'}`}>
       <DimensionScoreHistoryPanel
         trend={trend} dimension={d.evalData.dimension} selectedRunId={activeRunId}
         granularity={granularity} onGranularityChange={onGranularityChange}
         onBarClick={(point) => { setActiveRunId(point.runId); setActiveDateLabel(point.dateLabel); }}
       />
-      <RadialPanel radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick} highlighted={lit.principle} onHover={lit.setPrinciple} />
+      {radial && <RadialPanel radialPrinciples={radialPrinciples} onPrincipleClick={onPrincipleClick} highlighted={lit.principle} onHover={lit.setPrinciple} />}
     </div>
   );
 }

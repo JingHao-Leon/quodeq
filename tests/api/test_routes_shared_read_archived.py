@@ -18,6 +18,7 @@ from pathlib import Path
 import pytest
 
 from quodeq.data.fs import run_archive
+from quodeq.data.fs.run_archive_reports import unpack_reports_in_place
 from quodeq.data.fs.run_archive import ARCHIVE_FILENAME, RESTORED_STAMP, archive_run, is_archived
 from quodeq.data.fs.shared_clone_runs import local_db_marker, unpacked_marker
 from quodeq.data.fs.shared_repo import refresh_shared_clone, shared_evaluations_root, shared_repo_path
@@ -67,6 +68,7 @@ def _publish_from_scratch(url: str, tmp_path: Path, *, force_db: bool = False) -
     SqliteFindingsRepository(old).ensure_projected()
     _plant_sentinel(old / "evaluation.db")
     archive_run(old)
+    unpack_reports_in_place(old)  # a shared repository carries plain reports, as publish writes them
     for leftover in (".archive.lock", RESTORED_STAMP):
         (old / leftover).unlink(missing_ok=True)
     if force_db:

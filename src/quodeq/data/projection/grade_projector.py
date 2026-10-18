@@ -12,16 +12,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from quodeq.core.scoring.params import ScoringParams
+from quodeq.core.scoring.params import ScoringParams, grades_stamp
 from quodeq.core.types.finding import Finding
 from quodeq.core.types.finding_type import FindingType
 from quodeq.data.fs.grade_formula_store import load_params
+from quodeq.data.fs.grades_stamp_store import write_grades_stamp
 from quodeq.data.fs.report_parser.finding_details import iter_readable_eval_reports
+from quodeq.data.fs.report_files import list_report_files, report_stamp_ns
 from quodeq.data.fs.run_files import read_run_manifest
 from quodeq.data.sqlite.row_mappers import row_to_finding
 from quodeq.data.sqlite.connection import open_evaluation_db
 from quodeq.data.sqlite.state_store import SQLiteStateStore
-from quodeq.shared.constants import JSON_SUFFIX
 from quodeq.core.scoring.projector_scoring import (
     GRADE_ALGO_VERSION,
     PrincipleGradeScale,
@@ -206,19 +207,18 @@ def recompute_grades(
     with store.connection():
         store.save_grades_algo_version(GRADE_ALGO_VERSION)
         store.save_coverage_stamp(report_stamp(run_dir))
+    # Last, so a cache row read from the tables before this rewrite carries
+    # the old stamp in its version and is never served after it.
+    write_grades_stamp(run_dir, grades_stamp(params))
 
 
 def report_stamp(run_dir: Path) -> str:
-    """Newest modification time (ns) among ``evaluation/*.json``, ``"0"`` when
+    """Newest modification time (ns) among the reports (plain or packed), ``"0"`` when
     there is none. Cheap to compute (stats only), so staleness checks can use it."""
-    eval_dir = run_dir / "evaluation"
-    if not eval_dir.is_dir():
-        return "0"
     newest = 0
-    for path in eval_dir.iterdir():
-        if path.suffix == JSON_SUFFIX:
-            try:
-                newest = max(newest, path.stat().st_mtime_ns)
-            except OSError:
-                continue
+    for _, path in list_report_files(run_dir / "evaluation"):
+        try:
+            newest = max(newest, report_stamp_ns(path))
+        except OSError:
+            continue
     return str(newest)

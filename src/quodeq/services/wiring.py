@@ -73,7 +73,7 @@ from quodeq.data.fs.standards_scan import file_stamp, scoring_content_hash, stan
 # Run-artifact copy/replace mechanics (shared-repo publish staging).
 from quodeq.data.fs.run_artifacts import (  # noqa: F401
     copy_file_if_exists,
-    copy_matching_files,
+    copy_matching_files, copy_reports_plain,
     ensure_dir,
     read_json_object,
     replace_json_file,
@@ -90,6 +90,7 @@ from quodeq.data.fs.stream_files import (  # noqa: F401
 
 # Legacy per-run evaluation/*.json finding details (SQL twin:
 # quodeq.data.sqlite.findings_queries.read_finding_details).
+from quodeq.data.fs.report_files import list_report_files, read_report_json, report_file  # noqa: F401
 from quodeq.data.fs.report_parser.finding_details import (  # noqa: F401
     eval_report_dimensions, iter_eval_reports,
     iter_readable_eval_reports,
@@ -187,6 +188,9 @@ from quodeq.data.fs.report_parser.runs import (  # noqa: F401
     read_run_scalars,
     safe_read_dir,
 )
+
+# Which grade formula a run's grade tables embody (score cache versions).
+from quodeq.data.fs.grades_stamp_store import read_grades_stamp  # noqa: F401
 
 # Repo-URL validation + child-project discovery.
 from quodeq.data.fs.repo_handler import is_valid_repo_url  # noqa: F401

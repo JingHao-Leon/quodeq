@@ -29,23 +29,50 @@ function ModalError({ message }) {
   return message ? <p role="alert" className="inline-error">{message}</p> : null;
 }
 
-function previewText(preview, isError) {
+// The periods PUT /api/storage/settings takes for coldAfterDays, in days.
+export const QUARTER_DAYS = 91;
+export const HALF_YEAR_DAYS = 183;
+export const YEAR_DAYS = 365;
+const DAYS_PER_MONTH = 30.5; // for the "{count} months" label
+
+export function periodLabel(days) {
+  if (days === YEAR_DAYS) return t('storage.year');
+  return days ? t('storage.months', { count: Math.round(days / DAYS_PER_MONTH) }) : t('storage.forever');
+}
+
+function previewText(preview, isError, period) {
   if (isError) return t('storage.previewFailed');
   if (!preview) return t('storage.cleanPreviewLoading');
-  if (preview.archive === 0) return t('storage.cleanNothing');
-  return t('storage.cleanSummary', { archive: preview.archive, frees: formatBytes(preview.frees) });
+  const pack = preview.pack ?? 0;
+  const trim = preview.trim ?? 0;
+  if (preview.archive === 0 && pack === 0 && trim === 0) return t('storage.cleanNothing');
+  const args = { archive: preview.archive, pack, trim, period, frees: formatBytes(preview.frees) };
+  if (preview.archive === 0 && pack === 0) return t('storage.cleanTrimOnly', args);
+  const main = preview.archive === 0 ? t('storage.cleanPackOnly', args) : t(pack ? 'storage.cleanSummaryPack' : 'storage.cleanSummary', args);
+  return trim ? `${main} ${t('storage.cleanTrim', args)}` : main;
+}
+
+/** Choosing a period for removing old findings asks first: the removal cannot be undone. */
+export function ConfirmColdModal({ period, onConfirm, onClose }) {
+  return (
+    <Modal titleId="storage-cold-title" title={t('storage.coldConfirmTitle')} onCancel={onClose}
+      actions={<button type="button" className="btn-danger" onClick={onConfirm}>{t('storage.coldConfirm')}</button>}>
+      <p>{t('storage.coldConfirmBody', { period })}</p>
+    </Modal>
+  );
 }
 
 /**
  * "Clean now": what a pass would archive (fetched on open), then start it.
  * `autoArchive` says old runs are also archived after each start (cleanup on, a window set).
  */
-export function CleanModal({ onClean, onClose, autoArchive = false }) {
+export function CleanModal({ onClean, onClose, autoArchive = false, period = '' }) {
   const { getCleanPreview } = useApi();
   const preview = useQuery({ queryKey: storageKeys.preview(), queryFn: getCleanPreview, staleTime: 0, gcTime: 0 });
   const [error, setError] = useState(null);
   const [starting, setStarting] = useState(false);
-  const canClean = !starting && (preview.data?.archive ?? 0) > 0;
+  const canClean = !starting && ((preview.data?.archive ?? 0) + (preview.data?.pack ?? 0) + (preview.data?.trim ?? 0)) > 0;
+  const trims = (preview.data?.trim ?? 0) > 0;
   const confirm = async () => {
     setStarting(true);
     setError(null);
@@ -60,9 +87,9 @@ export function CleanModal({ onClean, onClose, autoArchive = false }) {
   return (
     <Modal titleId="storage-clean-title" title={t('storage.cleanTitle')} onCancel={onClose}
       actions={<button type="button" className="term-btn term-btn--primary" disabled={!canClean} onClick={confirm}>{t('storage.cleanConfirm')}</button>}>
-      <p>{previewText(preview.data, preview.isError)}</p>
+      <p>{previewText(preview.data, preview.isError, period)}</p>
       <p className="settings-description">
-        {autoArchive ? `${t('storage.cleanNote')} ${t('storage.cleanNoteAuto')}` : t('storage.cleanNote')}
+        {trims ? t('storage.cleanNoteTrim') : (autoArchive ? `${t('storage.cleanNote')} ${t('storage.cleanNoteAuto')}` : t('storage.cleanNote'))}
       </p>
       <ModalError message={error} />
     </Modal>

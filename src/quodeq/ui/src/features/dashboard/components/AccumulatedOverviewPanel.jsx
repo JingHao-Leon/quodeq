@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, lazy, Suspense } from 'react';
 import DimensionCardsGrid from './DimensionCardsGrid.jsx';
-import NotEvaluatedLine from './NotEvaluatedLine.jsx';
+import NotEvaluatedAction from './NotEvaluatedAction.jsx';
 import { rememberShape } from '../overviewShape.js';
 import { useRememberedHeight } from '../../../hooks/useRememberedHeight.js';
 import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
@@ -12,6 +12,7 @@ import WherePanel, { WHERE, WHERE_VIEWS, WHERE_PAGE } from '../../../components/
 import { useWhereView } from '../../../components/useWhereView.js';
 import SinceStrip from '../../../components/SinceStrip.jsx';
 import RadialPanel from '../../../components/radial/RadialPanel.jsx';
+import { hasRadialShape } from '../../../components/radial/radialGeometry.js';
 import RiskAreasPanel from '../../map/components/RiskAreasPanel.jsx';
 import { riskMapParams, packMapParams } from '../../map/model/riskLinks.js';
 import { buildTopOffendingFiles } from '../../../utils/explorerUtils.js';
@@ -54,10 +55,9 @@ export { useAccumulatedComputations, computeAccumulatedStats };
 /** The dimensions as compact cards, weakest first, each lit with its radial point. */
 function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionClick, selectedDayDimNames, dimTrends, pending, notEvaluated, onEvaluate, lit }) {
   const cards = sortedDimensions.length;
-  const hasLine = Boolean(notEvaluated?.length);
   const ref = useRef(null);
   // The next skeleton for this project draws this footprint, height included (overviewShape.js).
-  useRememberedHeight(ref, !pending, (height) => rememberShape(project, { cards, notEvaluated: hasLine, height }), [project, cards, hasLine]);
+  useRememberedHeight(ref, !pending, (height) => rememberShape(project, { cards, height }), [project, cards]);
   return (
     <section
       ref={ref}
@@ -67,7 +67,10 @@ function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionCl
     >
       <div className="quality-dimensions__head">
         <SectionLabel>{t('overview.qualityDimensionsLabel')} · {sortedDimensions.length}</SectionLabel>
-        {pending && <span className="quality-dimensions__pending">{t('overview.updating')}</span>}
+        <span className="quality-dimensions__head-end">
+          {pending && <span className="quality-dimensions__pending">{t('overview.updating')}</span>}
+          <NotEvaluatedAction ids={notEvaluated} onEvaluate={onEvaluate} />
+        </span>
       </div>
       <div className="dimensions-panel">
         <DimensionCardsGrid
@@ -79,16 +82,24 @@ function AccumulatedDimensionsSection({ project, sortedDimensions, onDimensionCl
           lit={lit}
         />
       </div>
-      <NotEvaluatedLine ids={notEvaluated} onEvaluate={onEvaluate} />
     </section>
   );
 }
 
-/** The score history (grade bands and change marks, as the dimension page's) beside the dimensions radial. */
+/**
+ * The score history (grade bands and change marks, as the dimension page's)
+ * beside the dimensions radial. Under three dimensions the radial has no
+ * shape (the cards already show those scores), and with a single evaluation
+ * there is no history, so whichever is left takes the row; with neither there
+ * is no row.
+ */
 function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
+  const radial = hasRadialShape(sorted.length);
+  if (!radial && !chart.mountable) return null;
+  const both = radial && chart.mountable;
   const onPoint = onDimensionClick ? (name) => { const d = sorted.find((x) => x.dimension === name); if (d) onDimensionClick(d); } : undefined;
   return (
-    <div className={withPending('qd-top-grid overview-top-grid', pending)} aria-busy={pending || undefined}>
+    <div className={withPending(`qd-top-grid overview-top-grid${both ? '' : ' qd-top-grid--single'}`, pending)} aria-busy={pending || undefined}>
       <Suspense fallback={<RunHistoryPanelPlaceholder />}>
         {chart.mountable && (
           <RunHistoryPanel
@@ -102,8 +113,10 @@ function OverviewTopGrid({ chart, sorted, lit, onDimensionClick, pending }) {
           />
         )}
       </Suspense>
-      <RadialPanel radialPrinciples={dimensionPoints(sorted)} label={t('overview.dimensionsRadialLabel')} ariaLabel={t('overview.dimensionsRadialAria')}
-        onPrincipleClick={onPoint} highlighted={lit.name} onHover={lit.setName} />
+      {radial && (
+        <RadialPanel radialPrinciples={dimensionPoints(sorted)} label={t('overview.dimensionsRadialLabel')} ariaLabel={t('overview.dimensionsRadialAria')}
+          onPrincipleClick={onPoint} highlighted={lit.name} onHover={lit.setName} />
+      )}
     </div>
   );
 }

@@ -48,14 +48,14 @@ def test_the_sidecar_is_kept_beside_the_archive_and_survives_a_restore(tmp_path)
 
 def test_an_aborted_archive_leaves_no_sidecar(tmp_path, monkeypatch):
     run = make_run(tmp_path, "run-old")
-    real = run_archive._write_archive
+    real = run_archive.write_archive
 
     def write_then_add(tmp, sources):
         real(tmp, sources)
         (run / "evidence").mkdir(exist_ok=True)
         (run / "evidence" / "late_evidence.jsonl").write_text("{}\n")
 
-    monkeypatch.setattr(run_archive, "_write_archive", write_then_add)
+    monkeypatch.setattr(run_archive, "write_archive", write_then_add)
     with pytest.raises(RunArchiveError):
         archive_run(run)
 

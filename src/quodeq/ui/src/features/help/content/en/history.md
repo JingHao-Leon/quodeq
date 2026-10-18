@@ -9,6 +9,7 @@ The **History** tab is your project's quality timeline. Every completed run live
 - **Majors and types**: the run's blocking findings (criticals plus majors) and its open types (distinct requirement codes with an open finding), each with the change against the previous run over the dimensions both runs scored. Down is good for both.
 - **Run metadata** model, sub-agent count, scope, branch, duration.
 - **Archived tag**: a run that quodeq stored compressed to save space carries an *archived* tag. Opening it restores it first, so the run page shows *restoring archived run…* for a few seconds. Nothing in its grades or findings changes. See **Storage** in the Settings help section.
+- **Report only tag**: a run whose findings were removed to save space (Settings › Storage, *Keep the findings of archived runs for*). Its grades and reports stay, so it opens at once and still counts in the trend; its findings cannot be searched or rescored.
 - **Tombstones** deleted runs leave a marker so the trend stays continuous.
 
 ### The selected run
@@ -23,9 +24,9 @@ A small chart above the list plots each run's own score over time. Hover a bar t
 
 ### Group the Overview chart by day, week, or month
 
-The *score history* chart on the **Overview** groups runs per day by default. Use the selector in the chart header to switch to **Week** or **Month**. Each bar aggregates the runs of one period, tooltips carry the period label, and your choice is remembered across sessions.
+The *score history* chart on the **Overview** groups runs per day by default. Use the selector in the chart header to switch to **Week** or **Month**. Each bar aggregates the runs of one period, tooltips carry the period label, a week being named by its dates, such as *23 – 29 Mar 2026*, rather than a week number, and your choice is remembered across sessions.
 
-If all your runs fit inside a single week or month, the chart suggests a finer grouping instead of drawing one lonely bar.
+The chart appears from the second evaluation, whatever the grouping. If all your runs fit inside a single week or month, it draws that one bar all the same, with the min, max and average of the bars on show in its header, and the selector stays so you can go back to a finer grouping.
 
 ```figure
 component: ScoreGroupingFigure

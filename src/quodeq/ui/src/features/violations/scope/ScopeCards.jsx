@@ -5,6 +5,7 @@ import { RefLinks, DowngradeTags } from '../../../components/findingDetail.jsx';
 import { ViolationActions } from '../../explorer/components/violationActions.jsx';
 import { severityLabel } from '../../../strings/labels.js';
 import { t } from '../../../strings/index.js';
+import { renderCodeSpans } from '../../../strings/rich.jsx';
 
 export const SEP = ' · ';
 /** A compliant check's mark. */
@@ -25,7 +26,7 @@ function Body({ item }) {
   if (item.detailDeferred) return <DetailSkeleton />;
   return (
     <>
-      {item.reason && <p className="findings-card__reason">{item.reason}</p>}
+      {item.reason && <p className="findings-card__reason">{renderCodeSpans(item.reason)}</p>}
       {item.detailUnavailable && <p className="findings-card__reason findings-card__reason--muted">{t('explorer.detailUnavailable')}</p>}
       <ContextBlock context={item.context} snippet={item.snippet} scope={item.scope} line={item.line} file={item.file} />
     </>

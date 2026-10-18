@@ -1,12 +1,14 @@
 """The first-start archive notice: the first start that would archive holds the archive back one start.
 
-storage.json has no ``archive_notice`` until a start decides it. The first
-start whose pass would archive anything only tidies and records the notice
-``pending``; Settings › Storage then says what the next start archives, with
-the archive-after setting and the off switch beside it. The next pass that
-runs (the next start, or clean now) archives as set and records ``done``. A
-start with nothing to archive records ``done`` at once, so a fresh install
-never sees the notice.
+storage.json has no ``keep_notice`` until a start decides it. The first
+start whose pass would archive anything beyond the kept runs only tidies and
+records the notice ``pending``; Settings › Storage then says what the next
+start archives (and whose reports it packs), with the kept-count setting and
+the off switch beside it. The
+next pass that runs (the next start, or clean now) archives as set and records
+``done``. A start with nothing to archive records ``done`` at once, so a fresh
+install never sees the notice. The 1.14 age rule's ``archive_notice`` is left
+as stored: every installation gets one held start under the count rule.
 """
 from __future__ import annotations
 
@@ -23,8 +25,8 @@ from quodeq.services.storage_settings import ArchiveNotice, read_storage_setting
 def mark_archive_notice_done(env: Mapping[str, str] | None = None, log: LogSink = NULL_LOG) -> None:
     """Record that archiving runs as set from now on; the notice, if any, goes."""
     settings = read_storage_settings(env)
-    if settings.archive_notice is not ArchiveNotice.DONE:
-        write_storage_settings(replace(settings, archive_notice=ArchiveNotice.DONE), env, log=log)
+    if settings.keep_notice is not ArchiveNotice.DONE:
+        write_storage_settings(replace(settings, keep_notice=ArchiveNotice.DONE), env, log=log)
 
 
 def first_start_may_archive(
@@ -36,13 +38,13 @@ def first_start_may_archive(
     that cannot be written never stops archiving for good.
     """
     settings = read_storage_settings(env)
-    if settings.archive_notice is not None:
+    if settings.keep_notice is not None:
         mark_archive_notice_done(env, log)
         return True
-    days = settings.archive_after_days
-    held = days is not None and bool(plan_cleanup(root, now, days).archive)
+    plan = plan_cleanup(root, now, settings.keep_runs, settings.cold_after_days)
+    held = bool(plan.archive or plan.pack or plan.trim)  # packing and trimming wait for the notice too
     notice = ArchiveNotice.PENDING if held else ArchiveNotice.DONE
-    saved = write_storage_settings(replace(settings, archive_notice=notice), env, log=log)
+    saved = write_storage_settings(replace(settings, keep_notice=notice), env, log=log)
     if held and saved:
         log.info("storage cleanup: first start with old runs, archiving waits for the next start")
     return not (held and saved)

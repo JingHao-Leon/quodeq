@@ -10,12 +10,14 @@ back to the JSON reports instead of crashing.
 """
 from __future__ import annotations
 
+import logging
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
 from quodeq.data.fs.run_archive import RunArchiveError, is_archived, restore_locked
+from quodeq.data.fs.run_cold import is_cold
 from quodeq.data.fs.run_archive_guard import LOCK_NAME, drop_stray_db_locked, run_lock_if_writable, warn_once
 from quodeq.data.fs.shared_clone_runs import (
     is_shared_clone_run, mark_local_db, trust_local_db_locked, unpacked_current,
@@ -27,6 +29,7 @@ from quodeq.data.sqlite.constants import SQLITE_BUSY_TIMEOUT_MS
 from quodeq.data.sqlite.errors import SqliteStoreUnreadableError, as_store_error
 from quodeq.data.sqlite.read_only import connect_read_only, unwritable
 from quodeq.shared import request_metrics
+from quodeq.shared.fault_isolation import run_isolated
 
 EVALUATION_DB_FILENAME = "evaluation.db"
 
@@ -41,6 +44,9 @@ def _configure(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute(f"PRAGMA busy_timeout = {SQLITE_BUSY_TIMEOUT_MS}")
+
+
+_logger = logging.getLogger(__name__)
 
 
 def _connect_read_only(path: Path) -> sqlite3.Connection:
@@ -122,6 +128,8 @@ def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
     opened again under the lock. A shared clone's run always opens under the
     lock, which checks its database is one quodeq created there.
     """
+    if is_cold(run_dir):  # its database went with its archive for good: readers fall back to the sidecars and reports
+        raise SqliteStoreUnreadableError(f"run in {run_dir} is cold: its findings were removed with its archive")
     lock = run_dir / LOCK_NAME
     if not lock.exists() and not is_archived(run_dir) and not is_shared_clone_run(run_dir):
         conn = _open_mapped(path)
@@ -131,8 +139,38 @@ def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
     return _open_locked(run_dir, path)
 
 
+_OPEN_ATTEMPTS = 3  # restore, rebuild, connect; a run archived again in between gets one more round
+
+
 def _open_locked(run_dir: Path, path: Path) -> sqlite3.Connection:
-    """Restore the run and connect while holding its archive lock.
+    """``_connect_locked``, rebuilding the database first when the archive held none.
+
+    An archive written since 1.15 packs no database; a restore from this path
+    hands the connect an empty store unless the run is projected from its event
+    log first, which happens outside the lock (projecting opens the database,
+    which takes the lock).
+    """
+    for _ in range(_OPEN_ATTEMPTS):
+        conn = _connect_locked(run_dir, path)
+        if conn is not None:
+            return conn
+        _project_restored(run_dir)
+    raise SqliteStoreUnreadableError(f"run in {run_dir} keeps being archived while it is opened")
+
+
+def _rebuild(run_dir: Path) -> None:
+    from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository  # noqa: PLC0415  -- import cycle
+
+    SqliteFindingsRepository(run_dir).ensure_projected()
+
+
+def _project_restored(run_dir: Path) -> None:
+    """Rebuild a restored run's database from its event log; a failure is logged and the connect goes on."""
+    run_isolated(lambda: _rebuild(run_dir), label=f"rebuild the database of restored run {run_dir}", log=_logger)
+
+
+def _connect_locked(run_dir: Path, path: Path) -> sqlite3.Connection | None:
+    """Restore the run and connect while holding its archive lock; None when the restore brought no database.
 
     No archive or restore can run between the restore and the connect, so
     the connection reaches the real database; under the lock a database
@@ -156,6 +194,8 @@ def _open_locked(run_dir: Path, path: Path) -> sqlite3.Connection:
                     drop_stray_db_locked(run_dir)
                 if not _restored(run_dir):
                     raise SqliteStoreUnreadableError(f"run archive in {run_dir} could not be restored")
+                if not clone and not path.is_file():
+                    return None  # the archive held no database: rebuild it outside the lock, then connect
             return _open_clone_db(run_dir, path, locked) if clone else _open_mapped(path)
     except OSError as exc:  # a lock wait that timed out included
         raise SqliteStoreUnreadableError(f"run in {run_dir} could not be locked: {exc}") from exc

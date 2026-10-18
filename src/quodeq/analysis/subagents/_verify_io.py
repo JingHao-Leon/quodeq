@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from quodeq.data.fs.report_files import report_file
 from quodeq.core.types.finding_type import FINDING_TYPES
 from quodeq.data.fs.report_parser.runs import list_runs
 from quodeq.shared.constants import EVIDENCE_DIRNAME
@@ -25,7 +26,7 @@ def _find_previous_evidence(reports_root: Path, project_uuid: str, current_run_i
             continue
         run_dir = reports_root / project_uuid / run.run_id
         # Only use evidence from runs that completed (have a scored report)
-        if not (run_dir / "evaluation" / f"{dim_id}.json").is_file():
+        if report_file(run_dir / "evaluation", dim_id) is None:
             continue
         prev_jsonl = run_dir / EVIDENCE_DIRNAME / f"{dim_id}_evidence.jsonl"
         if prev_jsonl.exists() and prev_jsonl.stat().st_size > 0:

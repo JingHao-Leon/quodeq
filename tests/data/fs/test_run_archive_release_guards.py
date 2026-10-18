@@ -35,7 +35,7 @@ def test_the_plan_never_archives_a_run_past_the_restore_cap(tmp_path, monkeypatc
     (big / "events.jsonl").write_bytes(b"x" * (2 * _MB))
     monkeypatch.setenv("QUODEQ_ARCHIVE_MAX_MB", "1")
 
-    plan = plan_cleanup(tmp_path, NOW, 183)
+    plan = plan_cleanup(tmp_path, NOW, 1)
 
     assert plan.archive == (small,)
     assert big in plan.tidy
@@ -56,7 +56,7 @@ def _hold(monkeypatch, held: Path) -> None:
 def test_an_original_that_cannot_be_deleted_undoes_the_archive(tmp_path, monkeypatch):
     run = _run_with_files(tmp_path)
     before = _bytes(run)
-    _hold(monkeypatch, run / _EVIDENCE)  # events.jsonl and the database go first, then this one is held
+    _hold(monkeypatch, run / _EVIDENCE)  # events.jsonl goes first, then this one is held, before the database
 
     with pytest.raises(RunArchiveError, match="left it unpacked"):
         archive_run(run)
@@ -79,4 +79,5 @@ def test_the_next_pass_archives_a_run_once_the_file_is_released(tmp_path, monkey
 
     assert is_archived(run) and not (run / _EVIDENCE).exists()
     assert ensure_restored(run)
-    assert {k: v for k, v in _bytes(run).items() if k not in (PRECEDENTS_NAME, SCALARS_NAME)} == before
+    rebuilt = ("evaluation.db", PRECEDENTS_NAME, SCALARS_NAME)  # the database comes back from the event log
+    assert {k: v for k, v in _bytes(run).items() if k not in rebuilt} == {k: v for k, v in before.items() if k not in rebuilt}

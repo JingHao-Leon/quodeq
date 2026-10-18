@@ -19,6 +19,7 @@ import { ATTENTION_KIND } from '../compareDimensionView.js';
 import CompareDimensionHeader from './CompareDimensionHeader.jsx';
 import CompareAttentionStrip from './CompareAttentionStrip.jsx';
 import CompareRadarPanel from './CompareRadarPanel.jsx';
+import { hasRadialShape } from '../../../components/radial/radialGeometry.js';
 import CompareDimensionKpis from './CompareDimensionKpis.jsx';
 import CompareFleetTable from './CompareFleetTable.jsx';
 import CompareFleetMatrix from './CompareFleetMatrix.jsx';
@@ -94,6 +95,7 @@ function projectDimensionOpener(view, onOpenProjectDimension, onOpenProject) {
   };
 }
 
+/** The dimension drill-down. Under three principles the radar draws no shape, so the projects table takes its row. */
 export default function CompareDimensionView({
   view, board, selectedProject = null, onOpenDimension, onOpenProject, onOpenPrinciple,
   onOpenProjectDimension, scopeCount = null,
@@ -107,6 +109,7 @@ export default function CompareDimensionView({
   const dimAttention = buildDimensionAttention(view);
   const dim = view.label;
   const openProjectDimension = projectDimensionOpener(view, onOpenProjectDimension, onOpenProject);
+  const radar = hasRadialShape(view.principles.length);
 
   return (
     <>
@@ -115,7 +118,7 @@ export default function CompareDimensionView({
           control. The class repeats .compare-page's column rhythm. */}
       <div className="compare-dimension-panel">
         <CompareDimensionKpis view={view} rows={rows} scopeCount={scopeCount ?? rows.length} />
-        <div className="compare-dim__pair">
+        <div className={`compare-dim__pair${radar ? '' : ' compare-dim__pair--single'}`}>
           <CompareFleetTable
             scoredRows={rows} fleetScore={view.avg} hover={focusId} setHover={setFocusId} onOpenProject={openProjectDimension}
             ariaLabel={t('compare.dimTableAria', { dim })}
@@ -123,12 +126,14 @@ export default function CompareDimensionView({
             note={t('compare.dimTableNote', { dim })}
             showLastScan={false}
           />
-          <CompareRadarPanel
-            view={view}
-            axes={view.principles.map((p) => ({ label: p.label, value: p.avg }))}
-            series={buildRadarSeries(view, active)}
-            active={active}
-          />
+          {radar && (
+            <CompareRadarPanel
+              view={view}
+              axes={view.principles.map((p) => ({ label: p.label, value: p.avg }))}
+              series={buildRadarSeries(view, active)}
+              active={active}
+            />
+          )}
         </div>
         <CompareFleetMatrix
           rows={rows} board={principleBoard} fleetScore={view.avg} onOpenProject={onOpenProject}

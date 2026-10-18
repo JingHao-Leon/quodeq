@@ -30,7 +30,7 @@ from quodeq.services.wiring import (
     STATUS_FILENAME,
     UnsupportedSchemaError,
     copy_file_if_exists,
-    copy_matching_files,
+    copy_matching_files, copy_reports_plain,
     ensure_dir,
     merge_action_log_files,
     read_status,
@@ -39,8 +39,10 @@ from quodeq.services.wiring import (
 )
 from quodeq.services.wiring_sync import (
     ARCHIVE_FILENAME,
+    COLD_NAME,
     PRECEDENTS_NAME,
     SCALARS_NAME,
+    is_cold,
     RunArchiveError,
     clone_run_contained,
     extract_members_to,
@@ -98,6 +100,10 @@ def _archive_form(run_dir: Path, dest_run_dir: Path) -> bool:
 def _copy_logs(run_dir: Path, dest_run_dir: Path, written: list[Path]) -> None:
     """The event log and evidence logs, in the run's published form, read from the local archive when archived."""
     archive = run_dir / ARCHIVE_FILENAME
+    if is_cold(run_dir):  # no logs left: the frozen grades, dismissals and marker are what a clone can read
+        for sidecar in (SCALARS_NAME, PRECEDENTS_NAME, COLD_NAME):
+            _copy(run_dir / sidecar, dest_run_dir / sidecar, written)
+        return
     if _archive_form(run_dir, dest_run_dir):
         if is_archived(run_dir):
             written.append(repack_without_db(archive, dest_run_dir / ARCHIVE_FILENAME))
@@ -142,9 +148,9 @@ def copy_run(run_dir: Path, dest_run_dir: Path) -> list[Path]:
         _copy(evidence / MANIFEST_FILENAME, dest_evidence / MANIFEST_FILENAME, written)
     # Frozen eval-time per-dimension scores (e.g. security.json) are the
     # source of truth read_run_data() needs to render a dashboard at all;
-    # without them a published clone renders an EMPTY dashboard. Only .json
-    # files, nothing else (markdown companions, stray files) from that dir.
-    _copy_matching(run_dir / _EVALUATION_DIR, dest_run_dir / _EVALUATION_DIR, "*.json", written)
+    # without them a published clone renders an EMPTY dashboard. Only the
+    # reports, written plain whatever form the local run keeps them in.
+    written.extend(copy_reports_plain(run_dir / _EVALUATION_DIR, dest_run_dir / _EVALUATION_DIR))
     return written
 
 

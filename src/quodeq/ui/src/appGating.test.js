@@ -23,16 +23,20 @@ test('isEvaluatableSource: an unset source defaults to evaluatable (Sidebar rece
 });
 
 // ---------------------------------------------------------------------------
-// shouldShowEvaluate: a selected local project that has landed. Both the
-// TopBar button and the sidebar tab read it.
+// shouldShowEvaluate: a selected local project that has landed, or a
+// selected shared one. Both the TopBar button and the sidebar tab read it.
 // ---------------------------------------------------------------------------
 
 test('shouldShowEvaluate: a selected local project, and only then', () => {
   const info = { id: 'p1', path: '/u/repos/app', originUrl: 'https://github.com/acme/app.git' };
   assert.equal(shouldShowEvaluate({ selectedSource: 'local', selectedProjectInfo: info }), true);
   assert.equal(shouldShowEvaluate({ selectedSource: 'local', selectedProjectInfo: null }), false);
-  assert.equal(shouldShowEvaluate({ selectedSource: 'shared', selectedProjectInfo: info }), false);
   assert.equal(shouldShowEvaluate({ selectedSource: undefined, selectedProjectInfo: info }), true);
+});
+
+test('shouldShowEvaluate: a selected shared project has it (its Evaluate pulls a local copy)', () => {
+  assert.equal(shouldShowEvaluate({ selectedSource: 'shared', selectedProject: 'p1', selectedProjectInfo: null }), true);
+  assert.equal(shouldShowEvaluate({ selectedSource: 'shared', selectedProject: null, selectedProjectInfo: null }), false);
 });
 
 test('shouldShowEvaluate: hidden while the selected project is the one still cloning', () => {
@@ -96,12 +100,12 @@ test('selectSidebarCounts: prefers the filtered numbers, falls back to unfiltere
     filteredTrend: [1, 2],
     dashboard: { trend: [1, 2, 3] },
   });
-  assert.deepEqual(counts, { violationsCount: 5, historyCount: 2 });
+  assert.deepEqual(counts, { violationsCount: 12, historyCount: 2 });
 });
 
-test('selectSidebarCounts: zero majors shows 0, not the total and not null', () => {
+test('selectSidebarCounts: zero open findings shows 0, not null', () => {
   const counts = selectSidebarCounts({
-    filteredAccumulated: { summary: { totalViolations: 9, severity: { critical: 0, major: 0, minor: 9 } } },
+    filteredAccumulated: { summary: { totalViolations: 0, severity: { critical: 0, major: 0, minor: 0 } } },
     accumulated: null, filteredTrend: [], dashboard: null,
   });
   assert.equal(counts.violationsCount, 0);

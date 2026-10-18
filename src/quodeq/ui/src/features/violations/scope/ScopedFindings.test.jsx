@@ -65,17 +65,18 @@ describe('ScopedFindings', () => {
     expect(views.map((b) => b.textContent)).toEqual([t('violations.scopeViewList'), t('violations.scopeViewCards')]);
     expect(views[0]).toHaveAttribute('aria-pressed', 'true');
     expect(rowTitles(container)).toEqual(['Critical early', 'Major late', 'Minor other', 'Checked middle']);
-    expect(container.querySelector('.wb-detail .findings-card__title')).toHaveTextContent('Critical early');
+    expect(container.querySelector('.wb-detail .wb-headline__title, .wb-detail .findings-card__title')).toHaveTextContent('Critical early');
     fireEvent.click(screen.getByRole('option', { name: /Checked middle/ }));
-    expect(container.querySelector('.wb-detail .findings-card__title')).toHaveTextContent('Checked middle');
+    expect(container.querySelector('.wb-detail .wb-headline__title, .wb-detail .findings-card__title')).toHaveTextContent('Checked middle');
   });
 
-  it('switches to the cards, every finding with its code open', () => {
+  it('switches to the cards, every finding with its code closed (the list opens the selected one)', () => {
     const { container } = renderScope();
+    expect(container.querySelector('.ctx-line--hl')).not.toBeNull();
     toCards();
     expect(container.querySelector('.findings-scope__split')).toBeNull();
     expect(cardTitles(container)).toEqual(['Critical early', 'Major late', 'Minor other', 'Checked middle']);
-    expect(container.querySelector('.ctx-line--hl')).not.toBeNull();
+    expect(container.querySelector('.ctx-line--hl')).toBeNull();
   });
 
   it('inside a file the rows read the line only; elsewhere file:line', () => {
@@ -88,7 +89,8 @@ describe('ScopedFindings', () => {
 
   it('inside a principle the rows leave the principle out, and the header grades it and counts requirements, not per 100', () => {
     const { container } = renderScope({ scope: { kind: 'principle', dimension: 'security', principle: 'Input' } });
-    expect([...container.querySelectorAll('.wb-row__meta')].map((n) => n.textContent)).toEqual(['critical', 'major']);
+    expect([...container.querySelectorAll('.wb-row__sev')].map((n) => n.textContent)).toEqual(['crit', 'maj']);
+    expect(container.querySelector('.wb-row__tail')).toBeNull();
     expect(container.querySelector('.findings-head__ring')).toHaveTextContent('7.7');
     expect(container.querySelector('.findings-head__desc')).toHaveTextContent('Validate what comes in');
     expect(tileValue(t('violations.scopeStatReqs'))).toBeInTheDocument();

@@ -12,18 +12,19 @@ from quodeq.context.precedent import collect_dismissed_texts, load_precedent_fin
 from quodeq.data.fs import run_archive
 from quodeq.data.fs.run_archive import ARCHIVE_FILENAME, RunArchiveError, archive_run, ensure_restored, is_archived
 from quodeq.data.sqlite.findings_queries import dismissed_source_stamp, read_dismissed_snippets_strict
+from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository
+from quodeq.services.dismissed import dismiss_finding
 from quodeq.services.storage_cleanup import run_cleanup
-from tests.services._archive_fixtures import NOW, make_run
+from tests.services._archive_fixtures import NOW, PROJECT, make_run
 
 _SNIPPET = "digest = hashlib.md5(payload)"
+_FIRST = {"req": "R0", "file": "f0.py", "line": 10}  # make_run puts the snippet on this finding
 
 
 def _dismiss_one(run: Path) -> None:
-    conn = sqlite3.connect(run / "evaluation.db")
-    conn.execute("UPDATE findings SET verdict = 'dismissed', snippet = ?, scope = '' WHERE id = "
-                 "(SELECT MIN(id) FROM findings)", (_SNIPPET,))
-    conn.commit()
-    conn.close()
+    """Dismiss the first finding through the action log, as the app does, and project it into the run."""
+    dismiss_finding(run.parent, {"project": PROJECT, **_FIRST})
+    SqliteFindingsRepository(run).ensure_projected()
 
 
 def _fingerprints(project_dir: Path) -> set[str]:
@@ -37,7 +38,7 @@ class _Memo(dict):
 
 
 def _archived_with_a_dismissal(tmp_path: Path) -> tuple[Path, set[str], dict[str, str]]:
-    run = make_run(tmp_path, "run-old")
+    run = make_run(tmp_path, "run-old", snippet=_SNIPPET)
     _dismiss_one(run)
     live = (_fingerprints(run.parent), collect_dismissed_texts(run.parent))
     assert live[0] and live[1]
@@ -76,14 +77,14 @@ def test_restoring_reads_the_database_again(tmp_path):
 def test_an_aborted_archive_leaves_no_sidecar(tmp_path, monkeypatch):
     run = make_run(tmp_path, "run-old")
     _dismiss_one(run)
-    real = run_archive._write_archive
+    real = run_archive.write_archive
 
     def write_then_add(tmp, sources):
         real(tmp, sources)
         (run / "evidence").mkdir(exist_ok=True)
         (run / "evidence" / "late_evidence.jsonl").write_text("{}\n")
 
-    monkeypatch.setattr(run_archive, "_write_archive", write_then_add)
+    monkeypatch.setattr(run_archive, "write_archive", write_then_add)
     with pytest.raises(RunArchiveError):
         archive_run(run)
 
@@ -108,19 +109,19 @@ def test_a_database_from_before_the_scope_column_still_archives_its_dismissals(t
 
 def test_cleanup_keeps_the_precedents_of_a_failed_run(tmp_path, monkeypatch):
     monkeypatch.setenv("QUODEQ_SCORE_CACHE_PATH", str(tmp_path / "cache.db"))
-    old = make_run(tmp_path, "run-old", days=300)
+    old = make_run(tmp_path, "run-old", days=300, snippet=_SNIPPET)
     make_run(tmp_path, "run-new", days=10)
     (old / "status.json").write_text(json.dumps({"state": "failed", "started_at": "2026-01-01T00:00:00+00:00"}))
     _dismiss_one(old)
 
-    run_cleanup(tmp_path, NOW, warm_days=183)
+    run_cleanup(tmp_path, NOW, keep_runs=1)
 
     assert is_archived(old)
     assert [snippet for _, snippet in read_dismissed_snippets_strict(old)] == [_SNIPPET]
 
 
 def test_a_planted_tmp_symlink_is_never_followed(tmp_path):
-    run = make_run(tmp_path, "run-old")
+    run = make_run(tmp_path, "run-old", snippet=_SNIPPET)
     _dismiss_one(run)
     outside = tmp_path / "outside.txt"
     outside.write_text("keep me")

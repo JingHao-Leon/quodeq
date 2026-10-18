@@ -43,7 +43,7 @@ Opening a shared project is read-only. You can browse every run and finding, but
 
 ### Pulling a project
 
-A *REMOTE* card offers **pull local copy**: it imports the project, runs and all, into your local list so you can evaluate it yourself from there. The card shows *downloading…* while it works and *pulled to local* when done; a failed pull shows an error message. If a local project already has that name, quodeq asks whether to import it as a copy.
+A *REMOTE* card offers **pull local copy**: it imports the project, runs and all, into your local list so you can evaluate it yourself from there. The card shows *downloading…* while it works and *pulled to local* when done; a failed pull shows an error message. If a local project already has that name, quodeq asks whether to import it as a copy. The project's own **Evaluate** tab offers the same pull, since an evaluation only runs on a local copy, and lands on that copy's Evaluate when the pull is done; see *A remote project* in the **Running Evaluations** help section.
 
 Runs keep the form they were published in. An old run that was archived when it was shared travels compressed, and the first time someone opens it on another machine it takes a few seconds to unpack. Databases are never shared: each machine rebuilds its own from the run's event log, so a pulled project carries no database or machine-local files.
 

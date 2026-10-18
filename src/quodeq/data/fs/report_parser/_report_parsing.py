@@ -9,6 +9,7 @@ from typing import Any
 from quodeq.data.fs.report_parser._totals import build_totals
 from quodeq.core.types import Finding
 from quodeq.shared import request_metrics
+from quodeq.data.fs.report_files import read_report_json
 from quodeq.shared.utils import read_json
 from quodeq.core.finding_builder import FindingSpec, build_finding_base
 from quodeq.core.finding_coercions import coerce_scope_downgrade
@@ -62,8 +63,8 @@ def parse_report_json(json_path: Path) -> dict[str, Any] | None:
     """Parse a dimension evaluation JSON file into a normalized report dict."""
     request_metrics.count("report_reads")
     try:
-        data = read_json(json_path)
-    except (OSError, ValueError, UnicodeDecodeError) as exc:
+        data = read_report_json(json_path)
+    except (OSError, EOFError, ValueError, UnicodeDecodeError) as exc:
         _logger.warning("Failed to parse report %s: %s", json_path.name, exc)
         return None
 
@@ -115,7 +116,7 @@ def parse_evidence_file(evidence_path: Path) -> dict[str, Any]:
     dimension = evidence_path.name.replace(_EVIDENCE_SUFFIX, "")
     try:
         data = read_json(evidence_path)
-    except (OSError, ValueError, UnicodeDecodeError) as exc:
+    except (OSError, EOFError, ValueError, UnicodeDecodeError) as exc:
         _logger.warning("Failed to read evidence file %s: %s", evidence_path.name, exc)
         data = {}
     return {

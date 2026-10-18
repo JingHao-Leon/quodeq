@@ -81,7 +81,7 @@ function useStorageSetting(field) {
 
 /**
  * Settings › Storage: the summary (['storage']), clean progress, and the
- * archive-after, cleanup on/off, clean and delete-all actions. Each action resolves to its
+ * kept-runs, cleanup on/off, clean and delete-all actions. Each action resolves to its
  * result and rejects with the API error, so the modal shows its own failure.
  */
 export default function useStorage() {
@@ -89,7 +89,8 @@ export default function useStorage() {
   const queryClient = useQueryClient();
   const summary = useStorageSummary();
   const progress = useCleanProgress(summary);
-  const archiveAfter = useStorageSetting('archiveAfterDays');
+  const keepRuns = useStorageSetting('keepRuns');
+  const coldAfter = useStorageSetting('coldAfterDays');
   const autoCleanup = useStorageSetting('autoCleanup');
   const runClean = async () => {
     const result = await startClean();
@@ -106,7 +107,7 @@ export default function useStorage() {
   };
   return {
     data: summary.data ?? null, isLoading: summary.isPending, isError: summary.isError,
-    ...progress, setArchiveAfter: archiveAfter.mutate, setAutoCleanup: autoCleanup.mutate,
-    saveFailed: archiveAfter.isError || autoCleanup.isError, runClean, deleteAll,
+    ...progress, setKeepRuns: keepRuns.mutate, setColdAfter: coldAfter.mutate, setAutoCleanup: autoCleanup.mutate,
+    saveFailed: keepRuns.isError || coldAfter.isError || autoCleanup.isError, runClean, deleteAll,
   };
 }

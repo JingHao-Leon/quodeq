@@ -16,10 +16,15 @@ from quodeq.services.storage_cleanup import CLEANUP_LOCK
 from quodeq.services.storage_plan import plan_cleanup
 from quodeq.services.storage_settings import ArchiveNotice, StorageSettings
 from quodeq.services.wiring import UnsupportedSchemaError, list_runs, read_json_object, read_status, repository_info_exists
-from quodeq.services.wiring_sync import is_archived, packable_bytes, run_pid_alive
+from quodeq.services.wiring_sync import (
+    ARCHIVE_FILENAME, dropped_bytes, is_cold, is_frozen, packed_bytes, report_bytes, run_pid_alive,
+)
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
+# The database is deleted, not packed, so it is counted as freed in full.
 ARCHIVE_SAVING = 0.76
+# Measured 2026-10-18 on 20 random reports: 12.3 MB of plain reports became 2.4 MB.
+ARCHIVE_SAVING_REPORTS = 0.80
 _STATUS_FILE = "status.json"
 _REPO_INFO_FILE = "repository_info.json"
 
@@ -37,12 +42,13 @@ class StorageBusyError(RuntimeError):
 
 @dataclass(frozen=True)
 class ProjectStorage:
-    """One project's folder: its size, its runs and how many of them are archived."""
+    """One project's folder: its size, its runs, how many are archived (cold ones included) and how many are cold."""
 
     project_id: str
     bytes: int
     runs: int
     archived: int
+    cold: int = 0
 
 
 @dataclass(frozen=True)
@@ -53,14 +59,17 @@ class StorageSummary:
     runs: int
     archived: int
     projects: tuple[ProjectStorage, ...]
+    cold: int = 0
 
 
 @dataclass(frozen=True)
 class CleanPreview:
-    """How many runs a clean would archive and about how many bytes it would free."""
+    """Runs a clean would archive, archived runs whose reports it would pack, and about how many bytes it frees."""
 
     archive: int
     frees: int
+    pack: int = 0
+    trim: int = 0  # archived runs that lose their findings for good
 
 
 def _children(path: Path) -> list[os.DirEntry]:
@@ -105,7 +114,8 @@ def _subdirs(path: Path) -> list[Path]:
 
 def _project_storage(project: Path) -> ProjectStorage:
     runs = [r for r in _subdirs(project) if (r / _STATUS_FILE).is_file()]
-    return ProjectStorage(project.name, dir_size(project), len(runs), sum(1 for r in runs if is_archived(r)))
+    frozen, cold = sum(1 for r in runs if is_frozen(r)), sum(1 for r in runs if is_cold(r))
+    return ProjectStorage(project.name, dir_size(project), len(runs), frozen, cold)
 
 
 def storage_summary(root: Path) -> StorageSummary:
@@ -113,21 +123,39 @@ def storage_summary(root: Path) -> StorageSummary:
     projects = tuple(_project_storage(p) for p in _subdirs(Path(root)))
     return StorageSummary(
         bytes=sum(p.bytes for p in projects), runs=sum(p.runs for p in projects),
-        archived=sum(p.archived for p in projects), projects=projects,
+        archived=sum(p.archived for p in projects), projects=projects, cold=sum(p.cold for p in projects),
     )
 
 
-def _packable(run_dir: Path) -> int:
+def _report_frees(run_dir: Path) -> float:
+    """Bytes packing *run_dir*'s plain reports frees, at ARCHIVE_SAVING_REPORTS."""
     try:
-        return packable_bytes(run_dir)
+        return ARCHIVE_SAVING_REPORTS * report_bytes(run_dir)
+    except OSError:
+        return 0.0
+
+
+def _frees(run_dir: Path) -> float:
+    """Bytes archiving *run_dir* frees: the dropped files in full, the packed ones at ARCHIVE_SAVING, the reports too."""
+    try:
+        return dropped_bytes(run_dir) + ARCHIVE_SAVING * packed_bytes(run_dir) + _report_frees(run_dir)
+    except OSError:
+        return 0.0
+
+
+def _archive_size(run_dir: Path) -> int:
+    try:
+        return (run_dir / ARCHIVE_FILENAME).stat().st_size
     except OSError:
         return 0
 
 
-def clean_preview(root: Path, now: datetime, warm_days: int | None) -> CleanPreview:
-    """Runs a clean would archive now and the bytes it would free, estimated with ARCHIVE_SAVING."""
-    plan = plan_cleanup(root, now, warm_days)
-    return CleanPreview(len(plan.archive), int(ARCHIVE_SAVING * sum(_packable(r) for r in plan.archive)))
+def clean_preview(root: Path, now: datetime, keep_runs: int | None, cold_after_days: int | None = None) -> CleanPreview:
+    """Runs a clean would archive, pack or trim now, and about how many bytes it would free."""
+    plan = plan_cleanup(root, now, keep_runs, cold_after_days)
+    frees = sum(_frees(r) for r in plan.archive) + sum(_report_frees(r) for r in plan.pack)
+    frees += sum(_archive_size(r) for r in plan.trim)
+    return CleanPreview(len(plan.archive), int(frees), len(plan.pack), len(plan.trim))
 
 
 def _state(status: dict) -> RunState | None:
@@ -164,14 +192,13 @@ def _live_projects(projects: list[Path]) -> tuple[str, ...]:
 def next_start_archive(root: Path, now: datetime, settings: StorageSettings, *, cleanup_on: bool) -> CleanPreview | None:
     """What the next start archives while the first-start notice is pending; None when there is nothing to say.
 
-    Read with the settings as they are now, so changing the window or
+    Read with the settings as they are now, so changing the kept count or
     turning cleanup off changes (or clears) the notice at once.
     """
-    days = settings.archive_after_days
-    if settings.archive_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup) or days is None:
+    if settings.keep_notice is not ArchiveNotice.PENDING or not (cleanup_on and settings.auto_cleanup):
         return None
-    preview = clean_preview(root, now, days)
-    return preview if preview.archive else None
+    preview = clean_preview(root, now, settings.keep_runs, settings.cold_after_days)
+    return preview if preview.archive or preview.pack or preview.trim else None
 
 
 def _is_project(root: Path, folder: Path) -> bool:

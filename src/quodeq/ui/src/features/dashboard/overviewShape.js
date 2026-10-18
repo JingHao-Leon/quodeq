@@ -1,10 +1,10 @@
 /**
  * The Overview's shape the last time a project's page drew (how many
- * dimension cards, whether the "not evaluated yet" line showed), so the next
+ * dimension cards, how tall), so the next
  * skeleton draws the same footprint and the page does not jump when the
  * cards land. Kept in memory and, when it can, in localStorage.
  */
-export const DEFAULT_SHAPE = Object.freeze({ cards: 8, notEvaluated: false, height: null, bottom: null });
+export const DEFAULT_SHAPE = Object.freeze({ cards: 8, height: null, bottom: null });
 const KEY_PREFIX = 'quodeq.overviewShape.';
 const MAX_CARDS = 64;
 const MAX_HEIGHT_PX = 4000;
@@ -25,21 +25,21 @@ function validHeight(h) {
 
 function valid(shape) {
   return Boolean(shape) && Number.isInteger(shape.cards) && shape.cards > 0 && shape.cards <= MAX_CARDS
-    && typeof shape.notEvaluated === 'boolean' && validHeight(shape.height) && validHeight(shape.bottom);
+    && validHeight(shape.height) && validHeight(shape.bottom);
 }
 
 const px = (h) => (h ? Math.round(h) : null);
 
 /**
- * Record what a project's Overview just drew: any of `cards`, `notEvaluated`,
- * `height` (the cards block) and `bottom` (Fix first and Where); fields left
+ * Record what a project's Overview just drew: any of `cards`, `height`
+ * (the cards block) and `bottom` (Fix first and Where); fields left
  * out keep their last value.
  */
 export function rememberShape(project, update) {
   if (!project) return;
   const merged = { ...recallShape(project), ...update };
   if (!valid(merged)) return;
-  const clean = { cards: merged.cards, notEvaluated: merged.notEvaluated, height: px(merged.height), bottom: px(merged.bottom) };
+  const clean = { cards: merged.cards, height: px(merged.height), bottom: px(merged.bottom) };
   shapes.set(project, clean);
   try {
     storage()?.setItem(KEY_PREFIX + project, JSON.stringify(clean));

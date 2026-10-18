@@ -1,5 +1,5 @@
 import { isoWeekKey, localDayKey, YEAR_MONTH_KEY_LENGTH, ISO_DATE_LENGTH } from './dailyGrouping.js';
-import { LOCALE, t } from '../strings/index.js';
+import { LOCALE } from '../strings/index.js';
 import { SECONDS_PER_HOUR, SECONDS_PER_MINUTE } from './time.js';
 import { GRANULARITY } from './granularity.js';
 import { LATEST_RUN_ID } from '../constants.js';
@@ -11,6 +11,8 @@ const DEFAULT_CALLER_NAME = 'dateFormatting'; // default `where` tag for the war
 const DAY_MONTH_YEAR = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
 const MONTH_YEAR = new Intl.DateTimeFormat(LOCALE, { month: 'long', year: 'numeric' });
 const RUN_ID_TRUNCATE_LENGTH = 8;
+const DAYS_AFTER_MONDAY_TO_SUNDAY = 6; // an ISO week runs Monday..Sunday
+const DAYS_PER_WEEK = 7;
 
 /**
  * Format a date string as "20 Feb 2026" (day + abbreviated month + year).
@@ -87,7 +89,9 @@ export function formatDurationCoarse(s) {
  * Human label for a score-history bucket at the given grouping granularity.
  * - day   -> the entry's LOCAL date (e.g. "25 Mar 2026")
  * - month -> "March 2026" (from the local calendar day)
- * - week  -> "Week 13, 2026" (ISO week of the local calendar day)
+ * - week  -> "23 – 29 Mar 2026" (the Monday..Sunday of the ISO week of the
+ *              local calendar day; a week number means nothing without a
+ *              calendar, the dates do)
  * Falls back to the entry's dateLabel (then dateISO) when unparseable.
  *
  * All three derive from the same local-day key the grouping uses
@@ -111,10 +115,15 @@ export function formatPeriodLabel(entry, granularity = GRANULARITY.DAY) {
     return Number.isNaN(d.getTime()) ? fallback : MONTH_YEAR.format(d);
   }
   if (granularity === GRANULARITY.WEEK) {
-    const key = isoWeekKey(iso); // 'YYYY-Www' or ''
-    const [y, w] = key.split('-W');
-    // Intl has no week-of-year format, so this one stays a catalog pattern.
-    return (y && w) ? t('common.weekOfYear', { week: Number(w), year: y }) : fallback;
+    // isoWeekKey is the validity check: it rejects the malformed dates the
+    // grouping puts in their own bucket.
+    if (!isoWeekKey(iso)) return fallback;
+    const [y, m, d] = localDayKey(iso).split('-').map(Number);
+    const daysSinceMonday = (new Date(y, m - 1, d).getDay() + DAYS_AFTER_MONDAY_TO_SUNDAY) % DAYS_PER_WEEK;
+    const monday = new Date(y, m - 1, d - daysSinceMonday);
+    const sunday = new Date(y, m - 1, d - daysSinceMonday + DAYS_AFTER_MONDAY_TO_SUNDAY);
+    // formatRange drops the month and year the two ends share, per locale.
+    return DAY_MONTH_YEAR.formatRange(monday, sunday);
   }
   if (iso.length > ISO_DATE_LENGTH) {
     const d = new Date(iso);

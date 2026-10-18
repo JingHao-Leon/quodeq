@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { formatPeriodLabel } from '../../../utils/formatters.js';
 import { runCounts } from '../headlineStats.js';
 import { t } from '../../../strings/index.js';
-import { granularityLabel } from '../../../strings/labels.js';
 import {
   ScoreChartWithKeyboard,
   ScoreHistoryPanelFrame,
@@ -16,14 +15,7 @@ import { countsLine } from '../../history/components/chartTooltipCounts.jsx';
 
 const MAX_CHART_RUNS = 20;
 const MAX_BAR_SIZE = 28;
-// The chart needs two points before a trend line means anything.
-const MIN_CHART_POINTS = 2;
 const MISSING_SCORE = '—';
-const GRANULARITY_SUFFIX = {
-  day: t('granularity.dayAbbrev'),
-  week: t('granularity.weekAbbrev'),
-  month: t('granularity.monthAbbrev'),
-};
 
 
 function buildTrendData(trend, granularity = 'day') {
@@ -112,34 +104,26 @@ export default function RunHistoryPanel({ trend = [], selectedRunId = null, onBa
   const data = useMemo(() => buildTrendData(trend, granularity), [trend, granularity]);
   const setHoveredIndex = hoverWithPrefetch(setHoveredIndexState, data, onBarHover, onBarHoverEnd);
 
-  // The parent only mounts this panel when there are ≥2 days of data, so an
-  // empty trend shouldn't happen — but guard the truly-empty case. A single
-  // bucket (e.g. all runs fall in one month) still renders the header so the
-  // selector stays reachable; only the chart body + MIN/MAX/AVG are hidden.
+  // The parent only mounts this panel from the second evaluation, so an empty
+  // trend shouldn't happen, but guard it. A single bucket (every run in one
+  // week or month) still draws its bar: the runs exist and the score is real.
   if (!trend || trend.length < 1) return null;
-
-  const hasChart = data.length >= MIN_CHART_POINTS;
 
   return (
     <ScoreHistoryPanelFrame
       ariaLabel={t('overview.scoreHistoryAria')}
       count={data.length}
-      suffix={GRANULARITY_SUFFIX[granularity] || GRANULARITY_SUFFIX.day}
       granularity={granularity}
       onGranularityChange={onGranularityChange}
-      stats={hasChart ? computeScoreStats(data) : null}
+      stats={computeScoreStats(data)}
     >
-      {hasChart ? (
-        <ScoreChartWithKeyboard
-          data={data}
-          chart={CHART_PRESENTATION}
-          interaction={runChartInteraction({ hoveredIndex, setHoveredIndex, selectedRunId, onBarClick })}
-          kbdLabel={t('dashboard.runHistoryKbdLabel')}
-          kbdItems={buildRunKbdItems(data, onBarClick)}
-        />
-      ) : (
-        <p className="run-history-panel__sparse">{t('overview.sparseTrend', { period: granularityLabel(granularity) })}</p>
-      )}
+      <ScoreChartWithKeyboard
+        data={data}
+        chart={CHART_PRESENTATION}
+        interaction={runChartInteraction({ hoveredIndex, setHoveredIndex, selectedRunId, onBarClick })}
+        kbdLabel={t('dashboard.runHistoryKbdLabel')}
+        kbdItems={buildRunKbdItems(data, onBarClick)}
+      />
     </ScoreHistoryPanelFrame>
   );
 }

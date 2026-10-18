@@ -2,7 +2,7 @@ import { t } from '../../../strings/index.js';
 import ChartKeyboardControls from '../../../components/ChartKeyboardControls.jsx';
 import RunLogPanel from './RunLogPanel.jsx';
 import { dayLabel, timeLabel } from './runFormat.js';
-import { stripStart, scaleMax, STRIP_RUNS, STRIP_PAGE } from './runLogModel.js';
+import { stripStart, scaleMax, isPlotted as plotted, STRIP_RUNS, STRIP_PAGE } from './runLogModel.js';
 
 const W = 1000;
 const H = 70;
@@ -25,12 +25,10 @@ const KEY_NEW = 'new';
 const KEY_RESOLVED = 'resolved';
 const SIDE_OLDER = 'older';
 
-const SAME_MODEL = 'same-model';
 const OTHER_MODEL = 'other-model';
 
 // Only a same-model comparison is plotted: another model words its findings
 // differently, so its churn is huge and says little about the code.
-const plotted = (r) => Boolean(r.counts) && !r.pending && r.baselineKind === SAME_MODEL;
 const countOf = (r, k) => (plotted(r) ? r.counts[k] || 0 : 0);
 
 function barTitle(run, n, r) {

@@ -30,9 +30,10 @@ from quodeq.services._run_version_memo import (  # facade re-export
     suppression_state_fingerprint as _state_fingerprint,
 )
 from quodeq.core.scoring import projector_scoring
-from quodeq.services._score_cache_params import params_fingerprint
+from quodeq.core.scoring.params import grades_stamp, params_fingerprint
 from quodeq.services.standards_version import StandardsSnapshot, standards_fingerprint
-from quodeq.services.wiring import RunKeyStore, load_suppression_rules, run_key_store
+from quodeq.services.wiring import RunKeyStore, has_evaluation_db, load_suppression_rules, run_key_store
+from quodeq.services.wiring import read_grades_stamp
 
 # ---------------------------------------------------------------------------
 # Every moved/data-layer name is re-exported here so external callers and
@@ -66,7 +67,7 @@ if TYPE_CHECKING:
 # Bumped whenever the accumulated/project-card cache-key computation changes
 # (see the version history in the payload below); an old value recomputes
 # instead of serving a stale entry.
-_ACCUMULATED_CACHE_ALGO_VERSION = 6
+_ACCUMULATED_CACHE_ALGO_VERSION = 7
 
 
 def score_cache_version(project_dir: Path, params: ScoringParams) -> str:
@@ -94,25 +95,30 @@ def score_cache_version(project_dir: Path, params: ScoringParams) -> str:
 
 def run_scoped_version(
     params: ScoringParams,
-    run_dismiss_keys: set[tuple],
-    run_class_keys: set[tuple],
+    run_keys: tuple[set[tuple], set[tuple]],
     dismissed_all: "DismissedKeys | set[tuple]",
     deleted_all: set[tuple],
     *,
     standards: str,
+    grades: str = "",
 ) -> str:
     """Version hash for a single run: params, standards, and only the suppressions that touch it.
 
-    It depends on dismissals that can hide one of its findings (``touching``
-    *run_dismiss_keys*), deletions in *run_class_keys*, and only the standards
+    *run_keys* is the run's ``(dismiss keys, class keys)``. It depends on
+    dismissals that can hide one of its findings (``touching`` the dismiss
+    keys), deletions among its class keys, and only the standards
     this run scored (*standards*, ``StandardsSnapshot.for_run``), so
-    unaffected runs keep their versions.
+    unaffected runs keep their versions. *grades* is the run's grades stamp
+    (``read_grades_stamp``): rows read from its grade tables before a
+    grade-formula rescore rewrote them hash differently from rows read after.
     """
+    run_dismiss_keys, run_class_keys = run_keys
     touching = as_dismissed_keys(dismissed_all).touching(run_dismiss_keys)
     payload = json.dumps({
         "epoch": _CACHE_WRITER_EPOCH,
         "algo": projector_scoring.GRADE_ALGO_VERSION,
         "standards": standards,
+        "grades": grades,
         "dismissed": touching.version_payload(),
         "deleted": sorted(str(k) for k in (deleted_all & run_class_keys)),
         "params": params_fingerprint(params),
@@ -218,11 +224,20 @@ class VersionInputs:
     deleted: set[tuple]
     standards: StandardsSnapshot
     fingerprint: str
+    project_dir: Path
 
-    def run_state(self, run_id: str) -> tuple[str, str]:
-        """(memo state, standards fingerprint) for one run: only the standards it scored count."""
+    def run_state(self, run_id: str) -> tuple[str, str, str]:
+        """(memo state, standards fingerprint, grades stamp) for one run.
+
+        Only the standards it scored count. The grades stamp is in the memo
+        state too, so a rescored run gets a new version in a warm process. A
+        run with no database yet is projected by the read under the current
+        params, so it takes their stamp now, not after that first read.
+        """
         standards = self.standards.for_run(run_id)
-        return f"{self.fingerprint}:{standards}", standards
+        run_dir = self.project_dir / run_id
+        grades = read_grades_stamp(run_dir) or ("" if has_evaluation_db(run_dir) else grades_stamp(self.params))
+        return f"{self.fingerprint}:{standards}:{grades}", standards, grades
 
     @classmethod
     def of(
@@ -232,7 +247,7 @@ class VersionInputs:
         """Bundle the inputs, load the standards once, and hash the suppression state once for every run."""
         standards = StandardsSnapshot.load(project_dir)
         fingerprint = suppression_state_fingerprint(params, dismissed, deleted, standards="per-run")
-        return cls(params, dismissed, deleted, standards, fingerprint)
+        return cls(params, dismissed, deleted, standards, fingerprint, project_dir)
 
 
 def _fill_pending_versions(
@@ -261,9 +276,10 @@ def _fill_versions(
             keys = read_run_key_sets(project_dir / rid)
             if terminal:
                 keys_store.save(project, rid, keys)
-        state, standards = inputs.run_state(rid)
+        state, standards, grades = inputs.run_state(rid)
         version = run_scoped_version(
-            inputs.params, keys[0], keys[1], inputs.dismissed, inputs.deleted, standards=standards)
+            inputs.params, keys, inputs.dismissed, inputs.deleted,
+            standards=standards, grades=grades)
         if terminal:
             remember_run_version(project_dir, rid, state, version)
         out[idx] = (rid, status, version)

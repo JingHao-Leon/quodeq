@@ -6,7 +6,7 @@ import time
 
 from quodeq.data.fs.run_archive import archive_run, is_archived
 from quodeq.services import storage_cleanup, storage_plan
-from quodeq.services.storage_cleanup import run_cleanup
+from quodeq.services.storage_cleanup import CleanupHooks, run_cleanup
 from tests.services._storage_fixtures import NOW, make_run as _run
 
 
@@ -37,7 +37,7 @@ def test_a_tidy_pass_reads_each_status_a_bounded_number_of_times(tmp_path, monke
         _run(tmp_path, "p", f"r{i:02d}", 10 + i)
     reads = _counting_status_reads(monkeypatch)
 
-    assert run_cleanup(tmp_path, NOW, warm_days=None).tidied == 30
+    assert run_cleanup(tmp_path, NOW, keep_runs=None).tidied == 30
 
     assert reads[0] <= 3 * 30
 
@@ -48,7 +48,7 @@ def test_progress_counts_every_run_of_the_pass_tidied_or_archived(tmp_path):
         _run(tmp_path, name, "newer", 10)
     seen = []
 
-    run_cleanup(tmp_path, NOW, warm_days=183, on_progress=lambda d, t: seen.append((d, t)))
+    run_cleanup(tmp_path, NOW, keep_runs=1, hooks=CleanupHooks(on_progress=lambda d, t: seen.append((d, t))))
 
     assert seen == [(i, 4) for i in range(1, 5)]  # four runs: all tidied, two of them archived too
 
@@ -59,7 +59,7 @@ def test_a_run_that_finished_minutes_ago_is_not_tidied(tmp_path):
     (fresh / "evidence").mkdir()
     (fresh / "evidence" / "quality_queue.json").write_text("[]")
 
-    assert run_cleanup(tmp_path, NOW, warm_days=183).tidied == 0
+    assert run_cleanup(tmp_path, NOW, keep_runs=1).tidied == 0
 
     assert (fresh / "evidence" / "quality_queue.json").is_file()
 
@@ -81,7 +81,7 @@ def test_a_run_archived_by_another_process_mid_pass_is_skipped_quietly(tmp_path,
     monkeypatch.setattr(storage_cleanup, "tidy_run", tidy_while_another_process_acts)
     log = _Log()
 
-    result = run_cleanup(tmp_path, NOW, warm_days=183, log=log)
+    result = run_cleanup(tmp_path, NOW, keep_runs=1, log=log)
 
     assert log.warnings == []
     assert result.archived == 0 and is_archived(old)

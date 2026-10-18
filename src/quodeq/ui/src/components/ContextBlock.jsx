@@ -8,11 +8,11 @@
  * Nothing below the strip renders until it's expanded.
  *
  * Pretext integration:
- *   The `<pre>` block's height and widest-line width are pre-computed with
- *   `measureText` before paint. With `white-space: pre` the height reduces
- *   to `lines × lineHeight`; pretext is still used for max-line width so the
- *   scrollbar size is known and the collapsed→expanded transition doesn't
- *   snap.
+ *   The `<pre>` block's widest-line width is pre-computed with `measureText`
+ *   before paint. Its height is left to its content: a height computed from
+ *   a line-height constant came out short wherever the CSS differed, and the
+ *   few px of overflow made the block a scroll box that caught the page's
+ *   wheel.
  */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useContext } from 'react';
 import { CodeOpenByDefault } from './codeOpenContext.js';
@@ -24,8 +24,6 @@ import { parseFileRef } from '../utils/textFormatting.js';
 import { t } from '../strings/index.js';
 
 const CONTEXT_PADDING = 5;
-const CODE_LINE_HEIGHT = 18; // must match terminal.css .ctx-line line-height
-const CODE_PRE_VPAD = 16;    // matches .term-code / .scope-bar-code vertical padding
 const DEFAULT_CODE_FONT = '12px "JetBrains Mono", ui-monospace, monospace';
 
 function renderLine(raw, lineNum, isHighlighted) {
@@ -52,7 +50,7 @@ function renderSnippetLine(text, lineNum) {
 }
 
 /**
- * CodeBlockPre — the `<pre>` wrapper that pre-computes dimensions with pretext.
+ * CodeBlockPre — the `<pre>` wrapper that pre-computes its widest line with pretext.
  *
  * `renderedLines` is an array of React children. `codeLines` is the raw string
  * array we use to measure natural widths (stripping the highlight marker so
@@ -60,7 +58,7 @@ function renderSnippetLine(text, lineNum) {
  */
 function CodeBlockPre({ renderedLines, codeLines }) {
   const preRef = useRef(null);
-  const [dims, setDims] = useState({ height: 0, maxWidth: 0 });
+  const [maxWidth, setMaxWidth] = useState(0);
 
   useLayoutEffect(() => {
     const el = preRef.current;
@@ -73,19 +71,14 @@ function CodeBlockPre({ renderedLines, codeLines }) {
       const w = measureWidth(text, font);
       if (w > max) max = w;
     }
-    const height = codeLines.length * CODE_LINE_HEIGHT + CODE_PRE_VPAD;
-    setDims({ height, maxWidth: Math.ceil(max) });
+    setMaxWidth(Math.ceil(max));
   }, [codeLines]);
 
-  const style = {};
-  if (dims.height) style.height = dims.height;
   return (
     <pre
       ref={preRef}
       className="finding-context scope-bar-code"
-      style={style}
-      data-pretext-height={dims.height || undefined}
-      data-pretext-max-width={dims.maxWidth || undefined}
+      data-pretext-max-width={maxWidth || undefined}
       data-pretext-lines={codeLines.length || undefined}
     >
       {renderedLines}

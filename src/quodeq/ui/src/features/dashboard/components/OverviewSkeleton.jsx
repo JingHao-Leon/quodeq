@@ -6,6 +6,7 @@ import RunHistoryPanelPlaceholder from './RunHistoryPanelPlaceholder.jsx';
 import { COMPACT_MIN_WIDTH, GRID_GAP } from './DimensionCardsGrid.jsx';
 import { useBalancedColumns } from '../hooks/useBalancedColumns.js';
 import { DEFAULT_SHAPE } from '../overviewShape.js';
+import { hasRadialShape } from '../../../components/radial/radialGeometry.js';
 
 // Skeleton frame for the Overview's full footprint, top to bottom as
 // AccumulatedOverviewPanel lays it out: the header panel (ring, title and sub
@@ -142,28 +143,24 @@ function SkeletonDimensions({ label, shape }) {
           {placeholders(count).map((index) => <SkeletonDimensionCard key={index} index={index} />)}
         </div>
       </div>
-      {shape?.notEvaluated && (
-        <p className="not-evaluated-line">
-          <Bar kind="since-label" />
-          <span className="term-btn not-evaluated-line__btn overview-skeleton__ghost">{'\u00a0'}</span>
-        </p>
-      )}
     </section>
   );
 }
 
-function SkeletonTopGrid() {
+/** The history placeholder beside the radial's, or alone when the last footprint had too few cards for a radial. */
+function SkeletonTopGrid({ cards }) {
+  const radial = hasRadialShape(cards);
   return (
-    <div className="qd-top-grid overview-top-grid" aria-hidden="true">
+    <div className={`qd-top-grid overview-top-grid${radial ? '' : ' qd-top-grid--single'}`} aria-hidden="true">
       <RunHistoryPanelPlaceholder />
-      <div className="qd-top-right">
+      {radial && <div className="qd-top-right">
         <section className="run-history-panel--terminal panel">
           <div className="run-history-panel__header">
             <SectionLabel>{t('overview.dimensionsRadialLabel')}</SectionLabel>
           </div>
           <div className="qd-radial"><Bar kind="radial" /></div>
         </section>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -210,7 +207,7 @@ export function SkeletonBottom({ run = false, height = null }) {
  * @param {string} [props.sub] the header's sub line in place of the loading one (an archived run being restored)
  * @param {string} [props.title] the header's name in place of the Overview's (a dimension page's dimension)
  * @param {string} [props.cardsLabel] the cards' section label in place of "quality dimensions" (a dimension's principles)
- * @param {{cards: number, notEvaluated: boolean}} [props.shape] the project's last drawn footprint (overviewShape.js)
+ * @param {{cards: number, height?: number, bottom?: number}} [props.shape] the project's last drawn footprint (overviewShape.js)
  */
 export default function OverviewSkeleton({ projectName, lastKnown = null, run = false, sub, title, cardsLabel, shape = DEFAULT_SHAPE }) {
   return (
@@ -218,7 +215,7 @@ export default function OverviewSkeleton({ projectName, lastKnown = null, run = 
       <SkeletonSince />
       <SkeletonHead title={title ?? t(run ? 'overview.termNameRun' : 'overview.termName')} projectName={projectName} lastKnown={lastKnown} sub={sub} />
       <SkeletonDimensions label={cardsLabel ?? t('overview.qualityDimensionsLabel')} shape={shape} />
-      {!run && <SkeletonTopGrid />}
+      {!run && <SkeletonTopGrid cards={shape?.cards ?? DIMENSION_CARD_COUNT} />}
       <SkeletonBottom run={run} height={run ? null : shape?.bottom} />
     </div>
   );

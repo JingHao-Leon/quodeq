@@ -134,6 +134,18 @@ test('replace: a loaded group becomes the server rows, in its first position', (
   assert.equal(out[3], other);
 });
 
+test('replace: a server row without its dimension takes the requested one', () => {
+  // The accumulated lists carry no per-item dimension (the item sits in its
+  // dimension's group); the page filled it in, and a dismiss reads it for the
+  // dimension's run, so hydrating must not drop it.
+  const ref = { project: 'p', asOf: null, dimension: 'security' };
+  const items = [{ ...slim('a.py', 1, 'P1'), dimension: 'security', detailRef: ref }];
+  const out = replaceWithDetail(items, [{ ref, items: [full('a.py', 1, 'P1', { dimension: null })] }], () => true);
+  assert.equal(out[0].dimension, 'security');
+  const named = replaceWithDetail(items, [{ ref, items: [full('a.py', 1, 'P1', { dimension: 'other' })] }], () => true);
+  assert.equal(named[0].dimension, 'other');
+});
+
 test('replace: the selector keeps the rows that belong on the page', () => {
   const ref = { project: 'p', asOf: null, dimension: 'd' };
   const items = [{ ...slim('a.py', 1, 'P1'), detailRef: ref }];

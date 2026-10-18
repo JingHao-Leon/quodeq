@@ -88,7 +88,7 @@ describe('RunOverviewPanel since line and cards', () => {
     expect(strip.nextElementSibling).toBe(head(container));
     await waitFor(() => expect(strip).toHaveTextContent('4 new'));
     expect(strip).toHaveTextContent('3 fixed');
-    expect(strip).toHaveTextContent('1 rule types opened');
+    expect(strip).toHaveTextContent('1 rule opened');
   });
 
   it('shows the dimensions weakest first, each with what the run changed in it', async () => {

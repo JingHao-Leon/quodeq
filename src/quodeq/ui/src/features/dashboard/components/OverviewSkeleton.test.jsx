@@ -19,6 +19,13 @@ describe('OverviewSkeleton', () => {
     ]);
   });
 
+  it('leaves the radial out when the last footprint had under three cards, the history alone in the row', () => {
+    const { container } = render(<OverviewSkeleton projectName="quodeq" shape={{ cards: 1 }} />);
+    expect(container.querySelector('.overview-top-grid')).toHaveClass('qd-top-grid--single');
+    expect(container.querySelector('.overview-top-grid [data-testid="run-history-panel-placeholder"]')).not.toBeNull();
+    expect(container.querySelector('.overview-top-grid .qd-radial')).toBeNull();
+  });
+
   it('fills each section with the loaded one\'s parts: four tiles, compact cards, the chart and radial, the list rows', () => {
     const { container } = render(<OverviewSkeleton projectName="quodeq" />);
     expect(container.querySelectorAll('.findings-head__stats .findings-head__stat')).toHaveLength(4);

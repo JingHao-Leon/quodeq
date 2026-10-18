@@ -88,15 +88,7 @@ def read_status(run_dir: Path, *, log: LogSink = NULL_LOG) -> tuple[dict[str, An
 
 def scan_completed_dimensions(run_dir: Path) -> set[str]:
     """Return the set of dimension names that have an evaluation/<dim>.json file."""
-    eval_dir = run_dir / "evaluation"
-    try:
-        return {
-            entry.name[: -len(JSON_SUFFIX)]
-            for entry in eval_dir.iterdir()
-            if entry.is_file() and entry.name.endswith(JSON_SUFFIX)
-        }
-    except OSError:
-        return set()
+    return {dimension for dimension, _ in wiring.list_report_files(run_dir / "evaluation")}
 
 
 def read_dim_eval(
@@ -110,7 +102,7 @@ def read_dim_eval(
     authoritative — it always matches the filename stem for well-formed files.
     """
     eval_dir = run_dir / "evaluation"
-    path = eval_dir / f"{dimension}{JSON_SUFFIX}"
+    path = wiring.report_file(eval_dir, dimension) or eval_dir / f"{dimension}{JSON_SUFFIX}"
     try:
         data = wiring.read_eval_report(eval_dir, dimension)
     except (OSError, ValueError) as exc:
@@ -148,7 +140,7 @@ def read_new_findings_from_events(
     finding-shaping step in one try/except, so the two failure modes share a
     single WARNING and an all-or-nothing outcome.
     """
-    wiring_sync.restore_or_warn(run_dir)
+    wiring_sync.restore_or_warn(run_dir, project=False)  # streams the event log only
     events_log = run_dir / "events.jsonl"
     if not events_log.is_file():
         return []

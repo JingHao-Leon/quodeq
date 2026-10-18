@@ -10,6 +10,9 @@ const HIT_RADIUS = 9;
 // Past this many viewBox units per pixel (a phone-width chart) the text stops growing in viewBox
 // terms, so the band labels still fit the right margin.
 const MAX_UNITS_PER_PX = 2.6;
+// Until the projects are read the chart draws only what holds still when they land: the bands, grid and
+// floors. The x range (so the ticks and curves) depends on the heaviest principle.
+const NO_INPUTS = Object.freeze({ projects: [] });
 
 function Dots({ dots, litProject, onHoverProject }) {
   return (
@@ -35,8 +38,14 @@ function Dots({ dots, litProject, onHoverProject }) {
   );
 }
 
+function countText(dots, moved, flips) {
+  if (moved === 0) return t(pluralKey(dots.length, 'gradeFormula.chartCountRestOne', 'gradeFormula.chartCountRest'), { shown: dots.length });
+  return t(pluralKey(dots.length, 'gradeFormula.chartCountOne', 'gradeFormula.chartCount'), { shown: dots.length, moved, flips });
+}
+
 /** Every principle: finding weight across, score up, under the saved formula and the draft. */
-export default function PrincipleChart({ inputs, saved, draft, highlight, litProject, onHoverProject }) {
+export default function PrincipleChart({ inputs: loaded, loading, saved, draft, highlight, litProject, onHoverProject }) {
+  const inputs = loaded ?? NO_INPUTS;
   const scale = useMemo(() => chartScale(maxSavedWeight(inputs, saved)), [inputs, saved]);
   const dots = useMemo(() => principleDots(inputs, saved, draft), [inputs, saved, draft]);
   const moved = dots.filter((d) => d.dir !== DIR.SAME).length;
@@ -55,14 +64,12 @@ export default function PrincipleChart({ inputs, saved, draft, highlight, litPro
     <figure className="gf-chart-wrap" ref={figRef} style={{ '--gf-k': Math.min(k, MAX_UNITS_PER_PX) }}>
       <svg className={`gf-chart${highlight ? ` gf-chart--hl-${highlight}` : ''}`} viewBox={`0 0 ${scale.width} ${scale.height}`}
         role="img" aria-label={t('gradeFormula.chartAria')}>
-        <Backdrop scale={scale} draft={draft} />
-        <Curves scale={scale} saved={saved} draft={draft} />
+        <Backdrop scale={loaded ? scale : { ...scale, xTicks: [] }} draft={draft} />
+        {loaded && <Curves scale={scale} saved={saved} draft={draft} />}
         <Dots dots={dots} litProject={litProject} onHoverProject={onHoverProject} />
       </svg>
       <figcaption className="gf-chart__count">
-        {moved === 0
-          ? t(pluralKey(dots.length, 'gradeFormula.chartCountRestOne', 'gradeFormula.chartCountRest'), { shown: dots.length })
-          : t(pluralKey(dots.length, 'gradeFormula.chartCountOne', 'gradeFormula.chartCount'), { shown: dots.length, moved, flips })}
+        {loaded ? countText(dots, moved, flips) : loading && t('gradeFormula.impactLoading')}
       </figcaption>
     </figure>
   );

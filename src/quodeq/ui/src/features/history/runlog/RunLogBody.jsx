@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { usePrefetchRun } from '../../dashboard/hooks/usePrefetchRun.js';
 import { PROJECT_SOURCE } from '../../../vocab/projectSource.js';
 import ChangeStrip from './ChangeStrip.jsx';
+import { stripHasComparisons } from './runLogModel.js';
 import RunList from './RunList.jsx';
 
 /** The hovered run, lit in list and strip, its run page warmed after a dwell. */
@@ -27,7 +28,7 @@ export default function RunLogBody({
   const { hoverId, onHover } = useRunHover(project, shared);
   return (
     <>
-      {rows.length > 0 && (
+      {stripHasComparisons(rows) && (
         <ChangeStrip rows={rows} selectedId={selectedId} onSelect={onPick} hoverId={hoverId}
           onHover={onHover} start={stripStart} onPage={onPage} />
       )}

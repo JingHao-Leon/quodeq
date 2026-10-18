@@ -45,3 +45,14 @@ def test_old_paths_re_export_the_core_objects():
     assert most_frequent_grade is rg.most_frequent_grade
     assert calculate_trend is rg.calculate_trend
     assert summarize_dimensions is rg.summarize_dimensions
+
+
+def test_summarize_dimensions_leaves_out_a_failure_streak_dimension():
+    dims = [
+        DimensionResult(dimension="security", overall_grade="Adequate", overall_score="6.0/10"),
+        DimensionResult(dimension="flexibility", overall_grade="Exemplary", overall_score="9.5/10",
+                        exit_reason="failure_streak"),
+    ]
+    summary = rg.summarize_dimensions(dims)
+    assert summary.numeric_average == 6.0
+    assert summary.dimensions_count == 2

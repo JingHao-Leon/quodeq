@@ -72,11 +72,14 @@ function PartialScope({ run }) {
   );
 }
 
-/** An archived run: stored compressed, restored the first time it opens. A quiet tag, not an alert. */
-function ArchivedTag() {
+/**
+ * An archived run: stored compressed, restored the first time it opens. A report-only run lost its
+ * findings for good and keeps its grades and reports. A quiet tag either way, not an alert.
+ */
+function ArchivedTag({ cold = false }) {
   return (
-    <span className="rl-row__archived" title={t('history.archivedTitle')}>
-      <span className="rl-row__archived-dot" aria-hidden="true" />{t('history.archived')}
+    <span className="rl-row__archived" title={t(cold ? 'history.reportOnlyTitle' : 'history.archivedTitle')}>
+      <span className="rl-row__archived-dot" aria-hidden="true" />{t(cold ? 'history.reportOnly' : 'history.archived')}
     </span>
   );
 }
@@ -91,7 +94,7 @@ function RunRow({ run, selected, hovered, onSelect, onHover }) {
       <span className="rl-row__what">
         {origin && <span className="rl-row__origin">{origin}</span>}
         {run.partial && <PartialScope run={run} />}
-        {run.archived && <ArchivedTag />}
+        {(run.archived || run.cold) && <ArchivedTag cold={Boolean(run.cold)} />}
       </span>
       <Moves run={run} />
       <span className="rl-row__score">{scoreText(run.score)}</span>

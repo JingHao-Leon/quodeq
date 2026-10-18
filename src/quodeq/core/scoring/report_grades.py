@@ -9,6 +9,7 @@ from quodeq.core.scoring.constants import Grade
 from quodeq.core.scoring.internals import GRADE_LADDER, score_to_grade_label
 from quodeq.core.scoring.dimension_summary import build_dimension_summary
 from quodeq.core.scoring.params import DEFAULT_PARAMS, ScoringParams, dimension_weighted_average
+from quodeq.core.run.exit_reason import ExitReason
 from quodeq.core.types import DimensionResult, DimensionSummary
 
 # "Critical" is the lowest label older numeric reports wrote; it has no Grade member.
@@ -78,6 +79,23 @@ def calculate_trend(current_score: Any, previous_score: Any) -> str:
     return "same"
 
 
+def is_provisional(dimension: DimensionResult) -> bool:
+    """A dimension that stopped on a failure streak carries an optimistic score
+    (its errored files contributed no findings), so no overall average counts it."""
+    return dimension.exit_reason == ExitReason.FAILURE_STREAK
+
+
+def scored_pairs(dimensions: list[DimensionResult]) -> list[tuple[str | None, float]]:
+    """(dimension, score) for every dimension an overall average counts: a
+    parseable score and not provisional. The one rule behind the run score,
+    the accumulated summary, the trend and the project card."""
+    return [
+        (d.dimension, score)
+        for d, score in ((d, parse_numeric_score(d.overall_score)) for d in dimensions if not is_provisional(d))
+        if score is not None
+    ]
+
+
 def summarize_dimensions(
     dimensions: list[DimensionResult],
     params: ScoringParams = DEFAULT_PARAMS,
@@ -89,14 +107,7 @@ def summarize_dimensions(
         summarize_dimensions([DimensionResult(dimension="security", overall_grade="Good", overall_score="8/10")])
     """
     overall_grades = [d.overall_grade for d in dimensions if d.overall_grade]
-    score_pairs = [
-        (d.dimension, score)
-        for d, score in (
-            (d, parse_numeric_score(d.overall_score)) for d in dimensions
-        )
-        if score is not None
-    ]
-    numeric_average = dimension_weighted_average(score_pairs, params)
+    numeric_average = dimension_weighted_average(scored_pairs(dimensions), params)
 
     # Derive overall grade from the numeric average when available,
     # falling back to most-frequent vote when scores are absent. This path

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GRANULARITY } from '../utils/granularity.js';
 import { t } from '../strings/index.js';
+import { pluralKey } from '../utils/plural.js';
 import { renderRich } from '../strings/rich.jsx';
 import { TIP_KEYS } from './LoadingScreen.jsx';
 
@@ -22,7 +23,7 @@ function SinceCounts({ summary }) {
   return (
     <>
       <FindingCounts summary={summary} />
-      {summary.typesOpened > 0 && <span className="overview-since__num">{t('overview.sinceTypesOpened', { count: summary.typesOpened })}</span>}
+      {summary.typesOpened > 0 && <span className="overview-since__num">{t(pluralKey(summary.typesOpened, 'overview.sinceTypeOpened', 'overview.sinceTypesOpened'), { count: summary.typesOpened })}</span>}
       {summary.typesClosed > 0 && <span className="overview-since__num">{t('overview.sinceTypesClosed', { count: summary.typesClosed })}</span>}
     </>
   );

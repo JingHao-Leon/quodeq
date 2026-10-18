@@ -149,7 +149,7 @@ describe('selectSidebarCounts', () => {
       filteredTrend: [{ runId: 'r1' }, { runId: 'r2' }],
       dashboard: { trend: [{ runId: 'r1' }] },
     });
-    expect(result.violationsCount).toBe(5);
+    expect(result.violationsCount).toBe(12);
     expect(result.historyCount).toBe(2);
   });
 
@@ -160,7 +160,7 @@ describe('selectSidebarCounts', () => {
       filteredTrend: [],
       dashboard: { trend: [{ runId: 'r1' }, { runId: 'r2' }] },
     });
-    expect(result.violationsCount).toBe(2);
+    expect(result.violationsCount).toBe(7);
     expect(result.historyCount).toBe(2);
   });
 

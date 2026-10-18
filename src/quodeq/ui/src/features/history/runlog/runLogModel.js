@@ -1,6 +1,11 @@
 import { cancelledScopeLabel } from './cancelledRun.js';
 
 export const STRIP_RUNS = 20;
+// A bar needs a same-model baseline; under two of them the strip has nothing to say and stays hidden.
+export const STRIP_MIN_PLOTTED = 2;
+export const SAME_MODEL = 'same-model';
+export const isPlotted = (run) => Boolean(run.counts) && !run.pending && run.baselineKind === SAME_MODEL;
+export const stripHasComparisons = (rows) => rows.filter(isPlotted).length >= STRIP_MIN_PLOTTED;
 export const STRIP_PAGE = 10;
 
 // Outliers: everything above the first big gap in the values (a value more

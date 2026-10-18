@@ -14,6 +14,7 @@ import { findProject } from '../utils/projectIdentity.js';
 import { addVisibleStandardId } from '../utils/visibleStandards.js';
 import { selectLandedProject } from './selectLandedProject.js';
 import { shouldShowEvaluate } from '../appGating.js';
+import { useRemoteEvaluatePull } from '../features/evaluation/hooks/useRemoteEvaluatePull.js';
 import { useCloneStatus } from './useCloneStatus.js';
 
 /**
@@ -64,19 +65,22 @@ export function useAppDismissBridge(state) {
 export function useAppChrome({ state, sharedSignal }) {
   const selectedProjectInfo = findProject(state.projects, state.selectedProject);
   const isEvaluating = computeIsEvaluating(state);
-  // Evaluate exists only for a selected local project that has landed; a
-  // project whose clone is still running has no folder to evaluate yet.
+  // Evaluate exists for a selected local project that has landed (a project
+  // whose clone is still running has no folder to evaluate yet), and for a
+  // remote one, where it pulls a local copy first.
   const clone = useCloneStatus();
   const showEvaluate = shouldShowEvaluate({
-    selectedSource: state.selectedSource, selectedProjectInfo, cloneSlot: clone.active ? clone.slot : null,
+    selectedSource: state.selectedSource, selectedProject: state.selectedProject,
+    selectedProjectInfo, cloneSlot: clone.active ? clone.slot : null,
   });
   const wizard = useAppWizardBounce({ state, isEvaluating, sharedSignal });
   const { activePage, navSwapAt, navTab, activeTab } = state;
+  const remotePull = useRemoteEvaluatePull({ state, activeTab, navTab });
   const sidebar = useSidebarProviderSelection();
   const startup = useAppStartupGate({ state, activeTab });
   useAppNavigationEffects({ state, activeTab, navTab, showEvaluate, sharedSignal });
   useSelectedProjectSyncEffects(state.selectedProject);
   const { filteredTrend, filteredAccumulated } = useVisibleStandardsFiltered(state);
   const derived = useAppDerived({ state, navTab, navSwapAt, activePage, filteredTrend, filteredAccumulated });
-  return { selectedProjectInfo, showEvaluate, isEvaluating, ...wizard, ...sidebar, ...startup, ...derived };
+  return { selectedProjectInfo, showEvaluate, remotePull, isEvaluating, ...wizard, ...sidebar, ...startup, ...derived };
 }

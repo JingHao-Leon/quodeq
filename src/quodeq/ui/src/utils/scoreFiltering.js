@@ -19,7 +19,7 @@ import { weightedMeanScore } from './dimensionWeights.js';
  * @returns {Array<[string, number]>} lowercase dimension id and score
  */
 export function scorePairs(details) {
-  return details.map((d) => [(d.dimension || '').toLowerCase(), d.score]);
+  return details.filter((d) => !d.provisional).map((d) => [(d.dimension || '').toLowerCase(), d.score]);
 }
 
 /**
@@ -39,7 +39,7 @@ function foldVisibleScores(accByDim, entry, visibleSet) {
   let hasVisible = false;
   for (const d of (entry.dimensionDetails || [])) {
     const dimId = (d.dimension || '').toLowerCase();
-    if (visibleSet.has(dimId) && d.score != null) {
+    if (visibleSet.has(dimId) && d.score != null && !d.provisional) {
       accByDim[dimId] = d.score;
       hasVisible = true;
     }

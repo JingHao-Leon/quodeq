@@ -22,7 +22,8 @@ from quodeq.data.fs.run_archive import (
 
 _EVENTS = "events.jsonl"
 _EVIDENCE = "evidence/security_evidence.jsonl"
-_KEPT = ("evaluation/security.json", "status.json", "dimensions.json", "evidence/manifest.json")
+_REPORT = "evaluation/security.json"
+_KEPT = ("status.json", "dimensions.json", "evidence/manifest.json")
 
 
 def _run_with_files(tmp_path: Path) -> Path:
@@ -74,11 +75,12 @@ def test_round_trip_restores_identical_bytes(tmp_path):
     assert is_archived(run) and has_event_log(run)
     assert not (run / _EVENTS).exists() and not (run / "evaluation.db").exists()
     assert not (run / "evaluation.db-wal").exists()
-    assert all((run / name).exists() for name in _KEPT)
+    # The kept files stay; the report is packed in place.
+    assert all((run / name).exists() for name in _KEPT) and (run / (_REPORT + ".gz")).is_file() and not (run / _REPORT).exists()
     assert result.bytes_after < result.bytes_before
     assert ensure_restored(run) is True and not is_archived(run)
     restored = _bytes(run)
-    for name in (_EVENTS, _EVIDENCE, "evaluation.db", *_KEPT):
+    for name in (_EVENTS, _EVIDENCE, _REPORT, *_KEPT):  # the database is rebuilt from the event log, never restored
         assert restored[name] == before[name]
     assert not (run / "evaluation.db-wal").exists()
 
@@ -114,7 +116,7 @@ def test_interrupted_archive_leaves_the_run_intact(tmp_path, monkeypatch):
     def _crash(*_args, **_kwargs):
         raise RuntimeError("app quit during verify")
 
-    monkeypatch.setattr(run_archive, "_verify_archive", _crash)
+    monkeypatch.setattr(run_archive, "verify_archive", _crash)
     with pytest.raises(RuntimeError):
         archive_run(run)
     assert _bytes(run) == before

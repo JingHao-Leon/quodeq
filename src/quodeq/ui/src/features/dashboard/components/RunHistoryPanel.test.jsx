@@ -15,9 +15,9 @@ describe('RunHistoryPanel', () => {
     expect(screen.getByLabelText('Group score history by')).toHaveValue('week');
   });
 
-  it('shows a granularity-aware label suffix (w for week)', () => {
+  it('names the bucket unit after the count (weeks for week)', () => {
     render(<RunHistoryPanel trend={TREND} selectedRunId="r1" granularity="week" onGranularityChange={() => {}} />);
-    expect(screen.getByText(/score_history · 3w/i)).toBeInTheDocument();
+    expect(screen.getByText(/score_history · 3 weeks/i)).toBeInTheDocument();
   });
 
   it('calls onGranularityChange when the selector changes', () => {
@@ -27,10 +27,11 @@ describe('RunHistoryPanel', () => {
     expect(onGranularityChange).toHaveBeenCalledWith('month');
   });
 
-  it('keeps the selector but hides MIN/MAX/AVG when collapsed to a single bucket', () => {
+  it('still draws the chart when every run falls in a single month', () => {
     render(<RunHistoryPanel trend={[TREND[0]]} selectedRunId="r1" granularity="month" onGranularityChange={() => {}} />);
     expect(screen.getByLabelText('Group score history by')).toBeInTheDocument();
-    expect(screen.queryByText(/MIN /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Only one/)).not.toBeInTheDocument();
+    expect(screen.getByText(/MIN /)).toBeInTheDocument();
   });
 
   // Every point on this chart is the PROJECT grade (latest known score per

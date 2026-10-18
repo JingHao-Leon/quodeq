@@ -55,3 +55,29 @@ export function AssistantWelcome({ catalog, view, page, onPick, readOnly = false
     </div>
   );
 }
+
+/**
+ * What the pane shows when no session could start and nothing has been said
+ * yet: the reason, and the way to Settings, instead of suggestions that
+ * cannot be acted on. Replaces the welcome panel; the composer is disabled.
+ */
+export function AssistantUnavailable({ error, onOpenSettings }) {
+  return (
+    <div className="assistant-welcome assistant-unavailable" role="alert">
+      <div className="assistant-welcome-hero">
+        <span className="assistant-compass-block" aria-hidden="true">
+          <QMarkIcon className="assistant-compass" />
+        </span>
+        <div className="assistant-unavailable-body">
+          <p className="assistant-welcome-intro">{t('assistant.unavailableIntro')}</p>
+          <p className="assistant-unavailable-error">{error}</p>
+          {onOpenSettings && (
+            <button type="button" className="btn-secondary assistant-unavailable-settings" onClick={onOpenSettings}>
+              {t('assistant.openSettings')}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -20,15 +20,16 @@ export function isEvaluatableSource(selectedSource) {
 
 /**
  * Whether Evaluate (the TopBar button and the sidebar tab) is there at all.
- * It needs a selected LOCAL project that exists in the list, and one whose
- * clone is not still running: until then there is nothing to evaluate, and
- * the screen would open on a folder that does not exist yet. Shared
- * projects have no Evaluate flow (evaluation is local-only).
- * @param {{ selectedSource?: string, selectedProjectInfo?: Object|null, cloneSlot?: Object|null }} args
+ * A selected SHARED project has it too: evaluation is local-only, so its
+ * Evaluate is the card that pulls a local copy (RemoteEvaluatePanel), never
+ * a run. A LOCAL project needs to exist in the list, with a clone that is
+ * not still running: until then there is nothing to evaluate, and the
+ * screen would open on a folder that does not exist yet.
+ * @param {{ selectedSource?: string, selectedProject?: string|null, selectedProjectInfo?: Object|null, cloneSlot?: Object|null }} args
  *   cloneSlot: the clone job's slot while it is ACTIVE, else null
  */
-export function shouldShowEvaluate({ selectedSource, selectedProjectInfo, cloneSlot = null }) {
-  if (!isEvaluatableSource(selectedSource)) return false;
+export function shouldShowEvaluate({ selectedSource, selectedProject = null, selectedProjectInfo, cloneSlot = null }) {
+  if (!isEvaluatableSource(selectedSource)) return Boolean(selectedProject);
   if (!selectedProjectInfo) return false;
   return !isCloningProject(selectedProjectInfo, cloneSlot);
 }
@@ -85,17 +86,16 @@ export function shouldShowProjectTabs({ selectedSource, selectedProjectInfo, sha
  * screen until the new project's fetch lands. Exported so this contract is
  * unit-testable without mounting the whole App.
  */
-// The badge counts majors (critical + major), the number that only moves when
-// the code moves; the raw violations total lives on the Violations page.
-function majorsOf(summary) {
-  const severity = summary?.severity;
-  if (!severity || typeof severity !== 'object') return null;
-  return (severity.critical || 0) + (severity.major || 0);
+// The badge counts the open findings, the number the Violations page leads
+// with, so the two never seem to disagree.
+function openOf(summary) {
+  const total = summary?.totalViolations;
+  return typeof total === 'number' ? total : null;
 }
 
 export function selectSidebarCounts({ filteredAccumulated, accumulated, filteredTrend, dashboard }) {
   return {
-    violationsCount: majorsOf(filteredAccumulated?.summary) ?? majorsOf(accumulated?.summary) ?? null,
+    violationsCount: openOf(filteredAccumulated?.summary) ?? openOf(accumulated?.summary) ?? null,
     historyCount: (filteredTrend || []).length || dashboard?.trend?.length || null,
   };
 }

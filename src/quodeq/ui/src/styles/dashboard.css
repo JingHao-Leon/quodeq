@@ -364,18 +364,21 @@
   text-transform: uppercase;
 }
 
-/* Standards switched on without results: one quiet line under the cards. */
-.not-evaluated-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  margin: var(--space-3) 0 0;
-  font-family: var(--term-font-mono);
-  font-size: 12px;
-  color: var(--color-text-muted);
+/* The header's right end: the pending chip, then the not-evaluated action. */
+.quality-dimensions__head-end { display: inline-flex; align-items: baseline; gap: var(--space-3); }
+/* Standards switched on without results: a count in the header that opens Evaluate. */
+.not-evaluated-action {
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--color-accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
-.not-evaluated-line__names { color: var(--color-text); }
+.not-evaluated-action:hover { text-decoration: underline; }
+.not-evaluated-action__count { color: var(--color-text); }
 
 /* ── Dimension cards ──────────────────────────────────── */
 
@@ -1934,8 +1937,6 @@
    switch above the areas. */
 .overview-skeleton__rows { display: flex; flex-direction: column; gap: 8px; padding: 16px; }
 .overview-skeleton__bar--row { display: block; width: 100%; height: 43px; }
-/* Holds a real control's box (the not-evaluated line's button) without showing it. */
-.overview-skeleton__ghost { visibility: hidden; }
 .overview-skeleton__bar--foot { width: 160px; height: 14px; }
 .overview-skeleton__bar--where-switch { width: 173px; height: 30px; }
 
@@ -3734,30 +3735,31 @@
 /* a row the view is narrowed to, and a row lit from elsewhere on the page (its principle hovered) */
 .term-grid__row--lit { background: color-mix(in srgb, var(--color-accent) 7%, transparent); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--color-accent) 60%, transparent); }
 
-/* principle page: requirements rail | findings list | finding */
-.findings-scope__work { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
-.findings-scope__main { min-width: 0; }
-.req-rail { margin: 0; display: flex; flex-direction: column; height: max(480px, calc(100vh - 210px)); }
-.req-rail__list { list-style: none; margin: 0; padding: 4px 0; overflow: auto; flex: 1; min-height: 0; }
-.req-rail__item { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 9px 14px; border: 0; border-left: 3px solid transparent; background: none; color: inherit; font: inherit; cursor: pointer; }
-.req-rail__item:hover { border-left-color: color-mix(in srgb, var(--color-accent) 45%, transparent); }
-.req-rail__item.is-sel { border-left-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 7%, transparent); }
-.req-rail__item:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
-.req-rail__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.req-rail__id { font-family: var(--font-mono); font-size: 11px; color: var(--color-accent); letter-spacing: .02em; }
-.req-rail__all { font-size: 12px; }
-.req-rail__n { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
-.req-rail__sev { display: inline-flex; gap: 4px; }
-.req-rail__text { font-size: 12px; line-height: 1.35; color: var(--color-text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.req-rail__files { font-size: 10px; color: var(--color-text-muted); }
-.req-rail__group { padding: 12px 14px 4px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-muted); border-top: 1px solid var(--color-border); margin-top: 6px; }
-.req-rail__item--pass .req-rail__id { color: var(--color-text-muted); }
-.req-rail__item--pass .req-rail__text { color: var(--color-text-muted); }
-.findings-scope__work .findings-scope__bar { margin-top: 0; }
-.findings-scope__work > .req-rail { margin: 0; }
-/* list view: the rail takes the findings column's height (size-contained, so its own content never sets the row's) */
-.findings-scope__work--list { align-items: stretch; }
-.findings-scope__work--list > .req-rail { height: auto; contain: size; }
+/* principle page: findings grouped under their requirements (ReqGroupHeader), filtered by one (RequirementMenu) */
+.req-group { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; border: 0; border-bottom: 1px solid var(--color-border); background: var(--color-surface-alt); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.req-group:hover .req-group__text { color: var(--color-text); }
+.req-group:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+/* the list scrolls inside its panel: the header of the group being read stays at its top */
+.wb-list > .req-group { position: sticky; top: 0; z-index: 1; }
+.req-group__tw { width: 10px; flex: none; font-size: 10px; color: var(--color-text-muted); }
+.req-group__id { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--color-accent); letter-spacing: .02em; }
+.req-group__text { flex: 1; min-width: 0; font-size: 12px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req-group__sev { flex: none; display: inline-flex; gap: 4px; margin-left: auto; }
+.req-group__n { flex: none; margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
+.req-group__files { flex: none; font-size: 10px; color: var(--color-text-muted); min-width: 52px; text-align: right; }
+.req-group--pass .req-group__id { color: var(--color-text-muted); }
+/* the cards: each requirement's header sits on the page between its cards */
+.findings-scope .vlive-violations-virtual .req-group { border: 1px solid var(--color-border); border-radius: var(--term-radius, 4px); margin: 10px 0 6px; }
+.req-menu { display: flex; flex-direction: column; width: min(460px, 90vw); }
+.req-menu__search { margin: 2px 2px 6px; padding: 7px 10px; border: 1px solid var(--color-border); border-radius: 5px; background: var(--color-bg); color: var(--color-text); font: inherit; font-size: 12px; }
+.req-menu__search:focus { outline: none; border-color: var(--color-accent); }
+.compare-dueltrigger__item.req-menu__item { align-items: center; }
+.req-menu__id { flex: none; width: 76px; font-family: var(--font-mono); font-size: 11px; color: var(--color-accent); }
+.req-menu__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.req-menu__text { font-size: 12px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.req-menu__files { font-size: 10px; color: var(--color-text-muted); }
+.req-menu__item--pass .req-menu__id, .req-menu__item--pass .req-menu__text { color: var(--color-text-muted); }
+.req-note { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; padding: 8px 14px; border: 1px solid var(--color-border); border-radius: var(--term-radius, 4px); background: var(--color-accent-soft); font-size: 12px; }
 
 /* description cut to two lines */
 .findings-head__desc--clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -3778,11 +3780,6 @@
 /* a tile's change since the previous period, and the note on a past run */
 .findings-head__change { margin-left: 8px; font-size: 12px; vertical-align: middle; }
 .findings-head__change .trend-badge { font-size: 12px; }
-/* narrow screens: the requirements stack above the findings, scrolling on their own */
-@media (max-width: 900px) {
-  .findings-scope__work { grid-template-columns: minmax(0, 1fr); }
-  .req-rail, .findings-scope__work--list > .req-rail { height: auto; max-height: 280px; contain: none; }
-}
 
 /* ring | name and description | tiles share a row only while the name keeps room to read (its basis);
    otherwise the tiles go under the name as one block, at their natural width, and wrap there on narrow screens */
@@ -3798,6 +3795,11 @@
 .findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; }
 .findings-head__stats[data-row-start],
 .findings-head__stats:not([data-row-start]) > .findings-head__stat[data-row-start]:not(:first-child) { translate: calc(-1 * var(--head-tile-indent)) 0; }
+/* tiles under the name: the description and the tiles take the panel's width rather than leaving its right side
+   empty. Growth and max-width leave every flex basis alone, so the wrap point does not move with the mark. */
+.findings-head__body:has(> .findings-head__stats[data-row-start]) .findings-head__desc { max-width: none; }
+.findings-head__stats[data-row-start] { flex-grow: 1; }
+.findings-head__stats[data-row-start] > .findings-head__stat { flex-grow: 1; }
 /* the Violations tile's severity pills wrap inside the tile; one width in both layouts, for the same reason */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
 vi.mock('./index.js', () => ({ t: (key) => key }));
-const { tRich, tSlots } = await import('./rich.jsx');
+const { tRich, tSlots, renderCodeSpans } = await import('./rich.jsx');
 
 function html(text) {
   return render(<p>{tRich(text)}</p>).container.firstChild.innerHTML;
@@ -40,5 +40,30 @@ describe('tSlots', () => {
 
   it('leaves a placeholder without a slot as written', () => {
     expect(slotsHtml('{a} and {missing}', { a: 'x' })).toBe('x and {missing}');
+  });
+});
+
+describe('renderCodeSpans', () => {
+  const codeHtml = (text) => render(<p>{renderCodeSpans(text)}</p>).container.firstChild.innerHTML;
+  const chip = (code) => `<code class="code-chip">${code}</code>`;
+
+  it('returns plain text untouched', () => {
+    expect(renderCodeSpans('no code here')).toBe('no code here');
+  });
+
+  it('renders each backtick span as a chip', () => {
+    expect(codeHtml('`open(url)` and `.navigate`')).toBe(`${chip('open(url)')} and ${chip('.navigate')}`);
+  });
+
+  it('lets a double-backtick span hold a backtick, trimming its padding', () => {
+    expect(codeHtml('named `` `is mapped` `` here')).toBe(`named ${chip('`is mapped`')} here`);
+  });
+
+  it('keeps a run with no closer literal', () => {
+    expect(codeHtml('a ```figure block, `x`')).toBe(`a \`\`\`figure block, ${chip('x')}`);
+  });
+
+  it('leaves double asterisks as written', () => {
+    expect(codeHtml('words like "**MAJOR**"')).toBe('words like "**MAJOR**"');
   });
 });

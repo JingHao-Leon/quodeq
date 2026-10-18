@@ -101,9 +101,11 @@ function makeOnResumeSetup({ isEvaluating, showToast, setWizardEntry }) {
  *   wizard for the add-project entry points.
  * @param {boolean} [args.sharedHasContent] - whether the shared repo has
  *   anything to show, which gates the shared entry point.
+ * @param {object|null} [args.remotePull] - the remote Evaluate card's pull
+ *   (useRemoteEvaluatePull).
  * @returns {object} the navigation bundle.
  */
-export function buildNavigationBundle({ state, navTab, navStackLength, isEvaluating, showToast, setWizardEntry, sharedHasContent = false }) {
+export function buildNavigationBundle({ state, navTab, navStackLength, isEvaluating, showToast, setWizardEntry, sharedHasContent = false, remotePull = null }) {
   const projects = state.projects ?? [];
   const onImportProject = makeOnImportProject({ isEvaluating, showToast, handleImportProject: state.handleImportProject, navTab, state });
   const onStartAnalyze = makeOnStartAnalyze({ isEvaluating, showToast, setWizardEntry, projects });
@@ -121,5 +123,6 @@ export function buildNavigationBundle({ state, navTab, navStackLength, isEvaluat
     // to hide their "browse remote repositories" affordance.
     onBrowseRemote: sharedHasContent ? () => navTab(NAV_TAB.PROJECTS) : null,
     isEvaluating,
+    remotePull,
   };
 }

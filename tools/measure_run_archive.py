@@ -6,10 +6,9 @@ Usage: uv run python tools/measure_run_archive.py <copy-of-a-project-dir> [--run
 Make the copy first (``cp -cR`` is an instant APFS clone) and point the
 QUODEQ_* store variables at the scratch folder. The tool refuses any path
 under the real ``~/.quodeq``. It archives the N largest runs, then restores
-each (``restore_s``: the restore readers pay, ``evaluation.db`` included).
-``rebuild_s`` then deletes the restored database and times the first
-projection, the rebuild a restore would cost if the database were not kept
-in the archive (the measure behind keeping it there).
+each (``restore_s``: what the restore readers pay, the database rebuilt from
+the event log included since 1.15). ``rebuild_s`` deletes that database and
+times a second projection on its own, the rebuild alone.
 """
 from __future__ import annotations
 

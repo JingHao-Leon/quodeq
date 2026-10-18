@@ -27,7 +27,7 @@ from quodeq.core.standards.visibility import (
     partition_visible,
 )
 from quodeq.core.types.severity import Severity
-from quodeq.services.wiring import read_eval_report
+from quodeq.services.wiring import read_eval_report, report_file
 from quodeq.core.utils.numbers import clamp
 
 # Trimmed violation shape shared by get_report and get_violations. We keep only
@@ -209,8 +209,7 @@ def _violations_from_run(ctx: ToolContext, dimension: str | None):
     eval_dir = ctx.run_dir / "evaluation"
     if dimension:
         validate_dimension(dimension)
-        path = eval_dir / f"{dimension}.json"
-        if not path.is_file():
+        if report_file(eval_dir, dimension) is None:
             raise ToolError(
                 f"no report for dimension: {dimension} in this run. "
                 "Check get_scores for available dimensions, or get_overview "

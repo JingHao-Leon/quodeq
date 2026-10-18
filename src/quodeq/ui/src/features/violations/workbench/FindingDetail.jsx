@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { SectionLabel } from '../../../components/terminal/index.js';
+import { VerifiedChip } from '../components/VerifiedChip.jsx';
 import { t } from '../../../strings/index.js';
-import { EvalViolationCard } from '../../explorer/components/EvalCards.jsx';
-import DismissRuleMenu from './DismissRuleMenu.jsx';
+import DismissMenu from './DismissMenu.jsx';
+import FixPlanButton from './FixPlanButton.jsx';
 import { FINDING_STATUS } from '../violationsVocab.js';
-import { parentFolder } from './folderModel.js';
-import { sevAbbr } from './sevWords.js';
+import FindingView, { Where } from './FindingView.jsx';
 import { useFindingDetail } from './useFindingDetail.js';
 
 /** The dismiss-by-rule row useDismissByType expects: every open finding of this rule in this dimension. */
@@ -24,79 +24,52 @@ function useRuleRow(finding, findings, canDismissType) {
   return useMemo(() => (shows ? ruleRow(finding, findings) : null), [shows, finding, findings]);
 }
 
-/** A filter link; plain text when there is no handler. */
-function PathLink({ label, onPick, muted, children }) {
-  if (!onPick) return <span className="wb-muted">{children}</span>;
+/** What the finding allows, in one row of pills: fix plan, open file, dismiss (or, once dismissed, restore and delete). */
+function ActionBar({ finding, v, rule, actions }) {
+  const { onOpenFile, onDismiss, onDismissType, onRestore, onDelete, readOnly = false } = actions;
+  const open = finding.status === FINDING_STATUS.OPEN;
   return (
-    <button type="button" className={muted ? 'wb-link wb-link--muted' : 'wb-link'} aria-label={label} title={label} onClick={onPick}>{children}</button>
-  );
-}
-
-function Where({ finding, confidence, onAddPath }) {
-  const folder = parentFolder(finding.file);
-  return (
-    <div className="wb-where">
-      {finding.file && (
-        <PathLink label={t('violations.wbFilterFileNamed', { path: finding.file })} onPick={onAddPath && (() => onAddPath(finding.file))}>
-          {finding.line != null ? t('violations.wbFileLine', { file: finding.file, line: finding.line }) : finding.file}
-        </PathLink>
+    <div className="wb-actions wb-bar">
+      {!readOnly && <FixPlanButton v={v} principle={finding.principle} />}
+      {finding.file && onOpenFile && (
+        <button type="button" className="eval-pill-btn" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
       )}
-      {folder && (
-        <PathLink muted label={t('violations.wbFilterFolderNamed', { folder })} onPick={onAddPath && (() => onAddPath(folder))}>
-          {t('violations.wbInFolder', { folder })}
-        </PathLink>
-      )}
-      <span className="wb-muted">{finding.req}</span>
-      {confidence != null && <span className="wb-muted">{t('violations.wbConfidence', { value: confidence })}</span>}
+      {open && onDismiss && <DismissMenu row={rule} onDismissType={onDismissType} onDismiss={() => onDismiss(v, finding.runId)} />}
+      {!open && onRestore && <button type="button" className="eval-pill-btn" onClick={() => onRestore(finding.raw)}>{t('violations.restore')}</button>}
+      {!open && onDelete && <button type="button" className="eval-pill-btn" onClick={() => onDelete(finding.raw)}>{t('violations.delete')}</button>}
+      <VerifiedChip v={v} />
     </div>
   );
 }
 
-function DismissedActions({ finding, onRestore, onDelete }) {
-  const scope = finding.raw.scope ? `${t('violations.wbDot')}${finding.raw.scope}` : '';
-  return (
-    <>
-      <div className="wb-dismissed">{t('violations.wbDismissedNote', { scope })}</div>
-      <div className="wb-actions">
-        {onRestore && <button type="button" className="eval-pill-btn" onClick={() => onRestore(finding.raw)}>{t('violations.restore')}</button>}
-        {onDelete && <button type="button" className="eval-pill-btn" onClick={() => onDelete(finding.raw)}>{t('violations.delete')}</button>}
-      </div>
-    </>
-  );
-}
-
 /**
- * The selected finding in full. `actions` holds what the finding allows
- * (onOpenFile, onDismiss, onDismissType, onRestore, onDelete) and `readOnly`
- * (a past day: no fix plan); a missing handler hides its control.
+ * The selected finding in full (FindingView) with the workbench's actions.
+ * `actions` holds what the finding allows (onOpenFile, onDismiss,
+ * onDismissType, onRestore, onDelete) and `readOnly` (a past day: no fix
+ * plan); a missing handler hides its control.
  */
 export default function FindingDetail({ finding, dims, findings, onAddPath, actions = {} }) {
-  const { onOpenFile, onDismiss, onDismissType, onRestore, onDelete, readOnly = false } = actions;
   const violation = useFindingDetail(finding, dims);
-  const rule = useRuleRow(finding, findings, Boolean(onDismissType));
+  const rule = useRuleRow(finding, findings, Boolean(actions.onDismissType));
   if (!finding) {
     return <section className="qd-cards-panel wb-panel wb-detail"><div className="wb-empty">{t('violations.wbPick')}</div></section>;
   }
-  const open = finding.status === FINDING_STATUS.OPEN;
-  const sev = sevAbbr(finding.severity) || finding.severity;
+  const v = { ...violation, severity: finding.severity, title: finding.title, principle: finding.principle, dimension: finding.dimension };
+  const dismissed = finding.status !== FINDING_STATUS.OPEN;
   return (
     <section className="qd-cards-panel wb-panel wb-detail">
       <div className="qd-cards-panel__head">
-        <SectionLabel>{t('violations.wbFindingLabel', { sev })}</SectionLabel>
+        <SectionLabel>{t('violations.wbFindingHead')}</SectionLabel>
         <span className="run-history-panel__stats">{[finding.dimension, finding.principle].filter(Boolean).join(t('violations.wbDot'))}</span>
       </div>
-      <div className="wb-detail__body">
-        <Where finding={finding} confidence={violation?.confidence ?? finding.raw.confidence} onAddPath={onAddPath} />
-        <EvalViolationCard v={{ ...violation, principle: finding.principle, dimension: finding.dimension }} principle={finding.principle} index={0} readOnly={readOnly}
-          onDismiss={open && onDismiss ? (v) => onDismiss(v, finding.runId) : undefined} />
-        {!open && <DismissedActions finding={finding} onRestore={onRestore} onDelete={onDelete} />}
-        <div className="wb-actions wb-actions--end">
-          {finding.file && onOpenFile && (
-            <button type="button" className="eval-pill-btn" onClick={() => onOpenFile(finding)}>{t('violations.wbOpenFile')}</button>
-          )}
-          {rule && <DismissRuleMenu row={rule} onDismissType={onDismissType} />}
-        </div>
-      </div>
+      <FindingView v={v} where={<Where finding={finding} confidence={violation?.confidence ?? finding.raw.confidence} onAddPath={onAddPath} />}>
+        <ActionBar finding={finding} v={v} rule={rule} actions={actions} />
+        {dismissed && (
+          <div className="wb-dismissed">
+            {t('violations.wbDismissedNote', { scope: finding.raw.scope ? `${t('violations.wbDot')}${finding.raw.scope}` : '' })}
+          </div>
+        )}
+      </FindingView>
     </section>
   );
 }

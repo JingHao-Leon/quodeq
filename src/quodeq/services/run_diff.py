@@ -14,6 +14,7 @@ from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.run_changes import SCOPE_ALL, SCOPE_CHANGED, changed_files
 from quodeq.services.wiring import (
+    report_file,
     iter_readable_eval_reports,
     project_run_dates,
     read_eval_report,
@@ -27,7 +28,6 @@ _KEY_STATE = "state"
 _KEY_COMMIT_SHA = "commit_sha"
 _KEY_COMMIT_DIRTY = "commit_dirty"
 _EVAL_DIR = "evaluation"
-_JSON = ".json"
 
 
 def _run_dir(project_dir: Path, run_id: str) -> Path:
@@ -94,7 +94,7 @@ def _baseline_for(older: list[_OlderRun], dimension: str) -> str | None:
     then any other terminal one (a cancelled run may still hold full reports)."""
     candidates = [
         (rid, state) for rid, run_dir, state in older
-        if state in TERMINAL_STATES and (run_dir / _EVAL_DIR / f"{dimension}{_JSON}").is_file()
+        if state in TERMINAL_STATES and report_file(run_dir / _EVAL_DIR, dimension) is not None
     ]
     for wanted in (RunState.DONE, None):
         for rid, state in candidates:

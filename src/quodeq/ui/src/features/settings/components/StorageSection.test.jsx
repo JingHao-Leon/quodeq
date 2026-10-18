@@ -11,7 +11,7 @@ const GB = 1024 ** 3;
 const POLL_WAIT = { timeout: 2500 };
 const IDLE = { state: 'idle', done: 0, total: 0, archived: 0, bytesFreed: 0 };
 const SUMMARY = {
-  bytes: 6.5 * GB, runs: 470, archived: 216, archiveAfterDays: 183, autoCleanup: true, archiveNotice: null, clean: IDLE,
+  bytes: 6.5 * GB, runs: 470, archived: 216, keepRuns: 10, coldAfterDays: null, archiveAfterDays: 183, autoCleanup: true, archiveNotice: null, clean: IDLE,
   projects: { p1: { bytes: 1, runs: 1, archived: 0 }, p2: { bytes: 1, runs: 1, archived: 0 } },
 };
 
@@ -55,30 +55,32 @@ describe('StorageSection', () => {
   it('shows the size and archived runs from the summary', async () => {
     const { section } = setup();
     await waitFor(() => expect(section().getByText('6.5 GB of evaluations on this machine · 216 of 470 runs archived')).toBeInTheDocument());
-    expect(section().getByRole('tab', { name: '6 months' })).toHaveAttribute('aria-selected', 'true');
+    expect(section().getByRole('tab', { name: '10 runs' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('says it could not read storage and keeps the controls', async () => {
     const { section } = setup({ getStorage: vi.fn(async () => { throw new Error('boom'); }) });
     await waitFor(() => expect(section().getByText("Couldn't read storage.")).toBeInTheDocument());
     expect(section().getByRole('button', { name: 'clean now' })).toBeInTheDocument();
-    expect(section().getAllByRole('tab')).toHaveLength(6);
+    expect(section().getAllByRole('tab')).toHaveLength(10);
   });
 
-  it('saves the archive-after choice in days', async () => {
+  it('saves how many runs stay in full, all as null', async () => {
     const { api, section } = setup();
     await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
-    fireEvent.click(section().getByRole('tab', { name: '1 year' }));
-    await waitFor(() => expect(api.putStorageSettings).toHaveBeenCalledWith({ archiveAfterDays: 365 }));
-    expect(section().getByRole('tab', { name: '1 year' })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(section().getByRole('tab', { name: '25 runs' }));
+    await waitFor(() => expect(api.putStorageSettings).toHaveBeenCalledWith({ keepRuns: 25 }));
+    expect(section().getByRole('tab', { name: '25 runs' })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(section().getByRole('tab', { name: 'all' }));
+    await waitFor(() => expect(api.putStorageSettings).toHaveBeenCalledWith({ keepRuns: null }));
   });
 
   it('puts the choice back when saving fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { section } = setup({ putStorageSettings: vi.fn(async () => { throw new Error('nope'); }) });
     await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
-    fireEvent.click(section().getByRole('tab', { name: 'never' }));
-    await waitFor(() => expect(section().getByRole('tab', { name: '6 months' })).toHaveAttribute('aria-selected', 'true'));
+    fireEvent.click(section().getByRole('tab', { name: 'all' }));
+    await waitFor(() => expect(section().getByRole('tab', { name: '10 runs' })).toHaveAttribute('aria-selected', 'true'));
     warn.mockRestore();
   });
 
@@ -87,10 +89,10 @@ describe('StorageSection', () => {
     const putStorageSettings = vi.fn(async () => { throw new Error('nope'); });
     const { section } = setup({ putStorageSettings });
     await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
-    fireEvent.click(section().getByRole('tab', { name: 'never' }));
+    fireEvent.click(section().getByRole('tab', { name: 'all' }));
     await waitFor(() => expect(section().getByText("Couldn't save. Try again.")).toBeInTheDocument());
     putStorageSettings.mockImplementation(async (body) => body);
-    fireEvent.click(section().getByRole('tab', { name: '1 year' }));
+    fireEvent.click(section().getByRole('tab', { name: '25 runs' }));
     await waitFor(() => expect(section().queryByText("Couldn't save. Try again.")).not.toBeInTheDocument());
     warn.mockRestore();
   });
@@ -102,7 +104,7 @@ describe('StorageSection', () => {
     await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
     fireEvent.click(section().getByRole('button', { name: 'clean now' }));
     const dialog = within(screen.getByRole('dialog'));
-    await waitFor(() => expect(dialog.getByText('Archives 212 runs untouched for longer than you chose, freeing about 3.0 GB.')).toBeInTheDocument());
+    await waitFor(() => expect(dialog.getByText('Archives 212 runs beyond the newest ones you keep, freeing about 3.0 GB.')).toBeInTheDocument());
     fireEvent.click(dialog.getByRole('button', { name: 'clean now' }));
     await waitFor(() => expect(section().getByText('Cleaning… 0 of 10 runs')).toBeInTheDocument());
     expect(api.startClean).toHaveBeenCalledTimes(1);
@@ -188,7 +190,7 @@ describe('StorageSection', () => {
   it('says what the next start archives while the first-start notice is pending', async () => {
     const getStorage = vi.fn(async () => ({ ...SUMMARY, archiveNotice: { runs: 212, bytes: 3 * GB } }));
     const { section } = setup({ getStorage });
-    const text = 'Next time quodeq starts, it archives 212 runs untouched for more than 6 months, freeing about 3.0 GB.';
+    const text = 'Next time quodeq starts, it archives 212 runs beyond the 10 newest of each project, freeing about 3.0 GB.';
     await waitFor(() => expect(section().getByRole('status')).toHaveTextContent(text));
     expect(section().getByRole('status')).toHaveTextContent('turn Clean up after start off');
   });
@@ -222,7 +224,7 @@ describe('StorageSection', () => {
   it('says one run, not one runs', async () => {
     const getStorage = vi.fn(async () => ({ ...SUMMARY, archiveNotice: { runs: 1, bytes: GB } }));
     const { section } = setup({ getStorage });
-    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 1 run untouched for more than 6 months'));
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 1 run beyond the 10 newest of its project'));
   });
 
   it('promises archiving after start only while cleanup after start is on', async () => {
@@ -235,5 +237,40 @@ describe('StorageSection', () => {
     const { section } = setup();
     const dialog = await openClean(section);
     expect(dialog.getByText(/archived on their own after quodeq starts/)).toBeInTheDocument();
+  });
+
+  it('promises no archiving after start while every run is kept', async () => {
+    const { section } = setup({ getStorage: vi.fn(async () => ({ ...SUMMARY, keepRuns: null })) });
+    const dialog = await openClean(section);
+    expect(dialog.queryByText(/archived on their own/)).not.toBeInTheDocument();
+  });
+
+  it('says the clean also compresses the reports of earlier archives', async () => {
+    const { section } = setup({ getCleanPreview: vi.fn(async () => ({ archive: 2, pack: 240, frees: GB })) });
+    await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
+    fireEvent.click(section().getByRole('button', { name: 'clean now' }));
+    const dialog = within(screen.getByRole('dialog'));
+    await waitFor(() => expect(dialog.getByText('Archives 2 runs beyond the newest ones you keep and compresses the reports of 240 runs archived earlier, freeing about 1.0 GB.')).toBeInTheDocument());
+    expect(dialog.getByRole('button', { name: 'clean now' })).toBeEnabled();
+  });
+
+  it('can clean when there is only report packing to do', async () => {
+    const { section } = setup({ getCleanPreview: vi.fn(async () => ({ archive: 0, pack: 7, frees: GB })) });
+    await waitFor(() => expect(section().getByText(/6\.5 GB/)).toBeInTheDocument());
+    fireEvent.click(section().getByRole('button', { name: 'clean now' }));
+    const dialog = within(screen.getByRole('dialog'));
+    await waitFor(() => expect(dialog.getByText(/^Compresses the reports of 7 runs archived earlier, freeing about 1\.0 GB\./)).toBeInTheDocument());
+    expect(dialog.getByRole('button', { name: 'clean now' })).toBeEnabled();
+  });
+
+  it('the notice names the reports it will compress, alone or beside the archives', async () => {
+    const getStorage = vi.fn()
+      .mockResolvedValueOnce({ ...SUMMARY, archiveNotice: { runs: 0, pack: 240, bytes: GB } })
+      .mockResolvedValue({ ...SUMMARY, archiveNotice: { runs: 3, pack: 240, bytes: 2 * GB } });
+    const { section, qc } = setup({ getStorage });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('Next time quodeq starts, it compresses the reports of 240 runs archived earlier, freeing about 1.0 GB.'));
+    await qc.refetchQueries({ queryKey: ['storage'] });
+    await waitFor(() => expect(section().getByRole('status')).toHaveTextContent('it archives 3 runs beyond the 10 newest of each project, freeing about 2.0 GB.'));
+    expect(section().getByRole('status')).toHaveTextContent('It also compresses the reports of 240 runs archived earlier.');
   });
 });

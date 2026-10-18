@@ -22,7 +22,7 @@ from quodeq.data.fs.report_parser.external_pid import resolve_external_pid
 from quodeq.data.fs.report_parser._evidence import load_evidence_map
 from quodeq.data.fs.report_parser._evidence_sqlite import has_evaluation_db, manifest_metadata
 from quodeq.data.fs.report_parser._run_scalars import scalars_to_dimension_results
-from quodeq.shared.constants import EVIDENCE_DIRNAME, JSON_SUFFIX, MANIFEST_FILENAME
+from quodeq.shared.constants import EVIDENCE_DIRNAME, MANIFEST_FILENAME
 from quodeq.data.fs.report_parser._repository import (
     build_repository_info as build_repository_info,
 )
@@ -32,7 +32,9 @@ from quodeq.data.fs.report_parser._run_info import (
     safe_read_dir as safe_read_dir,
 )
 from quodeq.data.fs.report_parser.run_dates import remember_run_dates, remembered_run_dates
-from quodeq.data.fs.run_archive import is_archived, restore_or_warn
+from quodeq.data.fs.run_archive import restore_or_warn
+from quodeq.data.fs.run_cold import is_cold, is_frozen
+from quodeq.data.fs.report_files import list_report_files
 from quodeq.data.fs.run_scalars import read_scalars
 from quodeq.shared.validation import validate_path_segment
 
@@ -55,6 +57,8 @@ def read_run_data(reports_root: Path, project: str, run_id: str) -> list[Dimensi
     if resolved_run is None:
         raise FileNotFoundError(f"Run not found: {project}/{run_id}")
     run_dir = Path(resolved_run)
+    if is_cold(run_dir):  # nothing to restore: the reports with the frozen grades are all there is
+        return read_archived_run_data(run_dir)
     restore_or_warn(run_dir)  # the evidence read below needs an archived run's database back
     dimensions = _report_dimensions(run_dir, load_evidence_map(run_dir / EVIDENCE_DIRNAME))
     # For event-log runs, the SQL grade tables (rewritten on dismiss and on a
@@ -116,11 +120,7 @@ def _read_run_scalars_from_sql(run_dir: Path) -> "tuple[list[dict], list[dict]] 
     if any(r.get("score") is None for r in dim_rows):
         return None
 
-    eval_dir = run_dir / "evaluation"
-    on_disk = (
-        sum(1 for p in eval_dir.iterdir() if p.suffix == JSON_SUFFIX)
-        if eval_dir.is_dir() else 0
-    )
+    on_disk = len(list_report_files(run_dir / "evaluation"))
     if on_disk and len(dim_rows) != on_disk:
         return None
 
@@ -149,7 +149,7 @@ def read_run_scalars(
     """
     validate_path_segment(project, run_id)
     run_dir = reports_root / project / run_id
-    if is_archived(run_dir):
+    if is_frozen(run_dir):
         return read_archived_run_scalars(run_dir)
 
     sql_result = _read_run_scalars_from_sql(run_dir)

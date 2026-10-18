@@ -270,6 +270,7 @@ button.compare-health__row:hover { background: var(--compare-hover-bg); box-shad
 /* ── dimension drill-down: projects table beside the principles radar ── */
 .compare-dim__pair { display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 14px; align-items: stretch; }
 @media (max-width: 1200px) { .compare-dim__pair { grid-template-columns: 1fr; } }
+.compare-dim__pair--single { grid-template-columns: minmax(0, 1fr); }
 /* The radar fills the height beside the table: the panel stretches, the
    chart (fixed proportions) centres, the legend stays at the bottom. */
 .compare-dim__pair > .compare-panel:last-child { display: flex; flex-direction: column; }

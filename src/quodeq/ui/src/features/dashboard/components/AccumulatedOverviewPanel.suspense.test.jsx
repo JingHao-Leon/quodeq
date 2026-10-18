@@ -13,7 +13,7 @@ vi.mock('../hooks/useOverviewPeriod.js', () => ({ usePreviousPeriodMetrics: () =
 // Suspense fallback (RunHistoryPanelPlaceholder) is what ends up on screen.
 vi.mock('./RunHistoryPanel.jsx', () => new Promise(() => {}));
 
-// Two days of trend data — enough for chartMountable (>= 2) to be true.
+// Two evaluations: enough for chartMountable (>= 2) to be true.
 const TREND = [
   { runId: 't1', dateISO: '2026-07-03T10:00:00', dateLabel: 'Jul 3', numericAverage: 9, overallGrade: 'A', dimensions: ['maintainability'], dimensionDetails: [{ dimension: 'maintainability', score: 9 }] },
   { runId: 't2', dateISO: '2026-06-15T10:00:00', dateLabel: 'Jun 15', numericAverage: 7, overallGrade: 'B', dimensions: ['maintainability'], dimensionDetails: [{ dimension: 'maintainability', score: 7 }] },
@@ -52,12 +52,22 @@ describe('AccumulatedOverviewPanel — chart Suspense fallback', () => {
     expect(await screen.findByTestId('run-history-panel-placeholder')).toBeInTheDocument();
   });
 
-  it('keeps the chartMountable gate: renders nothing (not even the placeholder) with < 2 days of trend', () => {
+  it('keeps the chartMountable gate: renders nothing (not even the placeholder) with a single evaluation', () => {
     render(
       <SidePaneProvider>
         <AccumulatedOverviewPanel data={baseData([TREND[0]])} callbacks={callbacks} />
       </SidePaneProvider>,
     );
     expect(screen.queryByTestId('run-history-panel-placeholder')).toBeNull();
+  });
+
+  it('mounts the history for two evaluations on the same day', async () => {
+    const sameDay = [TREND[0], { ...TREND[1], dateISO: '2026-07-03T08:00:00', dateLabel: 'Jul 3' }];
+    render(
+      <SidePaneProvider>
+        <AccumulatedOverviewPanel data={baseData(sameDay)} callbacks={callbacks} />
+      </SidePaneProvider>,
+    );
+    expect(await screen.findByTestId('run-history-panel-placeholder')).toBeInTheDocument();
   });
 });

@@ -98,7 +98,7 @@ class EventLogReader:
         Yields:
             An instance of a BaseEvent.
         """
-        restore_or_warn(self.log_path.parent)
+        restore_or_warn(self.log_path.parent, project=False)  # the projector streams this under its own lock
         if not self.log_path.exists():
             _logger.warning(f"Event log file not found: {self.log_path}")
             return

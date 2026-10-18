@@ -33,6 +33,45 @@ export function renderRich(text) {
   return nodes.length === 0 ? text : <>{nodes}</>;
 }
 
+// Model-written prose (a finding's reason) marks code the markdown way: a
+// run of backticks opens a span and the next run of the same length closes
+// it, so ``a `b` c`` can hold a backtick. Only code is rendered here, not
+// bold: a reason quoting "**MAJOR**" from source must stay as written. A run
+// with no closer stays literal.
+const BACKTICK_RUN = /`+/g;
+
+function closingRun(text, from, length) {
+  BACKTICK_RUN.lastIndex = from;
+  let run;
+  while ((run = BACKTICK_RUN.exec(text)) !== null) {
+    if (run[0].length === length) return run;
+  }
+  return null;
+}
+
+/** Render a model-written string's `code` spans as amber chips. */
+export function renderCodeSpans(text) {
+  const nodes = [];
+  let last = 0;
+  let from = 0;
+  for (;;) {
+    BACKTICK_RUN.lastIndex = from;
+    const open = BACKTICK_RUN.exec(text);
+    if (open === null) break;
+    const start = open.index + open[0].length;
+    const close = closingRun(text, start, open[0].length);
+    if (close === null) { from = start; continue; }
+    let code = text.slice(start, close.index);
+    if (code.length > 2 && code.startsWith(' ') && code.endsWith(' ')) code = code.slice(1, -1);
+    if (open.index > last) nodes.push(text.slice(last, open.index));
+    nodes.push(<code key={open.index} className="code-chip">{code}</code>);
+    last = from = close.index + close[0].length;
+  }
+  if (nodes.length === 0) return text;
+  if (last < text.length) nodes.push(text.slice(last));
+  return <>{nodes}</>;
+}
+
 export function tRich(key, vars) {
   return renderRich(t(key, vars));
 }

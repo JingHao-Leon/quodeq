@@ -26,6 +26,10 @@ The strip at the top of the card names the repository, the scope (*whole project
 
 On a project that has never been evaluated, the card starts with every dimension selected and the time limit set to **no limit**, so the first run reads the whole project once. Untick dimensions or set a limit before you press **scan** if you want less. Later runs start from your usual time limit with the dimensions you pick.
 
+### A remote project
+
+A project someone else published (a *REMOTE* card on Repositories) keeps its **Evaluate** tab, but an evaluation only runs on a local copy, so the tab opens on a card saying the project is remote, with the three steps to its grades: *pull*, *review* and *score*. **pull local copy** brings the code and its history to this machine; the card says *downloading…* while it works, and if a local project already has that name it asks whether to **pull as a copy**. When the copy lands and you are still on the card, the app selects the local copy and stays on Evaluate, where its first run starts as any first run; if you moved away meanwhile, a toast says the local copy is ready, with **evaluate** to open it. A failed pull shows its reason on the card, with **try again**, or in a toast when you had left. See *Pulling a project* in the **Shared Repository** help section.
+
 ### Excluding paths
 
 Add a `.quodeqignore` file at the scan root to keep fixture, vendored, or generated code out of every evaluation. One glob per line, relative to the root; naming a directory excludes everything under it. Exclusions apply everywhere files are collected, on top of the built-in skips (`node_modules`, `dist`, dot-directories).

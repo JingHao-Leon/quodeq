@@ -19,8 +19,8 @@ from quodeq.services import fs_reports
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.scoring import rescore_accumulated, scored_run_dimensions
-from quodeq.services.wiring import iter_eval_reports
-from quodeq.services.wiring_sync import is_archived
+from quodeq.services.wiring import iter_eval_reports, list_report_files
+from quodeq.services.wiring_sync import is_archived, is_cold
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.lru import LRUDict
 from quodeq.shared.serialization import coerce_line, to_camel_dict
@@ -124,7 +124,7 @@ def _eval_json_finding_keys(ctx: ToolContext, add) -> bool:
     # drops only its own findings, not every healthy dimension's keys. The
     # helper skips silently, so a report count short of the file count is
     # how a skipped file shows up here.
-    expected = len(list(eval_dir.glob("*.json")))
+    expected = len(list_report_files(eval_dir))
     parsed = 0
     for _dimension, data in iter_eval_reports(eval_dir, skip_corrupt=True):
         parsed += 1
@@ -137,9 +137,9 @@ def _sql_finding_keys(ctx: ToolContext, keys: set[tuple]) -> bool:
     """Keys from the SQL findings table (the search_findings source). Read
     only an EXISTING db so a read-only draft never creates evaluation.db or
     kicks a projection on a run that has none -- when there is no db there
-    are no SQL findings to miss anyway. An archived run keeps its db in the
-    archive, so it is read (restored) too. False when the db was unreadable."""
-    if not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file() and not is_archived(ctx.run_dir):
+    are no SQL findings to miss anyway. An archived run is restored and its db
+    rebuilt from the event log, so it is read too; a cold run has none. False when the db was unreadable."""
+    if is_cold(ctx.run_dir) or (not (ctx.run_dir / EVALUATION_DB_FILENAME).is_file() and not is_archived(ctx.run_dir)):
         return True
     try:
         for req, file, line in findings_repo(ctx, ctx.run_dir).list_keys():
@@ -188,7 +188,7 @@ def _source_stamp(run_dir: Path) -> tuple:
     catches a file replaced in place (same mtime, same size, new content)
     that an mtime/size stamp alone would miss."""
     eval_dir = run_dir / "evaluation"
-    paths = sorted(eval_dir.glob("*.json")) if eval_dir.is_dir() else []
+    paths = [path for _, path in list_report_files(eval_dir)]
     paths.extend(run_dir / name for name in _RUN_KEY_SOURCES)
     stamp = []
     for path in paths:

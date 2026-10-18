@@ -1,3 +1,4 @@
+import { pluralKey } from '../../../utils/plural.js';
 import { t } from '../../../strings/index.js';
 import { scoreColorClass } from '../../../utils/formatters.js';
 import { formatDurationCoarse } from '../../../utils/dateFormatting.js';
@@ -56,7 +57,7 @@ function Identity({ run, throughput }) {
     run.commit,
     run.activeSeconds > 0 ? t('history.idTookValue', { value: formatDurationCoarse(run.activeSeconds) }) : null,
     filesCell(throughput),
-    run.archived ? t('history.archived') : null,
+    run.cold ? t('history.reportOnly') : (run.archived ? t('history.archived') : null),
   ].filter(Boolean);
   if (!parts.length) return null;
   return <div className="rl-idline">{parts.join(' · ')}</div>;
@@ -109,7 +110,7 @@ function tabView(run, diff, tab) {
 function Tabs({ run, diff, view, onTab }) {
   return (
     <div className="rl-tabs" role="tablist">
-      <Tab id={TAB_DIMS} active={view.active === TAB_DIMS} count={run.dims.length} label={t('history.tabDimensions')} onTab={onTab} />
+      <Tab id={TAB_DIMS} active={view.active === TAB_DIMS} count={run.dims.length} label={t(pluralKey(run.dims.length, 'history.tabDimension', 'history.tabDimensions'))} onTab={onTab} />
       {diff && <Tab id={TAB_NEW} active={view.active === TAB_NEW} count={`+${view.nNew}`} empty={!view.nNew} cls="rl-new" label={t('history.tabNew')} sev={run.newSev ?? diff.newSev} onTab={onTab} />}
       {diff && <Tab id={TAB_RESOLVED} active={view.active === TAB_RESOLVED} count={`−${view.nResolved}`} empty={!view.nResolved} cls="rl-fixed" label={t('history.tabResolved')} sev={run.resolvedSev ?? diff.resolvedSev} onTab={onTab} />}
     </div>
