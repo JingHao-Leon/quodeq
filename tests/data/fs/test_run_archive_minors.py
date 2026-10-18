@@ -104,14 +104,14 @@ def test_a_run_archived_right_after_its_restore_check_is_restored_again(tmp_path
 
 def test_an_evidence_file_created_mid_pack_aborts_the_archive(tmp_path, monkeypatch):
     run = _run_with_files(tmp_path)
-    real = run_archive._write_archive
+    real = run_archive.write_archive
     late = run / "evidence" / "quality_evidence.jsonl"
 
     def write_then_add(tmp, sources):
         real(tmp, sources)
         late.write_text('{"late": true}\n')
 
-    monkeypatch.setattr(run_archive, "_write_archive", write_then_add)
+    monkeypatch.setattr(run_archive, "write_archive", write_then_add)
     with pytest.raises(RunArchiveError):
         archive_run(run)
 

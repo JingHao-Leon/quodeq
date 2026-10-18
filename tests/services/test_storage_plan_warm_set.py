@@ -10,7 +10,7 @@ from tests.services._storage_fixtures import NOW, make_run
 
 def _project(root, done=12, cancelled=2):
     runs = [make_run(root, "p", f"d{i}", days=i + 1) for i in range(done)]
-    # Cancelled runs start later than every done run, so d0 stays the newest terminal run per dimension.
+    # Cancelled runs start earlier than every done run, so d0 stays the newest terminal run per dimension.
     runs += [make_run(root, "p", f"c{i}", days=i + 20, state="cancelled") for i in range(cancelled)]
     return runs
 
@@ -55,4 +55,4 @@ def test_a_restored_run_is_warm_for_thirty_days(tmp_path):
 def test_a_run_in_flight_still_holds_its_whole_project(tmp_path):
     _project(tmp_path, done=3)
     make_run(tmp_path, "p", "live", days=0, state="running")
-    assert plan_cleanup(tmp_path, NOW, 1) == CleanupPlan((), ())
+    assert plan_cleanup(tmp_path, NOW, 1) == CleanupPlan((), (), ())

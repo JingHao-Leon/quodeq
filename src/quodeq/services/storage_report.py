@@ -16,11 +16,13 @@ from quodeq.services.storage_cleanup import CLEANUP_LOCK
 from quodeq.services.storage_plan import plan_cleanup
 from quodeq.services.storage_settings import ArchiveNotice, StorageSettings
 from quodeq.services.wiring import UnsupportedSchemaError, list_runs, read_json_object, read_status, repository_info_exists
-from quodeq.services.wiring_sync import dropped_bytes, is_archived, packed_bytes, run_pid_alive
+from quodeq.services.wiring_sync import dropped_bytes, is_archived, packed_bytes, report_bytes, run_pid_alive
 
 # Measured 2026-10-17 on 30 random runs: 602 MiB of packable files became 145 MiB.
 # The database is deleted, not packed, so it is counted as freed in full.
 ARCHIVE_SAVING = 0.76
+# Measured 2026-10-18 on 20 random reports: 12.3 MB of plain reports became 2.4 MB.
+ARCHIVE_SAVING_REPORTS = 0.80
 _STATUS_FILE = "status.json"
 _REPO_INFO_FILE = "repository_info.json"
 
@@ -118,18 +120,27 @@ def storage_summary(root: Path) -> StorageSummary:
     )
 
 
-def _frees(run_dir: Path) -> float:
-    """Bytes archiving *run_dir* frees: the dropped files in full, the packed ones at ARCHIVE_SAVING."""
+def _report_frees(run_dir: Path) -> float:
+    """Bytes packing *run_dir*'s plain reports frees, at ARCHIVE_SAVING_REPORTS."""
     try:
-        return dropped_bytes(run_dir) + ARCHIVE_SAVING * packed_bytes(run_dir)
+        return ARCHIVE_SAVING_REPORTS * report_bytes(run_dir)
+    except OSError:
+        return 0.0
+
+
+def _frees(run_dir: Path) -> float:
+    """Bytes archiving *run_dir* frees: the dropped files in full, the packed ones at ARCHIVE_SAVING, the reports too."""
+    try:
+        return dropped_bytes(run_dir) + ARCHIVE_SAVING * packed_bytes(run_dir) + _report_frees(run_dir)
     except OSError:
         return 0.0
 
 
 def clean_preview(root: Path, now: datetime, keep_runs: int | None) -> CleanPreview:
-    """Runs a clean would archive now and about how many bytes it would free."""
+    """Runs a clean would archive or pack now (counted together) and about how many bytes it would free."""
     plan = plan_cleanup(root, now, keep_runs)
-    return CleanPreview(len(plan.archive), int(sum(_frees(r) for r in plan.archive)))
+    frees = sum(_frees(r) for r in plan.archive) + sum(_report_frees(r) for r in plan.pack)
+    return CleanPreview(len(plan.archive) + len(plan.pack), int(frees))
 
 
 def _state(status: dict) -> RunState | None:

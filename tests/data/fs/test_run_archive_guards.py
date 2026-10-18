@@ -26,13 +26,13 @@ def _run(tmp_path: Path) -> Path:
 
 def _mutate_after_verify(monkeypatch, mutate) -> None:
     """Run *mutate* right after the archive is verified, before the originals go."""
-    real = run_archive._verify_archive
+    real = run_archive.verify_archive
 
     def verify_then_mutate(tmp, sources):
         real(tmp, sources)
         mutate()
 
-    monkeypatch.setattr(run_archive, "_verify_archive", verify_then_mutate)
+    monkeypatch.setattr(run_archive, "verify_archive", verify_then_mutate)
 
 
 def test_a_restore_stamps_the_run_and_an_archive_removes_the_stamp(tmp_path):

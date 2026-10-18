@@ -23,7 +23,7 @@ from quodeq.services.storage_plan import CleanupPlan, plan_cleanup, project_in_f
 from quodeq.services.storage_notice import first_start_may_archive
 from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring import ScoreCacheError, SqliteFindingsRepository, has_evaluation_db, save_run_keys
-from quodeq.services.wiring_sync import RunArchiveError, archive_run, is_archived, tidy_run
+from quodeq.services.wiring_sync import RunArchiveError, archive_run, is_archived, pack_reports_locked, tidy_run
 from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.fault_isolation import run_isolated
 
@@ -35,11 +35,12 @@ TIDY_SETTLE_S = 600.0  # a run's consolidation sidecars may still be read this s
 
 @dataclass(frozen=True)
 class CleanupResult:
-    """What a cleanup pass did."""
+    """What a cleanup pass did; ``packed`` counts archived runs whose reports it packed."""
 
     tidied: int
     archived: int
     bytes_freed: int
+    packed: int = 0
 
 
 def cleanup_enabled(env: Mapping[str, str]) -> bool:
@@ -91,6 +92,10 @@ def _archive_unless_gone(run_dir: Path, log: LogSink):
 
 def _archive_one(run_dir: Path, log: LogSink):
     return run_isolated(lambda: _archive_unless_gone(run_dir, log), label=f"storage cleanup archive {run_dir}", log=log)
+
+
+def _pack_one(run_dir: Path, log: LogSink) -> tuple[int, int] | None:
+    return run_isolated(lambda: pack_reports_locked(run_dir), label=f"storage cleanup pack reports {run_dir}", log=log)
 
 
 def _tidy_one(run_dir: Path, log: LogSink) -> int | None:
@@ -155,10 +160,10 @@ def run_cleanup(
     not tidied.
     """
     plan = plan_cleanup(evaluations_root, now, keep_runs)
-    to_archive, tidy = set(plan.archive), set(plan.tidy)
-    runs = [*plan.tidy, *(r for r in plan.archive if r not in tidy)]  # the plan archives only runs it tidies
+    to_archive, to_pack, tidy = set(plan.archive), set(plan.pack), set(plan.tidy)
+    runs = [*plan.tidy, *(r for r in plan.archive if r not in tidy), *plan.pack]  # the plan archives only runs it tidies
     watch, wall_now = _InFlightWatch(), time.time()
-    tidied = archived = freed = 0
+    tidied = archived = packed = freed = 0
     for index, run_dir in enumerate(runs, start=1):
         if should_stop is not None and should_stop():
             log.info("storage cleanup: stopped early, a grade-formula rescore started")
@@ -174,10 +179,18 @@ def run_cleanup(
             if done is not None:
                 archived += 1
                 freed += max(0, done.bytes_before - done.bytes_after)
+        if run_dir in to_pack and not watch.busy(run_dir.parent, fresh=True):
+            done = _pack_one(run_dir, log)
+            if done is not None and done[0]:
+                packed += 1
+                freed += max(0, done[0] - done[1])
         if on_progress is not None:
             on_progress(index, len(runs))
-    result = CleanupResult(tidied, archived, freed)
-    log.info(f"storage cleanup: tidied {result.tidied}, archived {result.archived}, freed {result.bytes_freed} bytes")
+    result = CleanupResult(tidied, archived, freed, packed)
+    log.info(
+        f"storage cleanup: tidied {result.tidied}, archived {result.archived}, packed the reports of {result.packed}, "
+        f"freed {result.bytes_freed} bytes",
+    )
     return result
 
 
