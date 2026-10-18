@@ -26,8 +26,8 @@ test('day/month formatting is unchanged from the hand-rolled version', () => {
   assert.equal(formatShortDate('2026-03-25T14:00:00'), '25 Mar 2026');
 });
 
-test('week keeps a catalog pattern, since Intl has no week-of-year format', () => {
-  assert.equal(formatPeriodLabel(ENTRY, 'week'), 'Week 13, 2026');
+test('week renders as an Intl date range', () => {
+  assert.equal(formatPeriodLabel(ENTRY, 'week'), '23\u2009–\u200929 Mar 2026');
 });
 
 // The regression this guards: with a hardcoded month-name array, every one
