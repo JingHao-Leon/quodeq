@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from quodeq.shared.logging import log_debug
-from quodeq.data.fs.report_parser.report_files import REPORT_SUFFIX, list_report_files, read_report_json
+from quodeq.data.fs.report_files import REPORT_SUFFIX, list_report_files, read_report_json
 from quodeq.shared.utils import read_json
 
 

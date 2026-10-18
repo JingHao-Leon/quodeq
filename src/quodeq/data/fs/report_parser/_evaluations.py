@@ -8,7 +8,7 @@ from typing import Any
 
 from quodeq.data.fs.report_parser._run_info import safe_read_dir
 from quodeq.data.fs.report_parser.json_parser import parse_report_json
-from quodeq.data.fs.report_parser.report_files import list_report_files
+from quodeq.data.fs.report_files import list_report_files
 
 
 def _load_markdown_backed_evals(

@@ -15,7 +15,7 @@ import logging
 from collections.abc import Sequence
 from pathlib import Path
 
-from quodeq.data.fs.report_parser.report_files import list_report_files, report_file
+from quodeq.data.fs.report_files import list_report_files, report_file
 from quodeq.core.run.state import RunState, parse_run_state
 from quodeq.data.fs.run_archive import restore_or_warn
 from quodeq.data.fs.run_artifacts import read_json_object

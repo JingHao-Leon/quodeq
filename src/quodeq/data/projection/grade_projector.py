@@ -18,7 +18,7 @@ from quodeq.core.types.finding_type import FindingType
 from quodeq.data.fs.grade_formula_store import load_params
 from quodeq.data.fs.grades_stamp_store import write_grades_stamp
 from quodeq.data.fs.report_parser.finding_details import iter_readable_eval_reports
-from quodeq.data.fs.report_parser.report_files import list_report_files, report_stamp_ns
+from quodeq.data.fs.report_files import list_report_files, report_stamp_ns
 from quodeq.data.fs.run_files import read_run_manifest
 from quodeq.data.sqlite.row_mappers import row_to_finding
 from quodeq.data.sqlite.connection import open_evaluation_db

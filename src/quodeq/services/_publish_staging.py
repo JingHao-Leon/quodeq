@@ -30,7 +30,7 @@ from quodeq.services.wiring import (
     STATUS_FILENAME,
     UnsupportedSchemaError,
     copy_file_if_exists,
-    copy_matching_files,
+    copy_matching_files, copy_reports_plain,
     ensure_dir,
     merge_action_log_files,
     read_status,
@@ -142,9 +142,9 @@ def copy_run(run_dir: Path, dest_run_dir: Path) -> list[Path]:
         _copy(evidence / MANIFEST_FILENAME, dest_evidence / MANIFEST_FILENAME, written)
     # Frozen eval-time per-dimension scores (e.g. security.json) are the
     # source of truth read_run_data() needs to render a dashboard at all;
-    # without them a published clone renders an EMPTY dashboard. Only .json
-    # files, nothing else (markdown companions, stray files) from that dir.
-    _copy_matching(run_dir / _EVALUATION_DIR, dest_run_dir / _EVALUATION_DIR, "*.json", written)
+    # without them a published clone renders an EMPTY dashboard. Only the
+    # reports, written plain whatever form the local run keeps them in.
+    written.extend(copy_reports_plain(run_dir / _EVALUATION_DIR, dest_run_dir / _EVALUATION_DIR))
     return written
 
 

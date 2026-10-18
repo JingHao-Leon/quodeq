@@ -9,7 +9,7 @@ from typing import Any
 from quodeq.data.fs.report_parser._totals import build_totals
 from quodeq.core.types import Finding
 from quodeq.shared import request_metrics
-from quodeq.data.fs.report_parser.report_files import read_report_json
+from quodeq.data.fs.report_files import read_report_json
 from quodeq.shared.utils import read_json
 from quodeq.core.finding_builder import FindingSpec, build_finding_base
 from quodeq.core.finding_coercions import coerce_scope_downgrade

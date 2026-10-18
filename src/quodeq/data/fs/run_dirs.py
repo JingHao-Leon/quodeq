@@ -10,7 +10,7 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
-from quodeq.data.fs.report_parser.report_files import list_report_files
+from quodeq.data.fs.report_files import list_report_files
 from quodeq.core.observability import NULL_LOG, LogSink
 from quodeq.core.utils.io import is_within
 from quodeq.shared.constants import EVIDENCE_DIRNAME

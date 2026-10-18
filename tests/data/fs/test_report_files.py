@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from quodeq.data.fs.report_parser.report_files import (
+from quodeq.data.fs.report_files import (
     list_report_files, read_report_json, report_dimension, report_file, report_stamp_ns,
 )
 from tests.data.fs._report_fixtures import write_report

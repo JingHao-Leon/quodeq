@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from quodeq.core.finding_identity import coerce_line, finding_dismiss_keys
-from quodeq.data.fs.report_parser.report_files import list_report_files, read_report_json, report_file
+from quodeq.data.fs.report_files import list_report_files, read_report_json, report_file
 
 # A run's folder of per-dimension scored reports.
 _EVAL_DIR = "evaluation"

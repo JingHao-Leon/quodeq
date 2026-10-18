@@ -33,7 +33,7 @@ from quodeq.data.fs.report_parser._run_info import (
 )
 from quodeq.data.fs.report_parser.run_dates import remember_run_dates, remembered_run_dates
 from quodeq.data.fs.run_archive import is_archived, restore_or_warn
-from quodeq.data.fs.report_parser.report_files import list_report_files
+from quodeq.data.fs.report_files import list_report_files
 from quodeq.data.fs.run_scalars import read_scalars
 from quodeq.shared.validation import validate_path_segment
 

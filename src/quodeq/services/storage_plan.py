@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from quodeq.services.wiring import list_report_files
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
 from quodeq.services.wiring_sync import has_event_log, is_archived, max_archive_bytes, packable_bytes, restored_at
@@ -58,7 +59,7 @@ def _subdirs(path: Path) -> list[Path]:
 
 
 def _dimensions(run_dir: Path) -> set[str]:
-    return {p.stem for p in (run_dir / "evaluation").glob("*.json")}
+    return {dimension for dimension, _ in list_report_files(run_dir / "evaluation")}
 
 
 def _newest_per_dimension(runs: list[tuple[Path, datetime | None, RunState]]) -> set[Path]:

@@ -9,7 +9,7 @@ from typing import Any
 from quodeq.shared.serialization import to_camel_dict
 from quodeq.core.evidence.req_mapping import principle_names_for_dimension
 from quodeq.data.fs.standards_loader import read_req_to_principle_map
-from quodeq.data.fs.report_parser.report_files import read_report_json
+from quodeq.data.fs.report_files import read_report_json
 from quodeq.data.fs.report_parser._report_parsing import build_finding, empty_severity_buckets
 from quodeq.data.fs.report_parser._principle_map import build_principle_map
 

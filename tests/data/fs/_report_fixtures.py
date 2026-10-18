@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 
-from quodeq.data.fs.report_parser.report_files import PACKED_REPORT_SUFFIX, REPORT_SUFFIX, list_report_files
+from quodeq.data.fs.report_files import PACKED_REPORT_SUFFIX, REPORT_SUFFIX, list_report_files
 
 
 def write_report(eval_dir: Path, dimension: str, payload: dict, *, packed: bool = False, mtime_ns: int | None = None) -> Path:
