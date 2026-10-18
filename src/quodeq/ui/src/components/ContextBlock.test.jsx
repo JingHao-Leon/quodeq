@@ -119,3 +119,17 @@ describe('ContextBlock under CodeOpenByDefault', () => {
     expect(screen.getByRole('button', { expanded: false })).toBeInTheDocument();
   });
 });
+
+describe('ContextBlock code height', () => {
+  // A fixed height from a line-height constant came out short wherever the
+  // CSS differed (19.45px lines outside the terminal card, the 1px top
+  // border everywhere), so the code box scrolled by a few px and caught the
+  // page's wheel. The box takes its content's height.
+  it('sets no height of its own on the open code', () => {
+    const { container } = render(<ContextBlock context={context} line={42} file="src/app/hello.py" />);
+    fireEvent.click(screen.getByRole('button', { expanded: false }));
+    const pre = container.querySelector('pre.finding-context');
+    expect(pre).not.toBeNull();
+    expect(pre.style.height).toBe('');
+  });
+});
