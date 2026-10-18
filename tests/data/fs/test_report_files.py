@@ -36,10 +36,11 @@ def test_report_file_resolves_plain_then_packed_then_none(tmp_path):
 
 
 def test_read_report_json_reads_both_forms_and_the_stamp_is_the_mtime(tmp_path):
+    # Stamps a microsecond apart: NTFS keeps 100 ns ticks, so a 1 ns difference would not survive on Windows.
     plain = write_report(tmp_path, "a", {"x": 1}, mtime_ns=1_700_000_000_000_000_000)
-    packed = write_report(tmp_path, "b", {"y": 2}, packed=True, mtime_ns=1_700_000_000_000_000_001)
+    packed = write_report(tmp_path, "b", {"y": 2}, packed=True, mtime_ns=1_700_000_000_000_001_000)
     assert read_report_json(plain) == {"x": 1} and read_report_json(packed) == {"y": 2}
-    assert (report_stamp_ns(plain), report_stamp_ns(packed)) == (1_700_000_000_000_000_000, 1_700_000_000_000_000_001)
+    assert (report_stamp_ns(plain), report_stamp_ns(packed)) == (1_700_000_000_000_000_000, 1_700_000_000_000_001_000)
 
 
 def test_the_plain_report_wins_over_its_packed_twin(tmp_path):
