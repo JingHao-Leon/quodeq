@@ -1,13 +1,14 @@
 """Pack a finished run's event log and evidence into one file, restore it on demand.
 
 An archived run keeps its reports, ``status.json``, ``dimensions.json`` and
-``evidence/manifest.json`` in place. ``events.jsonl``, the
-``evidence/*_evidence.jsonl`` files and ``evaluation.db`` (WAL folded in
-first) move into ``archive.tar.gz`` inside the run folder; the ``-wal`` and
-``-shm`` sidecars are dropped, and the run's dismissals are kept beside the
+``evidence/manifest.json`` in place. ``events.jsonl`` and the
+``evidence/*_evidence.jsonl`` files move into ``archive.tar.gz`` inside the
+run folder; ``evaluation.db`` (WAL folded in first) and its ``-wal`` and
+``-shm`` sidecars are deleted, and the run's dismissals are kept beside the
 archive in ``precedents.json`` (see ``run_precedents``), its grades and counts in
-``scalars.json`` (see ``run_scalars``). Keeping the database spares a restore the
-multi-second rebuild measured on the biggest real runs.
+``scalars.json`` (see ``run_scalars``). A restore rebuilds the database from
+the event log (about two seconds on the biggest real run); an archive written
+before 1.15 still carries one and restores it as it is.
 
 Safety rules: originals are deleted only after the archive is written,
 fsynced, verified and renamed into place, and only when no packed file
@@ -23,7 +24,6 @@ import hashlib
 import logging
 import os
 import shutil
-import sqlite3
 import tarfile
 import zlib
 from dataclasses import dataclass
@@ -34,19 +34,18 @@ from quodeq.data.fs.run_archive_guard import (  # noqa: F401 -- run_lock re-expo
     RESTORED_STAMP, run_lock, snapshot, unchanged, warn_once, write_restored_stamp,
 )
 from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME re-exported
-    ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources, dropped_sidecars,
-    is_plain_file,
+    ARCHIVE_FILENAME, DB_SIDECARS, DROPPED_FILES, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources,
+    dropped_sidecars, is_plain_file,
 )
 from quodeq.data.fs.run_archive_limits import RunArchiveError, check_members, check_packable, check_restore_dirs, read_members  # noqa: F401
+from quodeq.data.fs.run_archive_tidy import TIDY_PATTERNS, tidy_run  # noqa: F401 -- re-exported for the archive's callers
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME, write_precedents
 from quodeq.data.fs.run_scalars import SCALARS_NAME, write_scalars
 from quodeq.data.fs.shared_clone_runs import is_shared_clone_run, restore_clone_locked
-from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal, needs_db_tidy, vacuum_db
+from quodeq.data.fs.run_archive_wal import DB_NAME, WalNotFoldedError, fold_wal
+from quodeq.shared.fault_isolation import run_isolated
 
 _logger = logging.getLogger(__name__)
-
-# The dispatch queues (``*_queue.json``) stay: files analysed and partly scanned dimensions read them.
-TIDY_PATTERNS = ("*_dispatch_keys.json", "*_replayed_unconsolidated_keys.json")
 
 _TMP_ARCHIVE = ARCHIVE_FILENAME + ".tmp"
 _RESTORE_DIR = ".restore.tmp"
@@ -138,7 +137,7 @@ def archive_run(run_dir: Path) -> ArchiveResult:
         dropped = dropped_sidecars(run_dir)
         bytes_before = sum(p.stat().st_size for p in [*(p for _, p in sources), *dropped])
         tmp, final = run_dir / _TMP_ARCHIVE, run_dir / ARCHIVE_FILENAME
-        packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in DB_SIDECARS)])
+        packed = snapshot([*(p for _, p in sources), *(run_dir / name for name in DROPPED_FILES)])
         try:
             write_precedents(run_dir)  # precedent matching reads these without a restore
             write_scalars(run_dir)  # and the run list, trend and warm-up read these
@@ -212,17 +211,29 @@ def ensure_restored(run_dir: Path) -> bool:
     if not is_archived(run_dir):
         return False
     with run_lock(run_dir):
-        return restore_locked(run_dir)
+        names = _restore_locked(run_dir)
+    if names is not None and DB_NAME not in names:  # an archive written before 1.15 brings its database back
+        _project_after_restore(run_dir)  # outside the lock: opening the database takes it
+    return names is not None
 
 
 def restore_locked(run_dir: Path) -> bool:
-    """``ensure_restored`` for a caller that already holds the run lock (a second lock would wait on itself)."""
+    """``ensure_restored`` for a caller that already holds the run lock (a second lock would wait on itself).
+
+    The database is not rebuilt here (the caller holds the lock a rebuild
+    needs); a caller that opens the database next projects it itself.
+    """
+    return _restore_locked(run_dir) is not None
+
+
+def _restore_locked(run_dir: Path) -> list[str] | None:
+    """Restore under the caller's lock; the member names restored, None when nothing was archived."""
     if not is_archived(run_dir):
-        return False
+        return None
     _clean_leftovers(run_dir)
     archive, staging = run_dir / ARCHIVE_FILENAME, run_dir / _RESTORE_DIR
     if is_shared_clone_run(run_dir):  # the archive is tracked there: unpack beside it, never its database
-        return restore_clone_locked(run_dir, staging, partial(_extract, ratio_capped=True))
+        return [] if restore_clone_locked(run_dir, staging, partial(_extract, ratio_capped=True)) else None
     try:
         check_restore_dirs(run_dir)
         names = _extract(archive, staging)
@@ -239,7 +250,22 @@ def restore_locked(run_dir: Path) -> bool:
     archive.unlink()
     shutil.rmtree(staging, ignore_errors=True)
     write_restored_stamp(run_dir)
-    return True
+    return names
+
+
+def _ensure_projected(run_dir: Path) -> None:
+    from quodeq.data.sqlite.findings_repository import SqliteFindingsRepository  # noqa: PLC0415  -- import cycle
+
+    SqliteFindingsRepository(run_dir).ensure_projected()
+
+
+def _project_after_restore(run_dir: Path) -> None:
+    """Rebuild the database of a run whose archive held none, so the next reader finds its grades.
+
+    A failed rebuild is logged; the readers that project rebuild it on
+    their first read.
+    """
+    run_isolated(lambda: _ensure_projected(run_dir), label=f"rebuild the database of restored run {run_dir}", log=_logger)
 
 
 def restore_or_warn(run_dir: Path) -> bool:
@@ -267,33 +293,3 @@ def restore_for_read(run_dir: Path, path: Path) -> bool:
     if path.exists() or not is_archived(run_dir):
         return True
     return restore_or_warn(run_dir)
-
-
-def tidy_run(run_dir: Path) -> int:
-    """Remove scratch sidecars from ``evidence/``, fold the WAL and VACUUM the database; the bytes freed.
-
-    The scratch files are never packed nor restored, so they go without the
-    run lock. The database work takes it, and only when there is some: a run
-    without a lock file keeps it that way, and its readers the lock-free open.
-    A failed checkpoint or VACUUM is logged and tidy carries on.
-    """
-    freed = 0
-    evidence = run_dir / EVIDENCE_DIR
-    if evidence.is_dir():
-        for path in (p for pattern in TIDY_PATTERNS for p in evidence.glob(pattern)):
-            if is_plain_file(path):
-                freed += path.stat().st_size
-                path.unlink(missing_ok=True)
-    if is_archived(run_dir) or not needs_db_tidy(run_dir):
-        return freed
-    with run_lock(run_dir):
-        try:
-            freed += fold_wal(run_dir)
-        except WalNotFoldedError as exc:
-            _logger.warning("Could not checkpoint: %s", exc)
-        if not is_archived(run_dir):
-            try:
-                freed += vacuum_db(run_dir)
-            except sqlite3.Error as exc:
-                _logger.warning("Could not vacuum the database of %s: %s", run_dir, exc)
-    return freed

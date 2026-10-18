@@ -48,7 +48,7 @@ def test_cleanup_keeps_an_archived_run_keys_from_its_database(tmp_path, monkeypa
     make_run(tmp_path / "evals", "run-new", days=10)
     keys = read_run_key_sets(old)
 
-    run_cleanup(tmp_path / "evals", NOW, warm_days=183)
+    run_cleanup(tmp_path / "evals", NOW, keep_runs=1)
 
     assert is_archived(old)
     assert persisted_run_key_sets(PROJECT, "run-old") == keys
