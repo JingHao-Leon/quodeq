@@ -101,7 +101,7 @@ def test_an_entry_has_exactly_the_contract_keys(evals, filler_sync) -> None:
         "runId", "jobId", "startedAt", "endedAt", "status", "model", "provider", "commit", "origin",
         "dims", "partial", "score", "grade", "open", "critical", "majors", "dimensionDetails",
         "filesAnalysed", "activeSeconds", "baselineRunId", "baselineKind", "counts", "newSev",
-        "resolvedSev", "pending", "plannedDims", "exitReason", "archived",
+        "resolvedSev", "pending", "plannedDims", "exitReason", "archived", "cold",
     }
     assert (newest["jobId"], newest["commit"], newest["dims"]) == (f"ext-{CURR}", COMMIT[:7], [DIM])
     assert newest["origin"] == {"kind": "ci", "workflow": "Quodeq Nightly"}

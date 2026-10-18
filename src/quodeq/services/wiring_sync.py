@@ -21,11 +21,12 @@ from quodeq.data.fs.run_archive_files import (  # noqa: F401
     ARCHIVE_FILENAME, DB_SIDECARS, EVENTS_NAME, dropped_bytes, packed_bytes, report_bytes,
 )
 from quodeq.data.fs.run_archive_reports import pack_reports_locked  # noqa: F401
+from quodeq.data.fs.run_cold import COLD_NAME, is_cold, is_frozen, trim_run  # noqa: F401
 from quodeq.data.fs.run_archive_limits import max_archive_bytes  # noqa: F401
 from quodeq.data.fs.run_archive_wal import DB_NAME  # noqa: F401
 from quodeq.data.fs.run_archive_guard import restored_at  # noqa: F401
 from quodeq.data.fs.run_precedents import PRECEDENTS_NAME  # noqa: F401
-from quodeq.data.fs.run_scalars import SCALARS_NAME  # noqa: F401
+from quodeq.data.fs.run_scalars import SCALARS_NAME, read_scalars  # noqa: F401
 from quodeq.data.fs.shared_clone_reset import reset_clone_to_remote  # noqa: F401
 from quodeq.data.fs.shared_clone_links import find_repo_link  # noqa: F401
 from quodeq.data.fs.shared_clone_runs import clone_run_contained, is_shared_clone_root, secure_clone_tree  # noqa: F401

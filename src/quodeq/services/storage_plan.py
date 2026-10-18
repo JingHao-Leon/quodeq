@@ -8,7 +8,9 @@ the Overview reads) is tidied but never archived, and a project with a run
 still in flight is left alone entirely. A run restored within the last
 ``RESTORE_GRACE_DAYS`` stays unpacked. A run without a start time, or bigger
 than a restore accepts, is never archived. A run archived before its reports
-were packed in place gets them packed by the next pass, without a restore.
+were packed in place gets them packed by the next pass, without a restore. With
+``cold_after_days`` set, a run archived longer ago than that (the time its frozen
+grades were written) loses its archive for good (``trim``).
 """
 from __future__ import annotations
 
@@ -19,7 +21,10 @@ from pathlib import Path
 from quodeq.services.wiring import list_report_files
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.services.wiring import UnsupportedSchemaError, read_status
-from quodeq.services.wiring_sync import has_event_log, is_archived, max_archive_bytes, packed_bytes, report_bytes, restored_at
+from quodeq.services.wiring_sync import (
+    SCALARS_NAME, has_event_log, is_archived, is_cold, max_archive_bytes, packed_bytes, read_scalars, report_bytes,
+    restored_at,
+)
 
 
 RESTORE_GRACE_DAYS = 30  # a run you opened stays unpacked this long
@@ -32,6 +37,7 @@ class CleanupPlan:
     tidy: tuple[Path, ...]
     archive: tuple[Path, ...]
     pack: tuple[Path, ...] = ()
+    trim: tuple[Path, ...] = ()  # archived runs old enough to lose their findings for good
 
 
 def read_run(run_dir: Path) -> tuple[RunState | None, datetime | None]:
@@ -98,38 +104,67 @@ def _restored_recently(run_dir: Path, now: datetime) -> bool:
     return restored is not None and restored >= now - timedelta(days=RESTORE_GRACE_DAYS)
 
 
-def _plan_project(project: Path, now: datetime, keep_runs: int | None) -> tuple[list[Path], list[Path], list[Path]]:
+def _archived_at(run_dir: Path) -> datetime | None:
+    """When the run was archived: the frozen-grades sidecar is written then (and again on a re-archive).
+
+    None without a scored dimension in the sidecar: such a run is never trimmed.
+    """
+    if read_scalars(run_dir) is None:
+        return None
+    try:
+        return datetime.fromtimestamp((run_dir / SCALARS_NAME).stat().st_mtime, tz=timezone.utc)
+    except OSError:
+        return None
+
+
+def _trims(run_dir: Path, now: datetime, cold_after_days: int | None) -> bool:
+    """An archived run that loses its findings: archived longer ago than the period, or a trim left half done."""
+    if is_cold(run_dir):  # the marker is there but the archive stayed (an interrupted trim): finish it, whatever the period
+        return True
+    archived_at = _archived_at(run_dir)
+    if cold_after_days is None or archived_at is None:
+        return False
+    return archived_at < now - timedelta(days=cold_after_days)
+
+
+def _plan_project(project: Path, now: datetime, keep_runs: int | None, cold_after_days: int | None) -> CleanupPlan:
     runs: list[tuple[Path, datetime | None, RunState]] = []
     pack: list[Path] = []  # archived before the reports were packed in place (1.15.0): packed by the next pass
+    trim: list[Path] = []
     for run_dir in _subdirs(project):
         state, when = read_run(run_dir)
         if _in_flight(run_dir, state):
-            return [], [], []
+            return CleanupPlan((), (), (), ())
         if is_archived(run_dir):
             if report_bytes(run_dir):
                 pack.append(run_dir)
+            if _trims(run_dir, now, cold_after_days):
+                trim.append(run_dir)
+        elif is_cold(run_dir):
+            continue  # neither tidied nor a warm-set candidate: its findings are gone, its grades frozen
         elif state in TERMINAL_STATES:
             runs.append((run_dir, when, state))
     tidy = [r for r, _, _ in runs]
     if keep_runs is None:
-        return tidy, [], pack
+        return CleanupPlan(tuple(tidy), (), tuple(pack), tuple(trim))
     kept = _newest_per_dimension(runs) | _warm_set(runs, keep_runs)
     archive = [
         r for r, w, _ in runs
         if w is not None and r not in kept and has_event_log(r) and not _restored_recently(r, now)
     ]
     cap = max_archive_bytes()  # a run whose packed files pass the restore cap would never open again: it stays unpacked
-    return tidy, [r for r in archive if packed_bytes(r) <= cap], pack
+    return CleanupPlan(tuple(tidy), tuple(r for r in archive if packed_bytes(r) <= cap), tuple(pack), tuple(trim))
 
 
-def plan_cleanup(evaluations_root: Path | str, now: datetime, keep_runs: int | None) -> CleanupPlan:
-    """Decide which runs to tidy, archive and pack, without touching disk. None keep_runs: tidy and pack only."""
-    tidy: list[Path] = []
-    archive: list[Path] = []
-    pack: list[Path] = []
-    for project in _subdirs(Path(evaluations_root)):
-        t, a, k = _plan_project(project, now, keep_runs)
-        tidy += t
-        archive += a
-        pack += k
-    return CleanupPlan(tuple(tidy), tuple(archive), tuple(pack))
+def plan_cleanup(
+    evaluations_root: Path | str, now: datetime, keep_runs: int | None, cold_after_days: int | None = None,
+) -> CleanupPlan:
+    """Decide which runs to tidy, archive, pack and trim, without touching disk.
+
+    None *keep_runs*: tidy and pack only. None *cold_after_days*: trim nothing.
+    """
+    parts = [_plan_project(project, now, keep_runs, cold_after_days) for project in _subdirs(Path(evaluations_root))]
+    return CleanupPlan(
+        tuple(r for p in parts for r in p.tidy), tuple(r for p in parts for r in p.archive),
+        tuple(r for p in parts for r in p.pack), tuple(r for p in parts for r in p.trim),
+    )

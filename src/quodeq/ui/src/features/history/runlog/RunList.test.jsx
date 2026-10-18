@@ -75,4 +75,13 @@ describe('RunList', () => {
     expect(tags[0]).toHaveAttribute('title', 'Stored compressed. Opens in a few seconds the first time.');
     expect(tags[0].querySelector('.rl-row__archived-dot')).toHaveAttribute('aria-hidden', 'true');
   });
+
+  it('a report-only run carries its own tag instead of the archived one', () => {
+    const cold = { ...rows[0], archived: false, cold: true };
+    const { container } = render(<RunList rows={[cold, rows[1]]} selectedId="a" onSelect={vi.fn()} hoverId={null} onHover={vi.fn()} />);
+    const tags = container.querySelectorAll('.rl-row__archived');
+    expect(tags).toHaveLength(1);
+    expect(tags[0]).toHaveTextContent('report only');
+    expect(tags[0]).toHaveAttribute('title', 'Findings removed to save space. Grades and reports stay.');
+  });
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import SectionLabel from '../../../components/terminal/SectionLabel.jsx';
 import { SettingsPillTabs, SettingsRowLabel } from './settingsRowParts.jsx';
-import { CleanModal, DeleteAllModal } from './StorageModals.jsx';
+import { CleanModal, ConfirmColdModal, DeleteAllModal, HALF_YEAR_DAYS, QUARTER_DAYS, YEAR_DAYS, periodLabel } from './StorageModals.jsx';
 import useStorage, { CLEAN_STATE } from '../hooks/useStorage.js';
 import { formatBytes } from '../../../utils/formatSize.js';
 import { t } from '../../../strings/index.js';
@@ -12,16 +12,22 @@ const KEEP_RUNS = [
   { v: 25, l: t('storage.runs', { count: 25 }) }, { v: null, l: t('storage.all') },
 ];
 const AUTO_CLEANUP = [{ v: true, l: t('settings.on') }, { v: false, l: t('settings.off') }];
+// How long an archived run keeps its findings, in days; null keeps them forever. A period is confirmed first.
+const COLD_AFTER = [QUARTER_DAYS, HALF_YEAR_DAYS, YEAR_DAYS, null].map((v) => ({ v, l: periodLabel(v) }));
 
 // The first start under the count rule held the archive back; this says what
 // the next start archives, under the settings that change it.
 function ArchiveNotice({ data }) {
   const notice = data?.archiveNotice;
   if (!notice) return null;
-  const args = { runs: notice.runs, pack: notice.pack ?? 0, keep: data.keepRuns ?? '', size: formatBytes(notice.bytes) };
-  const text = notice.runs === 0
-    ? t('storage.noticePackOnly', args)
-    : t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', args) + (args.pack ? ` ${t('storage.noticePack', args)}` : '');
+  const trim = notice.trim ?? 0;
+  const args = { runs: notice.runs, pack: notice.pack ?? 0, trim, keep: data.keepRuns ?? '', period: periodLabel(data.coldAfterDays), size: formatBytes(notice.bytes) };
+  let text;
+  if (notice.runs === 0 && args.pack === 0) text = t('storage.noticeTrimOnly', args);
+  else if (notice.runs === 0) text = t('storage.noticePackOnly', args);
+  else text = t(notice.runs === 1 ? 'storage.archiveNoticeOne' : 'storage.archiveNotice', args);
+  if (notice.runs > 0 && args.pack) text += ` ${t('storage.noticePack', args)}`;
+  if (trim && !(notice.runs === 0 && args.pack === 0)) text += ` ${t('storage.noticeTrim', args)}`;
   return <p className="storage-notice" role="status">{text}</p>;
 }
 
@@ -63,6 +69,8 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
   const [menu, setMenu] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [coldAsk, setColdAsk] = useState(null); // the period waiting for its confirmation
+  const chooseCold = (days) => (days == null ? storage.setColdAfter(null) : setColdAsk(days));
   const deleteAll = async () => {
     await storage.deleteAll();
     onEvaluationsDeleted();
@@ -82,14 +90,22 @@ export default function StorageSection({ onEvaluationsDeleted = () => {} }) {
         <SettingsRowLabel hintSlot={false} label={t('storage.autoCleanup')} description={t('storage.autoCleanupDesc')} />
         <SettingsPillTabs options={AUTO_CLEANUP} value={data ? data.autoCleanup : undefined} onChange={storage.setAutoCleanup} />
       </div>
-      <div className="settings-row settings-row--last">
+      <div className="settings-row">
         <SettingsRowLabel hintSlot={false} label={t('storage.keepRuns')} description={t('storage.keepRunsDesc')} />
         <SettingsPillTabs options={KEEP_RUNS} value={data ? data.keepRuns : undefined} onChange={storage.setKeepRuns} />
       </div>
+      <div className="settings-row settings-row--last">
+        <SettingsRowLabel hintSlot={false} label={t('storage.coldAfter')} description={t('storage.coldAfterDesc')} />
+        <SettingsPillTabs options={COLD_AFTER} value={data ? data.coldAfterDays : undefined} onChange={chooseCold} />
+      </div>
       {storage.saveFailed && <p className="inline-error storage-save-error">{t('storage.saveFailed')}</p>}
       {cleaning && (
-        <CleanModal autoArchive={Boolean(data?.autoCleanup && data.keepRuns != null)}
+        <CleanModal autoArchive={Boolean(data?.autoCleanup && data.keepRuns != null)} period={periodLabel(data?.coldAfterDays)}
           onClean={storage.runClean} onClose={() => setCleaning(false)} />
+      )}
+      {coldAsk != null && (
+        <ConfirmColdModal period={periodLabel(coldAsk)} onClose={() => setColdAsk(null)}
+          onConfirm={() => { storage.setColdAfter(coldAsk); setColdAsk(null); }} />
       )}
       {deleting && data && <DeleteAllModal data={data} onDelete={deleteAll} onClose={() => setDeleting(false)} />}
     </section>

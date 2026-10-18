@@ -9,6 +9,7 @@ The **History** tab is your project's quality timeline. Every completed run live
 - **Majors and types**: the run's blocking findings (criticals plus majors) and its open types (distinct requirement codes with an open finding), each with the change against the previous run over the dimensions both runs scored. Down is good for both.
 - **Run metadata** model, sub-agent count, scope, branch, duration.
 - **Archived tag**: a run that quodeq stored compressed to save space carries an *archived* tag. Opening it restores it first, so the run page shows *restoring archived run…* for a few seconds. Nothing in its grades or findings changes. See **Storage** in the Settings help section.
+- **Report only tag**: a run whose findings were removed to save space (Settings › Storage, *Keep the findings of archived runs for*). Its grades and reports stay, so it opens at once and still counts in the trend; its findings cannot be searched or rescored.
 - **Tombstones** deleted runs leave a marker so the trend stays continuous.
 
 ### The selected run

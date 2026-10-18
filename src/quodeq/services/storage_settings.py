@@ -6,6 +6,8 @@ newest done runs stay unpacked, one of the choices below; None keeps them all
 (archive nothing new). ``auto_cleanup`` False keeps the pass after start from
 running (clean now still works). ``keep_notice`` records the first start under
 the count rule (see ``storage_notice``); None means no start has decided it yet.
+``cold_after_days`` is the age past which an archived run loses its findings for
+good (its archive goes, its grades and reports stay); None, the default, never.
 ``archive_after_days`` and ``archive_notice`` are the 1.14 age rule's keys: kept
 as stored for a later release, they no longer drive the plan.
 """
@@ -29,6 +31,7 @@ ARCHIVE_AFTER_DEFAULT = 183
 ARCHIVE_AFTER_CHOICES: tuple[int | None, ...] = (91, ARCHIVE_AFTER_DEFAULT, 365, None)
 KEEP_RUNS_DEFAULT = 10
 KEEP_RUNS_CHOICES: tuple[int | None, ...] = (5, KEEP_RUNS_DEFAULT, 25, None)
+COLD_AFTER_CHOICES: tuple[int | None, ...] = (91, 183, 365, None)  # None: archived runs keep their findings
 
 
 class ArchiveNotice(enum.StrEnum):
@@ -47,6 +50,7 @@ class StorageSettings:
     archive_notice: ArchiveNotice | None = None
     keep_runs: int | None = KEEP_RUNS_DEFAULT
     keep_notice: ArchiveNotice | None = None
+    cold_after_days: int | None = None  # archived runs older than this lose their findings for good; None never
 
 
 def storage_settings_path(env: Mapping[str, str] | None = None) -> Path:
@@ -65,6 +69,10 @@ def _valid(value: object) -> bool:
 
 def _valid_keep(value: object) -> bool:
     return _one_of(value, KEEP_RUNS_CHOICES)
+
+
+def _valid_cold(value: object) -> bool:
+    return _one_of(value, COLD_AFTER_CHOICES)
 
 
 def _notice(value: object) -> ArchiveNotice | None:
@@ -88,6 +96,7 @@ def read_storage_settings(env: Mapping[str, str] | None = None) -> StorageSettin
         archive_notice=_notice(data.get("archive_notice")),
         keep_runs=keep if _valid_keep(keep) else KEEP_RUNS_DEFAULT,
         keep_notice=_notice(data.get("keep_notice")),
+        cold_after_days=data.get("cold_after_days") if _valid_cold(data.get("cold_after_days")) else None,
     )
 
 
@@ -99,6 +108,8 @@ def write_storage_settings(
         raise ValueError(f"archive_after_days must be one of {ARCHIVE_AFTER_CHOICES}")
     if not _valid_keep(settings.keep_runs):
         raise ValueError(f"keep_runs must be one of {KEEP_RUNS_CHOICES}")
+    if not _valid_cold(settings.cold_after_days):
+        raise ValueError(f"cold_after_days must be one of {COLD_AFTER_CHOICES}")
     if not isinstance(settings.auto_cleanup, bool):
         raise ValueError("auto_cleanup must be true or false")
     path = storage_settings_path(env)

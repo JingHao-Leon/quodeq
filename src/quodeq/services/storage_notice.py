@@ -41,8 +41,8 @@ def first_start_may_archive(
     if settings.keep_notice is not None:
         mark_archive_notice_done(env, log)
         return True
-    plan = plan_cleanup(root, now, settings.keep_runs)
-    held = bool(plan.archive or plan.pack)  # packing the reports of earlier archives waits for the notice too
+    plan = plan_cleanup(root, now, settings.keep_runs, settings.cold_after_days)
+    held = bool(plan.archive or plan.pack or plan.trim)  # packing and trimming wait for the notice too
     notice = ArchiveNotice.PENDING if held else ArchiveNotice.DONE
     saved = write_storage_settings(replace(settings, keep_notice=notice), env, log=log)
     if held and saved:

@@ -16,7 +16,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 from quodeq.core.finding_identity import DismissKey, finding_dismiss_keys
-from quodeq.data.fs.run_archive import is_archived
+from quodeq.data.fs.run_cold import is_frozen
 from quodeq.data.fs.run_precedents import (
     DISMISSED_SQL, SEMANTIC_ELIGIBLE_SQL, precedents_stamp, read_precedents,
 )
@@ -192,9 +192,9 @@ def read_dismissed_snippets_strict(run_dir: Path) -> list[tuple[str | None, str 
     ``OSError``). The per-run memo in ``context.precedent_fingerprint``
     depends on seeing the failure: an empty list in its place would be
     remembered as "no dismissals" until the DB's stat happens to change.
-    An archived run answers from its ``precedents.json``, never restored.
+    An archived or cold run answers from its ``precedents.json``, never restored.
     """
-    if is_archived(run_dir):
+    if is_frozen(run_dir):
         return read_precedents(run_dir, "dismissed")
     if not (run_dir / EVALUATION_DB_FILENAME).is_file():
         return []
@@ -232,7 +232,7 @@ def dismissed_source_stamp(run_dir: Path) -> tuple[int, ...] | None:
     An archived run is stamped by its ``precedents.json``, so archiving and
     restoring a run both refresh the memo.
     """
-    if is_archived(run_dir):
+    if is_frozen(run_dir):
         return precedents_stamp(run_dir)
     db_path = run_dir / EVALUATION_DB_FILENAME
     wal_parts: tuple[int, ...] = ()
@@ -258,7 +258,7 @@ def read_semantic_eligible_dismissals(run_dir: Path) -> list[tuple[str | None, s
     its ``precedents.json``, never restored.
     """
     try:
-        if is_archived(run_dir):
+        if is_frozen(run_dir):
             return read_precedents(run_dir, "semantic")
         if not (run_dir / EVALUATION_DB_FILENAME).is_file():
             return []

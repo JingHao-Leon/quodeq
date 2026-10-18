@@ -39,8 +39,10 @@ from quodeq.services.wiring import (
 )
 from quodeq.services.wiring_sync import (
     ARCHIVE_FILENAME,
+    COLD_NAME,
     PRECEDENTS_NAME,
     SCALARS_NAME,
+    is_cold,
     RunArchiveError,
     clone_run_contained,
     extract_members_to,
@@ -98,6 +100,10 @@ def _archive_form(run_dir: Path, dest_run_dir: Path) -> bool:
 def _copy_logs(run_dir: Path, dest_run_dir: Path, written: list[Path]) -> None:
     """The event log and evidence logs, in the run's published form, read from the local archive when archived."""
     archive = run_dir / ARCHIVE_FILENAME
+    if is_cold(run_dir):  # no logs left: the frozen grades, dismissals and marker are what a clone can read
+        for sidecar in (SCALARS_NAME, PRECEDENTS_NAME, COLD_NAME):
+            _copy(run_dir / sidecar, dest_run_dir / sidecar, written)
+        return
     if _archive_form(run_dir, dest_run_dir):
         if is_archived(run_dir):
             written.append(repack_without_db(archive, dest_run_dir / ARCHIVE_FILENAME))

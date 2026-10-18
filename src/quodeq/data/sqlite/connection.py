@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Iterator
 
 from quodeq.data.fs.run_archive import RunArchiveError, is_archived, restore_locked
+from quodeq.data.fs.run_cold import is_cold
 from quodeq.data.fs.run_archive_guard import LOCK_NAME, drop_stray_db_locked, run_lock_if_writable, warn_once
 from quodeq.data.fs.shared_clone_runs import (
     is_shared_clone_run, mark_local_db, trust_local_db_locked, unpacked_current,
@@ -127,6 +128,8 @@ def _open_unarchived(run_dir: Path, path: Path) -> sqlite3.Connection:
     opened again under the lock. A shared clone's run always opens under the
     lock, which checks its database is one quodeq created there.
     """
+    if is_cold(run_dir):  # its database went with its archive for good: readers fall back to the sidecars and reports
+        raise SqliteStoreUnreadableError(f"run in {run_dir} is cold: its findings were removed with its archive")
     lock = run_dir / LOCK_NAME
     if not lock.exists() and not is_archived(run_dir) and not is_shared_clone_run(run_dir):
         conn = _open_mapped(path)

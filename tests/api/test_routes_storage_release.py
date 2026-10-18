@@ -59,7 +59,7 @@ def test_auto_cleanup_can_be_turned_off_and_keeps_the_window(root):
 
     resp = client.put("/api/storage/settings", json={"autoCleanup": False})
 
-    assert resp.get_json() == {"keepRuns": 10, "archiveAfterDays": 365, "autoCleanup": False}
+    assert resp.get_json() == {"keepRuns": 10, "coldAfterDays": None, "archiveAfterDays": 365, "autoCleanup": False}
     body = client.get("/api/storage").get_json()
     assert (body["autoCleanup"], body["archiveAfterDays"]) == (False, 365)
     assert client.put("/api/storage/settings", json={"autoCleanup": "no"}).status_code == 400

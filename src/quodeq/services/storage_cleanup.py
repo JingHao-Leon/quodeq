@@ -12,7 +12,6 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -21,9 +20,12 @@ from quodeq.core.run.state import RunState
 from quodeq.services.run_keys import read_run_key_sets
 from quodeq.services.storage_plan import CleanupPlan, plan_cleanup, project_in_flight, read_run  # noqa: F401
 from quodeq.services.storage_notice import first_start_may_archive
+from quodeq.services.storage_types import CleanupHooks, CleanupResult, ColdPolicy  # noqa: F401 -- re-exported
 from quodeq.services.storage_settings import read_storage_settings
 from quodeq.services.wiring import ScoreCacheError, SqliteFindingsRepository, has_evaluation_db, save_run_keys
-from quodeq.services.wiring_sync import RunArchiveError, archive_run, is_archived, pack_reports_locked, tidy_run
+from quodeq.services.wiring_sync import (
+    RunArchiveError, archive_run, is_archived, is_frozen, pack_reports_locked, tidy_run, trim_run,
+)
 from quodeq.shared.env_resolve import resolve_env
 from quodeq.shared.fault_isolation import run_isolated
 
@@ -31,24 +33,6 @@ ENV_FLAG = "QUODEQ_STORAGE_CLEANUP"
 DISABLED_VALUE = "0"
 WARMUP_POLL_S = 5.0
 TIDY_SETTLE_S = 600.0  # a run's consolidation sidecars may still be read this soon after its status last changed
-
-
-@dataclass(frozen=True)
-class CleanupHooks:
-    """What a pass reports to and asks of its caller: progress after each run, and whether to stop before the next."""
-
-    on_progress: Callable[[int, int], None] | None = None
-    should_stop: Callable[[], bool] | None = None
-
-
-@dataclass(frozen=True)
-class CleanupResult:
-    """What a cleanup pass did; ``packed`` counts archived runs whose reports it packed."""
-
-    tidied: int
-    archived: int
-    bytes_freed: int
-    packed: int = 0
 
 
 def cleanup_enabled(env: Mapping[str, str]) -> bool:
@@ -82,8 +66,8 @@ def archive_keeping_keys(run_dir: Path, log: LogSink):
 
 
 def _gone(run_dir: Path) -> bool:
-    """Deleted or archived by someone else since the plan (another quodeq process, a delete)."""
-    return not run_dir.is_dir() or is_archived(run_dir)
+    """Deleted, archived or trimmed by someone else since the plan (another quodeq process, a delete)."""
+    return not run_dir.is_dir() or is_frozen(run_dir)
 
 
 def _archive_unless_gone(run_dir: Path, log: LogSink):
@@ -100,6 +84,21 @@ def _archive_unless_gone(run_dir: Path, log: LogSink):
 
 def _archive_one(run_dir: Path, log: LogSink):
     return run_isolated(lambda: _archive_unless_gone(run_dir, log), label=f"storage cleanup archive {run_dir}", log=log)
+
+
+def _trim_unless_gone(run_dir: Path) -> int | None:
+    if not is_archived(run_dir):
+        return None
+    try:
+        return trim_run(run_dir)
+    except RunArchiveError:
+        if is_archived(run_dir):
+            raise
+        return None  # restored by someone else between the plan and now
+
+
+def _trim_one(run_dir: Path, log: LogSink) -> int | None:
+    return run_isolated(lambda: _trim_unless_gone(run_dir), label=f"storage cleanup trim {run_dir}", log=log)
 
 
 def _pack_one(run_dir: Path, log: LogSink) -> tuple[int, int] | None:
@@ -144,24 +143,67 @@ class _InFlightWatch:
 
 def _scheduled_pass(root: Path, env: Mapping[str, str], log: LogSink, *, archive: bool = True) -> CleanupResult | None:
     """One startup pass with the kept count read now, not at import; tidy only when *archive* is False."""
-    keep = read_storage_settings(env).keep_runs if archive else None
-    result = try_run_cleanup(root, datetime.now(timezone.utc), keep_runs=keep, pack=archive, log=log)
+    settings = read_storage_settings(env)
+    keep = settings.keep_runs if archive else None
+    cold = ColdPolicy(cold_after_days=settings.cold_after_days if archive else None, pack=archive)
+    result = try_run_cleanup(root, datetime.now(timezone.utc), keep_runs=keep, cold=cold, log=log)
     if result is None:
         log.debug("storage cleanup: another pass holds the lock, skipping the startup pass")
     return result
 
 
+class _PassState:
+    """One pass over the plan: which runs it visits, in which order, and what it has done so far."""
+
+    def __init__(self, plan: CleanupPlan, pack: bool, log: LogSink) -> None:
+        self.tidy, self.to_archive = set(plan.tidy), set(plan.archive)
+        self.to_pack, self.to_trim = set(plan.pack if pack else ()), set(plan.trim)
+        # The plan archives only runs it tidies; packs and trims come last, after everything else.
+        self.runs = [*plan.tidy, *(r for r in plan.archive if r not in self.tidy), *sorted(self.to_pack | self.to_trim)]
+        self.watch, self.wall_now, self.log = _InFlightWatch(), time.time(), log
+        self.tidied = self.archived = self.packed = self.trimmed = self.freed = 0
+
+    def step(self, run_dir: Path) -> None:
+        """Tidy, archive, pack or trim *run_dir* as the plan says, each checked against a run in flight."""
+        if run_dir in self.tidy and not _gone(run_dir) and _settled(run_dir, self.wall_now) and not self.watch.busy(run_dir.parent):
+            got = _tidy_one(run_dir, self.log)
+            if got is not None:
+                self.tidied += 1
+                self.freed += got
+        # Afresh before each archive: a run started after the plan was made stops its project.
+        if run_dir in self.to_archive and not self.watch.busy(run_dir.parent, fresh=True):
+            done = _archive_one(run_dir, self.log)
+            if done is not None:
+                self.archived += 1
+                self.freed += max(0, done.bytes_before - done.bytes_after)
+        if run_dir in self.to_pack and not self.watch.busy(run_dir.parent, fresh=True):
+            done = _pack_one(run_dir, self.log)
+            if done is not None and done[0]:
+                self.packed += 1
+                self.freed += max(0, done[0] - done[1])
+        if run_dir in self.to_trim and not self.watch.busy(run_dir.parent, fresh=True):  # last: nothing touches it after
+            got = _trim_one(run_dir, self.log)
+            if got is not None:
+                self.trimmed += 1
+                self.freed += got
+
+    def result(self) -> CleanupResult:
+        return CleanupResult(self.tidied, self.archived, self.freed, self.packed, self.trimmed)
+
+
 def run_cleanup(
-    evaluations_root: Path | str, now: datetime, *, keep_runs: int | None, pack: bool = True, log: LogSink = NULL_LOG,
-    hooks: CleanupHooks | None = None,
+    evaluations_root: Path | str, now: datetime, *, keep_runs: int | None, cold: ColdPolicy = ColdPolicy(),
+    log: LogSink = NULL_LOG, hooks: CleanupHooks | None = None,
 ) -> CleanupResult:
     """Apply the plan; one failing run is logged and the rest carry on.
 
     ``hooks.should_stop`` is asked before each run; True ends the pass there
     (a grade-formula rescore started, and the two must not overlap).
 
-    With *pack* (the default) the reports of runs archived before they were
-    packed in place are packed too; the held first start passes False.
+    *cold* says whether the reports of runs archived before they were packed
+    in place are packed too (the held first start passes False) and the age
+    past which an archived run is trimmed: its archive removed for good, its
+    frozen grades and reports kept.
 
     Each run is tidied, then archived when the plan says so; ``hooks.on_progress``
     gets (runs done, runs in the pass) after each, so a pass that only tidies
@@ -170,38 +212,20 @@ def run_cleanup(
     archive), and a run whose status changed within ``TIDY_SETTLE_S`` is
     not tidied.
     """
-    plan = plan_cleanup(evaluations_root, now, keep_runs)
-    to_archive, to_pack, tidy = set(plan.archive), set(plan.pack if pack else ()), set(plan.tidy)
-    runs = [*plan.tidy, *(r for r in plan.archive if r not in tidy), *sorted(to_pack)]  # the plan archives only runs it tidies
-    watch, wall_now = _InFlightWatch(), time.time()
+    plan = plan_cleanup(evaluations_root, now, keep_runs, cold.cold_after_days if cold.pack else None)
+    state = _PassState(plan, cold.pack, log)
     on_progress, should_stop = (hooks or CleanupHooks()).on_progress, (hooks or CleanupHooks()).should_stop
-    tidied = archived = packed = freed = 0
-    for index, run_dir in enumerate(runs, start=1):
+    for index, run_dir in enumerate(state.runs, start=1):
         if should_stop is not None and should_stop():
             log.info("storage cleanup: stopped early, a grade-formula rescore started")
             break
-        if run_dir in tidy and not _gone(run_dir) and _settled(run_dir, wall_now) and not watch.busy(run_dir.parent):
-            got = _tidy_one(run_dir, log)
-            if got is not None:
-                tidied += 1
-                freed += got
-        # Afresh before each archive: a run started after the plan was made stops its project.
-        if run_dir in to_archive and not watch.busy(run_dir.parent, fresh=True):
-            done = _archive_one(run_dir, log)
-            if done is not None:
-                archived += 1
-                freed += max(0, done.bytes_before - done.bytes_after)
-        if run_dir in to_pack and not watch.busy(run_dir.parent, fresh=True):
-            done = _pack_one(run_dir, log)
-            if done is not None and done[0]:
-                packed += 1
-                freed += max(0, done[0] - done[1])
+        state.step(run_dir)
         if on_progress is not None:
-            on_progress(index, len(runs))
-    result = CleanupResult(tidied, archived, freed, packed)
+            on_progress(index, len(state.runs))
+    result = state.result()
     log.info(
         f"storage cleanup: tidied {result.tidied}, archived {result.archived}, packed the reports of {result.packed}, "
-        f"freed {result.bytes_freed} bytes",
+        f"trimmed {result.trimmed}, freed {result.bytes_freed} bytes",
     )
     return result
 
@@ -213,14 +237,14 @@ CLEANUP_LOCK = threading.Lock()
 
 
 def try_run_cleanup(
-    evaluations_root: Path | str, now: datetime, *, keep_runs: int | None, pack: bool = True, log: LogSink = NULL_LOG,
-    hooks: CleanupHooks | None = None,
+    evaluations_root: Path | str, now: datetime, *, keep_runs: int | None, cold: ColdPolicy = ColdPolicy(),
+    log: LogSink = NULL_LOG, hooks: CleanupHooks | None = None,
 ) -> CleanupResult | None:
     """Single-flight run_cleanup: None when another pass already holds the lock."""
     if not CLEANUP_LOCK.acquire(blocking=False):
         return None
     try:
-        return run_cleanup(evaluations_root, now, keep_runs=keep_runs, pack=pack, log=log, hooks=hooks)
+        return run_cleanup(evaluations_root, now, keep_runs=keep_runs, cold=cold, log=log, hooks=hooks)
     finally:
         CLEANUP_LOCK.release()
 

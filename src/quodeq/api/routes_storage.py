@@ -1,14 +1,15 @@
 """Storage endpoints for Settings.
 
 GET    /api/storage             -- size, runs, archived runs per project, the settings, the first-start notice, clean progress
-PUT    /api/storage/settings    -- {keepRuns?: 5|10|25|null, archiveAfterDays?: 91|183|365|null, autoCleanup?: bool}, at least one
+PUT    /api/storage/settings    -- {keepRuns?: 5|10|25|null, coldAfterDays?: 91|183|365|null,
+                                   archiveAfterDays?: 91|183|365|null, autoCleanup?: bool}, at least one
 GET    /api/storage/preview     -- what a clean would archive now, whose reports it would pack, and about how much it frees
 GET    /api/storage/clean       -- clean progress only, no disk walk (cheap to poll)
 POST   /api/storage/clean       -- start "clean now" (202), 409 while a clean (STORAGE_BUSY), the score warm-up
                                    (STORAGE_WARMUP) or a grade-formula rescore (STORAGE_RESCORE) runs
 DELETE /api/storage?confirm=true -- delete every project's evaluations, 409 while a run, a clean, the warm-up or a rescore runs
 
-``archiveNotice`` is ``{runs, pack, bytes}`` while the first start held the archive
+``archiveNotice`` is ``{runs, pack, trim, bytes}`` while the first start held the archive
 back (see ``services/storage_notice``), else null. ``keepRuns`` is how many of
 a project's newest done runs stay unpacked (null keeps all); ``archiveAfterDays``
 is the 1.14 age choice, kept for a later release and no longer driving the plan.
@@ -44,10 +45,14 @@ CODE_STORAGE_WARMUP = "STORAGE_WARMUP"
 CODE_STORAGE_RESCORE = "STORAGE_RESCORE"
 CODE_CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
 _KEEP_KEY = "keepRuns"
+_COLD_KEY = "coldAfterDays"
 _SETTING_KEY = "archiveAfterDays"
 _AUTO_KEY = "autoCleanup"
-_SETTING_KEYS = (_KEEP_KEY, _SETTING_KEY, _AUTO_KEY)
-_SETTINGS_RULE = "keepRuns must be 5, 10, 25 or null, archiveAfterDays 91, 183, 365 or null, autoCleanup true or false"
+_SETTING_KEYS = (_KEEP_KEY, _COLD_KEY, _SETTING_KEY, _AUTO_KEY)
+_SETTINGS_RULE = (
+    "keepRuns must be 5, 10, 25 or null, coldAfterDays 91, 183, 365 or null, archiveAfterDays 91, 183, 365 or null, "
+    "autoCleanup true or false"
+)
 _WARMUP_BUSY = "The score warm-up is running; try again when it ends"
 _RESCORE_BUSY = "Runs are being rescored with the grade formula; try again when it ends"
 
@@ -73,9 +78,12 @@ def _summary_payload(env: Mapping[str, str] | None, job: CleanJob) -> dict:
         "bytes": summary.bytes, "runs": summary.runs, "archived": summary.archived,
         "projects": {p.project_id: {"bytes": p.bytes, "runs": p.runs, "archived": p.archived} for p in summary.projects},
         _KEEP_KEY: settings.keep_runs,
+        _COLD_KEY: settings.cold_after_days,
         _SETTING_KEY: settings.archive_after_days,
         _AUTO_KEY: settings.auto_cleanup,
-        "archiveNotice": {"runs": notice.archive, "pack": notice.pack, "bytes": notice.frees} if notice else None,
+        "archiveNotice": (
+            {"runs": notice.archive, "pack": notice.pack, "trim": notice.trim, "bytes": notice.frees} if notice else None
+        ),
         "clean": job.snapshot(),
     }
 
@@ -85,10 +93,13 @@ def _put_settings(env: Mapping[str, str] | None) -> Response | tuple[Response, i
     if not isinstance(body, dict):
         return body
     if not any(key in body for key in _SETTING_KEYS):
-        return json_error("keepRuns, archiveAfterDays or autoCleanup is required", HTTPStatus.BAD_REQUEST, CODE_INVALID_VALUE)
+        return json_error(
+            "keepRuns, coldAfterDays, archiveAfterDays or autoCleanup is required", HTTPStatus.BAD_REQUEST, CODE_INVALID_VALUE,
+        )
     current = read_storage_settings(env)
     changes = {
         "keep_runs": body.get(_KEEP_KEY, current.keep_runs),
+        "cold_after_days": body.get(_COLD_KEY, current.cold_after_days),
         "archive_after_days": body.get(_SETTING_KEY, current.archive_after_days),
         "auto_cleanup": body.get(_AUTO_KEY, current.auto_cleanup),
     }
@@ -99,7 +110,8 @@ def _put_settings(env: Mapping[str, str] | None) -> Response | tuple[Response, i
     if not saved:
         return json_error("Could not save the storage settings", HTTPStatus.INTERNAL_SERVER_ERROR, CODE_INTERNAL_ERROR)
     return jsonify({
-        _KEEP_KEY: changes["keep_runs"], _SETTING_KEY: changes["archive_after_days"], _AUTO_KEY: changes["auto_cleanup"],
+        _KEEP_KEY: changes["keep_runs"], _COLD_KEY: changes["cold_after_days"],
+        _SETTING_KEY: changes["archive_after_days"], _AUTO_KEY: changes["auto_cleanup"],
     })
 
 
@@ -143,9 +155,9 @@ def register_storage_routes(app: Flask, provider: ActionProvider, env: Mapping[s
 
     @app.get("/api/storage/preview")
     def get_storage_preview() -> Response:
-        keep = read_storage_settings(env).keep_runs
-        preview = clean_preview(Path(reports_dir()), datetime.now(timezone.utc), keep)
-        return jsonify({"archive": preview.archive, "pack": preview.pack, "frees": preview.frees})
+        settings = read_storage_settings(env)
+        preview = clean_preview(Path(reports_dir()), datetime.now(timezone.utc), settings.keep_runs, settings.cold_after_days)
+        return jsonify({"archive": preview.archive, "pack": preview.pack, "trim": preview.trim, "frees": preview.frees})
 
     @app.get("/api/storage/clean")
     def get_storage_clean() -> Response:
