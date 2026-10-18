@@ -3794,6 +3794,11 @@
 .findings-head__stat[data-row-start]:not(:first-child) { border-left-color: transparent; }
 .findings-head__stats[data-row-start],
 .findings-head__stats:not([data-row-start]) > .findings-head__stat[data-row-start]:not(:first-child) { translate: calc(-1 * var(--head-tile-indent)) 0; }
+/* tiles under the name: the description and the tiles take the panel's width rather than leaving its right side
+   empty. Growth and max-width leave every flex basis alone, so the wrap point does not move with the mark. */
+.findings-head__body:has(> .findings-head__stats[data-row-start]) .findings-head__desc { max-width: none; }
+.findings-head__stats[data-row-start] { flex-grow: 1; }
+.findings-head__stats[data-row-start] > .findings-head__stat { flex-grow: 1; }
 /* the Violations tile's severity pills wrap inside the tile; one width in both layouts, for the same reason */
 .findings-head__stat:first-child .findings-head__sub { flex-wrap: wrap; max-width: 250px; white-space: normal; }
 
