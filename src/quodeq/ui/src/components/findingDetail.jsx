@@ -11,6 +11,7 @@ import ContextBlock from './ContextBlock.jsx';
 import DetailSkeleton from './DetailSkeleton.jsx';
 import { filterValidRefs } from '../utils/reqRefs.js';
 import { t } from '../strings/index.js';
+import { renderCodeSpans } from '../strings/rich.jsx';
 import { scopeGateRuleLabel } from '../strings/labels.js';
 
 /**
@@ -69,7 +70,7 @@ export function FindingDetailBody({ v }) {
           {v.title && <p className="vlive-detail-title">{v.title}</p>}
           {v.reason && <>
             <span className="vlive-detail-section-label">{t('violations.detailLabel')}</span>
-            <p className="vlive-detail-reason">{v.reason}</p>
+            <p className="vlive-detail-reason">{renderCodeSpans(v.reason)}</p>
           </>}
         </div>
       )}
