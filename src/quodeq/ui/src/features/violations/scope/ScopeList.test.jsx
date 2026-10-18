@@ -20,10 +20,25 @@ function renderList(rows, onToggleReq = undefined) {
 }
 const head = (req, open) => ({ kind: 'req-header', req, text: `${req} asks`, sev: { major: 1 }, count: 1, fileCount: 1, open });
 const options = () => screen.getAllByRole('option');
-const detailTitle = (container) => container.querySelector('.wb-detail .findings-card__title').textContent;
+const detailTitle = (container) => container.querySelector('.wb-detail .wb-headline__title, .wb-detail .findings-card__title').textContent;
 
 describe('ScopeList', () => {
   afterEach(() => vi.useRealTimers());
+
+  it('the selected violation shows as in the workbench: headline, then fix plan and dismiss as pills', () => {
+    const onDismiss = vi.fn();
+    render(<SidePaneProvider><ScopeList rows={[row(1)]} within={within} onDismiss={onDismiss} /></SidePaneProvider>, { wrapper: withQueryClient() });
+    expect(screen.getByRole('heading', { name: 'Finding 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: t('violations.wbFixPlan') })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: t('violations.wbDismiss') }));
+    expect(onDismiss).toHaveBeenCalledWith(expect.objectContaining({ title: 'Finding 1' }));
+  });
+
+  it('a past day shows no action pills', () => {
+    renderList([row(1)]);
+    expect(screen.queryByRole('button', { name: t('violations.wbFixPlan') })).toBeNull();
+    expect(screen.queryByRole('button', { name: t('violations.wbDismiss') })).toBeNull();
+  });
 
   it('the arrow keys move the selection and focus with it; only the selected row is a tab stop', () => {
     vi.useFakeTimers({ toFake: ['requestAnimationFrame'] });
