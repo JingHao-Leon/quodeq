@@ -90,8 +90,9 @@ from quodeq.data.fs.stream_files import (  # noqa: F401
 
 # Legacy per-run evaluation/*.json finding details (SQL twin:
 # quodeq.data.sqlite.findings_queries.read_finding_details).
+from quodeq.data.fs.report_files import list_report_files, read_report_json, report_file  # noqa: F401
 from quodeq.data.fs.report_parser.finding_details import (  # noqa: F401
-    eval_report_dimensions, iter_eval_reports, list_report_files, read_report_json, report_file,
+    eval_report_dimensions, iter_eval_reports,
     iter_readable_eval_reports,
     read_eval_report,
     read_finding_details_from_json_eval,

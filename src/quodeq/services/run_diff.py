@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from quodeq.services.wiring import report_file
 from quodeq.core.run.run_log import NEW_SEV, RESOLVED_SEV, severity_tally
 from quodeq.core.run.state import TERMINAL_STATES, RunState, parse_run_state
 from quodeq.core.run_diff import RunDiff, diff_findings
@@ -15,6 +14,7 @@ from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.run_changes import SCOPE_ALL, SCOPE_CHANGED, changed_files
 from quodeq.services.wiring import (
+    report_file,
     iter_readable_eval_reports,
     project_run_dates,
     read_eval_report,

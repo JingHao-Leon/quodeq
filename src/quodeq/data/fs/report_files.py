@@ -12,9 +12,22 @@ import json
 import zlib
 from pathlib import Path
 
+from quodeq.shared.env import env_int
+
 REPORT_SUFFIX = ".json"
 PACKED_REPORT_SUFFIX = ".json.gz"
 _TMP_SUFFIX = ".tmp"
+_DEFAULT_REPORT_MAX_MB = 512
+_MB = 1024 * 1024
+
+
+def max_report_bytes() -> int:
+    """Cap on one packed report's unpacked size; ``QUODEQ_REPORT_MAX_MB``, bad values use the default.
+
+    A packed report in a shared clone was written by someone else: like an
+    archive, it must not inflate without bound into the dashboard process.
+    """
+    return env_int("QUODEQ_REPORT_MAX_MB", _DEFAULT_REPORT_MAX_MB, minimum=1) * _MB
 
 
 def report_dimension(path: Path) -> str | None:
@@ -63,14 +76,23 @@ def report_file(eval_dir: Path, dimension: str) -> Path | None:
 
 
 def read_report_bytes(path: Path) -> bytes:
-    """The report's bytes, decompressed when packed; a damaged packed file raises ``gzip.BadGzipFile`` (an ``OSError``)."""
+    """The report's bytes, decompressed when packed.
+
+    A damaged packed file, or one that unpacks past ``max_report_bytes()``
+    (a planted file in a shared clone), raises ``gzip.BadGzipFile``, an
+    ``OSError`` every caller already handles.
+    """
     if not is_packed_report(path):
         return path.read_bytes()
+    limit = max_report_bytes()
     try:
         with gzip.open(path, "rb") as fh:
-            return fh.read()
+            data = fh.read(limit + 1)  # decompresses only this far: a bomb never fills memory
     except (zlib.error, EOFError) as exc:  # a damaged deflate stream or a truncated file, not just a bad header
         raise gzip.BadGzipFile(f"{path.name}: {exc}") from exc
+    if len(data) > limit:
+        raise gzip.BadGzipFile(f"{path.name}: unpacks past {limit} bytes, the report cap")
+    return data
 
 
 def read_report_json(path: Path) -> object:

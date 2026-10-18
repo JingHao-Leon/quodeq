@@ -19,6 +19,7 @@ from quodeq.services.fs_projects import trusted_repo_root
 from quodeq.services.run_diff import diff_runs
 from quodeq.services.scoring import ProjectRows
 from quodeq.services.wiring import list_runs
+from quodeq.services.wiring_sync import is_cold, is_frozen
 
 _HISTORY_DEFAULT_LIMIT = 12
 HISTORY_MAX_LIMIT = 50
@@ -76,7 +77,11 @@ def get_history(ctx: ToolContext, dimension: str | None = None,
                 continue
         per_entry.append((entry, details))
     for entry, details in per_entry[:limit]:
-        runs.append(_trim_run(entry, details, with_scores=not hidden_all))
+        run = _trim_run(entry, details, with_scores=not hidden_all)
+        run_dir = reports_root / project / str(run.get("runId") or "")
+        # Stored compressed (restored when opened) or report only (findings removed for good): the model should know.
+        run["archived"], run["cold"] = is_frozen(run_dir) and not is_cold(run_dir), is_cold(run_dir)
+        runs.append(run)
     out = {"project": project, "dimension": dimension, "count": len(runs), "runs": runs,
            "hiddenStandardIds": [] if dimension else sorted(hidden_all)}
     if hidden_all:

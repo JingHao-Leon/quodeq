@@ -4,7 +4,7 @@ The archive writes each packed file beside the plain one through a temporary
 name, keeps the plain file's modification time (the projection's coverage
 stamp reads it) and only then removes the plain file. A failure mid-way
 leaves a mix the readers accept: the plain file wins where both exist. The
-cleanup pass packs the reports of runs archived before 1.15.1 the same way,
+cleanup pass packs the reports of runs archived before 1.15 the same way,
 under the run lock, without restoring them.
 """
 from __future__ import annotations
@@ -61,7 +61,8 @@ def pack_reports_in_place(run_dir: Path) -> tuple[int, int]:
     for dimension, plain in _plain_reports(run_dir):
         packed = plain.with_name(f"{dimension}{PACKED_REPORT_SUFFIX}")
         try:
-            size, stamp = plain.stat().st_size, plain.stat().st_mtime_ns
+            st = plain.stat()
+            size, stamp = st.st_size, st.st_mtime_ns
             _write_replacing(packed, gzip.compress(plain.read_bytes(), _LEVEL), stamp)
             plain.unlink()
         except OSError as exc:

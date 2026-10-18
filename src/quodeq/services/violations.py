@@ -8,12 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from quodeq.services.wiring import report_file
 from quodeq.config.services_env import max_violation_files as _resolve_max_violation_files
 from quodeq.core.types import ViolationFileEntry, ViolationResponse, ViolationSummary
 from quodeq.core.types.severity import Severity
 from quodeq.shared.utils import read_text
 from quodeq.services.wiring import (
+    report_file,
     OVERALL_PRINCIPLE,
     dimension_evidence_file,
     is_known_dimension,
