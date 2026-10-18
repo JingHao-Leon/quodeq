@@ -61,7 +61,8 @@ def pack_reports_in_place(run_dir: Path) -> tuple[int, int]:
     for dimension, plain in _plain_reports(run_dir):
         packed = plain.with_name(f"{dimension}{PACKED_REPORT_SUFFIX}")
         try:
-            size, stamp = plain.stat().st_size, plain.stat().st_mtime_ns
+            st = plain.stat()
+            size, stamp = st.st_size, st.st_mtime_ns
             _write_replacing(packed, gzip.compress(plain.read_bytes(), _LEVEL), stamp)
             plain.unlink()
         except OSError as exc:

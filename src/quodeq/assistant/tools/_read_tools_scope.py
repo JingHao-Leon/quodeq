@@ -10,7 +10,6 @@ import threading
 import time
 from pathlib import Path
 
-from quodeq.services.wiring import list_report_files
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import default_findings_repo_factory, requirement_of
 from quodeq.assistant.tools.registry import ToolError
@@ -20,7 +19,7 @@ from quodeq.services import fs_reports
 from quodeq.services.deleted import deleted_keys
 from quodeq.services.dismissed import dismissed_keys
 from quodeq.services.scoring import rescore_accumulated, scored_run_dimensions
-from quodeq.services.wiring import iter_eval_reports
+from quodeq.services.wiring import iter_eval_reports, list_report_files
 from quodeq.services.wiring_sync import is_archived, is_cold
 from quodeq.shared.log_sink import LoggerSink
 from quodeq.shared.lru import LRUDict

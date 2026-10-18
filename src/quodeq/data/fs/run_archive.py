@@ -128,8 +128,13 @@ def archive_run(run_dir: Path) -> ArchiveResult:
                 path.unlink(missing_ok=True)
             except OSError as exc:
                 _logger.debug("Could not remove %s after archiving: %s", path, exc)
-        # Last, once the run is archived: the reports, gzipped in place (a failure leaves them readable, see the module).
-        reports_before, reports_after = pack_reports_in_place(run_dir)
+        # Last, once the run is archived: the reports, gzipped in place. A failure leaves them readable (see the
+        # module) and the run archived; the next cleanup pass packs what is left, so it is logged, not raised.
+        try:
+            reports_before, reports_after = pack_reports_in_place(run_dir)
+        except RunArchiveError as exc:
+            _logger.warning("Archived %s, but not every report could be packed: %s", run_dir, exc)
+            reports_before = reports_after = 0
         return ArchiveResult(bytes_before=bytes_before + reports_before, bytes_after=final.stat().st_size + reports_after)
 
 

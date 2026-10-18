@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import heapq
 
-from quodeq.services.wiring import report_file
 from quodeq.assistant.tools._context import ToolContext
 from quodeq.assistant.tools._read_tools_common import (
     find_dimension,
@@ -28,7 +27,7 @@ from quodeq.core.standards.visibility import (
     partition_visible,
 )
 from quodeq.core.types.severity import Severity
-from quodeq.services.wiring import read_eval_report
+from quodeq.services.wiring import read_eval_report, report_file
 from quodeq.core.utils.numbers import clamp
 
 # Trimmed violation shape shared by get_report and get_violations. We keep only
