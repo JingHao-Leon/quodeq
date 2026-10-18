@@ -12,6 +12,8 @@
 export const ROW_KIND = Object.freeze({
   SEV_HEADER: 'sev-header', COMPLIANCE_HEADER: 'compliance-header',
   LOW_CONF_TOGGLE: 'low-conf-toggle', LOW_CONF_ROW: 'low-conf-row',
+  // A principle page's list grouped by requirement (scope/requirementRail.js).
+  REQ_HEADER: 'req-header',
 });
 
 /**
@@ -23,12 +25,13 @@ export const ROW_KIND = Object.freeze({
 export function headerRowKey(item) {
   if (item.kind === ROW_KIND.SEV_HEADER) return `h-${item.sev}`;
   if (item.kind === ROW_KIND.COMPLIANCE_HEADER) return 'h-compliance';
+  if (item.kind === ROW_KIND.REQ_HEADER) return `h-req-${item.req}`;
   return null;
 }
 
 // Rows the virtualizer sizes as a one-line header: the severity and
-// compliance section headers and the low-confidence toggle.
-const HEADER_ROW_KINDS = new Set([ROW_KIND.SEV_HEADER, ROW_KIND.COMPLIANCE_HEADER, ROW_KIND.LOW_CONF_TOGGLE]);
+// compliance section headers, the requirement headers and the low-confidence toggle.
+const HEADER_ROW_KINDS = new Set([ROW_KIND.SEV_HEADER, ROW_KIND.COMPLIANCE_HEADER, ROW_KIND.REQ_HEADER, ROW_KIND.LOW_CONF_TOGGLE]);
 
 /**
  * The virtual list's `getItemKey`: headers key themselves, every other row

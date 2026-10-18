@@ -70,12 +70,13 @@ describe('ScopedFindings', () => {
     expect(container.querySelector('.wb-detail .findings-card__title')).toHaveTextContent('Checked middle');
   });
 
-  it('switches to the cards, every finding with its code open', () => {
+  it('switches to the cards, every finding with its code closed (the list opens the selected one)', () => {
     const { container } = renderScope();
+    expect(container.querySelector('.ctx-line--hl')).not.toBeNull();
     toCards();
     expect(container.querySelector('.findings-scope__split')).toBeNull();
     expect(cardTitles(container)).toEqual(['Critical early', 'Major late', 'Minor other', 'Checked middle']);
-    expect(container.querySelector('.ctx-line--hl')).not.toBeNull();
+    expect(container.querySelector('.ctx-line--hl')).toBeNull();
   });
 
   it('inside a file the rows read the line only; elsewhere file:line', () => {

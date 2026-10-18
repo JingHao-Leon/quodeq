@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { requirementRail, requirementCounts, rowsOfRequirement, reqKindCounts } from './requirementRail.js';
+import { requirementRail, requirementCounts, rowsOfRequirement, reqKindCounts, requirementGroups, groupedRows } from './requirementRail.js';
 
 const v = (req, severity, file = 'a.py', line = 1) => ({ req, severity, file, line, title: `${req} title` });
 const FILE = {
@@ -37,4 +37,25 @@ test('rowsOfRequirement keeps a header only above its findings, recounted', () =
 test('reqKindCounts: the live violations by severity and the compliant checks of one requirement', () => {
   assert.deepEqual(reqKindCounts(FILE, 'R1', live), { sev: { critical: 0, major: 2, minor: 1 }, compliance: 1 });
   assert.deepEqual(reqKindCounts(FILE, 'R1', (x) => x.line !== 9), { sev: { critical: 0, major: 1, minor: 1 }, compliance: 1 });
+});
+
+test('requirementGroups: the rail\'s order, then unknown requirements by id, then the findings with none; counted over what shows', () => {
+  const rows = [
+    { kind: 'sev-header', sev: 'major', count: 3 }, { kind: 'violation', v: v('R1', 'major', 'a.py') }, { kind: 'violation', v: v('R9', 'major') },
+    { kind: 'violation', v: v(null, 'minor') }, { kind: 'violation', v: v('R1', 'minor', 'c.py') }, { kind: 'violation', v: v('R2', 'critical', 'b.py') },
+    { kind: 'compliance', c: { req: 'R3', file: 'd.py' } },
+  ];
+  const groups = requirementGroups(rows, requirementRail('security', FILE, live));
+  assert.deepEqual(groups.map((g) => [g.req, g.text, g.items.length, g.fileCount]),
+    [['R2', 'R2 title', 1, 1], ['R1', 'R1 title', 2, 2], ['R3', 'Holds', 1, 1], ['R9', 'R9', 1, 1], ['', '', 1, 1]]);
+  assert.deepEqual(groups[1].sev, { major: 1, minor: 1 });
+  assert.deepEqual(groups[2].sev, {});
+});
+
+test('groupedRows: a header per group, its findings only while it is open', () => {
+  const rows = [{ kind: 'violation', v: v('R1', 'major') }, { kind: 'violation', v: v('R2', 'critical') }];
+  const groups = requirementGroups(rows, requirementRail('security', FILE, live));
+  const out = groupedRows(groups, (req) => req === 'R1');
+  assert.deepEqual(out.map((r) => [r.kind, r.req ?? r.v.req, r.open]), [['req-header', 'R2', false], ['req-header', 'R1', true], ['violation', 'R1', undefined]]);
+  assert.equal(out[1].count, 1);
 });
