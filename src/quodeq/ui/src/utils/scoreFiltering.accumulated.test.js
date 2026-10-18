@@ -63,3 +63,20 @@ test('the recomputed trend average rounds like the server: 8.85 reads 8.8', () =
   assert.equal(entry.numericAverage, 8.8);
   assert.equal(entry.runNumericAverage, 8.8);
 });
+
+// A dimension that stopped on a failure streak carries a provisional score
+// the server leaves out of every overall average; the client's own fold
+// (visible standards) must leave it out too, or the Overview disagrees with
+// Compare by exactly that dimension.
+test('a provisional dimension stays out of the run and accumulated averages', () => {
+  const trend = [{
+    runId: 'r1', dimensions: ['security', 'flexibility'],
+    dimensionDetails: [
+      { dimension: 'security', score: 6.0, provisional: false },
+      { dimension: 'flexibility', score: 9.0, provisional: true },
+    ],
+  }];
+  const [out] = filterTrendByVisibleStandards(trend, new Set(['security', 'flexibility']));
+  assert.equal(out.numericAverage, 6.0);
+  assert.equal(out.runNumericAverage, 6.0);
+});

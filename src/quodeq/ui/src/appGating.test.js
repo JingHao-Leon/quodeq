@@ -100,12 +100,12 @@ test('selectSidebarCounts: prefers the filtered numbers, falls back to unfiltere
     filteredTrend: [1, 2],
     dashboard: { trend: [1, 2, 3] },
   });
-  assert.deepEqual(counts, { violationsCount: 5, historyCount: 2 });
+  assert.deepEqual(counts, { violationsCount: 12, historyCount: 2 });
 });
 
-test('selectSidebarCounts: zero majors shows 0, not the total and not null', () => {
+test('selectSidebarCounts: zero open findings shows 0, not null', () => {
   const counts = selectSidebarCounts({
-    filteredAccumulated: { summary: { totalViolations: 9, severity: { critical: 0, major: 0, minor: 9 } } },
+    filteredAccumulated: { summary: { totalViolations: 0, severity: { critical: 0, major: 0, minor: 0 } } },
     accumulated: null, filteredTrend: [], dashboard: null,
   });
   assert.equal(counts.violationsCount, 0);

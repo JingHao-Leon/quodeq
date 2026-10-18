@@ -1,4 +1,5 @@
 import { t } from '../../../../strings/index.js';
+import { granularityUnit } from '../../../../components/scoreChartPanel.jsx';
 // Miniature of the Overview score-history header with its Day/Week/Month
 // grouping select, plus a hint of the bucketed bars underneath.
 
@@ -35,7 +36,7 @@ export default function ScoreGroupingFigure() {
   return (
     <div className="sg-figure">
       <div className="sg-figure__header">
-        <span className="sg-figure__label">{t('overview.scoreHistoryLabel')} · {BAR_COUNT}{t('granularity.dayAbbrev')}</span>
+        <span className="sg-figure__label">{t('overview.scoreHistoryLabel')} · {BAR_COUNT} {granularityUnit(BAR_COUNT, 'day')}</span>
         <span className="sg-figure__select">{t('common.periodDay')} &#9662;</span>
       </div>
       <svg viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">

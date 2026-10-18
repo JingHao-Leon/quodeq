@@ -714,6 +714,21 @@ a.assistant-outline-ref:hover {
 }
 
 /* ── Error banner ─────────────────────────────────────── */
+.assistant-unavailable-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.assistant-unavailable-error {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-accent);
+}
+.assistant-unavailable-settings {
+  font-size: 0.75rem;
+}
 .assistant-drawer-error {
   flex: 0 0 auto;
   padding: 0.375rem 1rem;

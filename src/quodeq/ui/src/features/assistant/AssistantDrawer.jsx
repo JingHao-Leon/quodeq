@@ -1,7 +1,7 @@
 import { useAssistantDrawer } from './AssistantDrawerProvider.jsx';
 import { MessageList } from './MessageList.jsx';
 import { CommandMenu } from './CommandMenu.jsx';
-import { AssistantWelcome } from './AssistantWelcome.jsx';
+import { AssistantUnavailable, AssistantWelcome } from './AssistantWelcome.jsx';
 import { StopIcon } from '../../components/CopyButton.jsx';
 import Icon from '../../components/Icon.jsx';
 import { t } from '../../strings/index.js';
@@ -67,7 +67,7 @@ function SendOrStop({ streaming, draft, stopTurn, handleSend }) {
 
 function AssistantInputRow({
   menuVisible, suggestions, menuIndex, acceptSuggestion, inputRef, draft,
-  handleChange, handleKeyDown, streaming, stopTurn, handleSend,
+  handleChange, handleKeyDown, streaming, stopTurn, handleSend, disabled = false,
 }) {
   return (
     <div className="assistant-drawer-input-row">
@@ -84,6 +84,7 @@ function AssistantInputRow({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           rows={1}
+          disabled={disabled}
         />
         <SendOrStop streaming={streaming} draft={draft} stopTurn={stopTurn} handleSend={handleSend} />
       </div>
@@ -108,11 +109,14 @@ function AssistantInputRow({
  * autofocus effect below; a backgrounded pane (display:none) must not steal
  * focus. Defaults to true so a standalone render still focuses its input.
  */
-export function AssistantPane({ uiState, active = true }) {
+export function AssistantPane({ uiState, active = true, onOpenSettings = null }) {
   const {
     messages, streaming, error, sendMessage, stopTurn,
-    catalog, addLocalExchange, resetConversation, readOnly,
+    catalog, addLocalExchange, resetConversation, readOnly, closeActiveTab,
   } = useAssistantDrawer();
+  // No session and nothing said yet: the pane explains instead of suggesting.
+  const unavailable = Boolean(error) && messages.length === 0;
+  const openSettings = onOpenSettings && (() => { closeActiveTab?.(); onOpenSettings(); });
   const {
     draft, setDraft, inputRef, suggestions, menuIndex, menuVisible,
     acceptSuggestion, handleSend, handleKeyDown, handleChange, queued, dropQueued,
@@ -120,15 +124,16 @@ export function AssistantPane({ uiState, active = true }) {
 
   return (
     <>
-      {messages.length === 0
+      {unavailable && <AssistantUnavailable error={error} onOpenSettings={openSettings} />}
+      {!unavailable && (messages.length === 0
         ? <AssistantWelcome catalog={catalog} view={uiState?.view} page={uiState?.page} onPick={setDraft} readOnly={readOnly} />
-        : <MessageList messages={messages} streaming={streaming} />}
+        : <MessageList messages={messages} streaming={streaming} />)}
       <QueuedMessages queued={queued} dropQueued={dropQueued} />
-      {error && <div className="assistant-drawer-error" role="alert">{error}</div>}
+      {error && !unavailable && <div className="assistant-drawer-error" role="alert">{error}</div>}
       <AssistantInputRow
         menuVisible={menuVisible} suggestions={suggestions} menuIndex={menuIndex} acceptSuggestion={acceptSuggestion}
         inputRef={inputRef} draft={draft} handleChange={handleChange} handleKeyDown={handleKeyDown}
-        streaming={streaming} stopTurn={stopTurn} handleSend={handleSend}
+        streaming={streaming} stopTurn={stopTurn} handleSend={handleSend} disabled={unavailable}
       />
     </>
   );

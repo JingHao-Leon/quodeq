@@ -118,9 +118,9 @@ function SidebarHeader({ isPinned, handleTogglePin, version }) {
   );
 }
 
-function majorsTitle(count) {
+function openTitle(count) {
   if (count == null) return undefined;
-  return t(pluralKey(count, 'sidebar.majorsTitleOne', 'sidebar.majorsTitleMany'), { count });
+  return t(pluralKey(count, 'sidebar.openTitleOne', 'sidebar.openTitleMany'), { count });
 }
 
 function ProjectTabsNav({ showProjectTabs, showCompareTab, activeTab, handleNav, violationsCount, historyCount }) {
@@ -137,7 +137,7 @@ function ProjectTabsNav({ showProjectTabs, showCompareTab, activeTab, handleNav,
         <>
           <NavButton
             id={NAV_TAB.VIOLATIONS} label="violations" icon={ICON_VIOLATIONS} activeTab={activeTab} onNavTab={handleNav}
-            count={violationsCount} countTitle={majorsTitle(violationsCount)}
+            count={violationsCount} countTitle={openTitle(violationsCount)}
           />
           <NavButton id={NAV_TAB.MAP}        label="map"        icon={ICON_MAP}        activeTab={activeTab} onNavTab={handleNav} />
           <NavButton id={NAV_TAB.HISTORY}    label="history"    icon={ICON_HISTORY}    activeTab={activeTab} onNavTab={handleNav} count={historyCount} />

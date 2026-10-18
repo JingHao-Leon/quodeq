@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import { GalaxyView, GalaxyFolderView, VizBreadcrumb } from '../viz/index.js';
 import { complianceRatio } from '../../../utils/formatters.js';
+import { pluralKey } from '../../../utils/plural.js';
 import useMapPageState from './useMapPageState.js';
 import PageToolbar from '../../../components/PageToolbar.jsx';
 import { useDeferredReady } from '../../../components/DeferredMount.jsx';
@@ -144,7 +145,7 @@ function MapVizSkeleton() {
 
 function nodeSummary(node) {
   const viol = node.violations;
-  return `${viol} violation${viol !== 1 ? 's' : ''} · ratio ${complianceRatio(viol, node.compliance)}`;
+  return t(pluralKey(viol, 'map.nodeSummaryOne', 'map.nodeSummaryMany'), { violations: viol, ratio: complianceRatio(viol, node.compliance) });
 }
 
 /** The time-lapse dock at the bottom of the map: shown while the time-lapse is on, unless the history has a single run. */

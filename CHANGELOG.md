@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Changed
+- **One overall score**: a dimension that stopped on a failure streak keeps a provisional score, and every overall average now leaves it out: the Overview headline, the trend, the project card and Compare agree (only Compare did before). A run with such a dimension can show a different score in History after the update; the first start rebuilds the score cache.
+- **The sidebar badge counts open findings**, the number the Violations page leads with, instead of criticals plus majors.
+- **History** hides the what-changed strip until two runs compare against the same model, and the run card says *1 dimension*.
+- **Assistant**: when no session can start, the drawer says why and offers **open settings** in place of the suggestions, with the input disabled.
+- **Labels**: the score history reads *3 weeks* instead of *3w*, the since line says *rules opened*, a dimension card says *files read*, and the Map head says *violations to compliance 1:3*.
 - **Storage keeps a number of runs, not an age**: cleanup now keeps the newest 10 finished runs of each project in full (5, 10, 25 or all in Settings › Storage) and archives the rest at the next start, cancelled runs included, whatever their age. An archive no longer stores the run's database, which is rebuilt from the event log in a couple of seconds when the run is opened, and a run you open stays unpacked for 30 days. The first start after the update only tidies: Settings › Storage then says how many runs the next start will archive and how much space that frees, so you can pick a larger number or turn **Clean up after start** off first. The *archive runs untouched for* choice of 1.14 is no longer used; a 1.14 **never** carries over as **all**. Archived runs' reports are compressed in place too; runs archived by 1.14 stay archived and get their reports compressed by the pass after the notice. Going back to 1.14 cannot read a compressed report until the run is opened in this version. A new choice, **Keep the findings of archived runs for**, removes the findings of runs archived more than 3 months, 6 months or 1 year ago (off by default, confirmed before it takes effect); such runs stay in History as **report only** with their grades and reports. 1.14 shows the eval-time grades for them.
 
 ## [1.14.0] - 2026-10-17

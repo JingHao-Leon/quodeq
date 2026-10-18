@@ -16,11 +16,6 @@ import { countsLine } from '../../history/components/chartTooltipCounts.jsx';
 const MAX_CHART_RUNS = 20;
 const MAX_BAR_SIZE = 28;
 const MISSING_SCORE = '—';
-const GRANULARITY_SUFFIX = {
-  day: t('granularity.dayAbbrev'),
-  week: t('granularity.weekAbbrev'),
-  month: t('granularity.monthAbbrev'),
-};
 
 
 function buildTrendData(trend, granularity = 'day') {
@@ -118,7 +113,6 @@ export default function RunHistoryPanel({ trend = [], selectedRunId = null, onBa
     <ScoreHistoryPanelFrame
       ariaLabel={t('overview.scoreHistoryAria')}
       count={data.length}
-      suffix={GRANULARITY_SUFFIX[granularity] || GRANULARITY_SUFFIX.day}
       granularity={granularity}
       onGranularityChange={onGranularityChange}
       stats={computeScoreStats(data)}

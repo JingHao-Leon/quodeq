@@ -15,11 +15,6 @@ import { PANEL_CHART_HEIGHT_PX } from '../../../components/scoreChartHelpers.js'
 const MAX = 16;
 const MAX_BAR_SIZE = 28;
 const MISSING_SCORE = '?';
-const GRANULARITY_SUFFIX = {
-  day: t('granularity.dayAbbrev'),
-  week: t('granularity.weekAbbrev'),
-  month: t('granularity.monthAbbrev'),
-};
 
 /**
  * Build chart points for a single dimension, collapsed to one point per
@@ -82,7 +77,6 @@ export default function DimensionScoreHistoryPanel({ trend = [], dimension, sele
     <ScoreHistoryPanelFrame
       ariaLabel={t('explorer.dimScoreHistoryAria', { dimension })}
       count={data.length}
-      suffix={GRANULARITY_SUFFIX[granularity] || GRANULARITY_SUFFIX.day}
       granularity={granularity}
       onGranularityChange={onGranularityChange}
       stats={stats}
