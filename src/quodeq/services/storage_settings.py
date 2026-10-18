@@ -79,9 +79,11 @@ def read_storage_settings(env: Mapping[str, str] | None = None) -> StorageSettin
     data = read_json_object(storage_settings_path(env)) or {}
     days = data.get("archive_after_days", ARCHIVE_AFTER_DEFAULT)
     auto = data.get("auto_cleanup", True)
-    keep = data.get("keep_runs", KEEP_RUNS_DEFAULT)
+    days = days if _valid(days) else ARCHIVE_AFTER_DEFAULT
+    # A 1.14 "never" (archive_after_days null) carries over as keep all until keep_runs is set.
+    keep = data.get("keep_runs", None if days is None else KEEP_RUNS_DEFAULT)
     return StorageSettings(
-        archive_after_days=days if _valid(days) else ARCHIVE_AFTER_DEFAULT,
+        archive_after_days=days,
         auto_cleanup=auto if isinstance(auto, bool) else True,
         archive_notice=_notice(data.get("archive_notice")),
         keep_runs=keep if _valid_keep(keep) else KEEP_RUNS_DEFAULT,

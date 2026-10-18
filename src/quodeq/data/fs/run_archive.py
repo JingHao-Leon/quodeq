@@ -34,7 +34,7 @@ from quodeq.data.fs.run_archive_guard import (  # noqa: F401 -- run_lock re-expo
     RESTORED_STAMP, run_lock, snapshot, unchanged, warn_once, write_restored_stamp,
 )
 from quodeq.data.fs.run_archive_files import (  # noqa: F401 -- ARCHIVE_FILENAME re-exported
-    ARCHIVE_FILENAME, DB_SIDECARS, DROPPED_FILES, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources,
+    ARCHIVE_FILENAME, DROPPED_FILES, EVENTS_NAME, EVIDENCE_DIR, EVIDENCE_PATTERN, archive_sources,
     dropped_sidecars, is_plain_file,
 )
 from quodeq.data.fs.run_archive_limits import RunArchiveError, check_members, check_packable, check_restore_dirs, read_members  # noqa: F401
@@ -202,19 +202,22 @@ def _extract(archive: Path, staging: Path, skip: tuple[str, ...] = (), *, ratio_
     return names
 
 
-def ensure_restored(run_dir: Path) -> bool:
+def ensure_restored(run_dir: Path, *, project: bool = True) -> bool:
     """Restore an archived run in place. True when it restored, False when nothing was archived.
 
     Concurrent callers serialise on the run lock: one restores, the others
     wait and then find nothing left to do. Raises ``RunArchiveError`` (and
-    leaves the archive in place) on an unsafe or unreadable archive.
+    leaves the archive in place) on an unsafe or unreadable archive. With
+    *project* (the default) a restore that brought no database rebuilds it
+    from the event log; a caller that only reads the files, or that projects
+    itself (and may hold the projector's lock), passes False.
     """
     if not is_archived(run_dir):
         return False
     with run_lock(run_dir):
         names = _restore_locked(run_dir)
     # An archive written before 1.15 brings its database back; a shared clone's is rebuilt when its database is opened.
-    if names is not None and DB_NAME not in names and not is_shared_clone_run(run_dir):
+    if project and names is not None and DB_NAME not in names and not is_shared_clone_run(run_dir):
         _project_after_restore(run_dir)  # outside the lock: opening the database takes it
     return names is not None
 
@@ -242,9 +245,10 @@ def _restore_locked(run_dir: Path) -> list[str] | None:
     except RunArchiveError as exc:
         warn_once(run_dir, "Refusing to restore run archive: %s", exc)
         raise
-    if DB_NAME in names:  # sidecars beside an archive belong to a stray db; SQLite would replay them
-        for sidecar in DB_SIDECARS:
-            (run_dir / sidecar).unlink(missing_ok=True)
+    # A database or sidecar beside an archive is a stray (an archive step that could not delete it);
+    # left there, SQLite would replay a stale WAL into the restored or rebuilt database.
+    for stray in DROPPED_FILES:
+        (run_dir / stray).unlink(missing_ok=True)
     for name in names:
         dest = run_dir / name
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -270,16 +274,16 @@ def _project_after_restore(run_dir: Path) -> None:
     run_isolated(lambda: _ensure_projected(run_dir), label=f"rebuild the database of restored run {run_dir}", log=_logger)
 
 
-def restore_or_warn(run_dir: Path) -> bool:
+def restore_or_warn(run_dir: Path, *, project: bool = True) -> bool:
     """``ensure_restored`` for readers: False, with a warning, when the archive stays.
 
     A refused archive, a timed-out lock wait or a failed move reads as a run
     without an event log, never as an error. ``ensure_restored`` already logs
     its refusals, so only OS errors are logged here; each run is warned about
-    once per process.
+    once per process. *project* as in ``ensure_restored``.
     """
     try:
-        ensure_restored(run_dir)
+        ensure_restored(run_dir, project=project)
     except RunArchiveError:
         return False
     except OSError as exc:
@@ -288,10 +292,10 @@ def restore_or_warn(run_dir: Path) -> bool:
     return True
 
 
-def restore_for_read(run_dir: Path, path: Path) -> bool:
+def restore_for_read(run_dir: Path, path: Path, *, project: bool = True) -> bool:
     """``restore_or_warn``, checked again under the run lock when the run was archived before *path* was read."""
-    if not restore_or_warn(run_dir):
+    if not restore_or_warn(run_dir, project=project):
         return False
     if path.exists() or not is_archived(run_dir):
         return True
-    return restore_or_warn(run_dir)
+    return restore_or_warn(run_dir, project=project)

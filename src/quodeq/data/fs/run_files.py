@@ -122,7 +122,7 @@ def queue_file_exists(run_dir: Path, dim_id: str) -> bool:
 
 def dimension_evidence_file(run_dir: Path, dim_id: str) -> Path:
     """The dim's raw evidence path (``evidence/<dim>_evidence.jsonl``), restoring an archived run first."""
-    restore_or_warn(run_dir)
+    restore_or_warn(run_dir, project=False)  # the evidence file is all this reader needs
     return run_dir / EVIDENCE_DIRNAME / f"{dim_id}_evidence.jsonl"
 
 

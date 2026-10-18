@@ -31,3 +31,13 @@ def test_keep_runs_and_keep_notice_round_trip_beside_the_old_keys(tmp_path):
 def test_write_refuses_a_keep_runs_outside_the_choices(tmp_path):
     with pytest.raises(ValueError):
         write_storage_settings(StorageSettings(keep_runs=7), {"QUODEQ_DIR": str(tmp_path)})
+
+
+def test_a_never_choice_from_1_14_carries_over_as_keep_all(tmp_path):
+    env = {"QUODEQ_DIR": str(tmp_path)}
+    (tmp_path / "storage.json").write_text('{"archive_after_days": null}')
+    assert read_storage_settings(env).keep_runs is None
+    (tmp_path / "storage.json").write_text('{"archive_after_days": null, "keep_runs": 5}')
+    assert read_storage_settings(env).keep_runs == 5
+    (tmp_path / "storage.json").write_text('{"archive_after_days": 365}')
+    assert read_storage_settings(env).keep_runs == 10

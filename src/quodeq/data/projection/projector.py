@@ -264,7 +264,7 @@ class Projector:
         Restores an archived run first (again when it is archived before the log
         check); an unrestorable one projects nothing, as does one archived mid-read.
         """
-        if not restore_for_read(run_dir, events_path):
+        if not restore_for_read(run_dir, events_path, project=False):  # this call projects right after
             return ProjectionResult(events_projected=0, rebuilt=False)
         if not events_path.is_file():
             raise FileNotFoundError(f"Event log not found: {events_path}")

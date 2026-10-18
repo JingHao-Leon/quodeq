@@ -35,7 +35,7 @@ def test_a_lock_timeout_warns_once_per_run(tmp_path, monkeypatch, caplog):
     run = _run_with_files(tmp_path)
     archive_run(run)
 
-    def stuck(_run_dir):
+    def stuck(_run_dir, **_):
         raise TimeoutError("lock wait")
 
     monkeypatch.setattr(run_archive, "ensure_restored", stuck)
@@ -89,7 +89,7 @@ def test_a_run_archived_right_after_its_restore_check_is_restored_again(tmp_path
     real = run_archive.ensure_restored
     calls = []
 
-    def restore_then_archive(run_dir):
+    def restore_then_archive(run_dir, **_):
         restored = real(run_dir)
         if not calls:
             archive_run(run_dir)  # archived between the restore and the log check
