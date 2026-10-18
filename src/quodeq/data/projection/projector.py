@@ -1,13 +1,13 @@
 """Rebuild-vs-update decision and the staleness checks behind ``ensure_projected``."""
 from __future__ import annotations
 
-import threading
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager, nullcontext
+from collections.abc import Callable
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 
 from quodeq.data.fs.run_archive import restore_for_read
+from quodeq.data.projection.ensure_locks import EnsureLockRegistry  # noqa: F401 -- re-exported for callers
 from quodeq.data.projection.engine import ProjectionEngine
 from quodeq.data.sqlite.read_only import is_read_only
 from quodeq.data.sqlite.state_store import SQLiteStateStore
@@ -71,51 +71,6 @@ def _grades_stale(store: SQLiteStateStore) -> bool:
     """
     from quodeq.core.scoring.projector_scoring import GRADE_ALGO_VERSION  # noqa: PLC0415
     return store.get_grades_algo_version() != GRADE_ALGO_VERSION
-
-
-class EnsureLockRegistry:
-    """Per-run-dir locks serializing ``ensure_projected``.
-
-    Entries are refcounted: a lock is created on first ``acquire()`` for a
-    run_dir and removed once the last concurrent caller for that run_dir
-    releases it. This bounds the registry to run_dirs CURRENTLY being
-    projected, instead of growing one entry per run_dir ever seen for the
-    life of a long-lived API/dashboard process. The default registry below
-    is process-wide on purpose — concurrent callers projecting the same run
-    must share one lock. Tests inject a fresh registry so lock state never
-    leaks between them.
-    """
-
-    def __init__(self) -> None:
-        self._locks: dict[Path, threading.Lock] = {}
-        self._refcounts: dict[Path, int] = {}
-        self._registry_lock = threading.Lock()
-
-    @contextmanager
-    def acquire(self, run_dir: Path) -> Iterator[None]:
-        """Hold the lock for *run_dir* for the duration of the block.
-
-        Blocks while another thread projects the same run. The refcount is
-        bumped under the registry lock before blocking, so the entry cannot be
-        evicted out from under a waiter.
-        """
-        with self._registry_lock:
-            lock = self._locks.get(run_dir)
-            if lock is None:
-                lock = threading.Lock()
-                self._locks[run_dir] = lock
-                self._refcounts[run_dir] = 0
-            self._refcounts[run_dir] += 1
-        lock.acquire()
-        try:
-            yield
-        finally:
-            lock.release()
-            with self._registry_lock:
-                self._refcounts[run_dir] -= 1
-                if self._refcounts[run_dir] == 0:
-                    del self._locks[run_dir]
-                    del self._refcounts[run_dir]
 
 
 _DEFAULT_LOCKS = EnsureLockRegistry()
@@ -276,6 +231,11 @@ class Projector:
             return ProjectionResult(events_projected=0, rebuilt=False)
 
     def _project_locked(self, events_path: Path, run_dir: Path, project_dir: Path | None) -> ProjectionResult:
+        # A restore from inside this projection's own database open (the run was archived between the
+        # restore check and the connect) projects through here again on the same thread: it must not
+        # wait on the lock this thread holds. The outer pass rebuilds the store it finds.
+        if self._locks.held_by_this_thread(run_dir):
+            return ProjectionResult(events_projected=0, rebuilt=False)
         with self._locks.acquire(run_dir):
             store = self._store_factory(run_dir)
             # One connection for every run_meta read the check makes.
