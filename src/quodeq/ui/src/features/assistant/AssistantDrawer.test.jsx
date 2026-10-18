@@ -231,3 +231,17 @@ it('sends what the open page published (the Risk area open on the Map) with the 
   fireEvent.keyDown(input, { key: 'Enter' });
   expect(state.sendMessage).toHaveBeenCalledWith('why is this area red?', { activeTab: 'map', page: 'map', focus: { riskArea: 'payments' } });
 });
+
+it('an error before the first message replaces the welcome, disables the input and leads to Settings', () => {
+  const prev = { messages: state.messages, error: state.error };
+  state.messages = [];
+  state.error = "Couldn't start assistant session: unknown or unsupported provider";
+  const onOpenSettings = vi.fn();
+  render(<AssistantPane uiState={{ view: 'overview' }} onOpenSettings={onOpenSettings} />);
+  expect(screen.queryByText(/explain scores/i)).toBeNull();
+  expect(screen.getByText(/unsupported provider/)).toBeInTheDocument();
+  expect(screen.getByPlaceholderText(/ask the assistant/i)).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'open settings' }));
+  expect(onOpenSettings).toHaveBeenCalled();
+  Object.assign(state, prev);
+});

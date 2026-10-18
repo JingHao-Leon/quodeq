@@ -11,6 +11,7 @@ import ChartKeyboardControls from './ChartKeyboardControls.jsx';
 import { ScoreHistoryChart } from './scoreChartParts.jsx';
 import { gradeLetter } from '../utils/formatters.js';
 import { t } from '../strings/index.js';
+import { pluralKey } from '../utils/plural.js';
 
 /**
  * One tooltip card: the point's date on top, its score and grade below, plus
@@ -91,18 +92,30 @@ export function computeScoreStats(data) {
   };
 }
 
+const UNIT_KEYS = {
+  day: ['granularity.day', 'granularity.days'],
+  week: ['granularity.week', 'granularity.weeks'],
+  month: ['granularity.month', 'granularity.months'],
+};
+
+/** "day" / "days" and so on, for "score_history · 3 weeks". */
+export function granularityUnit(count, granularity) {
+  const [one, many] = UNIT_KEYS[granularity] || UNIT_KEYS.day;
+  return t(pluralKey(count, one, many));
+}
+
 /**
  * The panel a score-history chart sits in: the section, the "SCORE HISTORY ·
  * N<suffix>" label, the period selector when the panel can change granularity
  * and the min/max/avg line when there are scores to summarise.
  */
 export function ScoreHistoryPanelFrame({
-  ariaLabel, count, suffix, granularity, onGranularityChange, stats, children,
+  ariaLabel, count, granularity, onGranularityChange, stats, children,
 }) {
   return (
     <section className="run-history-panel run-history-panel--terminal panel" aria-label={ariaLabel}>
       <div className="run-history-panel__header">
-        <SectionLabel>{t('overview.scoreHistoryLabel')} · {count}{suffix}</SectionLabel>
+        <SectionLabel>{t('overview.scoreHistoryLabel')} · {count} {granularityUnit(count, granularity)}</SectionLabel>
         <span className="run-history-panel__controls">
           {onGranularityChange && <PeriodSelect value={granularity} onChange={onGranularityChange} />}
           {stats && (

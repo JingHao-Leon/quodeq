@@ -23,7 +23,7 @@ beforeEach(() => sessionStorage.clear());
 describe('RunLogPage: hidden standards', () => {
   it('a hidden dimension leaves the dimensions tab and the run score and severity', async () => {
     renderPage({ visibleSet: new Set(['security']) });
-    expect(await screen.findByRole('tab', { name: /1 dimensions/ })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /1 dimension$/ })).toBeInTheDocument();
     expect(screen.queryByText('usability')).toBeNull();
     const hero = document.querySelector('.rl-hero');
     expect(hero.querySelector('.rl-hero__score')).toHaveTextContent('8.0');
@@ -61,5 +61,20 @@ describe('RunLogPage: no runs to show', () => {
     expect(document.querySelector('.rl-strip')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'clear filters' }));
     expect(await screen.findByText('runs · 2')).toBeInTheDocument();
+  });
+});
+
+describe('RunLogPage: the strip needs runs that compare against the same model', () => {
+  it('stays hidden while no two runs have a same-model baseline', async () => {
+    renderPage();
+    await screen.findByText('runs · 2');
+    expect(document.querySelector('.rl-strip')).toBeNull();
+  });
+
+  it('shows once two runs plot a comparison', async () => {
+    const compared = { baselineKind: 'same-model', counts: { new: 1, resolved: 0 } };
+    renderPage({ runs: [{ ...TWO_DIMS, ...compared }, { ...OLDER, ...compared }] });
+    await screen.findByText('runs · 2');
+    expect(document.querySelector('.rl-strip')).not.toBeNull();
   });
 });

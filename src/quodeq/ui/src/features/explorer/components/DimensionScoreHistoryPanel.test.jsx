@@ -40,13 +40,13 @@ describe('DimensionScoreHistoryPanel', () => {
   it('renders the section label with the bucket size', () => {
     render(<DimensionScoreHistoryPanel trend={TREND} dimension="maintainability" />);
     expect(screen.getByText(/score_history/i)).toBeInTheDocument();
-    expect(screen.getByText(/· 3d/)).toBeInTheDocument();
+    expect(screen.getByText(/· 3 days/)).toBeInTheDocument();
   });
 
   it('collapses runs into ISO-week buckets when granularity is week', () => {
     // Apr 3 and Apr 5 are the same ISO week; Apr 7 is the next week.
     render(<DimensionScoreHistoryPanel trend={TREND} dimension="maintainability" granularity="week" />);
-    expect(screen.getByText(/· 2w/)).toBeInTheDocument();
+    expect(screen.getByText(/· 2 weeks/)).toBeInTheDocument();
   });
 
   it('renders the PeriodSelect when onGranularityChange is provided and reports changes', () => {

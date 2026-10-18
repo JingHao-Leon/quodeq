@@ -15,9 +15,9 @@ describe('RunHistoryPanel', () => {
     expect(screen.getByLabelText('Group score history by')).toHaveValue('week');
   });
 
-  it('shows a granularity-aware label suffix (w for week)', () => {
+  it('names the bucket unit after the count (weeks for week)', () => {
     render(<RunHistoryPanel trend={TREND} selectedRunId="r1" granularity="week" onGranularityChange={() => {}} />);
-    expect(screen.getByText(/score_history · 3w/i)).toBeInTheDocument();
+    expect(screen.getByText(/score_history · 3 weeks/i)).toBeInTheDocument();
   });
 
   it('calls onGranularityChange when the selector changes', () => {

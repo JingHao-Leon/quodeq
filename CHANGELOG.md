@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Before you upgrade
+- **One overall score**: a dimension that stopped on a failure streak keeps a provisional score, and every overall average now leaves it out: the Overview headline, the trend, the project card and Compare agree (only Compare did before). A run with such a dimension can show a different score in History after the update; the first start rebuilds the score cache.
 - **One full score rebuild on first launch**: every run's cache version now carries its grade stamp (the fix for grades that stayed stale after a formula change), so the first start after the update rebuilds the scores of every project once, with the strip under the top bar showing how far along it is. The last known grades stay on screen, dimmed, until each project's new ones land.
 - **Storage keeps a number of runs, not an age**: cleanup now keeps the newest 10 finished runs of each project in full (5, 10, 25 or all in Settings › Storage) and archives the rest, cancelled runs included, whatever their age: a project evaluated daily sees runs from last week archived. The first start after the update only tidies and shows a notice in Settings › Storage with how many runs the next start will archive and how much space that frees, so you can pick a larger number or turn **Clean up after start** off first. A 1.14 **never** carries over as **all**; the 1.14 age choice is no longer used.
 - **Archives are smaller and reports are compressed too**: an archive no longer stores the run's database, which is rebuilt from the event log in a couple of seconds when the run is opened, and an archived run's reports are compressed in place; the pass after the notice compresses the reports of runs already archived. A run you open stays unpacked for 30 days. New files beside an archived run: `evaluation/<dimension>.json.gz`, `scalars.json`, `precedents.json`, and `grades.stamp` beside every database.
@@ -17,6 +18,10 @@
 - **Code in reasons as chips**: backticked code in a finding's reason renders as amber chips.
 
 ### Improvements
+- **Sidebar badge**: counts the open findings, the number the Violations page leads with, instead of criticals plus majors.
+- **History**: the what-changed strip appears only once two runs compare against the same model, and the run card says *1 dimension*.
+- **Assistant**: when no session can start, the drawer says why and offers **open settings** in place of the suggestions, with the input disabled.
+- **Labels**: the score history reads *3 weeks* instead of *3w*, the since line says *rules opened*, a dimension card says *files read*, and the Map head says *violations to compliance 1:3*.
 - **Score history**: the history draws from the second evaluation on and shows a single week or month as one bar with its minimum, maximum and average; week buckets are labelled with their date range; the radial is left out under three points and takes the whole row while the history is hidden.
 - **Grade formula page**: the chart keeps its frame while the projects load.
 - **Headers**: a wrapped page header spans the full width.

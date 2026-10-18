@@ -19,11 +19,11 @@ describe('SinceStrip', () => {
     expect(screen.queryByText('0 new')).not.toBeInTheDocument();
   });
 
-  it('shows the rule types only when some opened or closed', () => {
+  it('shows the rules opened and closed only when some did', () => {
     const { rerender } = render(<SinceStrip summary={summary()} />);
-    expect(screen.queryByText(/rule types opened/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/rules? opened/)).not.toBeInTheDocument();
     rerender(<SinceStrip summary={summary({ typesOpened: 3, typesClosed: 1 })} />);
-    expect(screen.getByText('3 rule types opened')).toBeInTheDocument();
+    expect(screen.getByText('3 rules opened')).toBeInTheDocument();
     expect(screen.getByText('1 closed')).toBeInTheDocument();
   });
 

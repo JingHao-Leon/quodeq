@@ -86,17 +86,16 @@ export function shouldShowProjectTabs({ selectedSource, selectedProjectInfo, sha
  * screen until the new project's fetch lands. Exported so this contract is
  * unit-testable without mounting the whole App.
  */
-// The badge counts majors (critical + major), the number that only moves when
-// the code moves; the raw violations total lives on the Violations page.
-function majorsOf(summary) {
-  const severity = summary?.severity;
-  if (!severity || typeof severity !== 'object') return null;
-  return (severity.critical || 0) + (severity.major || 0);
+// The badge counts the open findings, the number the Violations page leads
+// with, so the two never seem to disagree.
+function openOf(summary) {
+  const total = summary?.totalViolations;
+  return typeof total === 'number' ? total : null;
 }
 
 export function selectSidebarCounts({ filteredAccumulated, accumulated, filteredTrend, dashboard }) {
   return {
-    violationsCount: majorsOf(filteredAccumulated?.summary) ?? majorsOf(accumulated?.summary) ?? null,
+    violationsCount: openOf(filteredAccumulated?.summary) ?? openOf(accumulated?.summary) ?? null,
     historyCount: (filteredTrend || []).length || dashboard?.trend?.length || null,
   };
 }

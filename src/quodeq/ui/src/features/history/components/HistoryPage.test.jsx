@@ -118,7 +118,7 @@ describe('HistoryPage: delete-run source gating', () => {
 
   it('a shared project builds its run log from the trend: no run log call, no delete', async () => {
     const api = renderHistory({ selectedSource: 'shared' });
-    expect(await screen.findByRole('tab', { name: /dimensions/ })).toBeInTheDocument();
+    expect(await screen.findByRole('tab', { name: /dimensions?$/ })).toBeInTheDocument();
     expect(screen.getByText('runs · 1')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'more actions' })).toBeNull();
     expect(screen.getByText('remote · read-only')).toBeInTheDocument();

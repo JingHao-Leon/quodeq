@@ -55,14 +55,14 @@ describe('Sidebar compare nav item — fleet gating', () => {
     expect(screen.queryByTitle('overview')).toBeNull();
   });
 
-  it('the violations badge says what it counts: majors', () => {
+  it('the violations badge says what it counts: open findings', () => {
     render(<Sidebar activeTab="overview" onNavTab={vi.fn()} violationsCount={5} />);
-    expect(screen.getByText('5')).toHaveAttribute('title', '5 majors');
+    expect(screen.getByText('5')).toHaveAttribute('title', '5 open findings');
   });
 
-  it('one major is singular', () => {
+  it('one open finding is singular', () => {
     render(<Sidebar activeTab="overview" onNavTab={vi.fn()} violationsCount={1} />);
-    expect(screen.getByText('1')).toHaveAttribute('title', '1 major');
+    expect(screen.getByText('1')).toHaveAttribute('title', '1 open finding');
   });
 });
 

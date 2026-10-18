@@ -63,7 +63,7 @@ describe('RunLogPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'filter by model' }));
     fireEvent.click(screen.getByRole('menuitemradio', { name: /qwen/ }));
     expect(await screen.findByText('1 of 2 runs')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /dimensions/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /dimensions?$/ })).toBeInTheDocument();
   });
 
   it('arrows with a modifier held, or inside a dialog, do not move the selection', async () => {

@@ -88,7 +88,7 @@ export function BottomDrawer({ uiState, projectName, onOpenSettings }) {
       {openPanels.includes(DRAWER_PANEL.ASSISTANT) && (
         <div className="drawer-panel" style={{ display: active === DRAWER_PANEL.ASSISTANT ? 'flex' : 'none' }}>
           <AssistantHeader selectedProject={projectName ?? uiState?.selectedProject} onOpenSettings={onOpenSettings} />
-          <AssistantPane uiState={uiState} active={active === DRAWER_PANEL.ASSISTANT} />
+          <AssistantPane uiState={uiState} active={active === DRAWER_PANEL.ASSISTANT} onOpenSettings={onOpenSettings} />
         </div>
       )}
       {openPanels.includes(DRAWER_PANEL.TERMINAL) && (

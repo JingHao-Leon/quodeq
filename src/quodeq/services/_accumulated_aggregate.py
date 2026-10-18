@@ -12,7 +12,7 @@ from typing import Any
 
 from quodeq.core.scoring.internals import score_to_grade_label
 from quodeq.core.scoring.params import DEFAULT_PARAMS, ScoringParams, dimension_weighted_average
-from quodeq.core.scoring.report_grades import calculate_trend, most_frequent_grade, parse_numeric_score
+from quodeq.core.scoring.report_grades import calculate_trend, most_frequent_grade, scored_pairs
 from quodeq.core.types import DimensionResult
 from quodeq.core.types.severity import SEVERITY_ORDER
 from quodeq.shared.serialization import to_camel_dict
@@ -23,12 +23,7 @@ def numeric_average(
     params: ScoringParams = DEFAULT_PARAMS,
 ) -> float | None:
     """Compute the average numeric score from a list of DimensionResult objects."""
-    pairs = [
-        (d.dimension, score)
-        for d, score in ((d, parse_numeric_score(d.overall_score)) for d in dimensions if d.overall_score)
-        if score is not None
-    ]
-    return dimension_weighted_average(pairs, params)
+    return dimension_weighted_average(scored_pairs(dimensions), params)
 
 
 def compute_accumulated_trends(

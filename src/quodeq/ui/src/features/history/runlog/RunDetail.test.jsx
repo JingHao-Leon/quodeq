@@ -13,7 +13,7 @@ function renderDetail(over = {}) {
 describe('RunDetail', () => {
   it('dimensions first; majors change against the comparison run', () => {
     renderDetail();
-    expect(screen.getByRole('tab', { name: /dimensions/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /1 dimension$/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('96 maj', { exact: false })).toBeInTheDocument();
     expect(screen.getByText(/\+8/)).toBeInTheDocument();
   });
