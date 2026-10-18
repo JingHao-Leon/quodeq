@@ -9,6 +9,7 @@ import DetailSkeleton from '../../../components/DetailSkeleton.jsx';
 import { RefLinks, DowngradeTags } from '../../../components/findingDetail.jsx';
 import { SevBadge } from '../../../components/terminal/index.js';
 import { t } from '../../../strings/index.js';
+import { renderCodeSpans } from '../../../strings/rich.jsx';
 import { parentFolder } from './folderModel.js';
 import { useRequirementText } from './useRequirementText.js';
 
@@ -45,7 +46,7 @@ function Why({ v }) {
   return (
     <div className="wb-sec">
       <span className="vlive-detail-section-label">{t('violations.wbWhy')}</span>
-      {v.reason && <p className="vlive-detail-reason">{v.reason}</p>}
+      {v.reason && <p className="vlive-detail-reason">{renderCodeSpans(v.reason)}</p>}
       {v.detailUnavailable && <p className="vlive-detail-reason vlive-detail-reason--unavailable">{t('explorer.detailUnavailable')}</p>}
     </div>
   );

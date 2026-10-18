@@ -8,6 +8,7 @@ import SevBadge from '../../../components/terminal/SevBadge.jsx';
 import usePretextHeight from '../../../hooks/usePretextHeight.js';
 import { ViolationActions } from './violationActions.jsx';
 import { t } from '../../../strings/index.js';
+import { renderCodeSpans } from '../../../strings/rich.jsx';
 
 const ANIM_DELAY_PER_ITEM_MS = 30;
 const ANIM_MAX_DELAY_MS = 300;
@@ -64,7 +65,7 @@ function ViolationDetail({ item }) {
               style={reasonMeasure.height ? { minHeight: reasonMeasure.height } : undefined}
               data-pretext-lines={reasonMeasure.lineCount || undefined}
             >
-              {item.reason}
+              {renderCodeSpans(item.reason)}
             </p>
           </>}
         </div>
