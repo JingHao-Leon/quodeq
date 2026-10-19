@@ -19,23 +19,23 @@ def test_cli_provider_not_busy_gated(client, app, monkeypatch):
 
 
 def test_post_message_spawns_turn_and_streams(client, app, monkeypatch):
-    # The stream now stays open past a turn's `done` (so 2nd+ turns still
-    # reach the browser), so bound the idle backstop to keep this consuming
-    # test from blocking the full 600s window once the turn's frames drain.
+    # The stream stays open past a turn's `done`; bound the idle backstop so this test never blocks 600s.
     monkeypatch.setattr("quodeq.api._assistant_events.POLL_SECONDS", 0.001)
     monkeypatch.setattr("quodeq.api._assistant_events.IDLE_LIMIT", 30)
+    seen = {}
 
     def fake_run_turn(request, *, repository, tool_ctx, **kw):
         repository.add_message(request.session_id, "user", request.text)
         repository.append_event(request.session_id, {"type": "token", "text": "hi"})
         repository.append_event(request.session_id, {"type": "done"})
+        seen["done"] = True
 
     monkeypatch.setattr("quodeq.api.assistant_routes.run_turn", fake_run_turn)
     sid = client.post("/api/assistant/sessions",
                       json={"provider": "ollama", "model": "m"}).get_json()["sessionId"]
     resp = client.post(f"/api/assistant/sessions/{sid}/messages", json={"text": "hello"})
     assert resp.status_code == 202
-    time.sleep(0.3)  # let the daemon thread finish
+    assert _wait_for(seen, "done")  # the daemon thread, however slow the runner
     stream = client.get(f"/api/assistant/sessions/{sid}/events?after=0")
     body = stream.get_data(as_text=True)
     assert '"type": "token"' in body
@@ -147,8 +147,7 @@ def test_local_provider_ignores_request_api_base(client, app, monkeypatch):
         json={"text": "hello", "apiBase": "http://evil.internal/v1", "apiKey": "leaked"},
     )
     assert resp.status_code == 202
-    time.sleep(0.3)
-    assert captured["api_base"] == "http://localhost:11434/v1"
+    assert _wait_for(captured, "api_base") == "http://localhost:11434/v1"
     assert captured["api_key"] is None
 
 
@@ -173,11 +172,12 @@ def test_non_fixed_provider_also_ignores_request_api_base(client, app, monkeypat
         json={"text": "hi", "apiBase": "http://169.254.169.254/latest/meta-data/"},
     )
     assert resp.status_code == 202
-    time.sleep(0.3)
-    assert captured["api_base"] == "https://openrouter.ai/api/v1"
+    assert _wait_for(captured, "api_base") == "https://openrouter.ai/api/v1"
 
 
-def _wait_for(seen, key, timeout=2.0):
+def _wait_for(seen, key, timeout=5.0):
+    # A turn runs on a daemon thread; poll for what the fake captured instead
+    # of sleeping a fixed time, which a slow Windows runner overran twice.
     deadline = time.time() + budget(timeout)
     while key not in seen and time.time() < deadline:
         time.sleep(0.01)
