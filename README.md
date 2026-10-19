@@ -25,7 +25,17 @@ AI models can now find vulnerabilities and design flaws that human review misses
 Scans any codebase with AI across six quality dimensions from [ISO 25010](https://www.iso.org/standard/35733.html):
 **Security**, **Reliability**, **Maintainability**, **Performance**, **Flexibility**, and **Usability**.
 
-Every finding maps to a [CWE](https://cwe.mitre.org/) identifier. You get grades, violations with line numbers, and a fix plan. Cloud providers (Claude, Gemini, Codex, GitHub Copilot) for speed. Local models via [Ollama](https://ollama.com) for privacy.
+Every finding maps to a [CWE](https://cwe.mitre.org/) identifier. You get grades, violations with line numbers, and a fix plan. Use the AI you already have: Claude Code, Codex, Gemini CLI or GitHub Copilot, any model through OpenRouter, or a local model with [Ollama](https://ollama.com), llama.cpp or omlx so the code never leaves your machine. Your own standards are measured exactly like the built-in ones.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="res/dashboard-dark.png" />
+    <img src="res/dashboard.png" alt="The Quodeq Overview: the project's grade, each dimension's score and trend, the score history and what to fix first" width="900" />
+  </picture>
+</p>
+<p align="center"><sub>The Overview of a project: the grade, the dimensions, the score history, what to fix first.</sub></p>
+
+**Contents:** [Getting started](#getting-started) · [Dashboard](#dashboard) · [Your own standards](#your-own-standards) · [AI providers](#ai-providers) · [How it works](#how-it-works) · [Privacy](#privacy) · [Development](#development) · [Contributing](#contributing)
 
 ---
 
@@ -45,7 +55,7 @@ COMPLIANT   src/api.py:88       Parameterized query prevents injection     CWE-8
             cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
 ```
 
-Each finding includes a reason, the offending code, and a fix plan. Results are stored on your machine as JSON files and local databases, with older runs compressed to save space.
+Each finding includes a reason, the offending code, and a fix plan. Results stay on your machine: the newest runs of each project are kept in full, older ones are archived to a fraction of the space with their grades and reports still readable.
 
 ---
 
@@ -66,9 +76,7 @@ Each finding includes a reason, the offending code, and a fix plan. Results are 
 
 > **Debian/Ubuntu heads-up:** If you use the native desktop window (not `--browser`), you'll need `sudo apt install -y python3-gi gir1.2-webkit2-4.1` too. Otherwise quodeq will auto-fall-back to opening the dashboard in your default browser.
 
-> **Windows note:** The test suite runs on `windows-latest` as a **blocking** CI gate, so a Windows regression blocks the PR. The desktop window (WebView2) is smoke-tested manually per release. If anything misbehaves, please [open an issue](https://github.com/quodeq/quodeq/issues).
-
-Minimum versions: Python 3.12+. (The dashboard UI ships pre-built inside the wheel, so end users no longer need Node.js or npm. Contributors who want to iterate on the UI source need Node 20+ and npm 10+, see [CONTRIBUTING.md](CONTRIBUTING.md).)
+Minimum versions: Python 3.12+. The dashboard ships pre-built inside the wheel, so Node.js is only needed by contributors (see [CONTRIBUTING.md](CONTRIBUTING.md)). On Windows, if the desktop window misbehaves, please [open an issue](https://github.com/quodeq/quodeq/issues).
 
 ### 2. Install quodeq
 
@@ -89,23 +97,23 @@ Prefer a desktop app to the CLI? See [Desktop apps](#desktop-apps-beta) below.
 
 ### 3. Pick an AI provider
 
-Quodeq needs an LLM to do the evaluation. You have two options:
+Quodeq needs a model to do the evaluation. Which one suits you depends on your hardware and budget; the [benchmarks](https://quodeq.ai/benchmarks/) show how models compare on a known corpus.
 
-**Local, free, private** — [Ollama](https://ollama.com/download) with Gemma 4:
+**Local, free, private:** [Ollama](https://ollama.com/download), [llama.cpp](https://github.com/ggml-org/llama.cpp), or omlx on Apple Silicon. The code never leaves your machine.
 ```bash
 # install ollama from https://ollama.com/download, then:
-ollama pull gemma4:26b
-ollama serve    # runs in the background
+ollama pull <model>    # a code-capable model your machine has room for
+ollama serve           # runs in the background
 ```
 
-**Cloud, faster** — one of the agentic CLIs (at least one):
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) — `npm install -g @anthropic-ai/claude-code`
-- [Codex CLI](https://developers.openai.com/codex/quickstart) — `npm install -g @openai/codex`
-- [Gemini CLI](https://geminicli.com/docs/get-started/installation/) — `npm install -g @google/gemini-cli`
-- [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli) (`npm install -g @github/copilot`). Requires a [dedicated Quodeq login](#using-github-copilot).
+**Cloud, with an account you already have:** an agentic CLI, or one OpenRouter key for its whole catalog.
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview): `npm install -g @anthropic-ai/claude-code`
+- [Codex CLI](https://developers.openai.com/codex/quickstart): `npm install -g @openai/codex`
+- [Gemini CLI](https://geminicli.com/docs/get-started/installation/): `npm install -g @google/gemini-cli`
+- [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli): `npm install -g @github/copilot`, then a [dedicated Quodeq login](#using-github-copilot)
+- [OpenRouter](https://openrouter.ai): paste your key in **Settings**
 
-[llama.cpp](#ai-providers) is also supported. See [AI Providers](#ai-providers) for the
-full list and how to choose.
+See [AI Providers](#ai-providers) for the full list.
 
 ### 4. Launch the dashboard
 
@@ -142,20 +150,19 @@ unrecognized publisher on first launch: choose **More info** then **Run anyway**
 
 ## Dashboard
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="res/dashboard-dark.png" />
-    <img src="res/dashboard.png" alt="Quodeq Dashboard" width="900" />
-  </picture>
-</p>
-<br>
+One screen per question:
 
-- **Grades and scores** per dimension with A-F letter grades, numeric scores, and trends across runs
-- **Violations explorer** to drill into findings by file, principle, or CWE classification
-- **Code map** showing a visual heatmap of where issues concentrate in your codebase
-- **Custom standards** to create your own evaluation dimensions or import from the library
+- **Overview**: the project's grade on a 0 to 10 scale, each dimension's score and trend, the score history across runs, what to fix first and the areas needing rework.
+- **Violations**: a workbench over every finding. Search it like grep, read the reason, the rule, the code and a fix plan, open the file, dismiss a false positive once and it stays dismissed.
+- **Map**: the codebase as a circle pack, coloured by where issues concentrate or where the code changes, with Risk and Galaxy views for the areas and the standards behind them.
+- **History**: every run, what changed since the previous one, dimension by dimension.
+- **Compare**: all your projects side by side, and a duel between any two.
+- **Standards**: the rules quodeq evaluates against, built-in and [your own](#your-own-standards).
+- **Grade formula**: an editor that shows what a change does to every grade before you apply it.
+- **Assistant**: a chat that knows the project. It explains scores, digs into findings and drafts standards; nothing changes until you press Apply.
+- **Shared repository**: publish results to a git repository and pull a teammate's, so a team reads the same evaluation without re-running it.
 
-Click any dimension, file, or principle to explore the details. Dismiss false positives directly from the UI.
+Click any dimension, file, or principle to explore the details.
 
 Running `quodeq` is equivalent to `quodeq dashboard`. Both open the same UI and hand the terminal back once the window is up. `quodeq status` shows what is running (window, API, evaluations) and `quodeq stop` closes the window and its API. Running evaluations keep going.
 
@@ -185,8 +192,8 @@ tests/fixtures
 *.min.js
 ```
 
-Exclusions apply everywhere files are collected — full scans, `--scope` runs,
-monorepo subproject discovery, and `--diff-from` change detection — on top of
+Exclusions apply everywhere files are collected: full scans, `--scope` runs,
+monorepo subproject discovery, and `--diff-from` change detection, on top of
 the built-in skips (`node_modules`, `dist`, dot-directories, ...).
 
 ### SARIF / GitHub code scanning
@@ -223,73 +230,32 @@ Choose what fits your workflow. Configure in **Settings** from the dashboard.
 |---|---|---|
 | [Ollama](https://ollama.com/download) | Local | Free, private, code never leaves your machine |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) | Local | Run any GGUF directly. Supports speculative decoding (MTP) via a draft model |
-| [Claude Code](https://code.claude.com/docs/en/quickstart) | Cloud | Best balance of speed, quality, and cost |
+| [Claude Code](https://code.claude.com/docs/en/quickstart) | Cloud | Anthropic models through your Claude account |
 | [Codex CLI](https://developers.openai.com/codex/quickstart) | Cloud | OpenAI models |
 | [Gemini CLI](https://geminicli.com/docs/get-started/installation/) | Cloud | Google models |
 | [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli) | Cloud | Models available through your Copilot account, including company-managed accounts |
+| [OpenRouter](https://openrouter.ai) | Cloud | One key for a broad catalog, or any OpenAI-compatible endpoint |
+| omlx | Local | Apple Silicon only: an MLX-native server for models tuned for unified memory |
 
-> For local analysis we recommend [Gemma 4](https://deepmind.google/models/gemma/gemma-4/) ([`gemma4:26b`](https://ollama.com/library/gemma4:26b)). Reducing the context window to 32k still gives good results and allows running multiple subagents in parallel.
+Which model to run is your call; the [benchmarks](https://quodeq.ai/benchmarks/) show how models compare on a known corpus, and the in-app Help has the [provider details](https://quodeq.ai/docs/providers/).
 
 ### Using GitHub Copilot
 
-Copilot supports evaluations and the embedded assistant. Install a current GitHub
-Copilot CLI, then sign in once using Quodeq's dedicated profile:
+Copilot runs evaluations and the assistant through a dedicated Quodeq profile, so your normal `~/.copilot` login, keys and plugins stay untouched. Install the CLI, sign in once into that profile, then pick **GitHub Copilot** in Settings:
 
 ```bash
 npm install -g @github/copilot
 COPILOT_HOME="$HOME/.quodeq/copilot" copilot login
 ```
 
-On PowerShell:
-
-```powershell
-$env:COPILOT_HOME = "$HOME/.quodeq/copilot"
-copilot login
-Remove-Item Env:COPILOT_HOME
-```
-
-Use your company account if it provides your Copilot entitlement. For Enterprise
-Cloud with data residency, add `--host YOUR-ENTERPRISE.ghe.com` to the login command.
-Your organization must permit Copilot CLI, the selected model, and Quodeq's MCP
-servers: `findings` for evaluations and `quodeq-assistant` for the assistant.
-Subscription limits, usage charges and company policies still apply.
-
-Select **GitHub Copilot** in the evaluation or assistant settings. Quodeq loads
-the models available to your signed-in account into a dropdown. Choose **Auto**
-or a specific model. Tier overrides use the same list; leave them on **Use main
-model** to reuse the selected model.
-
-The login instructions disappear when model discovery succeeds. If it fails,
-Quodeq shows the setup instructions, an error, and **Retry connection**. Model
-discovery queries the CLI's model API without sending a prompt or running tools.
-Successful login and model discovery do not verify MCP access. If Copilot reports
-that the required MCP server is blocked by policy, Quodeq stops the evaluation
-without spawning replacement agents. Ask your organization administrator to
-allow the server before retrying.
-The evaluation displays **Evaluation blocked by Copilot policy**. The reason is
-saved with the run and remains visible after refresh, even without the logs.
-If files were already completed, their results are kept with a partial-run warning.
-
-Quodeq uses `~/.quodeq/copilot`, not your normal `~/.copilot` profile. It does not
-copy credentials or inherit unrelated API keys, GitHub tokens, Copilot permission
-or BYOK environment overrides. Keep this profile for login and Quodeq sessions only. Custom MCP
-servers and installed plugins in it are rejected. Quodeq disables hooks,
-custom instructions and built-in MCP servers, and runs from a scratch directory.
-Evaluations expose file-reading tools plus Quodeq's findings MCP server; assistant
-turns expose only Quodeq's assistant MCP tools, with the existing write-grant rules.
-The assistant's web toggle is unavailable for Copilot.
-
-If authentication expires, repeat the dedicated-profile login command. Errors
-from model access, company policy and quota restrictions are surfaced rather than
-silently switching providers. Quodeq's evaluation time limits still apply; its
-Claude-specific dollar-budget and maximum-turn flags are not passed to Copilot.
+Your organization must permit Copilot CLI, the model you pick, and Quodeq's MCP servers (`findings` for evaluations, `quodeq-assistant` for the assistant). Enterprise hosts, the PowerShell form of the login, policy errors and what Quodeq disables inside the profile are in the [provider docs](https://quodeq.ai/docs/providers/).
 
 ### Using llama.cpp
 
 llama.cpp is one process per model, fixed at launch. Start `llama-server` yourself, then point Quodeq at it from **Settings → AI Provider → llama.cpp**.
 
 ```bash
-# Quodeq creates ~/.quodeq/logs/ on first launch — just redirect there
+# Quodeq creates ~/.quodeq/logs/ on first launch, so redirect there
 # and the CONSOLE button picks it up automatically.
 llama-server -m path/to/target.gguf --port 8080 \
   > ~/.quodeq/logs/llama-server.log 2>&1
@@ -313,11 +279,17 @@ Quodeq probes `http://localhost:8080` and looks for the log file at `~/.quodeq/l
 
 Results are stored in `~/.quodeq/evaluations/` and persist across sessions. Works with any language. The AI analysis engine reads and understands code regardless of the tech stack.
 
-Quodeq scores each principle on a 0 to 10 scale using four independent constraints. Full details in [the scoring formula documentation](src/quodeq/core/scoring/README.md).
+Quodeq scores each principle on a 0 to 10 scale from the severity of the findings and how widely they spread across the files. Full details in [the scoring formula documentation](src/quodeq/core/scoring/README.md).
 
-### Standards
+### Your own standards
 
-By default, Quodeq evaluates the six ISO 25010 dimensions. It also ships with **Clean Architecture**, **Domain-Driven Design** and **Accessibility** (WCAG 2.2) standards, off until you enable them. You can create your own from the dashboard, or ask any AI to generate one as a `.json` file and import it.
+By default, Quodeq evaluates the six ISO 25010 dimensions. It also ships with **Clean Architecture**, **Domain-Driven Design** and **Accessibility** (WCAG 2.2) standards, off until you enable them.
+
+A standard is a set of principles and requirements, and one you write is measured exactly like a built-in one: the same grades, the same place in the Overview, the Map and Compare. Three ways to get one:
+
+- **Write it in the dashboard.** **Standards → New standard**, then the principles and requirements by hand.
+- **Ask the assistant.** Tell it what the standard should enforce and which source it follows (a style guide, a framework's documentation, your team's rules). It proposes an outline, drafts the standard as a preview card with a link to the source page behind every requirement, and creates it when you press **Apply**.
+- **Import a file.** Any chat AI can write one from the schema in the in-app Help; **Import** validates it before it lands.
 
 Numeric thresholds on the built-in standards (max function lines, max parameters, ...) can be tuned per project from the dashboard. They are kept on your machine, per project, in `~/.quodeq/projects/<id>/standards.json`, and quodeq never writes them into the repository. Overrides from an older `.quodeq/standards-overrides.json` in a repository are copied once, the first time the project is used.
 
@@ -354,7 +326,7 @@ otherwise assumes the most pessimistic model, which is how it behaves today.
 
 There is no Quodeq account, no Quodeq server, and no telemetry. Your source code is read
 locally and evaluation results are written to `~/.quodeq/evaluations/` as JSON files and local databases,
-with older runs compressed to save space. If you run a local provider, nothing about your code leaves the machine at all. If you pick a
+the newest runs of each project in full and older ones archived. If you run a local provider, nothing about your code leaves the machine at all. If you pick a
 cloud provider, your code goes to that provider using your own API key or CLI account.
 
 Quodeq makes exactly one network call of its own: a daily unauthenticated version check
@@ -376,7 +348,7 @@ uv run quodeq             # launch the dashboard
 uv run pytest             # run the test suite
 ```
 
-Same OS prerequisites as the pipx install (Python 3.12+), plus Node 20+ and npm 10+ because a source checkout builds the dashboard UI from the working copy. You also need a configured LLM provider (Ollama or Claude Code / Codex CLI / Gemini CLI / GitHub Copilot CLI) before you can actually scan anything.
+Same OS prerequisites as the pipx install (Python 3.12+), plus Node 20+ and npm 10+ because a source checkout builds the dashboard UI from the working copy. You also need one of the [AI providers](#ai-providers) configured before you can actually scan anything.
 
 If the dashboard window doesn't appear on Linux, run `uv run quodeq --browser` (the native window needs `python3-gi` + `gir1.2-webkit2-4.1`, which aren't pulled in by the pip wheel).
 
