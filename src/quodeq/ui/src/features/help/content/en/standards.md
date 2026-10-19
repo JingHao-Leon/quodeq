@@ -41,7 +41,7 @@ Changing a threshold rewrites the rule for that dimension, so previously analyze
 ### Creating your own
 
 1. Click **New standard**.
-2. Name it and pick the dimension it belongs to.
+2. Name it. A standard is its own dimension: it gets its own score and its own card, beside the built-in ones.
 3. Add **principles** (categories) and inside each, **requirements** (the specific checks).
 4. Set a severity per requirement: `critical`, `major`, or `minor`.
 5. Save. The next evaluation picks it up automatically.
@@ -74,7 +74,6 @@ Click **Import** to load a JSON file you wrote yourself or got from elsewhere. q
 {
   "id": "react-best-practices",
   "name": "React Best Practices",
-  "dimension": "maintainability",
   "version": "1.0",
   "principles": [
     {
@@ -93,8 +92,7 @@ Click **Import** to load a JSON file you wrote yourself or got from elsewhere. q
 }
 ```
 
-- **id** unique slug, used as the filename.
-- **dimension** which quality dimension this standard rolls up into.
+- **id** unique slug, used as the filename. It is also the name of the dimension the standard is scored as: a custom standard does not roll up into a built-in dimension, it stands beside them.
 - **principles** categories of evaluation. Each principle becomes a card on the Explorer page.
 - **requirements** specific checks. Each one is what the AI cites when it reports a finding.
 
