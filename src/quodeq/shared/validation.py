@@ -36,6 +36,20 @@ def validate_relative_scope(scope: str) -> None:
         raise ValueError(err)
 
 
+def normalize_relative_scope(scope: str) -> str:
+    """Return *scope* as a canonical repo-relative POSIX path.
+
+    Empty and "." segments are dropped, so "./src", "src/" and "src" all
+    name the same directory, and "./" or "." name the repository root.
+    A scope is compared against repo-relative manifest paths as a string
+    prefix, so it needs one spelling for the directory it names.
+
+    ".." segments are kept as they are: rewriting them would change what
+    the caller asked for without saying so.
+    """
+    return "/".join(part for part in scope.split("/") if part not in ("", "."))
+
+
 def validate_canonical_absolute(raw: str) -> Path:
     """Return the resolved canonical form of *raw*, raising ValueError unless it
     is an absolute, traversal-free path (literal '..' segments rejected

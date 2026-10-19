@@ -11,6 +11,7 @@ import os
 
 from quodeq.analysis.manifest_models import AnalysisTarget, SourceManifest
 from quodeq.core.observability import NULL_LOG, LogSink
+from quodeq.shared.validation import normalize_relative_scope
 
 
 def _carried_total_lines(manifest: SourceManifest, scoped: list[AnalysisTarget]) -> int | None:
@@ -30,18 +31,23 @@ def filter_manifest_by_scope(
 ) -> SourceManifest | None:
     """Narrow a manifest to only files under *scope_path*.
 
+    *scope_path* is canonicalized first: the manifest's paths are
+    repo-relative and POSIX-style, so a scope spelled "./src" has to be
+    reduced to "src" before it can be compared against them.
+
     Returns None (logging a warning) when no files match.
     """
     if not manifest or not manifest.targets:
         return manifest
 
-    prefix = scope_path.rstrip("/") + "/"
+    scope = normalize_relative_scope(scope_path)
+    prefix = f"{scope}/" if scope else ""
     scoped_targets: list[AnalysisTarget] = []
     total = 0
     all_stats: dict[str, int] = {}
 
     for t in manifest.targets:
-        scoped_files = [f for f in t.source_files if f.startswith(prefix) or f == scope_path]
+        scoped_files = [f for f in t.source_files if f.startswith(prefix) or f == scope]
         if not scoped_files:
             continue
         stats: dict[str, int] = {}
@@ -59,7 +65,7 @@ def filter_manifest_by_scope(
             all_stats[k] = all_stats.get(k, 0) + v
 
     if scoped_targets:
-        log.info(f"Scope filter: {total} files under '{scope_path}'")
+        log.info(f"Scope filter: {total} files under '{scope}'")
         # skipped_untracked and unreadable_dirs travel with the manifest by
         # contract, so carry them across the rebuild rather than resetting
         # them to zero here.
@@ -71,7 +77,7 @@ def filter_manifest_by_scope(
         )
 
     log.warning(
-        f"No source files found under scope '{scope_path}'. "
+        f"No source files found under scope '{scope}'. "
         "The scoped folder contains no recognized source code files."
     )
     return None

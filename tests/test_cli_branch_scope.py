@@ -174,10 +174,12 @@ class TestScopedEvaluation:
 
     def test_the_project_identity_uses_the_canonical_scope(self, tmp_path: Path) -> None:
         """The scope a project is filed under is the one the run evaluated."""
-        from quodeq.cli import setup_run_dirs
+        from quodeq.cli import resolve_scope, setup_run_dirs
 
         repo = _scoped_repo(tmp_path)
         args = argparse.Namespace(repo=str(repo), output=str(tmp_path / "out"), scope="./src")
+        scope, ok = resolve_scope(repo, args)
+        assert ok
         with patch("quodeq.cli_evaluation.resolve_project_uuid", return_value="proj-uuid") as mock_uuid, \
              patch("quodeq.cli_evaluation.project_name_from_repo", return_value="repo"):
             setup_run_dirs(args, repo)

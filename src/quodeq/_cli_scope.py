@@ -14,13 +14,17 @@ from pathlib import Path
 
 from quodeq.analysis.manifest import SourceManifest
 from quodeq.analysis.manifest_models import AnalysisTarget
+from quodeq.shared.validation import normalize_relative_scope
 
 
 def resolve_scope(src: Path, args: argparse.Namespace) -> tuple[str | None, bool]:
     """Resolve --scope flag against the source directory.
 
     Returns ``(scope_path, ok)`` where *ok* is False when validation fails
-    (error already printed to stderr).
+    (error already printed to stderr). The scope is returned in its canonical
+    spelling and written back to *args*, so the directory it names has one
+    spelling everywhere it is used: the run's manifest, the project's
+    identity and the dashboard's project list.
     """
     scope = getattr(args, "scope", None)
     if not scope or not src.is_dir():
@@ -34,7 +38,9 @@ def resolve_scope(src: Path, args: argparse.Namespace) -> tuple[str | None, bool
         return None, False
     kind = "file" if scoped.is_file() else "folder"
     print(f"Scoped evaluation: {scope} ({kind}, repo root: {src})", file=sys.stderr)
-    return scope, True
+    canonical = normalize_relative_scope(scope)
+    args.scope = canonical
+    return canonical, True
 
 
 def resolve_single_file(src: Path) -> tuple[Path, str | None]:
