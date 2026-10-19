@@ -131,3 +131,31 @@ def test_analysis_target_name_with_category() -> None:
     from quodeq.analysis.manifest import target_name
     assert target_name("rust", "backend") == "rust_backend"
     assert target_name("python", None) == "python"
+
+
+def test_scope_filter_accepts_a_scope_spelled_with_dot_segments(
+    tmp_path: Path, detection: dict,
+) -> None:
+    """A scope written "./src" names the same directory as "src".
+
+    The manifest's paths are repo-relative and POSIX-style, so the scope is
+    compared against them as a prefix. A scope that still carries a "./"
+    segment must not make that comparison miss every file.
+    """
+    from quodeq.analysis.manifest_scope import filter_manifest_by_scope
+
+    (tmp_path / "src").mkdir()
+    for i in range(3):
+        (tmp_path / "src" / f"mod{i}.py").write_text("x = 1\n")
+    (tmp_path / "top.py").write_text("x = 1\n")
+
+    manifest = build_manifest(tmp_path, detection)
+    for scope in ("src", "./src", "src/", "./src/"):
+        scoped = filter_manifest_by_scope(manifest, scope)
+        assert scoped is not None, scope
+        assert scoped.total_files == 3, scope
+        assert scoped.source_files == ["src/mod0.py", "src/mod1.py", "src/mod2.py"], scope
+    for scope in (".", "./"):
+        scoped = filter_manifest_by_scope(manifest, scope)
+        assert scoped is not None, scope
+        assert scoped.total_files == 4, scope

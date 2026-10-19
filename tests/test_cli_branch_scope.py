@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
 import subprocess
 import os
 from pathlib import Path
+from unittest.mock import patch
 
 
 def _make_git_repo(path: Path, branches: list[str] | None = None) -> None:
@@ -116,3 +118,68 @@ class TestCliParserBranchScope:
         args = parser.parse_args(["evaluate", "/tmp/repo"])
         assert args.branch is None
         assert args.scope is None
+
+
+def _scoped_repo(tmp_path: Path) -> Path:
+    """A repository with a "src" folder holding three Python modules."""
+    repo = (tmp_path / "repo").resolve()
+    (repo / "src").mkdir(parents=True)
+    for i in range(3):
+        (repo / "src" / f"mod{i}.py").write_text("print('hello')\n")
+    return repo
+
+
+class TestResolveScope:
+    def test_scope_is_canonicalized(self, tmp_path: Path) -> None:
+        """"./src" and "src" name one directory, so they get one spelling."""
+        from quodeq.cli import resolve_scope
+
+        repo = _scoped_repo(tmp_path)
+        scope, ok = resolve_scope(repo, argparse.Namespace(scope="./src"))
+        assert ok
+        assert scope == "src"
+
+    def test_repository_root_scope_is_canonicalized(self, tmp_path: Path) -> None:
+        from quodeq.cli import resolve_scope
+
+        repo = _scoped_repo(tmp_path)
+        scope, ok = resolve_scope(repo, argparse.Namespace(scope="./"))
+        assert ok
+        assert scope == ""
+
+
+class TestScopedEvaluation:
+    def test_a_dot_prefixed_scope_still_selects_the_files(self, tmp_path: Path) -> None:
+        """--scope ./src must select the same files as --scope src.
+
+        The scope is walked as a path (where "./" is a no-op) and matched
+        against the manifest's repo-relative paths, so the two spellings have
+        to agree on which files are in scope.
+        """
+        from quodeq.analysis.manifest import build_manifest
+        from quodeq.analysis.manifest_scope import filter_manifest_by_scope
+        from quodeq.cli import resolve_scope
+
+        repo = _scoped_repo(tmp_path)
+        detection = {"extensions": {".py": "python"}, "skip_dirs": [], "skip_patterns": []}
+
+        scope, ok = resolve_scope(repo, argparse.Namespace(scope="./src"))
+        assert ok
+
+        manifest = build_manifest(repo, detection, None, scope_path=scope)
+        scoped = filter_manifest_by_scope(manifest, scope)
+        assert scoped is not None
+        assert scoped.total_files == 3
+        assert scoped.source_files == ["src/mod0.py", "src/mod1.py", "src/mod2.py"]
+
+    def test_the_project_identity_uses_the_canonical_scope(self, tmp_path: Path) -> None:
+        """The scope a project is filed under is the one the run evaluated."""
+        from quodeq.cli import setup_run_dirs
+
+        repo = _scoped_repo(tmp_path)
+        args = argparse.Namespace(repo=str(repo), output=str(tmp_path / "out"), scope="./src")
+        with patch("quodeq.cli_evaluation.resolve_project_uuid", return_value="proj-uuid") as mock_uuid, \
+             patch("quodeq.cli_evaluation.project_name_from_repo", return_value="repo"):
+            setup_run_dirs(args, repo)
+        identity = mock_uuid.call_args.args[1]
+        assert identity.scope_path == "src"
