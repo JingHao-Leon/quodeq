@@ -4,8 +4,8 @@ import RemoteEvaluatePanel from './RemoteEvaluatePanel.jsx';
 
 function remotePull(overrides = {}) {
   return {
-    pullingId: null, pullError: null, pullConflictId: null,
-    start: vi.fn(), confirmCopy: vi.fn(), cancelConflict: vi.fn(),
+    pullingId: null, pullError: null, pullConflictId: null, pullConflictExistingId: null,
+    start: vi.fn(), confirmCopy: vi.fn(), cancelConflict: vi.fn(), openExisting: vi.fn(),
     ...overrides,
   };
 }
@@ -19,7 +19,7 @@ describe('RemoteEvaluatePanel', () => {
     const pull = remotePull();
     renderPanel(pull);
     expect(screen.getByRole('heading', { name: 'site is a remote project' })).toBeInTheDocument();
-    expect(screen.getByText('bring the code and its history here.')).toBeInTheDocument();
+    expect(screen.getByText('bring its evaluation history to this computer.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'pull local copy' }));
     expect(pull.start).toHaveBeenCalledWith('remote-1');
   });
@@ -50,5 +50,20 @@ describe('RemoteEvaluatePanel', () => {
     expect(pull.confirmCopy).toHaveBeenCalledWith('remote-1');
     fireEvent.click(screen.getByRole('button', { name: 'cancel' }));
     expect(pull.cancelConflict).toHaveBeenCalledWith('remote-1');
+  });
+
+  it('offers the project already on this computer before a copy', () => {
+    const pull = remotePull({ pullConflictId: 'remote-1', pullConflictExistingId: 'local-9' });
+    renderPanel(pull);
+    expect(screen.getByText(/you already have this repository on this computer/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'evaluate yours' }));
+    expect(pull.openExisting).toHaveBeenCalledWith('remote-1');
+    fireEvent.click(screen.getByRole('button', { name: 'pull as a copy' }));
+    expect(pull.confirmCopy).toHaveBeenCalledWith('remote-1');
+  });
+
+  it('asks only for a copy when the server named no local project', () => {
+    renderPanel(remotePull({ pullConflictId: 'remote-1' }));
+    expect(screen.queryByRole('button', { name: 'evaluate yours' })).not.toBeInTheDocument();
   });
 });

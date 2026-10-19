@@ -11,6 +11,8 @@ import PageToolbar from '../../../components/PageToolbar.jsx';
 import EmptyState from '../../../components/EmptyState.jsx';
 import { t } from '../../../strings/index.js';
 import { buildDimMetas, buildUpToDateIds } from '../dimMetas.js';
+import { isPathMissing } from '../../../models/project.js';
+import LocateCodeSection from './LocateCodeSection.jsx';
 
 export { buildScanPayload } from '../hooks/useDimensionSelection.js';
 
@@ -24,7 +26,7 @@ const EVAL_OPTIONS_HINT = (
 );
 
 function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScopeBrowser, onCloseScopeBrowser, isReadOnlyEphemeral, urlActions, activeModel, modelPopover, branchLabel, scopeValue, estimates, onGoToSettings, onGoToProjects }) {
-  const { urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = urlActions;
+  const { urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore, relocate } = urlActions;
   return (
     <>
       <PageToolbar title={t('evaluate.pageTitle')} facts={t('evaluate.toolbarFacts', { project: info.name || project })}>
@@ -53,6 +55,8 @@ function ReEvaluateCardTop({ info, project, scope, scopeBrowserOpen, onOpenScope
           {t('evaluate.ephemeralNote')}
         </div>
       )}
+
+      {isPathMissing(info) && <LocateCodeSection info={info} relocate={relocate} />}
 
       {info.pathMissing && (
         <UrlRestoreSection urlInput={urlInput} setUrlInput={setUrlInput} urlError={urlError} urlSaving={urlSaving} handleUrlRestore={handleUrlRestore} />
@@ -99,7 +103,7 @@ function ReEvaluateScanControls({ canStart, disabled, cleanScan, setCleanScan, a
 
 function computeReEvalViewState({ info, scope, disabled, cleanScan, estimates }) {
   const isReadOnlyEphemeral = info?.ephemeral === true && info?.evaluable === false;
-  const canStart = !disabled && !info.pathMissing && !isReadOnlyEphemeral;
+  const canStart = !disabled && !info.pathMissing && !isPathMissing(info) && !isReadOnlyEphemeral;
   const isClean = cleanScan !== CLEAN_PERSIST.OFF;
   const dimMetas = buildDimMetas(estimates, isClean);
   const upToDateIds = buildUpToDateIds(estimates, isClean);
@@ -114,7 +118,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
   const { all: allDimensions, selected: selectedDims } = dimensions;
   const {
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
-    urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
+    urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore, relocate,
   } = actions;
   const [scopeBrowserOpen, setScopeBrowserOpen] = useState(false);
   // The popover's open state lives here: closing it after "use" re-renders
@@ -134,7 +138,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
         onOpenScopeBrowser={() => setScopeBrowserOpen(true)}
         onCloseScopeBrowser={() => setScopeBrowserOpen(false)}
         isReadOnlyEphemeral={isReadOnlyEphemeral}
-        urlActions={{ urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore }}
+        urlActions={{ urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore, relocate }}
         activeModel={activeModel}
         modelPopover={{ open: modelPopoverOpen, onOpen: () => setModelPopoverOpen(true), onClose: () => setModelPopoverOpen(false) }}
         branchLabel={branchLabel}
@@ -169,7 +173,7 @@ function ReEvaluateCardView({ info, project, disabled, dimensions, actions, scop
 
 export default function ReEvaluateCard({ project, projectInfo, onStart, disabled, preselectDims, onGoToSettings, onGoToProjects }) {
   const {
-    info, error, retry, allDimensions, selectedDims,
+    info, error, retry, relocate, allDimensions, selectedDims,
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
     isLocal, scanData, estimates, estimatesLoading, branch, setBranch, scopePath, setScopePath,
@@ -205,7 +209,7 @@ export default function ReEvaluateCard({ project, projectInfo, onStart, disabled
       dimensions={{ all: allDimensions, selected: selectedDims }}
       actions={{
         toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
-        urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
+        urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore, relocate,
       }}
       scope={{ isLocal, scanData, branch, setBranch, scopePath, setScopePath }}
       estimates={estimates}

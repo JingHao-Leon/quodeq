@@ -3,9 +3,8 @@ import { apiErrorMessage } from '../../../strings/apiErrors.js';
 
 /**
  * useReEvalInfo — loads/reloads a project's info for ReEvaluateCard, plus
- * the "restore a missing local path from its remote URL" flow.
- *
- * Split out of ReEvaluateCard.jsx verbatim.
+ * the "restore a missing local path from its remote URL" flow and the
+ * `relocate` the locate step (LocateCodeSection) uses.
  */
 export function useReEvalInfo(project, initialInfo, { getProjectInfo, relocateProject }) {
   const [info, setInfo] = useState(initialInfo || null);
@@ -38,15 +37,20 @@ export function useReEvalInfo(project, initialInfo, { getProjectInfo, relocatePr
 
   const retry = () => setReloadKey((k) => k + 1);
 
+  // Point the project at a folder or repository URL, then re-read its info.
+  // Throws the API error so each caller words its own failure.
+  async function relocate(target) {
+    await relocateProject(project, target);
+    setInfo(await getProjectInfo(project));
+  }
+
   async function handleUrlRestore() {
     const url = urlInput.trim();
     if (!url) return;
     setUrlSaving(true);
     setUrlError(null);
     try {
-      await relocateProject(project, url);
-      const updated = await getProjectInfo(project);
-      setInfo(updated);
+      await relocate(url);
       setUrlInput('');
     } catch (err) {
       setUrlError(apiErrorMessage(err, 'evaluate.urlUpdateFailed'));
@@ -55,5 +59,5 @@ export function useReEvalInfo(project, initialInfo, { getProjectInfo, relocatePr
     }
   }
 
-  return { info, error, retry, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore };
+  return { info, error, retry, relocate, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore };
 }

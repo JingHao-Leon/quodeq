@@ -266,3 +266,25 @@ describe('ReEvaluateCard first-run defaults', () => {
   });
 });
 
+
+describe('ReEvaluateCard with a folder that is not on this computer', () => {
+  beforeEach(() => {
+    invalidateDimensionCache();
+    chooseModel();
+  });
+
+  it('asks where the code is and keeps scan disabled until it is found', async () => {
+    const missing = { name: 'site', path: '/Users/publisher/site', location: 'local', pathExists: false, originUrl: 'https://github.com/org/site' };
+    const found = { ...missing, path: 'https://github.com/org/site', location: 'online', pathExists: null };
+    const getProjectInfo = vi.fn().mockResolvedValueOnce(missing).mockResolvedValue(found);
+    const api = makeFakeApi({ getProjectInfo });
+    renderCard({ project: 'uuid-pulled', projectInfo: missing, api });
+
+    expect(await screen.findByRole('region', { name: "find this project's code" })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^▸\s*scan$|^scan$/i })).toBeDisabled();
+
+    screen.getByRole('button', { name: 'clone it instead' }).click();
+    await waitFor(() => expect(api.relocateProject).toHaveBeenCalledWith('uuid-pulled', 'https://github.com/org/site'));
+    await waitFor(() => expect(screen.queryByRole('region', { name: "find this project's code" })).not.toBeInTheDocument());
+  });
+});

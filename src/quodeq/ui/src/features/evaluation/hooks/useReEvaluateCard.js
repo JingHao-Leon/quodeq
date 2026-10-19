@@ -14,7 +14,7 @@ import { ACTIVE_PROVIDER_KEY } from '../../../constants.js';
 import { resolveProviderSettings } from '../../../utils/effectiveProviderSettings.js';
 import { useReEvalInfo } from './useReEvalInfo.js';
 import { useDimensionSelection } from './useDimensionSelection.js';
-import { PROJECT_LOCATION, isFirstRunProject } from '../../../models/project.js';
+import { PROJECT_LOCATION, isFirstRunProject, isPathMissing } from '../../../models/project.js';
 
 // The chips pre-select from the same resolution the start payload and the
 // Settings screen use, so the form can never claim a budget the run
@@ -54,11 +54,13 @@ function useReEvalScope(project, projectInfo) {
   return { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS, isFirstRun: firstRun };
 }
 
-// Local-project-only data: the scan preview and the pre-run estimates.
+// Local-project-only data: the scan preview and the pre-run estimates. A
+// folder that is not on this machine has nothing to scan yet.
 function useReEvalScan(project, info) {
   const isLocal = info?.location === PROJECT_LOCATION.LOCAL;
-  const { scanData } = useScanData(isLocal ? project : null);
-  const { estimates, loading: estimatesLoading } = useScanEstimates(project, isLocal && !info?.pathMissing);
+  const scannable = isLocal && !isPathMissing(info);
+  const { scanData } = useScanData(scannable ? project : null);
+  const { estimates, loading: estimatesLoading } = useScanEstimates(project, scannable && !info?.pathMissing);
   return { isLocal, scanData, estimates, estimatesLoading };
 }
 
@@ -73,7 +75,7 @@ function useReEvalScan(project, info) {
 export function useReEvaluateCard(project, onStart, projectInfo, preselectDims) {
   const api = useApi();
   const { getProjectInfo, relocateProject } = api;
-  const { info, error, retry, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = useReEvalInfo(project, projectInfo, { getProjectInfo, relocateProject });
+  const { info, error, retry, relocate, urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore } = useReEvalInfo(project, projectInfo, { getProjectInfo, relocateProject });
   const { allDimensions } = usePluginDimensions();
   const { showToast } = useSidePane();
   const { branch, setBranch, scopePath, setScopePath, timeLimitS, setTimeLimitS, isFirstRun } = useReEvalScope(project, projectInfo);
@@ -83,7 +85,7 @@ export function useReEvaluateCard(project, onStart, projectInfo, preselectDims) 
     useDimensionSelection({ allDimensions, info, branch, scopePath, onStart, onValidationFail: showToast, preselectDims, isFirstRun, project, timeLimitS });
 
   return {
-    info, error, retry, allDimensions, selectedDims,
+    info, error, retry, relocate, allDimensions, selectedDims,
     toggleDim, selectAll, clearAll, handleScan, cleanScan, setCleanScan,
     urlInput, setUrlInput, urlError, urlSaving, handleUrlRestore,
     isLocal, scanData, estimates, estimatesLoading, branch, setBranch, scopePath, setScopePath,

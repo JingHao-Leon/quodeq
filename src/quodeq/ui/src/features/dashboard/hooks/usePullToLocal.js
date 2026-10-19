@@ -22,7 +22,8 @@ function useBaselineKey(slot) {
  * only starts it, and the outcome is read from the pull slot of the sync
  * status (`shared.pullSlot`): running, DONE (the card shows "pulled"), or
  * ERROR. A PROJECT_EXISTS error is the same-uuid/same-identity collision and
- * opens the card's inline copy confirm; any other error is `pullError`, shown
+ * opens the card's inline copy confirm (`pullConflictExistingId` names the
+ * local project it collided with, when the server said); any other error is `pullError`, shown
  * on that card until the next run. Only a pull that could not START (the
  * POST was refused) is toasted. The projects list is refetched by
  * useSyncStatus when the slot reaches DONE.
@@ -58,6 +59,7 @@ export function usePullToLocal({ shared }) {
   const errorOpen = failed && !collided && dismissedKey !== key;
   return {
     pullConflictId: conflictOpen ? slot.project : null,
+    pullConflictExistingId: conflictOpen ? (slot.existingProjectId || null) : null,
     pullError: errorOpen
       ? { projectId: slot.project, message: apiErrorMessage({ code: slot.code, message: slot.error }, 'projects.pullFailed') }
       : null,

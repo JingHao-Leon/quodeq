@@ -35,14 +35,30 @@ function onCardFor(state, activeTab, projectId) {
     && state.selectedProject === projectId;
 }
 
+// The local project a collision named, when it is in the projects list, and
+// the action that evaluates it instead of pulling a copy (stays on Evaluate).
+function useExistingLocal(pull, state) {
+  const existing = pull.pullConflictExistingId;
+  const existingId = existing && findProject(state.projects, existing) ? existing : null;
+  const openExisting = (id) => {
+    pull.cancelConflict(id);
+    state.handleProjectChange?.(existingId, PROJECT_SOURCE.LOCAL);
+  };
+  return { existingId, openExisting };
+}
+
 /**
  * The pull a remote project's evaluate card starts, watched app-wide so it
  * still lands when the person leaves the card. When the local copy is in the
  * projects list: still on the card, the app selects it and stays on Evaluate
  * (the run does not start); elsewhere, a toast offers "evaluate" and nothing
  * moves under them. A failure off the card is toasted; on it, the card shows it.
+ * A collision with a project already on this machine names it
+ * (`pullConflictExistingId`, only when it is in the projects list), and
+ * `openExisting` selects that one on Evaluate instead of pulling a copy.
  * @returns {{ pullingId: string|null, pullError: object|null, pullConflictId: string|null,
- *   start: Function, confirmCopy: Function, cancelConflict: Function }}
+ *   pullConflictExistingId: string|null, start: Function, confirmCopy: Function,
+ *   cancelConflict: Function, openExisting: Function }}
  */
 export function useRemoteEvaluatePull({ state, activeTab, navTab }) {
   const { connectShared, startPull } = useApi();
@@ -93,14 +109,12 @@ export function useRemoteEvaluatePull({ state, activeTab, navTab }) {
     });
   }, [landed]); // eslint-disable-line react-hooks/exhaustive-deps -- fires once per landing
 
+  const { existingId, openExisting } = useExistingLocal(pull, state);
   const start = useCallback((id) => { setPendingId(id); pull.handlePull(id); }, [pull.handlePull]);
   const confirmCopy = useCallback((id) => { setPendingId(id); pull.handleConfirmCopy(id); }, [pull.handleConfirmCopy]);
   return {
-    pullingId: pull.pullingId,
-    pullError: pull.pullError,
-    pullConflictId: pull.pullConflictId,
-    start,
-    confirmCopy,
-    cancelConflict: pull.cancelConflict,
+    pullingId: pull.pullingId, pullError: pull.pullError,
+    pullConflictId: pull.pullConflictId, pullConflictExistingId: existingId,
+    start, confirmCopy, cancelConflict: pull.cancelConflict, openExisting,
   };
 }

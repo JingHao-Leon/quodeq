@@ -11,6 +11,10 @@ vi.mock('../../side-pane/SidePaneContext.jsx', () => ({
 const idle = { state: 'idle', phase: null };
 const running = { state: 'running', phase: 'downloading', project: 'remote-1' };
 const done = { state: 'done', phase: 'done', project: 'remote-1', projectId: 'local-1', projectName: 'site', finishedAt: 5 };
+const collided = {
+  state: 'error', phase: 'error', project: 'remote-1', code: 'PROJECT_EXISTS', error: 'exists',
+  conflictKind: 'same_identity', existingProjectId: 'mine', finishedAt: 7,
+};
 const failed = { state: 'error', phase: 'error', project: 'remote-1', projectName: 'site', code: 'X', error: 'boom', finishedAt: 6 };
 const POLL_WAIT = { timeout: 3000 };
 
@@ -83,5 +87,25 @@ describe('useRemoteEvaluatePull', () => {
     await startAndFinish(offCard, failed);
     await waitFor(() => expect(showToast).toHaveBeenCalledTimes(1));
     expect(showToast.mock.calls[0][0]).toMatch(/^couldn't pull site · /);
+  });
+
+  it('a collision names the local project already here and evaluates it instead of pulling', async () => {
+    const ctx = setup({ projects: [{ id: 'mine' }] });
+    await startAndFinish(ctx, collided);
+    await waitFor(() => expect(ctx.result.current.pullConflictId).toBe('remote-1'));
+    expect(ctx.result.current.pullConflictExistingId).toBe('mine');
+
+    act(() => { ctx.result.current.openExisting('remote-1'); });
+
+    expect(ctx.handleProjectChange).toHaveBeenCalledWith('mine', 'local');
+    expect(ctx.result.current.pullConflictId).toBeNull();
+    expect(ctx.api.startPull).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer a colliding project that is not in the projects list', async () => {
+    const ctx = setup({ projects: [] });
+    await startAndFinish(ctx, collided);
+    await waitFor(() => expect(ctx.result.current.pullConflictId).toBe('remote-1'));
+    expect(ctx.result.current.pullConflictExistingId).toBeNull();
   });
 });

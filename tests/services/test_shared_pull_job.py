@@ -93,3 +93,13 @@ def test_conflict_detail_defaults_to_none_and_passes_through(status):
     )
     snap = get_pull_status(status)
     assert (snap["conflict_kind"], snap["source_project_id"]) == ("same_uuid", "abc")
+
+
+def test_conflict_names_the_local_project_it_collided_with(status):
+    assert PullOutcome(True).existing_project_id is None
+    status.claim("abc")
+    run_pull_job(
+        "abc", status=status,
+        pull=lambda p: PullOutcome(False, code="PROJECT_EXISTS", conflict_kind="same_identity", existing_project_id="mine"),
+    )
+    assert get_pull_status(status)["existing_project_id"] == "mine"

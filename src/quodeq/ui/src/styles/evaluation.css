@@ -731,6 +731,18 @@ button.eval-provider-badge--clickable:focus-visible {
   color: var(--color-text-muted);
 }
 
+.re-eval-locate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.re-eval-stale-warning .re-eval-locate__url {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-data);
+  overflow-wrap: anywhere;
+}
+
 .re-eval-url-input {
   flex: 1;
   padding: var(--space-2);

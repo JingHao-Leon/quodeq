@@ -1,5 +1,5 @@
 import { PROJECT_ACTION } from '../../dashboardVocab.js';
-import { PROJECT_LOCATION } from '../../../../models/project.js';
+import { isPathMissing } from '../../../../models/project.js';
 import { PROJECT_SOURCE } from '../../../../vocab/projectSource.js';
 import { projectIdOrSelf } from '../../../../utils/projectIdentity.js';
 
@@ -16,9 +16,7 @@ const SIDES_BOTH = 'both';
 export const ROW_LOCATION = Object.freeze({ LOCAL: 'local', REMOTE: 'remote', MISSING: 'missing' });
 
 // A local project whose folder is gone: the row offers relocate before anything else.
-export function isPathMissing(project) {
-  return project?.location === PROJECT_LOCATION.LOCAL && project.pathExists === false;
-}
+export { isPathMissing };
 
 export function rowLocation(entry) {
   if (!entry.local) return ROW_LOCATION.REMOTE;

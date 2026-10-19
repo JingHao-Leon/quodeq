@@ -5,8 +5,13 @@ import '../../../styles/never-evaluated.css';
 // What the pull step says and offers: the conflict confirm, the running
 // download, a failure with its reason, or the first ask.
 function pullStep({ projectId, remotePull }) {
-  const { pullingId, pullError, pullConflictId } = remotePull;
-  if (pullConflictId === projectId) return { conflict: true, hint: t('evaluate.remotePullExists') };
+  const { pullingId, pullError, pullConflictId, pullConflictExistingId } = remotePull;
+  if (pullConflictId === projectId) {
+    // The server named the local project it collided with: theirs is the
+    // natural one to evaluate, a copy is the fallback.
+    const existing = pullConflictExistingId || null;
+    return { conflict: true, existing, hint: t(existing ? 'evaluate.remotePullHaveIt' : 'evaluate.remotePullExists') };
+  }
   if (pullingId === projectId) return { pulling: true, hint: t('projects.pulling') };
   if (pullError?.projectId === projectId) {
     return { failed: true, hint: <span className="never-evaluated__error" role="alert">{pullError.message}</span> };
@@ -16,14 +21,20 @@ function pullStep({ projectId, remotePull }) {
 
 function PullAction({ projectId, step, remotePull }) {
   if (step.conflict) {
+    const copyClass = step.existing ? 'term-btn term-btn--secondary' : 'term-btn term-btn--primary term-btn--filled';
     return (
       <>
         <button type="button" className="term-btn term-btn--secondary" onClick={() => remotePull.cancelConflict(projectId)}>
           {t('evaluate.cancelBtn')}
         </button>
-        <button type="button" className="term-btn term-btn--primary term-btn--filled" onClick={() => remotePull.confirmCopy(projectId)}>
+        <button type="button" className={copyClass} onClick={() => remotePull.confirmCopy(projectId)}>
           {t('evaluate.remotePullCopy')}
         </button>
+        {step.existing && (
+          <button type="button" className="term-btn term-btn--primary term-btn--filled" onClick={() => remotePull.openExisting(projectId)}>
+            {t('evaluate.remotePullOpenExisting')}
+          </button>
+        )}
       </>
     );
   }

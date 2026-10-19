@@ -187,7 +187,7 @@ def test_pull_collision_slot_carries_kind_and_source_id_on_the_wire(
     _pull(client, project_uuid)
     pull = client.get("/api/shared/status").get_json()["pull"]
     assert pull["conflictKind"] == "same_uuid"
-    assert pull["sourceProjectId"] == project_uuid
+    assert pull["sourceProjectId"] == pull["existingProjectId"] == project_uuid  # same_uuid: same id locally
 
 
 def test_pull_collision_replace_overwrites(

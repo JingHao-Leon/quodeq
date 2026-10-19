@@ -60,6 +60,7 @@ def _outcome_from_import(status: int, body: dict, project: str) -> PullOutcome:
     return PullOutcome(
         False, code=body.get("code") or CODE_PULL_FAILED, error=body.get("error"),
         conflict_kind=body.get("kind"), source_project_id=body.get("sourceProjectId") or project,
+        existing_project_id=body.get("existingProjectId"),
     )
 
 

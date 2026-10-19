@@ -75,3 +75,23 @@ def test_info_no_git_dir_returns_none_last_fetched(tmp_path, reports_with_projec
     assert info is not None
     assert info["lastFetchedAt"] is None
     assert info["evaluable"] is True  # dir exists even though no .git
+
+
+def test_info_says_whether_a_local_folder_exists_here(tmp_path, reports_with_project):
+    """A pulled project keeps the publisher's folder, which this machine may not have."""
+    from quodeq.services.fs_projects import get_project_info
+    reports, project_uuid, _, write_info = reports_with_project
+    write_info(location="local", path=str(tmp_path / "someone-elses-laptop"))
+    assert get_project_info(str(reports), project_uuid)["pathExists"] is False
+
+    repo = tmp_path / "here"
+    repo.mkdir()
+    write_info(location="local", path=str(repo))
+    assert get_project_info(str(reports), project_uuid)["pathExists"] is True
+
+
+def test_info_path_exists_is_none_for_an_online_project(reports_with_project):
+    from quodeq.services.fs_projects import get_project_info
+    reports, project_uuid, _, write_info = reports_with_project
+    write_info(location="online", path="https://github.com/org/repo")
+    assert get_project_info(str(reports), project_uuid)["pathExists"] is None

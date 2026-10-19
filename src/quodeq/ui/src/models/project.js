@@ -38,6 +38,16 @@ import { fromFieldSpec } from './fieldSpec.js';
 export const PROJECT_LOCATION = Object.freeze({ LOCAL: 'local', ONLINE: 'online' });
 
 /**
+ * A local project whose folder is not on this machine: moved, deleted, or
+ * pulled from someone else's computer (a pull keeps the publisher's path).
+ * Only a definite `false` counts; an unknown `pathExists` is not missing.
+ * @param {{ location?: string|null, pathExists?: boolean|null }|null|undefined} project
+ */
+export function isPathMissing(project) {
+  return project?.location === PROJECT_LOCATION.LOCAL && project.pathExists === false;
+}
+
+/**
  * Field table for {@link createProject}: output key -> [raw spelling(s), default].
  */
 const PROJECT_FIELDS = {
